@@ -20,7 +20,7 @@ Then follow the setup at https://styloviz.dev/docs — Tailwind CSS 4 is a peer 
 ## Working on this repo
 
 ```sh
-npm install
+npm ci
 npm run build   # every package, in dependency order, into dist/
 npm test        # the unit and component specs
 ```
