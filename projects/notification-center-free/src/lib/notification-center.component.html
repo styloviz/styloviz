@@ -1,0 +1,477 @@
+<!-- ─── Notification Center ────────────────────────────────────────────────── -->
+<!-- Bell-trigger variants render only the trigger here.                        -->
+<!-- Floating panels are rendered via a body-level portal (#floatingPanel)      -->
+<!-- so they escape every overflow / transform / backdrop-filter ancestor.      -->
+
+@switch (variant()) {
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- VARIANT: dropdown  — bell trigger only; panel portaled to body         -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @case ('dropdown') {
+    <div class="relative inline-flex">
+      <button
+        type="button"
+        (click)="togglePanel($event)"
+        [attr.aria-expanded]="_open()"
+        aria-haspopup="true"
+        aria-label="Open notifications"
+        class="relative inline-flex items-center justify-center w-10 h-10 rounded-xl
+               text-gray-500 dark:text-gray-400
+               hover:text-gray-700 dark:hover:text-gray-200
+               hover:bg-gray-100 dark:hover:bg-gray-800
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+               transition-colors duration-150">
+        <sv-icon name="bell" [cssClass]="bellCssClass()" [strokeWidth]="1.8" />
+        @if (badgeLabel()) {
+          <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1
+                       flex items-center justify-center rounded-full
+                       bg-danger-600 text-white text-[10px] font-bold leading-none
+                       ring-2 ring-white dark:ring-gray-900">
+            {{ badgeLabel() }}
+          </span>
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- VARIANT: drawer  — bell trigger only; panel portaled to body           -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  @case ('inline') {
+    <div class="rounded-2xl border border-gray-200 dark:border-gray-700
+                bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+
+      <div class="flex items-center justify-between px-5 py-4
+                  border-b border-gray-100 dark:border-gray-800">
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ panelTitle() }}</h2>
+          @if (unreadCount() > 0) {
+            <span class="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40
+                         text-primary-700 dark:text-primary-300 text-xs font-semibold">
+              {{ unreadCount() }}
+            </span>
+          }
+        </div>
+        @if (unreadCount() > 0) {
+          <button type="button" (click)="onMarkAllRead()"
+                  class="text-xs text-primary-600 dark:text-primary-400 hover:underline focus-visible:outline-none">
+            Mark all read
+          </button>
+        }
+      </div>
+
+      @if (showSearch()) {
+        <div class="px-5 pt-3.5">
+          <div class="relative">
+            <sv-icon name="search" cssClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" [strokeWidth]="2" />
+            <input type="search" placeholder="Search notifications…"
+                   [value]="_search()"
+                   (input)="_search.set($any($event.target).value)"
+                   class="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl
+                          bg-gray-50 dark:bg-gray-800
+                          border border-gray-200 dark:border-gray-700
+                          text-gray-900 dark:text-gray-100
+                          placeholder:text-gray-500 dark:placeholder:text-gray-400
+                          focus:outline-none focus:ring-2 focus:ring-primary-500/40"/>
+          </div>
+        </div>
+      }
+
+      @if (tabs().length > 0) {
+        <div class="flex gap-0.5 px-5 pt-3 border-b border-gray-100 dark:border-gray-800">
+          @for (tab of tabs(); track tab) {
+            <button type="button" (click)="setTab(tab)"
+                    class="relative px-3 py-2 text-sm font-medium rounded-t-lg focus-visible:outline-none transition-colors"
+                    [class]="_activeTab() === tab
+                      ? 'text-primary-600 dark:text-primary-400'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
+              {{ tab }}
+              @if (tabUnread()[tab] > 0) {
+                <span class="ml-1 px-1.5 py-0.5 rounded-full bg-danger-100 dark:bg-danger-900/40 text-danger-700 dark:text-danger-400 text-xs font-bold">
+                  {{ tabUnread()[tab] }}
+                </span>
+              }
+              @if (_activeTab() === tab) {
+                <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></span>
+              }
+            </button>
+          }
+        </div>
+      }
+
+      <div class="overflow-y-auto" [style.max-height]="maxHeight()">
+        @if (filteredItems().length === 0) {
+          <ng-container *ngTemplateOutlet="emptyTpl"></ng-container>
+        } @else {
+          @for (item of filteredItems(); track item.id) {
+            <ng-container *ngTemplateOutlet="notifRow; context: { $implicit: item }"></ng-container>
+          }
+<!-- Unbounded feed: the next page, on demand. -->
+@if (hasMore() || loadingMore()) {
+  <div class="px-3 py-2">
+    @if (loadingMore()) {
+      <div data-sv-state="loading-more">
+        <sv-skeleton-shell variant="list" [rows]="2" ariaLabel="Loading more notifications" />
+      </div>
+    } @else {
+      <button
+        type="button"
+        class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+        (click)="onLoadMore()">
+        Load more
+      </button>
+    }
+  </div>
+}
+
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- VARIANT: feed  — activity-feed style list                              -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PORTAL TEMPLATE — rendered to document.body on open
+     No position:fixed ancestor clipping can reach here.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<ng-template #floatingPanel>
+  @switch (variant()) {
+
+    <!-- ─── Dropdown panel ──────────────────────────────────────────────── -->
+    @case ('dropdown') {
+      <div
+        class="fixed z-[9999] w-[26rem] max-w-[calc(100vw-1rem)]
+               rounded-2xl shadow-2xl shadow-black/15 dark:shadow-black/50
+               bg-white dark:bg-gray-900
+               border border-gray-200/70 dark:border-gray-700/60
+               overflow-hidden flex flex-col"
+        [style.top]="_panelStyle().top"
+        [style.bottom]="_panelStyle().bottom"
+        [style.right]="_panelStyle().right"
+        [style.max-height]="_panelStyle().maxH">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between px-5 py-4
+                    border-b border-gray-100 dark:border-gray-800">
+          <div class="flex items-center gap-2.5">
+            <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ panelTitle() }}</span>
+            @if (unreadCount() > 0) {
+              <span class="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/40
+                           text-primary-700 dark:text-primary-300 text-[11px] font-semibold">
+                {{ unreadCount() }} new
+              </span>
+            }
+          </div>
+          <div class="flex items-center gap-2">
+            @if (unreadCount() > 0) {
+              <button type="button" (click)="onMarkAllRead()"
+                      class="text-xs text-primary-600 dark:text-primary-400 hover:underline focus-visible:outline-none">
+                Mark all read
+              </button>
+            }
+            <button type="button" (click)="closePanel()" aria-label="Close"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg
+                           text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300
+                           hover:bg-gray-100 dark:hover:bg-gray-800
+                           focus-visible:outline-none transition-colors">
+              <sv-icon name="close" cssClass="w-4 h-4" [strokeWidth]="2" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Search -->
+        @if (showSearch()) {
+          <div class="px-4 pt-3">
+            <div class="relative">
+              <sv-icon name="search" cssClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 pointer-events-none" [strokeWidth]="2" />
+              <input type="search" placeholder="Search notifications…"
+                     [value]="_search()"
+                     (input)="_search.set($any($event.target).value)"
+                     class="w-full pl-9 pr-3 py-2 text-sm rounded-xl
+                            bg-gray-50 dark:bg-gray-800
+                            border border-gray-200 dark:border-gray-700
+                            text-gray-900 dark:text-gray-100
+                            placeholder:text-gray-500 dark:placeholder:text-gray-400
+                            focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-400
+                            transition-shadow"/>
+            </div>
+          </div>
+        }
+
+        <!-- Tabs -->
+        @if (tabs().length > 0) {
+          <div class="flex gap-0.5 px-4 pt-3 border-b border-gray-100 dark:border-gray-800">
+            @for (tab of tabs(); track tab) {
+              <button type="button" (click)="setTab(tab)"
+                      class="relative px-3 py-2 text-xs font-medium rounded-t-lg
+                             focus-visible:outline-none transition-colors"
+                      [class]="_activeTab() === tab
+                        ? 'text-primary-600 dark:text-primary-400'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
+                {{ tab }}
+                @if (tabUnread()[tab] > 0) {
+                  <span class="ml-1 px-1.5 py-0.5 rounded-full
+                               bg-danger-100 dark:bg-danger-900/40
+                               text-danger-700 dark:text-danger-400 text-[10px] font-bold">
+                    {{ tabUnread()[tab] }}
+                  </span>
+                }
+                @if (_activeTab() === tab) {
+                  <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></span>
+                }
+              </button>
+            }
+          </div>
+        }
+
+        <!-- List -->
+        <div class="overflow-y-auto" [style.max-height]="maxHeight()">
+          @if (filteredItems().length === 0) {
+            <ng-container *ngTemplateOutlet="emptyTpl"></ng-container>
+          } @else {
+            @for (item of filteredItems(); track item.id) {
+              <ng-container *ngTemplateOutlet="notifRow; context: { $implicit: item }"></ng-container>
+            }
+<!-- Unbounded feed: the next page, on demand. -->
+@if (hasMore() || loadingMore()) {
+  <div class="px-3 py-2">
+    @if (loadingMore()) {
+      <div data-sv-state="loading-more">
+        <sv-skeleton-shell variant="list" [rows]="2" ariaLabel="Loading more notifications" />
+      </div>
+    } @else {
+      <button
+        type="button"
+        class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+        (click)="onLoadMore()">
+        Load more
+      </button>
+    }
+  </div>
+}
+
+          }
+        </div>
+
+        <!-- Footer -->
+        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-800
+                    flex items-center justify-between">
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            {{ filteredItems().length }} notification{{ filteredItems().length !== 1 ? 's' : '' }}
+          </span>
+          @if (showViewAll()) {
+            <button type="button" (click)="onViewAll()"
+                    class="text-xs font-medium text-primary-600 dark:text-primary-400
+                           hover:underline focus-visible:outline-none">
+              View all
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ─── Compact panel ───────────────────────────────────────────────── -->
+  }
+</ng-template>
+
+<!-- ─── Shared: notification row ─────────────────────────────────────────────
+     Used by dropdown / drawer / inline / grouped (via *ngTemplateOutlet).
+     Context: { $implicit: NotificationItem }
+     ──────────────────────────────────────────────────────────────────────── -->
+<ng-template #notifRow let-item>
+  <div
+    class="group relative flex gap-3.5 px-5 py-4 cursor-pointer
+           border-b border-gray-100 dark:border-gray-800/60 last:border-0
+           transition-colors duration-100"
+    [attr.aria-busy]="isPending(item) ? 'true' : null"
+    [class]="(!item.read
+      ? 'bg-primary-50/50 dark:bg-primary-950/20 hover:bg-primary-50/80 dark:hover:bg-primary-950/30'
+      : 'hover:bg-gray-50/80 dark:hover:bg-gray-800/50') + ' ' + rowStateClass(item)">
+
+    <!--
+      ★★ THE ROW WAS A <button> WRAPPING BUTTONS, which is not merely an ARIA
+      problem: `<button>` has no permitted button descendants, so the parser
+      reparents the action and dismiss controls out of the row entirely, and
+      `button` being children-presentational in ARIA hid whatever survived.
+
+      A row-sized overlay button is the activation target instead. A pointer
+      click anywhere on the row still opens the notification; the controls that
+      must stay separately operable are lifted onto `z-10` above it.
+    -->
+    <button
+      type="button"
+      (click)="onNotificationClick(item)"
+      [attr.aria-label]="item.title"
+      class="absolute inset-0 outline-none
+             focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+    ></button>
+
+    @if (!item.read) {
+      <span class="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-primary-500"></span>
+    }
+
+    <!-- `pointer-events-none` so this `relative` block, which paints above the
+         overlay button, does not leave the avatar a dead spot in a clickable row. -->
+    <div class="relative shrink-0 mt-0.5 pointer-events-none">
+      @if (item.actor?.avatar) {
+        <img [src]="item.actor!.avatar" [alt]="item.actor!.name"
+             class="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-900"/>
+      } @else if (item.actor) {
+        <div class="w-10 h-10 rounded-full flex items-center justify-center
+                    text-white text-sm font-semibold ring-2 ring-white dark:ring-gray-900"
+             [class]="typeColor(item.type)">
+          {{ initials(item.actor.name) }}
+        </div>
+      } @else {
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+             [class]="typeColor(item.type)">
+          <sv-icon [name]="typeIcon(item.type)" cssClass="w-5 h-5" [strokeWidth]="2" />
+        </div>
+      }
+      @if (item.actor) {
+        <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center
+                     text-white ring-2 ring-white dark:ring-gray-900"
+              [class]="typeColor(item.type)">
+          <sv-icon [name]="typeIcon(item.type)" cssClass="w-2.5 h-2.5" [strokeWidth]="2.5" />
+        </span>
+      }
+    </div>
+
+    <div class="flex-1 min-w-0 pr-4">
+      <div class="flex items-start justify-between gap-3 mb-0.5">
+        <p class="text-[13.5px] leading-snug text-gray-900 dark:text-gray-100"
+           [class.font-semibold]="!item.read"
+           [class.font-normal]="item.read">
+          {{ item.title }}
+        </p>
+        <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
+          @if (item.priority && item.priority !== 'low') {
+            <span class="w-2 h-2 rounded-full shrink-0" [class]="priorityColor(item.priority!)"></span>
+          }
+          <span class="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ timeAgo(item.timestamp) }}</span>
+        </div>
+      </div>
+
+      @if (item.body) {
+        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2 mt-0.5">
+          {{ item.body }}
+        </p>
+      }
+
+      @if (item.target) {
+        <p class="text-xs text-primary-600 dark:text-primary-400 mt-1 truncate font-medium">
+          {{ item.target.label }}
+        </p>
+      }
+
+      @if (item.actions && item.actions.length > 0) {
+        <div class="relative z-10 flex flex-wrap gap-2 mt-2.5" svStopPropagation>
+          @for (action of item.actions; track action.id) {
+            <button type="button"
+                    (click)="onActionClick(item, action.id, $event)"
+                    class="px-3 py-1.5 rounded-lg text-xs font-medium
+                           transition-colors focus-visible:outline-none focus-visible:ring-2"
+                    [class]="action.variant === 'primary'
+                      ? 'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500'
+                      : action.variant === 'danger'
+                      ? 'bg-danger-50 dark:bg-danger-900/30 text-danger-700 dark:text-danger-400 hover:bg-danger-100 dark:hover:bg-danger-900/50 focus-visible:ring-danger-500'
+                      : 'bg-gray-100 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus-visible:ring-gray-400'">
+              {{ action.label }}
+            </button>
+          }
+        </div>
+      }
+
+      <ng-container [ngTemplateOutlet]="itemStateTpl"
+                    [ngTemplateOutletContext]="{ item }" />
+    </div>
+
+    <button type="button"
+            (click)="onDismiss(item, $event)"
+            aria-label="Dismiss notification"
+            class="absolute top-3 right-3 z-10 w-6 h-6 flex items-center justify-center rounded-lg
+                   text-gray-300 dark:text-gray-600
+                   hover:text-gray-500 dark:hover:text-gray-400
+                   hover:bg-gray-100 dark:hover:bg-gray-700
+                   opacity-0 group-hover:opacity-100 transition-opacity
+                   focus-visible:outline-none focus-visible:opacity-100">
+      <sv-icon name="close" cssClass="w-3.5 h-3.5" [strokeWidth]="2.5" />
+    </button>
+  </div>
+</ng-template>
+
+<!-- ─── Shared: one row's async state (OF-10-M2) ─────────────────────────── -->
+<!--
+  ★★★ PER ROW, NOT ONE BANNER. The `error` input above is for the FEED — "could
+      not load notifications" — and routing a single row's failed write there
+      says the whole list is broken. Optimistic dismissal already rolls back
+      correctly; what was missing is anyone telling the user it rolled back, so
+      the row silently reappeared and they clicked again.
+
+  ★★ `role="alert"`, not `status`: something the user asked for did not happen,
+      and it happened because of their click. The same line the audit draws
+      between `sv-result`'s error and its success.
+
+  ★ The retry sits on `z-10` with `svStopPropagation`, like the row's action
+    buttons, because the whole row is one big overlay <button> — see the note
+    in `#notifRow`. Without both, pressing it would open the notification.
+-->
+<ng-template #itemStateTpl let-item="item">
+  @if (errorFor(item); as message) {
+    <div
+      role="alert"
+      data-sv-state="item-error"
+      class="relative z-10 mt-2 flex items-start gap-2 rounded-lg bg-danger-50 px-2.5 py-1.5
+             text-[11px] text-danger-800 dark:bg-danger-950/40 dark:text-danger-200"
+      svStopPropagation
+    >
+      <span class="min-w-0 flex-1">{{ message }}</span>
+      <button
+        type="button"
+        data-sv-item-retry
+        class="shrink-0 font-semibold underline underline-offset-2 hover:no-underline
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-500"
+        (click)="onRetryItem(item)"
+      >Try again</button>
+    </div>
+  }
+</ng-template>
+
+<!-- ─── Shared: empty state ──────────────────────────────────────────────── -->
+<!-- The shared "nothing in the list" block. Every variant renders this when
+     filteredItems() is empty, so all three async states land in one place. -->
+<ng-template #emptyTpl>
+  @if (loading()) {
+    <div class="px-4 py-6" data-sv-state="loading">
+      <sv-skeleton-shell variant="list" [rows]="4" ariaLabel="Loading notifications" />
+    </div>
+  } @else if (error()) {
+    <sv-error-shell
+      [error]="error()"
+      title="Could not load notifications"
+      (retry)="retry.emit()"
+      data-sv-state="error"
+    >
+      <sv-icon svShellIcon name="alert-triangle" cssClass="w-8 h-8" [strokeWidth]="1.5" />
+    </sv-error-shell>
+  } @else {
+    <!-- "You have no notifications" and "none match this filter" are different
+         facts. Telling someone with 400 notifications that they are all caught
+         up, because they mistyped a search term, reads as a bug. -->
+    <sv-empty-shell
+      [reason]="isFiltered() ? 'no-results' : 'no-data'"
+      [title]="isFiltered() ? 'No matching notifications' : 'You are all caught up'"
+      [message]="isFiltered() ? 'Try a different search or tab.' : 'New notifications will appear here.'"
+      [actionLabel]="isFiltered() ? 'Clear filters' : ''"
+      (action)="clearFilters()"
+      data-sv-state="empty"
+    >
+      <sv-icon svShellIcon name="bell" cssClass="w-8 h-8" [strokeWidth]="1.5" />
+    </sv-empty-shell>
+  }
+</ng-template>

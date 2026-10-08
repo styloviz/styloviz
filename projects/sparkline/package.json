@@ -1,0 +1,35 @@
+{
+  "name": "@styloviz/sparkline",
+  "version": "1.0.1",
+  "description": "Micro-chart small enough to live in a table cell, list row or stat card. Four encodings — line, area, bar and win/loss — with optional smoothing, last-point and extreme markers, a dashed reference baseline and a pinnable domain. Pure SVG, zero dependencies.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "styloviz",
+    "sparkline"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/sparkline",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/sparkline"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

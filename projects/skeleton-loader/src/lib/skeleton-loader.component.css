@@ -1,0 +1,33 @@
+.skeleton-wave {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-wave::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--sv-skeleton-sheen) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sk-wave 1.6s ease-in-out infinite;
+}
+
+/* ★ The sheen's theme is a custom property set on the host — a `:where(.dark)`
+     rule here is scoped by emulated encapsulation to a `.dark` element INSIDE
+     the component, which never exists, so dark mode never applied. */
+
+@keyframes sk-wave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-wave::after {
+    animation: none;
+  }
+}

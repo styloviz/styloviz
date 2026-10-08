@@ -1,0 +1,161 @@
+@if (summary()) {
+
+  <!-- ══ Read-only summary: average + histogram breakdown ══════════════════════ -->
+  <div
+    class="flex w-[26rem] max-w-full items-stretch gap-5"
+    role="img"
+    [attr.aria-label]="summaryAriaLabel()">
+
+    <!-- Average -->
+    <div class="flex shrink-0 flex-col items-center justify-center gap-1 border-r border-gray-100 pr-5 dark:border-gray-800">
+      <div class="text-4xl font-bold leading-none tracking-tight tabular-nums text-gray-900 dark:text-white">
+        {{ avgDisplay() }}
+      </div>
+      <div class="flex items-center gap-0.5" aria-hidden="true">
+        @for (i of slots(); track i) {
+          <!--
+            A partly-filled slot is the library glyph twice: a grey one
+            underneath and a coloured one clipped to the fill percentage. It
+            used to be a per-slot <linearGradient> whose stops carried the
+            number — which is why this component needed a unique id per
+            instance just to draw a rating.
+          -->
+          <span class="relative inline-block h-4 w-4 shrink-0">
+            <sv-icon
+              [name]="iconName()"
+              weight="solid"
+              cssClass="absolute inset-0 h-4 w-4 text-gray-200 dark:text-gray-700" />
+            <span
+              class="absolute inset-y-0 left-0 overflow-hidden"
+              [style.width.%]="avgFillPct(i)"
+              [style.color]="color()">
+              <sv-icon [name]="iconName()" weight="solid" cssClass="h-4 w-4" />
+            </span>
+          </span>
+        }
+      </div>
+      <div class="text-xs text-gray-500 dark:text-gray-400">
+        {{ summaryTotalText() }} {{ summaryTotal() === 1 ? 'review' : 'reviews' }}
+      </div>
+    </div>
+
+    <!-- Histogram -->
+    <div class="flex flex-1 flex-col justify-center gap-1.5">
+      @for (row of histogram(); track row.level) {
+        <div class="flex items-center gap-2">
+          <span class="w-3 shrink-0 text-right text-xs font-medium tabular-nums text-gray-600 dark:text-gray-400">{{ row.level }}</span>
+          <span class="inline-flex h-3 w-3 shrink-0" aria-hidden="true" [style.color]="color()">
+            <sv-icon [name]="iconName()" weight="solid" cssClass="h-3 w-3" />
+          </span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+            <div class="h-full rounded-full transition-[width] duration-500 ease-out"
+                 [style.width.%]="row.pct"
+                 [style.background-color]="color()"></div>
+          </div>
+          <span class="w-10 shrink-0 text-right text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ row.countText }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+} @else {
+
+  <div class="inline-flex flex-col gap-1">
+    @if (label()) {
+      <!--
+        A <span>, not a <label>: there is no form control to associate with —
+        the widget below is a div with role="slider". `aria-labelledby` on the
+        widget is what actually names it.
+      -->
+      <span [id]="_uid + '-label'" class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ label() }}</span>
+    }
+
+    <div class="inline-flex items-center gap-1.5">
+
+      <!-- Rating control — a single slider (read-only renders as an image) -->
+      <div
+        class="inline-flex items-center rounded focus-visible:outline-none
+               focus-visible:ring-2 focus-visible:ring-warning-400/60"
+        [class]="gapClass()"
+        [attr.role]="readonly() ? 'img' : 'slider'"
+        [attr.tabindex]="interactive() ? 0 : null"
+        [attr.aria-labelledby]="!readonly() && label() ? _uid + '-label' : null"
+        [attr.aria-label]="readonly() ? valueText() : (label() ? null : 'Rating')"
+        [attr.aria-valuemin]="interactive() ? 0 : null"
+        [attr.aria-valuemax]="interactive() ? max() : null"
+        [attr.aria-valuenow]="interactive() ? value() : null"
+        [attr.aria-valuetext]="interactive() ? valueText() : null"
+        [attr.aria-disabled]="resolvedDisabled() || null"
+        [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-busy]="pending() || null"
+        [attr.data-sv-state]="pending() ? 'pending' : null"
+        [class.opacity-40]="disabled()"
+        (keydown)="onKeydown($event)"
+        (blur)="onBlur()"
+        (mouseleave)="clearHover()">
+
+        @for (i of slots(); track i) {
+          <span
+            aria-hidden="true"
+            class="relative flex shrink-0 items-center justify-center transition-transform duration-100"
+            [class]="slotPadClass()"
+            [class.scale-110]="!readonly() && hovered() >= i"
+            [class.cursor-default]="readonly() || resolvedDisabled()"
+            [class.cursor-progress]="pending() && !readonly() && !resolvedDisabled()"
+            [class.cursor-pointer]="!readonly() && !resolvedDisabled() && !pending()"
+            (click)="rate(i, $event)"
+            (mousemove)="hover(i, $event)">
+
+            <!--
+              One block for all four variants. There used to be four, each
+              repeating its own path literal once per fill state — and the
+              divergence that grew in them is recorded on `fillPct()`.
+            -->
+            <span class="relative inline-block shrink-0" [class]="iconSize()">
+              <sv-icon
+                [name]="iconName()"
+                weight="solid"
+                [cssClass]="'absolute inset-0 ' + iconSize() + ' text-gray-200 dark:text-gray-700'" />
+              @if (fillPct(i) > 0) {
+                <span
+                  class="absolute inset-y-0 left-0 overflow-hidden"
+                  [style.width.%]="fillPct(i)"
+                  [style.color]="color()">
+                  <sv-icon [name]="iconName()" weight="solid" [cssClass]="iconSize()" />
+                </span>
+              }
+            </span>
+
+          </span>
+        }
+      </div>
+
+      <!-- Count -->
+      @if (showCount() && count() > 0) {
+        <span class="text-sm text-gray-500 dark:text-gray-400">({{ count() }})</span>
+      }
+
+      <!-- Value label (decorative — the value is announced via the slider).
+           ★ Shows the DECLARED meaning when the host supplied one: "4/5 · Great"
+             says more than "4/5", and the number stays so the scale's extent is
+             still visible. -->
+      @if (!readonly() && (hovered() || value())) {
+        <span class="min-w-[1.75rem] text-sm font-semibold text-gray-700 dark:text-gray-300" aria-hidden="true">
+          {{ hovered() || value() }}/{{ max() }}@if (labelForLevel(hovered() || value())) { <span class="font-normal text-gray-500 dark:text-gray-400">· {{ labelForLevel(hovered() || value()) }}</span> }
+        </span>
+      }
+    </div>
+  </div>
+
+}
+<!-- The write did not land (`X-6`) — NOT the validation slot below, which
+     self-expires on the next value change; a rollback IS a change. -->
+@if (writeErrorMessage()) {
+  <span [id]="writeErrorId()"
+        role="alert"
+        class="mt-1.5 block text-xs text-danger-600 dark:text-danger-400"
+        data-sv-state="error">{{ writeErrorMessage() }}</span>
+}
+<!-- Validation error slot. -->
+<sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

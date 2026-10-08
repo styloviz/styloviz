@@ -1,0 +1,35 @@
+{
+  "name": "@styloviz/icons",
+  "version": "1.0.1",
+  "description": "174 original glyphs on a 24px grid, resolved by name through one component or imported per icon for the smallest bundle. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 513 more glyphs and the `sharp` and `duotone` weights.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "icons",
+    "svg",
+    "styloviz"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/icon-library",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/icons-free"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,184 @@
+<!--
+  Recursive inline renderer. Every span kind that can nest passes its children
+  straight back into this template, so `**bold with `code` and [a link](/x)**`
+  renders correctly at any depth — without ever building an HTML string.
+-->
+<ng-template #inlines let-list>
+  @for (span of list; track $index) {
+    @switch (span.kind) {
+      @case ('strong') {
+        <strong class="font-semibold text-gray-900 dark:text-white"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: span.children }" /></strong>
+      }
+      @case ('em') {
+        <em class="italic"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: span.children }" /></em>
+      }
+      @case ('strike') {
+        <s class="text-gray-500 dark:text-gray-400"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: span.children }" /></s>
+      }
+      @case ('code') {
+        <code class="rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em] text-primary-700
+                     dark:bg-gray-800 dark:text-primary-300">{{ span.text }}</code>
+      }
+      @case ('link') {
+        <a
+          [attr.href]="span.href"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-medium text-primary-600 underline decoration-primary-300 underline-offset-2
+                 hover:decoration-primary-500 focus-visible:outline-none focus-visible:ring-2
+                 focus-visible:ring-primary-500 dark:text-primary-400"
+          (click)="onLink($event, span)"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: span.children }" /></a>
+      }
+      <!-- The alt text is BOUND, never rendered as children — see MdInline. An
+           image with no alt gets alt="", so a screen reader skips it instead of
+           reading out the file name; that is the correct treatment of a
+           decorative image and the only honest one when the author wrote no alt. -->
+      @case ('image') {
+        <img
+          [attr.src]="span.href"
+          [attr.alt]="span.text"
+          class="my-2 inline-block max-w-full rounded-lg border border-gray-200 dark:border-gray-800"
+          loading="lazy"
+          decoding="async" />
+      }
+      <!-- Flush against the braces: whitespace inside an @default block becomes a
+           real text node, which would render **bold** as <strong> bold </strong>. -->
+      @default {<ng-container>{{ span.text }}</ng-container>}
+    }
+  }
+</ng-template>
+
+<!--
+  ★★★ THE ANSWER TO ANNOUNCEMENT SPAM IS NOT A QUIETER LIVE REGION, IT IS A
+      DIFFERENT EVENT. A region carrying the text as it grows announces every
+      token and is unusable; this component therefore has none over the content
+      at all. What it has instead is `aria-busy` while the tokens arrive, and
+      ONE announcement at the moment they stop — which is the thing a reader
+      actually needs to know and the only moment worth interrupting them for.
+-->
+<div [class]="rootClass()"
+     [attr.aria-label]="ariaLabel() || null"
+     [attr.role]="ariaLabel() ? 'region' : null"
+     [attr.aria-busy]="busy() ? 'true' : null">
+  @for (block of blocks(); track $index) {
+    @switch (block.kind) {
+
+      <!-- ── Heading ─────────────────────────────────────────────────── -->
+      @case ('heading') {
+        @switch (headingLevel(block.level)) {
+          @case (1) { <h1 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h1> }
+          @case (2) { <h2 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h2> }
+          @case (3) { <h3 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h3> }
+          @case (4) { <h4 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h4> }
+          @case (5) { <h5 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h5> }
+          @default  { <h6 [class]="headingClass(block.level)"><ng-container *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></h6> }
+        }
+      }
+
+      <!-- ── Fenced code — delegated to sv-code-block ─────────────────── -->
+      @case ('code') {
+        <div class="my-3 first:mt-0">
+          <sv-code-block
+            [code]="block.code ?? ''"
+            [language]="language(block.language)"
+            [filename]="block.language ?? ''"
+            [lineNumbers]="codeLineNumbers()"
+            [maxHeight]="codeMaxHeight()"
+            [streaming]="streaming() && block.complete === false"
+            [wrap]="true"
+            (copied)="codeCopied.emit($event)" />
+        </div>
+      }
+
+      <!-- ── List ────────────────────────────────────────────────────── -->
+      @case ('list') {
+        <ul class="my-2 space-y-1 first:mt-0">
+          @for (item of block.items; track $index) {
+            <li class="flex gap-2" [style.marginInlineStart]="indent(item.depth)">
+              @if (item.checked !== null) {
+                <span
+                  class="mt-[0.3em] flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border"
+                  [class]="item.checked
+                    ? 'border-primary-500 bg-primary-500 text-white'
+                    : 'border-gray-300 dark:border-gray-600'"
+                  role="img"
+                  [attr.aria-label]="item.checked ? 'Done' : 'Not done'">
+                  @if (item.checked) {
+                    <sv-icon name="check"
+                             cssClass="h-2.5 w-2.5"
+                             [strokeWidth]="2" />
+                  }
+                </span>
+              } @else {
+                <span class="mt-[0.55em] h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400 dark:bg-gray-500"
+                      aria-hidden="true"></span>
+              }
+              <span class="min-w-0" [class.line-through]="item.checked === true"
+                    [class.text-gray-400]="item.checked === true"><ng-container
+                *ngTemplateOutlet="inlines; context: { $implicit: item.inlines }" /></span>
+            </li>
+          }
+        </ul>
+      }
+
+      <!-- ── Blockquote ──────────────────────────────────────────────── -->
+      @case ('quote') {
+        <blockquote
+          class="my-3 border-l-2 border-primary-300 pl-3 italic text-gray-600 first:mt-0
+                 dark:border-primary-700 dark:text-gray-400"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></blockquote>
+      }
+
+      <!-- ── Table ───────────────────────────────────────────────────── -->
+      @case ('table') {
+        <div class="my-3 overflow-x-auto rounded-lg border border-gray-200 first:mt-0 dark:border-gray-800" tabindex="0">
+          <table class="w-full border-collapse text-left">
+            <thead class="bg-gray-50 dark:bg-gray-900/60">
+              <tr>
+                @for (cell of block.head; track $index) {
+                  <th scope="col"
+                      class="px-3 py-2 text-[12px] font-semibold text-gray-700 dark:text-gray-200"
+                      [class]="alignClass($index, block.align)"><ng-container
+                    *ngTemplateOutlet="inlines; context: { $implicit: cell }" /></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of block.rows; track $index) {
+                <tr class="border-t border-gray-100 dark:border-gray-800/70">
+                  @for (cell of row; track $index) {
+                    <td class="px-3 py-2 text-[12px]" [class]="alignClass($index, block.align)"><ng-container
+                      *ngTemplateOutlet="inlines; context: { $implicit: cell }" /></td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- ── Thematic break ──────────────────────────────────────────── -->
+      @case ('hr') {
+        <hr class="my-4 border-gray-200 dark:border-gray-800" />
+      }
+
+      <!-- ── Paragraph ───────────────────────────────────────────────── -->
+      @default {
+        <p class="my-2 first:mt-0 last:mb-0"><ng-container
+          *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" />@if (streaming() && $last) {<span
+          class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-gray-400 align-middle dark:bg-gray-500"
+          aria-hidden="true"></span>}</p>
+      }
+    }
+  }
+</div>
+
+<!--
+  Separate from the content on purpose: a status region that WRAPPED the text
+  would re-announce the whole response whenever any of it changed.
+-->
+<div class="sr-only" role="status" aria-live="polite">{{ announcement() }}</div>

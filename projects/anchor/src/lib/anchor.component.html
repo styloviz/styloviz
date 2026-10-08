@@ -1,0 +1,25 @@
+@if (orientation() === 'vertical') {
+  <nav aria-label="On this page" class="flex flex-col gap-0.5 border-l border-gray-200 dark:border-gray-800">
+    @for (item of items(); track item.id) {
+      <a
+        [href]="'#' + item.id"
+        [ngClass]="itemClass(item.id)"
+        [attr.aria-current]="item.id === activeId() ? 'true' : null"
+        (click)="$event.preventDefault(); jumpTo(item.id)">
+        {{ item.label }}
+      </a>
+    }
+  </nav>
+} @else {
+  <nav aria-label="On this page" class="flex flex-wrap gap-1.5">
+    @for (item of items(); track item.id) {
+      <a
+        [href]="'#' + item.id"
+        [ngClass]="itemClass(item.id)"
+        [attr.aria-current]="item.id === activeId() ? 'true' : null"
+        (click)="$event.preventDefault(); jumpTo(item.id)">
+        {{ item.label }}
+      </a>
+    }
+  </nav>
+}

@@ -1,0 +1,71 @@
+<div class="tpl-account min-h-screen bg-gray-50 dark:bg-gray-950">
+  <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/90 backdrop-blur-md dark:border-white/[0.06] dark:bg-gray-950/90">
+    <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <a [routerLink]="brand.homeLink" class="flex shrink-0 items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+        <img [src]="brand.logoSrc" [alt]="brand.logoAlt" class="h-6 w-6" width="24" height="24" />
+        <span>{{ brand.name }}<span class="text-brand-600 dark:text-brand-400">{{ brand.nameAccent }}</span></span>
+      </a>
+
+      <nav class="hidden items-center gap-1 md:flex" aria-label="Account sections">
+        @for (t of tabs; track t.link) {
+          <a
+            [routerLink]="t.link"
+            routerLinkActive="bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
+            [routerLinkActiveOptions]="{ exact: t.exact }"
+            class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.04]">
+            <sv-icon [name]="t.icon" cssClass="h-4 w-4" [strokeWidth]="1.8" />
+            {{ t.label }}
+          </a>
+        }
+      </nav>
+
+      <div class="flex shrink-0 items-center gap-3">
+        <button
+          type="button"
+          (click)="theme.toggleTheme()"
+          class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
+                 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+          [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+          @if (theme.isDark()) {
+            <sv-icon name="sun" size="sm" />
+          } @else {
+            <sv-icon name="moon" size="sm" />
+          }
+        </button>
+
+        <span class="hidden text-right sm:block">
+          <span class="block text-xs font-medium leading-tight text-gray-900 dark:text-white">{{ user.name }}</span>
+          <span class="block text-[11px] leading-tight text-gray-500 dark:text-gray-400">{{ user.email }}</span>
+        </span>
+        <sv-avatar [src]="user.avatar" [name]="user.name" size="sm" />
+      </div>
+    </div>
+
+    <!--
+      ★ THE SAME NAV, BELOW `md`. The tabs were `hidden sm:flex` with no
+      fallback, so on a phone the only way to reach Team was to know the URL —
+      an account shell with no navigation at all.
+    -->
+    <nav class="flex gap-1 overflow-x-auto border-t border-gray-200 px-4 py-2 md:hidden dark:border-white/[0.06]" aria-label="Account sections">
+      @for (t of tabs; track t.link) {
+        <a
+          [routerLink]="t.link"
+          routerLinkActive="bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400"
+          [routerLinkActiveOptions]="{ exact: t.exact }"
+          class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors dark:text-gray-300">
+          <sv-icon [name]="t.icon" cssClass="h-3.5 w-3.5" [strokeWidth]="1.8" />
+          {{ t.label }}
+        </a>
+      }
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <router-outlet />
+  </main>
+
+  <footer class="border-t border-gray-200 py-6 text-center text-xs text-gray-500 dark:border-white/[0.06] dark:text-gray-400">
+    © {{ brand.copyright }}
+  </footer>
+</div>

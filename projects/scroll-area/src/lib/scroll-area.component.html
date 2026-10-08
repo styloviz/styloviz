@@ -1,0 +1,132 @@
+<div class="relative" data-sv-scroll-area [attr.data-sv-variant]="variant()" [attr.data-sv-orientation]="orientation()">
+
+  <!-- ★★★ A REAL SCROLL CONTAINER. `scrollbar-width: none` hides the native
+       chrome; everything else about scrolling — keyboard, momentum, find-in-page,
+       the screen reader's virtual cursor — keeps working because the element
+       genuinely scrolls.
+
+       ★★ `tabindex="0"` ONLY WHILE IT SCROLLS (`LU-06-I2`). A scrollable region
+       must be reachable by keyboard, and browsers only do that automatically
+       when it has focusable content — but a region whose content fits would
+       be a tab stop that does nothing. `tabStop` overrides it.
+
+       X-7: the ring is a box-shadow, which forced colors removes, and the base
+       is `outline-none` — so under forced colors the port gets a real (inset)
+       outline in the system colour instead. -->
+  <div #port
+       class="overscroll-contain [scrollbar-width:none]
+              [&::-webkit-scrollbar]:hidden focus-visible:outline-none
+              focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500
+              forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid
+              forced-colors:focus-visible:-outline-offset-2"
+       [class.overflow-y-auto]="!horizontal()"
+       [class.overflow-x-auto]="horizontal()"
+       [style.max-height]="maxHeight()"
+       [attr.tabindex]="tabIndex()"
+       role="region"
+       [attr.aria-label]="ariaLabel() || null"
+       [attr.aria-describedby]="saId('readout')"
+       (scroll)="onScroll()"
+       (focus)="onFocusChange(true)"
+       (blur)="onFocusChange(false)"
+       data-sv-port>
+    <!-- The observed content box (`X-4`). Horizontally it is sized to its
+         content (`w-max`), or a row growing sideways would never change it. -->
+    <div #content data-sv-content [class.w-max]="horizontal()" [class.min-w-full]="horizontal()">
+      <ng-content />
+    </div>
+  </div>
+
+  <!-- ★★ THE READ-OUT IS FOR ASSISTIVE TECH, not decoration: a hidden scrollbar
+       removes the only visual cue that a region scrolls, and a screen reader
+       user never had that cue in the first place. -->
+  <span [id]="saId('readout')" class="sr-only" data-sv-readout>{{ label() }}</span>
+
+  @if (horizontal()) {
+    <!-- ★ LOGICAL EDGES. `start-0` / `end-0` follow the text direction, and the
+         gradient flips with `rtl:`, so the fade sits on the side with more
+         content in either direction. -->
+    @if (fadeStart()) {
+    <span class="pointer-events-none absolute inset-y-0 start-0 w-6 bg-gradient-to-r rtl:bg-gradient-to-l
+                 from-white to-transparent dark:from-gray-900"
+          aria-hidden="true"
+          data-sv-fade-start></span>
+    }
+    @if (fadeEnd()) {
+    <span class="pointer-events-none absolute inset-y-0 end-0 w-6 bg-gradient-to-l rtl:bg-gradient-to-r
+                 from-white to-transparent dark:from-gray-900"
+          aria-hidden="true"
+          data-sv-fade-end></span>
+    }
+  } @else {
+    @if (fadeStart()) {
+    <span class="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b
+                 from-white to-transparent dark:from-gray-900"
+          aria-hidden="true"
+          data-sv-fade-start></span>
+    }
+    @if (fadeEnd()) {
+    <span class="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t
+                 from-white to-transparent dark:from-gray-900"
+          aria-hidden="true"
+          data-sv-fade-end></span>
+    }
+  }
+
+  @if (showThumb()) {
+  <!-- ★★★ PRESSING THE TRACK PAGES, IT DOES NOT JUMP. Every native scrollbar on
+       every platform moves by one viewport; jumping the thumb to the pointer is
+       a different gesture with the same target, and it throws away the reader's
+       place in a way they cannot undo.
+
+       ★★ ON `pointerdown` RATHER THAN `click`, AND `aria-hidden`. Native tracks
+       page on press, not on release — but the reason it matters here is that
+       this whole bar is a POINTER affordance duplicating something the keyboard
+       already does better: the port itself is focusable and Page Up/Down,
+       Home/End and the arrows scroll it natively. Giving the track its own tab
+       stop and key handler would add a second, redundant control announcing
+       itself to a screen reader that already has the region and its read-out.
+
+       ★ `end-0.5` / `start-*`, NOT `right-*` / `left-*` (`LU-06-M3`). In RTL the
+       native vertical scrollbar sits on the LEFT, and a horizontal thumb's
+       offset is measured from the inline start — CSS resolves both. -->
+    <!-- X-7: forced colors repaints a translucent grey thumb as Canvas —
+         invisible. Each thumb opts out and paints the user's CanvasText; the
+         track's fade stills under reduced motion. -->
+    @if (horizontal()) {
+    <div #track
+         class="absolute start-0 bottom-0.5 h-2 rounded-full transition-opacity motion-reduce:transition-none"
+         [style.width.px]="viewport()"
+         [ngClass]="variant() === 'always' || dragging()
+                      ? 'opacity-100'
+                      : 'opacity-0 hover:opacity-100 focus-within:opacity-100'"
+         (pointerdown)="onTrackClick($event, track)"
+         aria-hidden="true"
+         data-sv-track>
+      <span class="absolute bottom-0 h-2 rounded-full bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            [style.width.px]="thumb().size"
+            [style.inset-inline-start.px]="thumb().offset"
+            [attr.data-sv-clamped]="thumb().clamped"
+            aria-hidden="true"
+            data-sv-thumb></span>
+    </div>
+    } @else {
+    <div #track
+         class="absolute end-0.5 top-0 w-2 rounded-full transition-opacity motion-reduce:transition-none"
+         [style.height.px]="viewport()"
+         [ngClass]="variant() === 'always' || dragging()
+                      ? 'opacity-100'
+                      : 'opacity-0 hover:opacity-100 focus-within:opacity-100'"
+         (pointerdown)="onTrackClick($event, track)"
+         aria-hidden="true"
+         data-sv-track>
+      <span class="absolute end-0 w-2 rounded-full bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            [style.height.px]="thumb().size"
+            [style.top.px]="thumb().offset"
+            [attr.data-sv-clamped]="thumb().clamped"
+            aria-hidden="true"
+            data-sv-thumb></span>
+    </div>
+    }
+  }
+</div>

@@ -1,0 +1,124 @@
+<span
+  [ngClass]="rootClasses()"
+  [attr.role]="clickable() ? 'button' : null"
+  [attr.tabindex]="clickable() ? 0 : null"
+  [attr.aria-label]="clickable() ? (name() || alt() || 'Avatar') : null"
+  (click)="onClick($event)"
+  (keydown.enter)="onClick($event)"
+  (keydown.space)="onClick($event)"
+>
+  <span class="relative inline-flex shrink-0">
+    <!-- ── Avatar shell ────────────────────────────────────────────────── -->
+    <span
+      class="relative flex items-center justify-center overflow-hidden font-semibold transition-opacity duration-150"
+      [ngClass]="[
+        sizeClasses(),
+        shapeClasses(),
+        fallbackVisible() ? initialsColorClasses() : '',
+        clickable() ? 'hover:opacity-90 active:opacity-75' : ''
+      ]"
+    >
+      <!-- Image -->
+      @if (showImage()) {
+        <!--
+          The image sits ON TOP of the initials rather than replacing them, and
+          fades in once it has decoded. Before this the shell dropped its colour
+          the moment `src` was set, so a slow image left an empty hole and a
+          broken one snapped from that hole to initials.
+        -->
+        <img
+          class="absolute inset-0 h-full w-full object-cover transition-opacity duration-200"
+          [ngClass]="imgLoaded() ? 'opacity-100' : 'opacity-0'"
+          [src]="src()"
+          [alt]="alt() || name()"
+          (error)="onImageError()"
+          (load)="onImageLoad()"
+          loading="lazy"
+          decoding="async"
+        />
+      }
+
+      <!-- Initials -->
+      @if (fallbackVisible() && initials()) {
+        <!-- `role="img"` makes the label legal AND makes it replace the two
+             letters rather than have them spelled out. With no image there is no
+             `alt` to carry the name, so without this an initials-only avatar had
+             no accessible name at all. Matches the Pro twin. -->
+        <span
+          class="leading-none select-none"
+          [attr.role]="name() && !showImage() ? 'img' : null"
+          [attr.aria-label]="name() && !showImage() ? name() : null"
+          [attr.aria-hidden]="name() && !showImage() ? null : 'true'"
+        >
+          {{ initials() }}
+        </span>
+      }
+
+      <!-- Generic fallback icon (no image, no name) -->
+      @if (showIcon()) {
+        <sv-icon name="user" cssClass="h-[55%] w-[55%] opacity-60" />
+      }
+    </span>
+
+    <!-- ── Status indicator ───────────────────────────────────────────── -->
+    @if (status() !== 'none') {
+      <!--
+        ★ A hue AND a form. Green/grey/amber/red at ten pixels is a colour code
+        with no second channel, and deuteranopia makes the green and the amber the
+        same mark — which is exactly the pair a reader has to tell apart before
+        sending a message. Solid, barred, crescent, hollow: readable in greyscale.
+      -->
+      <span
+        class="absolute flex items-center justify-center rounded-full ring-2 ring-white dark:ring-gray-900"
+        [ngClass]="[statusSizeClasses(), statusShape() === 'hollow' ? 'bg-white dark:bg-gray-900 border-2 ' + statusBorderClass() : statusColorClass(), (verified() && !showBadge()) ? 'top-0 right-0' : 'bottom-0 right-0']"
+        [attr.aria-label]="statusTextVisible() ? null : 'Status: ' + statusText()"
+        [attr.role]="statusTextVisible() ? null : 'img'"
+        [attr.aria-hidden]="statusTextVisible() ? 'true' : null"
+        data-sv-avatar-status
+      >
+        @if (statusShape() === 'bar') {
+          <span class="block h-[2px] w-[60%] rounded-full bg-white" aria-hidden="true"></span>
+        } @else if (statusShape() === 'crescent') {
+          <span
+            class="block h-[70%] w-[70%] -translate-x-[18%] -translate-y-[18%] rounded-full bg-white dark:bg-gray-900"
+            aria-hidden="true"
+          ></span>
+        }
+      </span>
+    }
+
+    <!-- ── Notification badge ─────────────────────────────────────────── -->
+    @if (showBadge()) {
+      <span
+        class="absolute -right-1 -top-1 flex items-center justify-center rounded-full
+               bg-danger-600 font-bold leading-none text-white tabular-nums
+               ring-2 ring-white dark:ring-gray-900"
+        [ngClass]="badgeSizeClasses()"
+        role="status"
+        aria-live="polite"
+        [attr.aria-label]="badgeAriaLabel()"
+      >
+        {{ displayBadge() }}
+      </span>
+    }
+
+    <!-- ── Verified checkmark ─────────────────────────────────────────── -->
+    @if (verified() && !showBadge()) {
+      <span
+        class="absolute bottom-0 right-0 flex items-center justify-center rounded-full
+               bg-primary-500 ring-2 ring-white dark:ring-gray-900"
+        [ngClass]="size() === 'xs' || size() === 'sm' ? 'h-3.5 w-3.5' :
+                   size() === 'md' ? 'h-4 w-4' : 'h-5 w-5'"
+        aria-label="Verified"
+        role="img"
+      >
+        <svg class="h-[65%] w-[65%] text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6l3 3 5-5" /></svg>
+      </span>
+    }
+  </span>
+
+  <!-- ── The presence state, in words ────────────────────────────────── -->
+  @if (statusTextVisible()) {
+    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ statusText() }}</span>
+  }
+</span>

@@ -1,0 +1,75 @@
+<div [ngClass]="rootClasses()">
+
+  @if (hasTitle()) {
+    <h3
+      [id]="titleId"
+      class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100"
+      [class.px-4]="variant() === 'bordered'"
+      [class.pt-3]="variant() === 'bordered'"
+      [class.mb-0]="variant() === 'bordered'"
+    >{{ title() }}</h3>
+  }
+
+  @if (loading()) {
+    <div class="p-1" data-sv-state="loading">
+      <sv-skeleton-shell variant="list" [rows]="3" ariaLabel="Loading details" />
+    </div>
+  } @else if (error()) {
+    <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" data-sv-state="error" />
+  } @else if (isEmpty()) {
+    <sv-empty-shell reason="no-data" [title]="emptyText()" data-sv-state="empty" />
+  } @else {
+
+    <!--
+      ★ A real `<dl>`, not a grid of `<div>`s.
+
+      A description list is the one structure HTML already has for this, and a
+      screen reader announces the pairing — "Status, definition, Shipped" —
+      which no amount of visual columns conveys. The wrapping `<div>` around
+      each `<dt>`/`<dd>` is valid HTML5 inside a `<dl>` (spec: "optionally
+      intermixed with … div elements") and is what lets the pair be one grid
+      cell.
+    -->
+    <dl
+      [ngClass]="[gridClasses(), gapClasses()]"
+      [attr.aria-labelledby]="hasTitle() ? titleId : null"
+      data-sv-state="ready"
+    >
+      @for (row of rows(); track row.item.id) {
+        <div [ngClass]="[cellClasses(), spanClass(row.span)]">
+          <dt [ngClass]="termClasses()">{{ row.item.label }}</dt>
+          <!--
+            ★★★ THE ACTION LIVES INSIDE THE `<dd>` BECAUSE HTML LEAVES NOWHERE
+                 ELSE. A `<dl>`'s wrapping `<div>` may contain only `<dt>` and
+                 `<dd>`, so there is no sibling position for a button — which
+                 makes both halves of the treatment compulsory rather than
+                 stylistic:
+
+                 1. It is its own column, so the value text keeps its alignment
+                    instead of being pushed around by a control.
+                 2. Its accessible name has to carry the term — "Copy order
+                    total" — because a listener who lands on it is inside the
+                    DEFINITION and has no other way to know which pair they are
+                    in. The docs say so; the component cannot enforce it.
+          -->
+          <dd [ngClass]="[valueClasses(), missingClass(row.missing), row.item.valueClass ?? '']">
+            @if (actionTemplate(); as tpl) {
+              <span class="flex items-baseline justify-between gap-3">
+                <span class="min-w-0 break-words">{{ row.text }}</span>
+                <span class="shrink-0" data-sv-action>
+                  <ng-container
+                    [ngTemplateOutlet]="tpl"
+                    [ngTemplateOutletContext]="{ $implicit: row.item, label: row.item.label }" />
+                </span>
+              </span>
+            } @else {
+              {{ row.text }}
+            }
+          </dd>
+        </div>
+      }
+    </dl>
+
+  }
+
+</div>

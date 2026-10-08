@@ -1,0 +1,65 @@
+<span
+  #chipRoot
+  [class]="rootClasses()"
+  [attr.role]="ariaRole()"
+  [attr.aria-checked]="isFilter() ? isSelected() : null"
+  [attr.aria-disabled]="disabled() || null"
+  [attr.aria-label]="ariaRole() ? (accessibleName() || null) : null"
+  [attr.tabindex]="rovingTabIndex()"
+  [attr.aria-keyshortcuts]="removeShortcut()"
+  (click)="onClick()"
+  (focus)="onFocus()"
+  (keydown)="onKeydown($event)"
+  (keydown.space)="onActivateKey($event)"
+  (keydown.enter)="onActivateKey($event)"
+>
+  <!-- Avatar -->
+  @if (avatarSrc()) {
+    <span [class]="'shrink-0 rounded-full overflow-hidden ' + avatarSize()" aria-hidden="true">
+      <img [src]="avatarSrc()" [alt]="label()" class="h-full w-full object-cover" />
+    </span>
+  } @else if (avatarInitials()) {
+    <span [class]="'shrink-0 rounded-full flex items-center justify-center font-semibold bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-200 ' + avatarSize()" aria-hidden="true">
+      {{ avatarInitials() }}
+    </span>
+  } @else if (icon()) {
+    <!-- Leading icon -->
+    <sv-icon [name]="icon()" [cssClass]="'shrink-0 ' + iconSize()" [strokeWidth]="2" />
+  }
+
+  <!-- Name for chips that carry no ARIA role: the category prefix, or the whole
+       name when there is no visible label at all. `aria-label` on a bare span is
+       not reliably announced, so this is real text. -->
+  @if (srOnlyName()) {
+    <span class="sr-only">{{ srOnlyName() }}</span>
+  }
+
+  <!-- Label -->
+  <span class="truncate leading-none">{{ label() }}</span>
+
+  <!-- Selected checkmark -->
+  @if (isFilter() && isSelected()) {
+    <sv-icon name="check" [cssClass]="'shrink-0 ml-0.5 ' + iconSize()" [strokeWidth]="2" />
+  }
+
+  <!-- Remove button -->
+  @if (removable()) {
+    <!-- Inside a group the × is either the token's roving stop or out of the
+         tab order (the body holds the stop; Delete removes). Its focus tells
+         the group where the stop is; arrow keys bubble to the body's handler. -->
+    <button
+      #removeBtn
+      type="button"
+      [attr.tabindex]="removeTabIndex()"
+      (focus)="onFocus()"
+      class="shrink-0 ml-0.5 rounded-full p-0.5 opacity-70 transition-all duration-100
+             hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 disabled:cursor-not-allowed
+             focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
+      [disabled]="disabled()"
+      (click)="onRemove($event)"
+      [attr.aria-label]="'Remove ' + (resolvedAriaLabel() || 'item')"
+    >
+      <sv-icon name="close" [cssClass]="iconSize()" [strokeWidth]="1.75" />
+    </button>
+  }
+</span>

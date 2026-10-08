@@ -1,0 +1,37 @@
+{
+  "name": "@styloviz/streaming-markdown",
+  "version": "1.0.1",
+  "description": "Safe Markdown renderer built for token-by-token output. Renders a parsed token model through Angular bindings — no innerHTML and no bypassSecurityTrust, so untrusted content can never become markup. Headings, lists (incl. tasks), tables with alignment, blockquotes and inline emphasis;",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "styloviz",
+    "streaming",
+    "markdown"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/streaming-markdown",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/streaming-markdown"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/code-block": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

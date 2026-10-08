@@ -1,0 +1,267 @@
+<!-- Root wrapper — positions the dropdown relative to this element -->
+<div [ngClass]="wrapperClasses()">
+
+  <!-- ── Input track ────────────────────────────────────────────────────── -->
+  <div #trackEl [ngClass]="trackClasses()">
+
+    <!-- Floating label (animates to border on focus or value) -->
+    @if (isFloating() && label()) {
+      <!--
+        Decoration, not a label: it is aria-hidden, and the input is named by
+        its own aria-label. Using <label> here would promise an association
+        that does not exist.
+      -->
+      <span [ngClass]="floatingLabelClasses()" aria-hidden="true">{{ label() }}</span>
+    }
+    @if (showSearchIcon()) {
+      <span
+        class="flex shrink-0 items-center text-gray-500 dark:text-gray-400"
+        [ngClass]="iconPaddingClass()"
+        aria-hidden="true"
+      >
+        @if (loading()) {
+          <!-- Spinner -->
+          <sv-spinner-arc [cssClass]="iconSizeClass() + ' text-primary-500'" />
+        } @else {
+          <!-- Magnifier -->
+          <sv-icon name="search" [cssClass]="iconSizeClass()" [strokeWidth]="2" />
+        }
+      </span>
+    }
+
+    <!-- Active filter chips -->
+    @for (filter of filters(); track filter.id) {
+      <span
+        class="inline-flex shrink-0 items-center gap-1 rounded-md
+               bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700
+               dark:bg-primary-900/40 dark:text-primary-300"
+      >
+        {{ filter.label }}
+        <button
+          type="button"
+          class="ml-0.5 rounded text-primary-400 hover:text-primary-600
+                 dark:text-primary-400 dark:hover:text-primary-200
+                 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
+          (click)="filterRemoved.emit(filter.id)"
+          [attr.aria-label]="'Remove filter ' + filter.label"
+        >
+          <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2" />
+        </button>
+      </span>
+    }
+
+    <!-- Text input -->
+    <input
+      #inputEl
+      type="search"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+      class="min-w-0 flex-1 bg-transparent text-gray-900 placeholder-gray-500
+             outline-none dark:text-white dark:placeholder-gray-400
+             [&::-webkit-search-cancel-button]:hidden"
+      [ngClass]="[
+        inputNativePadClass(),
+        filters().length > 0 ? 'py-0.5' : 'h-full'
+      ]"
+      [placeholder]="isFloating() && label() && !labelIsFloated() ? ' ' : placeholder()"
+      [disabled]="disabled()"
+      [ngModel]="value()"
+      (ngModelChange)="onInput($event)"
+      (focus)="onFocus()"
+      (blur)="onBlur()"
+      (keydown)="onKeydown($event)"
+      role="combobox"
+      aria-haspopup="listbox"
+      [attr.aria-expanded]="showDropdown()"
+      [attr.aria-label]="accessibleName()"
+      [attr.aria-busy]="loading() || null"
+      [attr.aria-autocomplete]="suggestions().length ? 'list' : 'none'"
+      [attr.aria-controls]="showDropdown() ? listboxId : null"
+      [attr.aria-activedescendant]="activeDescendantId()"
+    />
+
+    <!-- Keyboard shortcut hint -->
+    @if (showShortcut()) {
+      <sv-kbd class="mr-2 hidden shrink-0 sm:inline-flex" aria-hidden="true">
+        {{ shortcutHint() }}
+      </sv-kbd>
+    }
+
+    <!-- Clear button -->
+    @if (showClear()) {
+      <button
+        type="button"
+        class="mr-2 shrink-0 rounded-full p-0.5 text-gray-500 dark:text-gray-400
+               transition-colors hover:bg-gray-100 hover:text-gray-600
+               dark:hover:bg-gray-700 dark:hover:text-gray-300
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+        (click)="clearValue()"
+        aria-label="Clear search"
+      >
+        <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      </button>
+    }
+
+  </div>
+
+  <!-- ── Suggestions dropdown — portaled into document.body on open so ancestor
+       overflow/transform containers can never clip it (see dropdown-instruction.md). ── -->
+  <ng-template #panelTpl>
+    <div
+      [id]="listboxId + '-panel'"
+      class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden rounded-xl
+             border border-gray-200 bg-white
+             shadow-lg shadow-gray-200/60
+             dark:border-gray-700 dark:bg-gray-900 dark:shadow-gray-950/60"
+      [style.position]="panelStyle()['position']"
+      [style.zIndex]="panelStyle()['zIndex']"
+      [style.top]="panelStyle()['top']"
+      [style.bottom]="panelStyle()['bottom']"
+      [style.left]="panelStyle()['left']"
+      [style.width]="panelStyle()['width']"
+      [style.maxHeight]="panelStyle()['maxHeight']"
+    >
+
+      <!-- Dropdown header label -->
+      @if (suggestionsLabel()) {
+        <div class="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+          <p class="text-[11px] font-semibold uppercase tracking-wider
+                    text-gray-500 dark:text-gray-400">
+            {{ suggestionsLabel() }}
+          </p>
+        </div>
+      }
+
+      <!--
+        Inside the panel, not instead of it: the trigger and whatever the user
+        has typed stay exactly where they were, so a failed lookup does not
+        also lose their query.
+      -->
+      @if (error()) {
+        <sv-error-shell
+          [error]="error()"
+          [compact]="true"
+          (retry)="retry.emit()"
+          data-sv-state="error" />
+      }
+
+      <!--
+        The two empty states, told apart (`FI-20-I2`). Deliberately NOT a live
+        region: this panel is portalled and unmounted, so announcing from here
+        is unreliable — the persistent region at the bottom of this file does
+        that. This copy is here to be found by a virtual cursor and read by
+        eyes.
+      -->
+      @if (showEmptyState()) {
+        <div
+          class="flex flex-col items-center gap-1 px-4 py-8 text-center"
+          [attr.data-sv-state]="emptyReason() === 'no-results' ? 'no-results' : 'no-data'"
+        >
+          <sv-icon
+            [name]="emptyReason() === 'no-results' ? 'alert-circle' : 'search'"
+            cssClass="h-5 w-5 text-gray-500 dark:text-gray-400"
+            [strokeWidth]="2"
+            aria-hidden="true" />
+          <p class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ emptyTitle() }}</p>
+          @if (emptyDetail()) {
+            <p class="max-w-[24rem] truncate text-xs text-gray-500 dark:text-gray-400">{{ emptyDetail() }}</p>
+          }
+        </div>
+      }
+
+      <!-- Suggestion rows -->
+      <ul
+        [attr.id]="listboxId"
+        role="listbox"
+        [attr.aria-label]="suggestionsLabel() || accessibleName() || 'Search suggestions'"
+        class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1"
+        [svStale]="stale()"
+      >
+        @for (s of computedSuggestions(); track s.id; let i = $index) {
+          <li
+            [id]="optionId(i)"
+            role="option"
+            [attr.aria-selected]="activeIndex() === i"
+            class="flex cursor-pointer items-center gap-3 px-3 py-2.5
+                   transition-colors duration-75 select-none"
+            [ngClass]="activeIndex() === i
+              ? 'bg-primary-50 dark:bg-primary-900/30'
+              : 'hover:bg-gray-50 dark:hover:bg-gray-800/60'"
+            (mousedown)="selectSuggestion(s)"
+            (mouseenter)="activeIndex.set(i)"
+          >
+            <!-- Row icon -->
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg
+                     text-gray-500 dark:text-gray-400"
+              [ngClass]="activeIndex() === i
+                ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400'
+                : 'bg-gray-100 dark:bg-gray-800'"
+              aria-hidden="true"
+            >
+              <sv-icon [name]="s.resolvedIconName" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+            </span>
+
+            <!-- Text -->
+            <span class="min-w-0 flex-1">
+              <!-- Highlighted label (pre-computed, no method call in template) -->
+              <span class="block truncate text-sm font-medium text-gray-900 dark:text-white">
+                {{ s.highlighted.pre }}<mark class="bg-transparent font-bold text-primary-600 dark:text-primary-400">{{ s.highlighted.match }}</mark>{{ s.highlighted.post }}
+              </span>
+              @if (s.sublabel) {
+                <span class="block truncate text-xs text-gray-500 dark:text-gray-400">
+                  {{ s.sublabel }}
+                </span>
+              }
+            </span>
+
+            <!-- Badge -->
+            @if (s.badge) {
+              <span
+                class="shrink-0 rounded-full bg-primary-50 px-2 py-0.5
+                       text-[10px] font-semibold text-primary-600
+                       dark:bg-primary-900/40 dark:text-primary-400"
+              >
+                {{ s.badge }}
+              </span>
+            }
+
+            <!-- Keyboard hint on active row -->
+            @if (activeIndex() === i) {
+              <sv-kbd class="shrink-0" aria-hidden="true">↵</sv-kbd>
+            }
+
+          </li>
+        }
+      </ul>
+
+      <!-- Dropdown footer -->
+      @if (footerLabel()) {
+        <div class="border-t border-gray-100 dark:border-gray-800">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between px-3 py-2.5
+                   text-xs font-medium text-primary-600 transition-colors
+                   hover:bg-gray-50 dark:text-primary-400 dark:hover:bg-gray-800/60
+                   focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400"
+            (mousedown)="onFooterClick()"
+          >
+            <span>{{ footerLabel() }}</span>
+            <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+          </button>
+        </div>
+      }
+
+    </div>
+  </ng-template>
+
+  <!--
+    The empty state, announced. Mounted for the life of the control and empty
+    until there is something to say: a live region added to the page with its
+    text already in it is frequently not announced, which is exactly what a
+    region inside the portalled panel would be.
+  -->
+  <span role="status" class="sr-only">{{ emptyAnnouncement() }}</span>
+
+</div>

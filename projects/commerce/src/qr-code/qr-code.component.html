@@ -1,0 +1,67 @@
+<div
+  class="inline-flex flex-col items-center gap-3"
+  [style.width.px]="size()"
+>
+  <!--
+    ★★★ AN OVER-LONG PAYLOAD IS THE ONE FAILURE THAT REFUSES TO DRAW. The
+        encoder slices the byte array to capacity, so the code would scan
+        perfectly and return truncated data — and a truncated URL is still a
+        URL. Every other warning lowers the ODDS of a scan; this one guarantees
+        the wrong answer, so there is nothing honest to render.
+  -->
+  @if (overCapacity()) {
+    <div class="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed
+                border-danger-300 bg-danger-50 p-4 text-center dark:border-danger-700
+                dark:bg-danger-950/40"
+         [style.width.px]="size()"
+         [style.height.px]="size()"
+         role="img"
+         [attr.aria-label]="'Cannot encode: ' + payloadLabel()">
+      <p class="text-[11px] font-semibold text-danger-800 dark:text-danger-200">Payload too long</p>
+      <p class="text-[10px] leading-relaxed text-danger-700 dark:text-danger-300">{{ payloadLabel() }}</p>
+    </div>
+  } @else {
+    <canvas
+      #canvas
+      role="img"
+      [attr.aria-label]="resolvedAriaLabel()"
+      class="rounded-lg"
+      [style.width.px]="size()"
+      [style.height.px]="size()"
+    ></canvas>
+  }
+
+  @if (showPayloadMeter()) {
+    <div data-sv-qr-payload class="flex w-full flex-col gap-1">
+      <meter
+        class="h-1.5 w-full"
+        min="0"
+        [attr.max]="capacityBytes()"
+        [attr.low]="capacityBytes() * 0.75"
+        [attr.high]="capacityBytes() * 0.9"
+        [attr.optimum]="0"
+        [value]="payloadBytes()"
+        [attr.aria-label]="'Payload size: ' + payloadLabel()"
+      ></meter>
+      <span class="text-center text-[11px] tabular-nums text-gray-600 dark:text-gray-400"
+            aria-hidden="true">{{ payloadLabel() }}</span>
+    </div>
+  }
+
+  <!--
+    ★★ THESE ARE NOT STYLE NOTES. The quiet zone is four modules in ISO/IEC
+       18004, the correction levels recover a known percentage of the symbol,
+       and contrast is what a camera has to separate. A code that looks right on
+       the designer's phone and nowhere else is what happens when they are
+       treated as taste.
+  -->
+  @if (warnings().length) {
+    <ul data-sv-notice
+        class="w-full space-y-1 rounded-lg bg-warning-50 px-3 py-2 text-left text-[11px]
+               leading-relaxed text-warning-800 dark:bg-warning-500/10 dark:text-warning-200">
+      @for (warning of warnings(); track warning.kind) {
+        <li>{{ warning.message }}</li>
+      }
+    </ul>
+  }
+</div>

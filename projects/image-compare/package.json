@@ -1,0 +1,41 @@
+{
+  "name": "@styloviz/image-compare",
+  "version": "1.0.1",
+  "description": "A before/after wipe that admits when it is not one: it measures both images' intrinsic sizes and says so when their aspect ratios disagree, because then part of what the reader sees as \"the change\" is the crop.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "image-compare",
+    "before-after",
+    "slider",
+    "diff",
+    "styloviz",
+    "image",
+    "compare"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/image-compare",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/image-compare"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/core": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,83 @@
+<div class="inline-flex flex-col items-center gap-2" [class]="customClass()">
+  <div class="relative inline-flex items-center justify-center"
+       [style.width.px]="cfg().size"
+       [style.height.px]="cfg().size"
+       role="progressbar"
+       [attr.aria-label]="resolvedAriaLabel()"
+       [attr.aria-valuenow]="clampedValue()"
+       [attr.aria-valuetext]="resolvedValueText()"
+       [attr.aria-valuemin]="0"
+       [attr.aria-valuemax]="max()">
+
+    <svg [attr.width]="cfg().size"
+         [attr.height]="cfg().size"
+         [attr.viewBox]="'0 0 ' + cfg().size + ' ' + cfg().size"
+         class="-rotate-90"
+         aria-hidden="true">
+
+      <!-- Gradient def (for gradient variant) -->
+      @if (effectiveVariant() === 'gradient') {
+        <defs>
+          <linearGradient [id]="gradId" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" [attr.stop-color]="color()"/>
+            <stop offset="100%" [attr.stop-color]="gradientEnd()"/>
+          </linearGradient>
+        </defs>
+      }
+
+      <!-- Track circle -->
+      <circle
+        [attr.cx]="cfg().size / 2"
+        [attr.cy]="cfg().size / 2"
+        [attr.r]="radius()"
+        fill="none"
+        [attr.stroke]="trackFill()"
+        [attr.stroke-width]="cfg().stroke"
+        class="dark:[stroke:var(--color-gray-700)] forced-colors:[stroke:GrayText]" />
+
+      <!--
+        Progress circle.
+
+        ★★ THE `forced-colors:` STROKES ARE NOT DECORATION (`OF-15-I6`). In
+           forced-colors mode the engine may replace an author's `stroke`, and
+           when it replaces both circles with the same system colour the arc
+           disappears into its own track — a progress ring that reads 0% at
+           every value. Naming `Highlight` for the arc and `GrayText` for the
+           track keeps the two apart whichever way the engine goes, in the
+           user's palette rather than ours.
+      -->
+      <!-- Progress circle -->
+      <circle
+        [attr.cx]="cfg().size / 2"
+        [attr.cy]="cfg().size / 2"
+        [attr.r]="radius()"
+        fill="none"
+        [attr.stroke]="effectiveVariant() === 'gradient' ? 'url(#' + gradId + ')' : color()"
+        [attr.stroke-width]="cfg().stroke"
+        class="forced-colors:[stroke:Highlight]"
+        [attr.stroke-linecap]="lineCap()"
+        [attr.stroke-dasharray]="dashArray()"
+        [attr.stroke-dashoffset]="arcOffset()"
+        [style.transition]="animationOn() ? 'stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)' : 'none'"
+        [style.filter]="effectiveVariant() === 'glow' ? 'drop-shadow(0 0 6px ' + color() + ')' : 'none'" />
+    </svg>
+
+    <!-- Center content -->
+    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+      @if (showValue()) {
+        <span class="font-bold leading-none text-gray-800 dark:text-white" [class]="cfg().fontSize">
+          {{ displayValue() }}{{ suffix() }}
+        </span>
+        @if (sublabel()) {
+          <span class="mt-0.5 text-[10px] font-medium leading-none text-gray-500 dark:text-gray-400">
+            {{ sublabel() }}
+          </span>
+        }
+      }
+    </div>
+  </div>
+
+  @if (label()) {
+    <p class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ label() }}</p>
+  }
+</div>

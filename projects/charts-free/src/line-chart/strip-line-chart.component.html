@@ -1,0 +1,237 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="240"
+  [notice]="gapNote()"
+  (retry)="retry.emit()"
+>
+
+<div [ngClass]="['flex flex-col gap-3', customClass()]">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  @if (title()) {
+    <div>
+      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ title() }}</h3>
+      @if (subtitle()) {
+        <p class="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">{{ subtitle() }}</p>
+      }
+    </div>
+  }
+
+  <!-- ── Chart ──────────────────────────────────────────────────────────── -->
+  <div class="relative w-full overflow-hidden" [style.height.px]="chartHeight()">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_W + ' ' + chartHeight()"
+      preserveAspectRatio="xMidYMid meet"
+      class="h-full w-full"
+      [attr.aria-label]="resolvedAriaLabel()"
+      role="img"
+      (mousemove)="onMouseMove($event)"
+      (mouseleave)="onMouseLeave()"
+    >
+
+      <defs>
+        @for (s of series(); track s.label; let i = $index) {
+          @if (s.fill) {
+            <linearGradient [attr.id]="fillGradId(i)" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   [attr.stop-color]="seriesColors()[i]" stop-opacity="0.22"/>
+              <stop offset="100%" [attr.stop-color]="seriesColors()[i]" stop-opacity="0.02"/>
+            </linearGradient>
+          }
+        }
+      </defs>
+
+      <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">
+
+        <!-- ── Strip bands (painted first, behind everything) ─────── -->
+        @for (band of bandRects(); track band.index) {
+          <g [class]="animated() ? 'sl-band-anim' : ''"
+             [style.--sl-delay]="(band.index * 60) + 'ms'">
+            <rect
+              [attr.x]="band.x"
+              [attr.y]="band.y"
+              [attr.width]="band.width"
+              [attr.height]="band.height"
+              [attr.fill]="band.color"
+              [attr.fill-opacity]="band.opacity"/>
+            <!-- Band border line -->
+            @if (band.orientation === 'horizontal') {
+              <line
+                [attr.x1]="0"          [attr.y1]="band.y"
+                [attr.x2]="band.width" [attr.y2]="band.y"
+                [attr.stroke]="band.color" stroke-width="1" stroke-opacity="0.5"/>
+            } @else {
+              <line
+                [attr.x1]="band.x" [attr.y1]="0"
+                [attr.x2]="band.x" [attr.y2]="band.height"
+                [attr.stroke]="band.color" stroke-width="1" stroke-opacity="0.5"/>
+            }
+            <!-- Band label -->
+            @if (showBandLabels() && band.label) {
+              <text
+                [attr.x]="band.labelX"
+                [attr.y]="band.labelY"
+                [attr.text-anchor]="band.orientation === 'vertical' ? 'middle' : 'end'"
+                font-size="9.5" font-weight="500"
+                [attr.fill]="band.color"
+                class="select-none pointer-events-none">{{ band.label }}</text>
+            }
+          </g>
+        }
+
+        <!-- ── Grid lines ────────────────────────────────────────── -->
+        @if (showGrid()) {
+          @for (v of gridValues(); track v) {
+            <line
+              [attr.x1]="0"       [attr.y1]="gridLineY(v)"
+              [attr.x2]="plotW()" [attr.y2]="gridLineY(v)"
+              stroke-width="1" stroke-dasharray="4 3"
+              class="stroke-gray-200 dark:stroke-gray-700/50"/>
+          }
+        }
+
+        <!-- Baseline -->
+        <line
+          [attr.x1]="0"       [attr.y1]="plotH()"
+          [attr.x2]="plotW()" [attr.y2]="plotH()"
+          stroke-width="1"
+          class="stroke-gray-300 dark:stroke-gray-700"/>
+
+        <!-- ── Y-axis labels ──────────────────────────────────────── -->
+        @if (showLabels()) {
+          @for (v of gridValues(); track v) {
+            <text
+              [attr.x]="-8" [attr.y]="gridLineY(v) + 4"
+              text-anchor="end" font-size="10"
+              class="select-none fill-gray-400 dark:fill-gray-500">{{ formatValue(v) }}</text>
+          }
+        }
+
+        <!-- ── X-axis labels ─────────────────────────────────────── -->
+        @if (showLabels()) {
+          @for (cat of categories(); track cat; let ci = $index) {
+            <text
+              [attr.x]="xForIndex(ci)" [attr.y]="plotH() + 18"
+              text-anchor="middle" font-size="11"
+              class="select-none fill-gray-500 dark:fill-gray-400">{{ cat }}</text>
+          }
+        }
+
+        <!-- ── Crosshair ─────────────────────────────────────────── -->
+        @if (tooltip().visible) {
+          <line
+            [attr.x1]="tooltip().crossX" [attr.y1]="0"
+            [attr.x2]="tooltip().crossX" [attr.y2]="plotH()"
+            stroke-width="1" stroke-dasharray="3 3"
+            class="stroke-gray-400 dark:stroke-gray-500 pointer-events-none"/>
+        }
+
+        <!-- ── Area fills ─────────────────────────────────────────── -->
+        @for (s of series(); track s.label; let si = $index) {
+          @if (s.fill) {
+            <path
+              [attr.d]="fillPath(si)"
+              [attr.fill]="'url(#' + fillGradId(si) + ')'"
+              class="pointer-events-none"/>
+          }
+        }
+
+        <!-- ── Lines ─────────────────────────────────────────────── -->
+        @for (s of series(); track s.label; let si = $index) {
+          <path
+            [attr.d]="seriesPath(si)"
+            [attr.stroke]="seriesColors()[si]"
+            [attr.stroke-width]="s.strokeWidth ?? 2"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            [attr.stroke-dasharray]="animated() ? '2000 2000' : null"
+            [class]="animated() ? 'sl-line-anim' : ''"
+            [style.--sl-len]="2000"/>
+        }
+
+        <!-- ── Dots ──────────────────────────────────────────────── -->
+        @if (showDots()) {
+          @for (seriesDots of dots(); track $index; let si = $index) {
+            @for (dot of seriesDots; track $index) {
+              <circle
+                [attr.cx]="dot.x"
+                [attr.cy]="dot.y"
+                r="3.5"
+                [attr.fill]="seriesColors()[si]"
+                class="transition-all duration-150 cursor-pointer">
+                <title>{{ series()[si].label }}: {{ formatValue(dot.value) }}</title>
+              </circle>
+            }
+          }
+        }
+
+      </g>
+
+      <!-- ── Tooltip ───────────────────────────────────────────────── -->
+      @if (tooltip().visible) {
+        <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'"
+           class="pointer-events-none">
+          <!-- Background -->
+          <rect
+            x="0" y="0"
+            [attr.width]="155"
+            [attr.height]="28 + tooltip().items.length * 18"
+            rx="6"
+            class="fill-white stroke-gray-200 dark:fill-gray-800 dark:stroke-gray-700"
+            stroke-width="1"
+            fill-opacity="0.97"/>
+          <!-- Category label -->
+          <text x="10" y="17" font-size="10.5" font-weight="600"
+                class="fill-gray-700 dark:fill-gray-200 select-none">
+            {{ tooltip().label }}
+          </text>
+          <!-- Series rows -->
+          @for (item of tooltip().items; track item.series; let ii = $index) {
+            <circle [attr.cx]="10" [attr.cy]="30 + ii * 18" r="3.5"
+                    [attr.fill]="item.color"/>
+            <text [attr.x]="20" [attr.y]="34 + ii * 18" font-size="10"
+                  class="fill-gray-600 dark:fill-gray-300 select-none">
+              {{ item.series }}: {{ formatReading(item.value) }}
+            </text>
+          }
+        </g>
+      }
+
+    </svg>
+  </div>
+
+  <!-- ── Legend ─────────────────────────────────────────────────────────── -->
+  @if (showLegend()) {
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+
+      <!-- Series -->
+      @for (s of series(); track s.label; let i = $index) {
+        <div class="flex items-center gap-1.5">
+          <span class="h-px w-5 rounded-full"
+                [style.background-color]="seriesColors()[i]"
+                style="height:2px;display:inline-block;"></span>
+          <span class="text-[11.5px] text-gray-600 dark:text-gray-400">{{ s.label }}</span>
+        </div>
+      }
+
+      <!-- Strip bands -->
+      @for (b of strips(); track $index) {
+        @if (b.label) {
+          <div class="flex items-center gap-1.5">
+            <span class="h-3 w-3 rounded-sm"
+                  [style.background-color]="b.color"
+                  [style.opacity]="(b.opacity ?? 0.15) * 4"></span>
+            <span class="text-[11.5px] text-gray-500 dark:text-gray-400">{{ b.label }}</span>
+          </div>
+        }
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

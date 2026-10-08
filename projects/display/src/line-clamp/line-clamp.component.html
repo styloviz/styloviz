@@ -1,0 +1,44 @@
+<div>
+  <!--
+    The text + fade live in their own wrapper so the gradient overlay can
+    never cover the toggle button below (which previously made the label
+    look blurry / washed-out).
+  -->
+  <div class="relative">
+    <div
+      #content
+      [id]="contentId"
+      class="sv-clamp-content text-sm leading-relaxed text-gray-700 transition-all duration-300 ease-in-out motion-reduce:transition-none dark:text-gray-300"
+      (focusin)="onContentFocusIn($event)"
+      (focusout)="onContentFocusOut($event)"
+      [ngClass]="expanded() ? 'overflow-visible' : 'overflow-hidden'"
+      [style.-webkit-line-clamp]="expanded() ? 'unset' : lines()"
+      [style.display]="expanded() ? 'block' : '-webkit-box'"
+      [style.-webkit-box-orient]="expanded() ? '' : 'vertical'"
+    >
+      <ng-content />
+    </div>
+
+    <!-- Fade overlay — scoped to the text wrapper only -->
+    @if (fadeOut() && !expanded() && isClamped()) {
+      <div
+        aria-hidden="true"
+        class="sv-clamp-fade pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent dark:from-gray-950"
+      ></div>
+    }
+  </div>
+
+  <!-- Toggle — also shown while expanded so users can collapse back -->
+  @if (showToggle() && (isClamped() || expanded())) {
+    <button
+      type="button"
+      [attr.aria-expanded]="expanded()"
+      [attr.aria-controls]="contentId"
+      class="sv-clamp-toggle relative mt-2 inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2 dark:text-primary-400 dark:hover:text-primary-300"
+      (click)="toggle()"
+    >
+      {{ toggleLabel() }}
+      <sv-icon name="chevron-down" cssClass="h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none" />
+    </button>
+  }
+</div>

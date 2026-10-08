@@ -1,0 +1,205 @@
+<!-- Root wrapper -->
+<div
+  [ngClass]="[
+    'flex flex-wrap items-center gap-3',
+    variant() === 'compact' ? 'justify-center' : 'justify-between',
+    customClass()
+  ]"
+>
+
+  <!-- ── Summary + page-size selector ────────────────────────────────── -->
+  @if (variant() !== 'compact') {
+    <div class="flex flex-wrap items-center gap-3">
+
+      <!-- Needs a count to be "of" — cursor / unknown-total modes show the
+           ordinal in the nav instead (`NV-04-M1`). -->
+      @if (showSummary() && hasStableTotal() && itemCount() > 0) {
+        <p [ngClass]="['text-gray-500 dark:text-gray-400', textClass()]">
+          Showing
+          <span class="font-medium text-gray-900 dark:text-white">{{ rangeStart() }}</span>
+          –
+          <span class="font-medium text-gray-900 dark:text-white">{{ rangeEnd() }}</span>
+          of
+          <span class="font-medium text-gray-900 dark:text-white">{{ itemCount() }}</span>
+        </p>
+      }
+
+      @if (pageSizeOptions().length > 0) {
+        <div class="flex items-center gap-1.5">
+          <label [ngClass]="['text-gray-500 dark:text-gray-400 whitespace-nowrap', textClass()]"
+                 [for]="pageSizeSelectId">Rows per page</label>
+          <select
+            [id]="pageSizeSelectId"
+            [ngModel]="pageSize()"
+            [disabled]="busy()"
+            (ngModelChange)="onPageSizeChange($event)"
+            [ngClass]="[
+              'rounded-lg border border-gray-200 bg-white text-gray-900',
+              'dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100',
+              'focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+              'disabled:cursor-not-allowed disabled:opacity-60',
+              textClass(),
+              size() === 'sm' ? 'h-7 px-2 py-0' : size() === 'lg' ? 'h-10 px-3 py-1' : 'h-8 px-2.5 py-0.5'
+            ]"
+          >
+            @for (opt of pageSizeOptions(); track opt) {
+              <option [ngValue]="opt">{{ opt }}</option>
+            }
+          </select>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- ── A failed load (`docs/async-contract-adr.md`) ──────────────────── -->
+  @if (activeError(); as failure) {
+    <p
+      role="alert"
+      [ngClass]="['flex items-center gap-2 text-danger-700 dark:text-danger-400', textClass()]"
+    >
+      <span>{{ failure.message }}</span>
+      @if (canRetry()) {
+        <button
+          type="button"
+          [ngClass]="[
+            'rounded-md px-2 py-0.5 font-medium underline underline-offset-2',
+            'hover:bg-danger-50 dark:hover:bg-danger-950/40',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-500',
+            'disabled:cursor-not-allowed disabled:opacity-60'
+          ]"
+          [disabled]="busy()"
+          (click)="retry()"
+        >{{ retryLabel() }}</button>
+      }
+    </p>
+  }
+
+  <!-- ── Page controls ────────────────────────────────────────────────── -->
+  <nav [attr.aria-label]="ariaLabel()" [attr.aria-busy]="busy() ? 'true' : null">
+    <ul class="flex items-center gap-1">
+
+      @if (variant() === 'simple' || !hasStableTotal()) {
+        <!--
+          Prev / ordinal / next. Also the ONLY shape available in cursor mode and
+          with an unknown total: numbered pages need a stable count, and rendering
+          one that does not exist is `NV-04-I11` dressed as a feature.
+        -->
+        <li>
+          <button
+            type="button"
+            [ngClass]="navButtonClass(prevDisabled())"
+            [disabled]="prevDisabled()"
+            (click)="previous()"
+            aria-label="Previous page"
+          >
+            <sv-icon name="chevron-left" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        </li>
+
+        <li>
+          <span [ngClass]="['px-3 text-gray-600 dark:text-gray-300', textClass()]">
+            {{ positionLabel() }}
+          </span>
+        </li>
+
+        <li>
+          <button
+            type="button"
+            [ngClass]="navButtonClass(nextDisabled())"
+            [disabled]="nextDisabled()"
+            (click)="next()"
+            aria-label="Next page"
+          >
+            <sv-icon name="chevron-right" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        </li>
+
+      } @else {
+        <!-- Default / compact: full page window -->
+
+        <!-- First -->
+        @if (variant() === 'default') {
+          <li>
+            <button
+              type="button"
+              [ngClass]="navButtonClass(prevDisabled())"
+              [disabled]="prevDisabled()"
+              (click)="first()"
+              aria-label="First page"
+            >
+              <sv-icon name="chevrons-left" cssClass="h-4 w-4" [strokeWidth]="2" />
+            </button>
+          </li>
+        }
+
+        <!-- Prev -->
+        <li>
+          <button
+            type="button"
+            [ngClass]="navButtonClass(prevDisabled())"
+            [disabled]="prevDisabled()"
+            (click)="previous()"
+            aria-label="Previous page"
+          >
+            <sv-icon name="chevron-left" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        </li>
+
+        <!-- Page numbers -->
+        @for (page of pageWindow(); track $index) {
+          <li>
+            @if (page === -1) {
+              <!-- Ellipsis -->
+              <span [ngClass]="['inline-flex items-center justify-center text-gray-500 dark:text-gray-400', btnClass()]">
+                &hellip;
+              </span>
+            } @else {
+              <button
+                type="button"
+                [ngClass]="pageButtonClass(page)"
+                [attr.aria-current]="page === currentPage() ? 'page' : null"
+                [attr.aria-label]="'Page ' + page"
+                [disabled]="busy()"
+                (click)="goTo(page)"
+              >
+                {{ page }}
+              </button>
+            }
+          </li>
+        }
+
+        <!-- Next -->
+        <li>
+          <button
+            type="button"
+            [ngClass]="navButtonClass(nextDisabled())"
+            [disabled]="nextDisabled()"
+            (click)="next()"
+            aria-label="Next page"
+          >
+            <sv-icon name="chevron-right" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        </li>
+
+        <!-- Last -->
+        @if (variant() === 'default') {
+          <li>
+            <button
+              type="button"
+              [ngClass]="navButtonClass(nextDisabled())"
+              [disabled]="nextDisabled()"
+              (click)="last()"
+              aria-label="Last page"
+            >
+              <sv-icon name="chevrons-right" cssClass="h-4 w-4" [strokeWidth]="2" />
+            </button>
+          </li>
+        }
+
+      }
+
+    </ul>
+  </nav>
+
+</div>

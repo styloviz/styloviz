@@ -1,0 +1,159 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--bc-anim-dur]="animDuration()">
+
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <div class="w-full overflow-hidden">
+    <!-- `group`, not `img`: the shapes below are focusable, and `img` is
+         children-presentational — it would drop every one of them from the
+         accessibility tree while leaving them in the tab order. -->
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgH()"
+      [attr.height]="svgH()"
+      class="w-full"
+      role="group"
+      [attr.aria-label]="title() || 'Axis label template chart'"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">
+
+        <!-- Grid lines -->
+        @if (showGrid()) {
+          @for (v of yTicks(); track v) {
+            <line
+              x1="0" [attr.y1]="yTickY(v)"
+              [attr.x2]="plotW()" [attr.y2]="yTickY(v)"
+              stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+            />
+          }
+        }
+
+        <!-- Bars -->
+        @for (bar of bars(); track $index) {
+          <path
+            [attr.d]="bar.path"
+            [attr.fill]="bar.color"
+            fill-opacity="0.88"
+            class="bc-bar-v cursor-pointer outline-none transition-opacity duration-150 hover:fill-opacity-100 focus-visible:fill-opacity-100"
+            [style.animation-delay]="bar.delay + 'ms'"
+            tabindex="0"
+            role="button"
+            [attr.aria-label]="barAriaLabel(bar.catIdx, bar.series, bar.value)"
+            (mouseenter)="showTooltip($event, bar.catIdx, bar.series, bar.value, bar.color)"
+            (mouseleave)="hideTooltip()"
+            (focus)="hoverBar(bar.catIdx, bar.series, bar.value, bar.color)"
+            (click)="selectBar(bar.catIdx, bar.series, bar.value, bar.color)"
+            (keydown.enter)="selectBar(bar.catIdx, bar.series, bar.value, bar.color); $event.preventDefault()"
+            (keydown.space)="selectBar(bar.catIdx, bar.series, bar.value, bar.color); $event.preventDefault()"
+          />
+          @if (showValues() && bar.value > 0) {
+            <text
+              [attr.x]="bar.catIdx * xStep() + xStep() / 2"
+              [attr.y]="yTickY(bar.value) - 4"
+              text-anchor="middle"
+              class="fill-gray-500 dark:fill-gray-400"
+              style="font-size:10px;font-family:inherit;pointer-events:none;"
+            >{{ fmt(bar.value) }}</text>
+          }
+        }
+
+        <!-- Y-axis -->
+        <line x1="0" y1="0" x2="0" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-300 dark:text-gray-600" stroke-width="1" />
+        @for (v of yTicks(); track v) {
+          <text x="-8" [attr.y]="yTickY(v) + 4"
+            text-anchor="end"
+            class="fill-gray-400 dark:fill-gray-500"
+            style="font-size:10px;font-family:inherit;"
+          >{{ fmt(v) }}</text>
+        }
+
+        <!-- X-axis baseline -->
+        <line x1="0" [attr.y1]="plotH()" [attr.x2]="plotW()" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-300 dark:text-gray-600" stroke-width="1" />
+
+        <!-- Custom axis label templates -->
+        @for (cat of categories(); track cat.label; let ci = $index) {
+          <g [attr.transform]="'translate(' + catX(ci) + ',' + (plotH() + 8) + ')'">
+
+            <!-- Colour swatch / icon circle -->
+            @if (cat.iconColor) {
+              <circle cx="0" cy="10" r="7"
+                [attr.fill]="cat.iconColor"
+                fill-opacity="0.15"
+                [attr.stroke]="cat.iconColor"
+                stroke-width="1.5"
+              />
+              @if (cat.icon) {
+                <text x="0" y="14" text-anchor="middle"
+                  style="font-size:9px;font-family:inherit;">{{ cat.icon }}</text>
+              }
+            }
+
+            <!-- Primary label -->
+            <text x="0" [attr.y]="cat.iconColor ? 26 : 12"
+              text-anchor="middle"
+              class="fill-gray-700 dark:fill-gray-200"
+              style="font-size:11px;font-weight:600;font-family:inherit;"
+            >{{ cat.label }}</text>
+
+            <!-- Sub-label -->
+            @if (cat.subLabel) {
+              <text x="0" [attr.y]="cat.iconColor ? 38 : 24"
+                text-anchor="middle"
+                class="fill-gray-400 dark:fill-gray-500"
+                style="font-size:9px;font-family:inherit;"
+              >{{ cat.subLabel }}</text>
+            }
+          </g>
+        }
+
+        <!-- Tooltip -->
+        @if (tooltip().visible) {
+          <g [attr.transform]="'translate(' + (tooltip().x - PAD.left) + ',' + (tooltip().y - PAD.top) + ')'">
+            <rect x="0" y="0" rx="6" width="140" height="52"
+              fill="white" class="dark:fill-gray-800"
+              style="filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15));"
+            />
+            <text x="10" y="16" style="font-size:11px;font-weight:600;font-family:inherit;"
+              class="fill-gray-700 dark:fill-gray-200">{{ tooltip().label }}</text>
+            @for (item of tooltip().items; track item.series) {
+              <circle cx="10" cy="32" r="4" [attr.fill]="item.color" />
+              <text x="20" y="36" style="font-size:10px;font-family:inherit;"
+                class="fill-gray-500 dark:fill-gray-400">
+                {{ item.series }}: <tspan style="font-weight:600;" class="fill-gray-700 dark:fill-gray-200">{{ fmt(item.value) }}</tspan>
+              </text>
+            }
+          </g>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  <!-- Legend -->
+  @if (showLegend() && datasets().length > 1) {
+    <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
+      @for (ds of datasets(); track ds.label; let i = $index) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-block size-3 shrink-0 rounded-sm" [style.background]="seriesColors()[i]"></span>
+          {{ ds.label }}
+        </span>
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

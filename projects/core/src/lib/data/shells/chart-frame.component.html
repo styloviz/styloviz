@@ -1,0 +1,37 @@
+@if (loading()) {
+  <div [style.height]="heightPx()" class="flex items-center" data-sv-state="loading">
+    <sv-skeleton-shell variant="chart" [chartHeight]="heightPx()" ariaLabel="Loading chart" />
+  </div>
+} @else if (error()) {
+  <div [style.min-height]="heightPx()" class="flex items-center justify-center" data-sv-state="error">
+    <sv-error-shell [error]="error()" [title]="errorTitle()" (retry)="retry.emit()" />
+  </div>
+} @else if (isEmpty()) {
+  <div [style.min-height]="heightPx()" class="flex items-center justify-center" data-sv-state="empty">
+    <sv-empty-shell
+      [reason]="filtered() ? 'no-results' : 'no-data'"
+      [title]="emptyMessage()"
+      [message]="filtered() ? 'Try widening the range or clearing a filter.' : ''"
+    />
+  </div>
+} @else {
+  <ng-content />
+}
+
+<!-- Renders under the plot AND under the empty state: "every value was
+     unplottable, so all of them were omitted" is empty, and the notice is the
+     only thing on screen that says why. Not under `error`, where the error
+     state already carries the reason, and not under `loading`, where nothing
+     has been measured yet. -->
+@if (notice() && !loading() && !error()) {
+  <!-- No icon, for the same reason `sv-error-shell` above renders without one:
+       `@styloviz/core` ships no SVG, so a glyph here would be either the kit's
+       only inline path or a projection slot fifteen chart templates have to fill.
+       The `warning` family carries the tone instead — the semantic token, not the
+       literal `amber` ramp, so a buyer who rebrands warning moves this text and
+       the mark in the plot together. -->
+  <p
+    data-sv-notice
+    class="mt-2 text-xs leading-relaxed text-warning-700 dark:text-warning-400"
+  >{{ notice() }}</p>
+}

@@ -1,0 +1,303 @@
+<!--
+  The overlay lives inside an <ng-template> and is instantiated into
+  document.body via a portal (see SvModalComponent.mountPortal), so the
+  fixed backdrop always covers the full viewport and is never clipped by a
+  parent's overflow / transform / filter containment.
+-->
+<ng-template #modalTpl>
+  <!-- Backdrop + centering wrapper -->
+  <!-- Click-outside-to-dismiss is a pointer affordance, not a control: it has
+       no accessible name and must not be a tab stop. The keyboard equivalent is
+       closeOnEsc(), plus the visible close/cancel control. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
+  <div
+    [ngClass]="[
+      'fixed inset-0 flex justify-center px-4 py-6 overflow-y-auto',
+      'modal-backdrop',
+      backdropBlur() ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/40',
+      alignClass()
+    ]"
+    [style.zIndex]="stackZ()"
+    (mousedown)="onBackdropPointerDown($event)"
+    (click)="onBackdropClick($event)"
+    (keydown)="onKeydown($event)"
+  >
+
+    <!-- Dialog panel -->
+    <div
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="title() ? titleId : null"
+      [attr.aria-label]="title() ? null : 'Dialog'"
+      [attr.aria-describedby]="hasDescription() ? subtitleId : null"
+      [attr.aria-busy]="loading() ? 'true' : null"
+      [ngClass]="[
+        'relative flex flex-col max-h-[90vh] overflow-hidden rounded-2xl shadow-2xl',
+        'bg-white dark:bg-gray-800',
+        'ring-1 ring-gray-200 dark:ring-gray-700',
+        animationClass(),
+        panelClass(),
+        positionPanelClass(),
+        customClass()
+      ]"
+      tabindex="-1"
+      [style.width]="panelSizeStyle()?.['width']"
+      [style.height]="panelSizeStyle()?.['height']"
+      [style.maxWidth]="panelSizeStyle()?.['maxWidth']"
+    >
+
+      <!-- ── Accent bar (semantic variants only) ─────────────────────── -->
+      @if (accentBarClass()) {
+        <div [ngClass]="['h-1 w-full shrink-0', accentBarClass()]" aria-hidden="true"></div>
+      }
+
+      <!-- ── Header ────────────────────────────────────────────────── -->
+      @if (showHeader()) {
+        <div
+          [ngClass]="[
+            'flex items-start justify-between gap-4 px-6 py-4 shrink-0',
+            showHeaderDivider() ? 'border-b border-gray-200 dark:border-gray-700' : ''
+          ]"
+        >
+          <div class="flex min-w-0 flex-1 items-start gap-3.5">
+            <!-- Variant icon badge -->
+            @if (hasIcon()) {
+              <span
+                [ngClass]="[
+                  'mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                  iconAccentClass()
+                ]"
+                aria-hidden="true"
+              >
+                @switch (variant()) {
+                  @case ('success') {
+                    <sv-icon name="check-circle" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  @case ('warning') {
+                    <sv-icon name="alert-triangle" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  @case ('danger') {
+                    <sv-icon name="x-circle" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  @case ('info') {
+                    <sv-icon name="info" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  @default {
+                    <sv-icon name="sparkles" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                }
+              </span>
+            }
+
+            <!-- Built-in title / subtitle or custom header slot -->
+            <div class="min-w-0 flex-1">
+              @if (title()) {
+                <h2 [id]="titleId" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  {{ title() }}
+                </h2>
+                @if (subtitle()) {
+                  <p [id]="subtitleId" class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                    {{ subtitle() }}
+                  </p>
+                }
+              } @else {
+                <ng-content select="[slot=header]" />
+              }
+            </div>
+          </div>
+
+          <!--
+            Maximize / restore.
+
+            ★ This button is the KEYBOARD half of `resizable`. The corner drag
+            below is a pointer-only affordance, so a resizable dialog with no
+            button would be a capability a keyboard user simply does not have —
+            hence `showsMaximize()` turning it on for `resizable` too.
+          -->
+          @if (showsMaximize()) {
+            <button
+              type="button"
+              (click)="toggleMaximize()"
+              [disabled]="loading()"
+              [attr.aria-pressed]="isMaximized()"
+              [attr.aria-label]="isMaximized() ? 'Restore dialog size' : 'Maximize dialog'"
+              class="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg
+                     text-gray-500 dark:text-gray-400
+                     hover:bg-gray-100 dark:hover:bg-gray-700
+                     hover:text-gray-600 dark:hover:text-gray-300
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                     disabled:opacity-40 disabled:pointer-events-none
+                     transition-colors duration-100"
+            >
+              <sv-icon [name]="isMaximized() ? 'minimize' : 'maximize'" cssClass="h-4 w-4" [strokeWidth]="2" />
+            </button>
+          }
+
+          <!-- Close button -->
+          @if (showCloseButton()) {
+            <button
+              type="button"
+              (click)="close('close-button')"
+              [disabled]="closeButtonDisabled()"
+              aria-label="Close dialog"
+              [class.relative]="loading() && !closeButtonDisabled()"
+              [class.z-30]="loading() && !closeButtonDisabled()"
+              class="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg
+                     text-gray-500 dark:text-gray-400
+                     hover:bg-gray-100 dark:hover:bg-gray-700
+                     hover:text-gray-600 dark:hover:text-gray-300
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                     disabled:opacity-40 disabled:pointer-events-none
+                     transition-colors duration-100"
+            >
+              <sv-icon name="close" cssClass="h-5 w-5" [strokeWidth]="2" />
+            </button>
+          }
+        </div>
+      }
+
+      <!-- ── Body ──────────────────────────────────────────────────── -->
+      <div class="flex-1 overflow-y-auto px-6 py-5 text-sm text-gray-700 dark:text-gray-300">
+        <ng-content select="[slot=body]" />
+      </div>
+
+      <!-- ── Footer ────────────────────────────────────────────────── -->
+      @if (showFooter()) {
+        <div
+          [ngClass]="[
+            'shrink-0 px-6 py-4',
+            showFooterDivider() ? 'border-t border-gray-200 dark:border-gray-700' : ''
+          ]"
+        >
+          <ng-content select="[slot=footer]" />
+        </div>
+      }
+
+      <!--
+        ── Resize handle ────────────────────────────────────────────
+
+        aria-hidden and not focusable on purpose: it is a pointer-only
+        enhancement whose whole function is reachable from the maximize button
+        above and from the `size` input. Exposing a focusable control with no
+        keyboard behaviour would be worse than not exposing it — a tab stop
+        that announces itself and then does nothing.
+      -->
+      @if (resizable() && !loading()) {
+        <span
+          class="absolute bottom-0 right-0 z-20 h-4 w-4 cursor-nwse-resize touch-none"
+          data-sv-modal-resize
+          aria-hidden="true"
+          (pointerdown)="onResizeStart($event)"
+          (pointermove)="onResizeMove($event)"
+          (pointerup)="onResizeEnd($event)"
+          (pointercancel)="onResizeEnd($event)"
+        >
+          <span class="pointer-events-none absolute bottom-1 right-1 block h-2 w-2 border-b-2 border-r-2 border-gray-400 dark:border-gray-500"></span>
+        </span>
+      }
+
+      <!--
+        ── Unsaved-changes prompt (OF-09-I5 / OF-09-M3) ──────────────
+
+        ★★★ OVER THE PANEL, NOT BESIDE IT. The question is "do you want to
+            lose what you typed?", and a strip at the bottom of a scrollable
+            dialog can be off-screen at the moment it is asked. It covers the
+            content it is asking about, which is also what stops a second
+            backdrop click landing on the form behind it.
+
+        ★★ `role="alertdialog"` on a node INSIDE a `role="dialog"` is
+            deliberate: this is a second, nested decision, and it is the one
+            the user must answer before anything else here means anything.
+            `aria-modal` is NOT set — the outer dialog already owns that, and
+            claiming it twice tells a screen reader the outer panel is now
+            background when it is the subject of the question.
+
+        ★ Focus goes to Keep editing, the non-destructive choice, for the same
+          reason the confirm dialog's `initialFocus` defaults there for
+          destructive variants: "prompt appeared, press Enter" must not throw
+          work away.
+      -->
+      @if (promptingDiscard()) {
+        <div
+          data-sv-state="unsaved-prompt"
+          role="alertdialog"
+          [attr.aria-labelledby]="unsavedTitleId"
+          [attr.aria-describedby]="unsavedMessageId"
+          class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 px-6 text-center
+                 bg-white/95 backdrop-blur-[2px] dark:bg-gray-800/95"
+        >
+          <div class="flex flex-col items-center gap-2">
+            <sv-icon name="alert-triangle" cssClass="h-7 w-7 text-warning-500" [strokeWidth]="1.8" />
+            <h3 [id]="unsavedTitleId" class="text-base font-semibold text-gray-900 dark:text-white">
+              {{ unsavedTitle() }}
+            </h3>
+            <p [id]="unsavedMessageId" class="max-w-sm text-sm text-gray-600 dark:text-gray-300">
+              {{ unsavedMessage() }}
+            </p>
+          </div>
+
+          <div class="flex flex-col-reverse gap-2 sm:flex-row">
+            <button
+              data-sv-discard
+              type="button"
+              class="rounded-lg border border-danger-200 bg-white px-4 py-2 text-sm font-semibold
+                     text-danger-700 transition-colors hover:bg-danger-50
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-500
+                     dark:border-danger-900/60 dark:bg-gray-800 dark:text-danger-300
+                     dark:hover:bg-danger-950/40"
+              (click)="discardChanges()"
+            >{{ discardLabel() }}</button>
+            <button
+              data-sv-keep-editing
+              type="button"
+              class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white
+                     transition-colors hover:bg-primary-700
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                     focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+              (click)="keepEditing()"
+            >{{ keepEditingLabel() }}</button>
+          </div>
+        </div>
+      }
+
+      <!-- ── Loading overlay ───────────────────────────────────────── -->
+      @if (loading()) {
+        <div
+          class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3
+                 bg-white/70 backdrop-blur-[1px] dark:bg-gray-800/70"
+          role="status"
+          [attr.aria-label]="loadingText()"
+        >
+          <sv-spinner-arc cssClass="h-7 w-7 text-primary-500" />
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ loadingText() }}</span>
+
+          <!--
+            ── The reason to wait, and the way out (OF-09-I10) ──────────────
+
+            ★ Inside this overlay's existing `role="status"`, which was here
+              before the message was — the same rule the spinner and the
+              skeleton follow. A second region for one wait is the defect.
+          -->
+          @if (loadingMessage(); as message) {
+            <span
+              data-sv-state="escalation"
+              [attr.data-sv-stage]="loadingStage()"
+              class="max-w-xs px-6 text-center text-xs text-gray-500 dark:text-gray-400"
+            >{{ message }}</span>
+          }
+          @if (cancelLoadingOffered()) {
+            <button
+              data-sv-cancel-loading
+              type="button"
+              class="rounded px-2 py-1 text-xs font-semibold text-primary-700 underline
+                     underline-offset-2 hover:no-underline focus-visible:outline-none
+                     focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-300"
+              (click)="cancelLoading()"
+            >{{ cancelLoadingLabel() }}</button>
+          }
+        </div>
+      }
+
+    </div>
+  </div>
+</ng-template>

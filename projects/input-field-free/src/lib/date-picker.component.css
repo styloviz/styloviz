@@ -1,0 +1,55 @@
+/* ============================================================================
+   SvDatePickerComponent — component styles
+   Positioning (position/top/bottom/left/right/z-index/width) is set as inline
+   styles via [ngStyle]="panelStyle()" in the template — this makes the panel
+   use position:fixed so it escapes ANY parent overflow:hidden/auto container.
+   ============================================================================ */
+
+/* ── Panel entrance animation (default: opens downward, left-aligned) ────── */
+
+.sv-dp-panel {
+  animation: dp-pop-in 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top left;
+}
+
+/* Flip: opens upward */
+.sv-dp-panel--above {
+  transform-origin: bottom left;
+  animation: dp-pop-in-above 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Right-aligned (combined with above) */
+.sv-dp-panel--right { transform-origin: top right; }
+.sv-dp-panel--above.sv-dp-panel--right { transform-origin: bottom right; }
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes dp-pop-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+@keyframes dp-pop-in-above {
+  from { opacity: 0; transform: scale(0.95) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);   }
+}
+
+/* ── View body entrance ────────────────────────────────────────────────────── */
+
+.sv-dp-body {
+  animation: dp-fade-slide 0.15s ease-out both;
+}
+
+@keyframes dp-fade-slide {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Host & trigger ────────────────────────────────────────────────────────── */
+
+.sv-dp { min-width: 0; }
+
+.sv-dp-trigger:focus-visible { outline: none; }
+
+/* Subtle press feedback */
+.sv-dp-day:not(:disabled):active { transform: scale(0.92); }

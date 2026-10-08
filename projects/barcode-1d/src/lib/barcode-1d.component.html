@@ -1,0 +1,159 @@
+@if (loading()) {
+  <div class="p-4" data-sv-state="loading">
+    <sv-skeleton-shell variant="card" ariaLabel="Generating barcode" />
+  </div>
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
+} @else {
+
+<!--
+  `--sv-bc-print-width` is read only by the `@media print` block in this
+  component's styles. It is set here rather than in CSS because the physical
+  width is arithmetic — the printed X-dimension times the module count,
+  quiet zones included.
+-->
+<div class="inline-block"
+     data-sv-barcode
+     [attr.data-sv-symbology]="symbology()"
+     [style.--sv-bc-print-width]="printWidth()">
+
+  <!-- ★★★ AN INPUT THAT CANNOT BE ENCODED IS REFUSED WITH A REASON, NOT DRAWN
+       ANYWAY. A component that renders something for every input ships an
+       unscannable label to a warehouse; one that says "EAN-13 needs 12 digits,
+       this has 11" gets fixed before it is printed. -->
+  @if (isRefused()) {
+  <p class="flex max-w-md items-start gap-1.5 rounded-lg border border-danger-200 bg-danger-50/80
+            px-3 py-2 text-[11px] leading-relaxed text-danger-800
+            dark:border-danger-900/50 dark:bg-danger-900/20 dark:text-danger-300"
+     data-sv-refused>
+    <sv-icon name="alert-triangle" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+    <span>{{ encoded().error }}</span>
+  </p>
+  } @else {
+
+  <svg [attr.width]="totalWidth()"
+       [attr.height]="totalHeight()"
+       [attr.viewBox]="'0 0 ' + totalWidth() + ' ' + totalHeight()"
+       class="block"
+       role="img"
+       [attr.aria-label]="ariaLabel()"
+       data-sv-svg>
+    <!-- ★★★ THE QUIET ZONE IS DRAWN AS PART OF THE SYMBOL. It is white space by
+         definition, so it exists here only as width — but that width is what a
+         scanner uses to find the edges, and omitting it is how a perfect set of
+         bars stops scanning against a table border. -->
+    <rect x="0" y="0" [attr.width]="totalWidth()" [attr.height]="totalHeight()"
+          fill="#ffffff" data-sv-background />
+
+    @if (showQuietZone()) {
+    <rect [attr.x]="symbolLeft"
+          y="0"
+          [attr.width]="symbolWidth()"
+          [attr.height]="totalHeight()"
+          fill="none"
+          stroke="var(--color-primary-500)"
+          stroke-width="1"
+          stroke-dasharray="3 2"
+          data-sv-quiet-outline />
+    }
+
+    @for (m of bars(); track m.at) {
+    <rect [attr.x]="x(m)"
+          y="0"
+          [attr.width]="width(m)"
+          [attr.height]="height(m)"
+          fill="#000000"
+          shape-rendering="crispEdges"
+          [attr.data-sv-bar]="m.at"
+          [attr.data-sv-guard]="isGuard(m)" />
+    }
+
+    @if (variant() !== 'bare') {
+    <text [attr.x]="totalWidth() / 2"
+          [attr.y]="totalHeight() - 2"
+          text-anchor="middle"
+          font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+          font-size="11"
+          fill="#000000"
+          data-sv-text>{{ encoded().text }}</text>
+    }
+  </svg>
+  }
+
+  <!--
+    ★★★ THE SYMBOL IS CORRECT AND TOO SMALL TO READ. Everything else this
+        component checks is arithmetic on modules; this is the one failure that
+        survives all of it — a container that squeezes the module below the
+        floor, or a print job that shrinks it, produces bars that are perfectly
+        proportioned and will not scan. Said out loud rather than left for a
+        warehouse to discover.
+  -->
+  @if (!isRefused() && scanSize().belowMinimum) {
+  <p class="mt-2 flex max-w-md items-start gap-1.5 rounded-lg border border-warning-300 bg-warning-50/80
+            px-3 py-2 text-[11px] leading-relaxed text-warning-900
+            dark:border-warning-900/50 dark:bg-warning-900/20 dark:text-warning-200"
+     role="status"
+     data-sv-scan-warning>
+    <sv-icon name="alert-triangle" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+    <span>{{ scanSize().warning }}</span>
+  </p>
+  }
+
+  <!-- ── The encoder's report ───────────────────────────────────────────── -->
+  @if (variant() === 'inspect') {
+  <dl class="mt-2 max-w-md space-y-1 text-[11px] text-gray-700 dark:text-gray-300"
+      data-sv-inspect>
+    <div class="flex gap-2">
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">encoding</dt>
+      <dd class="font-mono" data-sv-inspect-encoding>{{ encodingLabel() }}</dd>
+    </div>
+    @if (!isRefused()) {
+    <div class="flex gap-2">
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">modules</dt>
+      <dd class="font-mono tabular-nums" data-sv-inspect-modules>
+        {{ encoded().moduleCount }} + {{ encoded().quietLeft }}/{{ encoded().quietRight }} quiet
+      </dd>
+    </div>
+    <div class="flex gap-2">
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">module width</dt>
+      <dd class="font-mono tabular-nums" data-sv-inspect-width>
+        {{ moduleWidth() }}px@if (widthAdjusted()) {
+          <span class="ml-1 text-warning-700 dark:text-warning-400" data-sv-inspect-snapped>
+            (snapped from {{ requestedModuleWidth() }}px — a sub-pixel module
+            antialiases, and a scanner reads that as a different bar width)
+          </span>}
+      </dd>
+    </div>
+    <div class="flex gap-2">
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">on paper</dt>
+      <dd class="font-mono tabular-nums" data-sv-inspect-physical>
+        {{ scanSize().xMm.toFixed(3) }}mm/module &middot;
+        {{ scanSize().widthMm }} &times; {{ scanSize().heightMm }}mm &middot;
+        {{ scanSize().magnification }}%
+        @if (printWidth()) {
+          <span class="ml-1 text-gray-500 dark:text-gray-400">(pinned for print)</span>
+        }
+        @if (scanSize().belowMinimum) {
+          <span class="ml-1 text-warning-700 dark:text-warning-400" data-sv-inspect-toosmall>
+            (below the {{ scanSize().minXMm }}mm floor)
+          </span>
+        }
+      </dd>
+    </div>
+    @if (savings(); as s) {
+    <div class="flex gap-2">
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">characters</dt>
+      <dd class="font-mono tabular-nums" data-sv-inspect-savings>
+        {{ s.characters }}@if (s.characters < s.ifSubsetBOnly) {
+          <span class="ml-1 text-gray-500 dark:text-gray-400">
+            (subset B alone would need {{ s.ifSubsetBOnly }})
+          </span>}
+      </dd>
+    </div>
+    }
+    }
+  </dl>
+  }
+</div>
+
+}

@@ -1,0 +1,136 @@
+<!--
+  Root wrapper acts as the interactive region.
+  We use a <div role="group"> so a wrapping <label> remains optional.
+-->
+<div
+  role="group"
+  [ngClass]="rootClasses()"
+  [attr.aria-label]="labelPosition() === 'hidden' ? resolvedAriaLabel() : null"
+>
+
+  <!-- ── Top label (only when labelPosition === 'top') ─────────────────── -->
+  @if (label() && labelPosition() === 'top') {
+    <label [attr.id]="labelId()" [attr.for]="resolvedId()" [ngClass]="[labelClass(), 'cursor-pointer']">{{ label() }}</label>
+    @if (description()) {
+      <span [attr.id]="descId()" [ngClass]="descClass()">{{ description() }}</span>
+    }
+  }
+
+  <!-- ── Left label (only when labelPosition === 'left') ──────────────── -->
+  @if (label() && labelPosition() === 'left') {
+    <div class="flex flex-col min-w-0">
+      <label [attr.id]="labelId()" [attr.for]="resolvedId()" [ngClass]="[labelClass(), 'cursor-pointer']">{{ label() }}</label>
+      @if (description()) {
+        <span [attr.id]="descId()" [ngClass]="descClass()">{{ description() }}</span>
+      }
+    </div>
+  }
+
+  <!-- ── Track ─────────────────────────────────────────────────────────── -->
+  <button
+    type="button"
+    role="switch"
+    [ngClass]="trackClasses()"
+    [attr.aria-checked]="checked()"
+    [attr.id]="resolvedId()"
+    [attr.aria-labelledby]="hasVisibleLabel() ? labelId() : null"
+    [attr.aria-label]="hasVisibleLabel() ? null : resolvedAriaLabel()"
+    [attr.aria-describedby]="describedBy()"
+    [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+    [attr.aria-required]="required() || null"
+    [attr.aria-busy]="loading() || pending() || null"
+    [attr.aria-disabled]="isLocked() || null"
+    [attr.tabindex]="focusable() ? 0 : -1"
+    (click)="toggle()"
+    (keydown)="onKeydown($event)"
+    class="focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+           dark:focus-visible:ring-primary-400 dark:focus-visible:ring-offset-gray-900"
+  >
+    <!-- Track ON label -->
+    @if (showOnLabel()) {
+      <span
+        class="absolute left-1.5 font-semibold leading-none pointer-events-none"
+        [ngClass]="[trackLabelClass(), trackOnInkClass()]"
+        aria-hidden="true"
+      >
+        {{ onLabel() }}
+      </span>
+    }
+
+    <!-- Track OFF label.
+         600/300, not 500/400: the OFF track is `bg-gray-200 dark:bg-gray-700`, and
+         gray-500 on gray-200 is 3.90:1 while gray-400 on gray-700 is 3.96:1. Both
+         are the shape of pair that clears AA on white and fails the moment it sits
+         on a surface. These read 6.10:1 and 7.00:1. -->
+    @if (showOffLabel()) {
+      <span
+        class="absolute right-1.5 font-semibold leading-none pointer-events-none"
+        [ngClass]="[trackLabelClass(), 'text-gray-600 dark:text-gray-300']"
+        aria-hidden="true"
+      >
+        {{ offLabel() }}
+      </span>
+    }
+
+    <!-- Thumb -->
+    <span [ngClass]="thumbClasses()" aria-hidden="true">
+
+      <!-- Spinner — for the value we do not have yet (loading), and for the one
+           the user just chose that the server has not confirmed (pending). The
+           thumb is the only place either can be shown without moving the row. -->
+      @if (loading() || pending()) {
+        <sv-spinner-arc [cssClass]="thumbIconClass() + ' text-gray-500 dark:text-gray-400'" />
+      }
+
+      <!-- State icon (ON or OFF path) -->
+      @if (!loading() && !pending() && hasThumbIcon()) {
+        <sv-icon
+          [name]="currentThumbIcon()"
+          [cssClass]="thumbIconClass() + (checked() ? ' text-primary-600' : ' text-gray-500 dark:text-gray-400')"
+          [strokeWidth]="2.5"
+        />
+      }
+
+    </span>
+  </button>
+
+  <!-- ── Right label (default, labelPosition === 'right') ─────────────── -->
+  @if (label() && (labelPosition() === 'right' || labelPosition() === 'hidden')) {
+    @if (labelPosition() !== 'hidden') {
+      <div class="flex flex-col min-w-0">
+        <label [attr.id]="labelId()" [attr.for]="resolvedId()" [ngClass]="[labelClass(), 'cursor-pointer']">{{ label() }}</label>
+        @if (description()) {
+          <span [attr.id]="descId()" [ngClass]="descClass()">{{ description() }}</span>
+        }
+      </div>
+    }
+  }
+
+  <!-- ── Why it cannot be changed ──────────────────────────────────────
+       A disabled control tells the user "not you, not now" and nothing else,
+       leaving them to guess between "not on your plan", "your admin turned this
+       off" and "this is broken" — three different next actions. This is the
+       host saying which. `aria-describedby` points at it, so it is announced
+       with the switch rather than found by accident. -->
+  @if (lockReason()) {
+    <span [attr.id]="lockReasonId"
+          class="text-xs text-gray-500 dark:text-gray-400"
+          data-sv-state="locked">{{ lockReason() }}</span>
+  }
+
+  <!-- ── The write did not land ────────────────────────────────────────────
+       Reverting without saying so is indistinguishable from the switch being
+       broken, so the message is `role="alert"` and sits with the control. It is
+       NOT the validation slot below: that one self-expires on the next change,
+       and a rollback IS a change. -->
+  @if (writeErrorMessage()) {
+    <span [attr.id]="writeErrorId"
+          role="alert"
+          class="text-xs text-danger-600 dark:text-danger-400"
+          data-sv-state="error">{{ writeErrorMessage() }}</span>
+  }
+
+</div>
+
+<!-- Validation error slot. -->
+<sv-field-error [id]="errorId" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

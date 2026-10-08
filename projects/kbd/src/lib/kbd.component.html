@@ -1,0 +1,34 @@
+@if (keys().length > 1) {
+  <!--
+    ★★ A CHORD IS ONE THING AND MUST BREAK LIKE ONE. "Ctrl +" at the end of a
+    line and "C" at the start of the next is not a shortcut, it is two. The
+    group is `whitespace-nowrap` and the separators live inside it.
+
+    Nested `<kbd>` is the HTML spec's own idiom for a chord — the outer one is
+    the input as a whole, each inner one a key. The glyphs are `aria-hidden` and
+    the spoken names are given once, in order, so a screen reader says
+    "Command Shift K" rather than reading three symbols nobody named.
+  -->
+  <kbd class="inline-flex items-center gap-1 whitespace-nowrap align-middle">
+    <span class="sr-only">{{ spokenLabel() }}</span>
+    @for (key of keys(); track $index) {
+      @if (!$first) {
+        <span aria-hidden="true" class="text-[0.9em] text-gray-500 dark:text-gray-400">+</span>
+      }
+      <kbd [ngClass]="classes()" aria-hidden="true">{{ key.glyph }}</kbd>
+    }
+  </kbd>
+} @else if (keys().length === 1) {
+  <!--
+    The component drew this glyph, so it knows what it is called and can hide
+    the symbol behind the name. When the host PROJECTS content instead, the
+    component cannot read it — `ariaLabel` is the only thing it can offer, and
+    it stays an attribute for exactly that case.
+  -->
+  <kbd [ngClass]="classes()">
+    <span class="sr-only">{{ spokenLabel() }}</span>
+    <span aria-hidden="true">{{ keys()[0].glyph }}</span>
+  </kbd>
+} @else {
+  <kbd [ngClass]="classes()" [attr.aria-label]="ariaLabel() || null"><ng-content /></kbd>
+}

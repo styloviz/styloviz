@@ -1,0 +1,134 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="resolvedError()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="plotted().notice"
+  [height]="240"
+  (retry)="retry.emit()"
+>
+
+<!-- Root wrapper — svChartAnim triggers .bc-animate on viewport entry -->
+<div
+  svChartAnim
+  [ngClass]="['flex flex-col gap-4', customClass()]"
+  [style.--bc-anim-dur]="animDuration()"
+>
+
+  <!-- Title -->
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <!-- Chart + Legend wrapper -->
+  <div class="flex flex-col items-center gap-6">
+
+    <!-- SVG -->
+    <div class="relative w-full max-w-[260px] mx-auto">
+      <!-- `group`, not `img`: the shapes below are focusable, and `img` is
+           children-presentational — it would drop every one of them from the
+           accessibility tree while leaving them in the tab order. -->
+      <svg
+        [attr.viewBox]="'0 0 ' + size() + ' ' + size()"
+        [attr.width]="size()"
+        [attr.height]="size()"
+        class="w-full h-auto overflow-visible"
+        role="group"
+        [attr.aria-label]="resolvedAriaLabel()"
+        xmlns="http://www.w3.org/2000/svg"
+        (mouseleave)="onSliceLeave()"
+      >
+
+        <!-- Slices -->
+        @for (arc of arcs(); track $index; let i = $index) {
+          <path
+            [attr.d]="arc.path"
+            [attr.fill]="arc.color"
+            [attr.transform]="sliceTransform(i, arc.midAngle)"
+            class="bc-pie-slice cursor-pointer transition-transform duration-200"
+            [style.animation-delay]="arc.delay + 'ms'"
+            [attr.opacity]="hoveredIndex() === -1 || hoveredIndex() === i ? 1 : 0.55"
+            (mouseenter)="onSliceEnter($event, i)"
+            (mouseleave)="onSliceLeave()"
+            (click)="onSliceClick(i)"
+            (keydown.enter)="onSliceClick(i)"
+            (keydown.space)="$event.preventDefault(); onSliceClick(i)"
+            [attr.aria-label]="arc.label + ': ' + arc.pct"
+            role="img"
+            tabindex="0"
+          />
+        }
+
+        <!-- Tooltip -->
+        @if (tooltip().visible && showTooltip()) {
+          <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+            <rect
+              x="0" y="0"
+              width="120" height="52"
+              rx="6"
+              class="fill-white dark:fill-gray-800 drop-shadow-lg"
+              stroke="currentColor"
+              stroke-width="0.5"
+              style="stroke: rgba(0,0,0,0.08);"
+            />
+            <!-- Color swatch -->
+            <rect x="10" y="14" width="10" height="10" rx="2" [attr.fill]="tooltip().color" />
+            <!-- Label -->
+            <text
+              x="26" y="23"
+              class="fill-gray-700 dark:fill-gray-200"
+              style="font-size:10px;font-family:inherit;font-weight:600;"
+            >{{ tooltip().label }}</text>
+            <!-- Value -->
+            <text
+              x="10" y="40"
+              class="fill-gray-500 dark:fill-gray-400"
+              style="font-size:9.5px;font-family:inherit;"
+            >{{ fmt(tooltip().value) }} · {{ tooltip().pct }}</text>
+          </g>
+        }
+
+      </svg>
+    </div>
+
+    <!--
+      The accessible alternative to the SVG: one semantic table saying what the
+      picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+      chart templates, and the CSS was the hard part, not the markup — the trap it
+      kept re-learning, and the reason the chart root no longer needs `relative`,
+      is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+      Renders nothing when there are no rows, so it needs no guard here.
+    -->
+    <sv-data-summary-table [summary]="a11ySummary()" />
+
+    <!-- Legend -->
+    @if (showLegend()) {
+      <div class="flex flex-wrap justify-center gap-x-5 gap-y-2">
+        @for (arc of arcs(); track $index + ':' + arc.label; let i = $index) {
+          <!-- A legend entry that filters the chart is a control, so it is a
+               button: reachable by Tab, activated by Enter/Space, and announced
+               as actionable. It was a <div> with a click handler — usable only
+               with a mouse. -->
+          <button type="button"
+                  class="flex items-center gap-1.5 min-w-0 cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60"
+                  (click)="onSliceClick(i)">
+            <span
+              class="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+              [style.background-color]="arc.color"
+            ></span>
+            <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[100px]">
+              {{ arc.label }}
+            </span>
+            <span class="text-xs font-medium text-gray-800 dark:text-gray-200">
+              {{ arc.pct }}
+            </span>
+          </button>
+        }
+      </div>
+    }
+
+  </div>
+</div>
+
+</sv-chart-frame>

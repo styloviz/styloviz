@@ -1,0 +1,100 @@
+<div class="flex flex-col gap-1.5">
+
+  <!-- Label -->
+  @if (label()) {
+    <label [id]="labelId()" [for]="resolvedId()"
+           [class]="labelSize() + ' font-medium text-gray-700 dark:text-gray-300'">
+      {{ label() }}
+      @if (required()) {
+        <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+      }
+    </label>
+  }
+
+  <!-- Input group -->
+  <div class="flex items-stretch border bg-white shadow-sm
+              transition-colors duration-150
+              focus-within:ring-2
+              dark:bg-gray-800/50"
+       [class]="groupClass()">
+
+    <!-- Decrement button -->
+    <button
+      type="button"
+      [class]="decBtnClass()"
+      [disabled]="!canDecrement()"
+      (click)="decrement()"
+      [attr.aria-label]="'Decrease ' + stepperTarget()"
+    >
+      <sv-icon name="minus" [cssClass]="iconSize()" [strokeWidth]="2" />
+    </button>
+
+    <!-- Inner prefix + input + suffix -->
+    <div class="flex flex-1 items-center">
+      @if (effectivePrefix()) {
+        <span [class]="'pl-3 pr-1 font-medium text-gray-500 dark:text-gray-400 select-none ' + (size() === 'sm' ? 'text-xs' : size() === 'lg' ? 'text-base' : 'text-sm')">
+          {{ effectivePrefix() }}
+        </span>
+      }
+
+      <input
+        type="number"
+        [id]="resolvedId()"
+        [value]="displayValue()"
+        [min]="min()"
+        [max]="max()"
+        [step]="step()"
+        [placeholder]="placeholder()"
+        [disabled]="resolvedDisabled()"
+        [readonly]="readonly()"
+        [required]="required()"
+        [attr.name]="name() || null"
+        [attr.lang]="locale() || null"
+        [attr.autofocus]="autofocus() ? '' : null"
+        (input)="onInput($event)"
+        (blur)="onBlur()"
+        (keydown)="onKeydown($event)"
+        class="min-w-0 bg-transparent text-center font-semibold tabular-nums text-gray-900
+               placeholder-gray-500 focus:outline-none
+               dark:text-white dark:placeholder-gray-400
+               [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        [class]="inputBoxClass()"
+        [attr.aria-labelledby]="hasVisibleLabel() ? labelId() : null"
+        [attr.aria-label]="hasVisibleLabel() ? null : (ariaLabel() || 'Number input')"
+        [attr.aria-describedby]="describedBy()"
+        [attr.aria-invalid]="isInvalid() || null"
+        [attr.aria-required]="required() || null"
+        [attr.aria-valuetext]="valueText() || null"
+      />
+
+      @if (effectiveSuffix()) {
+        <span [class]="'pr-3 pl-1 font-medium text-gray-500 dark:text-gray-400 select-none ' + (size() === 'sm' ? 'text-xs' : size() === 'lg' ? 'text-base' : 'text-sm')">
+          {{ effectiveSuffix() }}
+        </span>
+      }
+    </div>
+
+    <!-- Increment button -->
+    <button
+      type="button"
+      [class]="incBtnClass()"
+      [disabled]="!canIncrement()"
+      (click)="increment()"
+      [attr.aria-label]="'Increase ' + stepperTarget()"
+    >
+      <sv-icon name="plus" [cssClass]="iconSize()" [strokeWidth]="2" />
+    </button>
+  </div>
+
+  <!-- Hint / error -->
+  @if (hasDescription()) {
+    <p
+      [id]="descId()"
+      [class]="(size() === 'sm' ? 'text-[10px]' : 'text-xs') + ' ' + hintColorClass()"
+      [attr.role]="resolvedError() ? 'alert' : null"
+    >
+      {{ resolvedError() || hint() }}
+    </p>
+  }
+
+</div>

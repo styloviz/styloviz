@@ -1,0 +1,37 @@
+{
+  "name": "@styloviz/list-view",
+  "version": "1.0.1",
+  "description": "Market-ready list patterns: default, checklist, nested tree, virtualized, grouped, template cards, call history and infinite scrolling.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "styloviz",
+    "list",
+    "view"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/list-view",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/list-view-free"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/icons": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,48 @@
+<!--
+  ★★★ TWO ELEMENTS, NOT ONE ELEMENT WITH TWO BEHAVIOURS — and the split is
+  forced by what each mode can promise, not by taste.
+
+  `up` has a destination, so it is a real <a href>: middle-clickable,
+  ⌘-clickable, "copy link address", and visible in the status bar before the
+  user commits. `back` has no destination — "wherever you came from" is not an
+  address — so it is a <button>. Rendering back as a link would advertise
+  "open in new tab" for a thing the browser cannot open in a new tab.
+
+  This is `docs/native-element-rule.md` applied to a case where the right
+  element is genuinely conditional, which is why the condition is on the
+  OUTSIDE: neither branch is a <div> wearing the other's clothes.
+-->
+@if (mode() === 'up') {
+  <!--
+    ⚠️ [attr.href], not [href]. A property binding assigns `a.href = null`, the
+    DOM coerces that to "" and the attribute reflects back — resolving to the
+    CURRENT url, so an up control with no target silently links to the page it
+    is on. `[attr.href]` removes the attribute instead, which is what "this is
+    not a link" means to the browser and to assistive technology.
+  -->
+  <a
+    [attr.href]="upHref()"
+    [ngClass]="controlClasses()"
+    [attr.aria-disabled]="disabled() ? 'true' : null"
+    [attr.aria-label]="iconOnly() ? text() : null"
+    (click)="onUpClick($event)"
+  >
+    <sv-icon [name]="iconName()" [cssClass]="iconClasses()" [strokeWidth]="2" />
+    @if (!iconOnly()) {
+      <span>{{ text() }}</span>
+    }
+  </a>
+} @else {
+  <button
+    type="button"
+    [ngClass]="controlClasses()"
+    [disabled]="disabled()"
+    [attr.aria-label]="iconOnly() ? text() : null"
+    (click)="onBack()"
+  >
+    <sv-icon [name]="iconName()" [cssClass]="iconClasses()" [strokeWidth]="2" />
+    @if (!iconOnly()) {
+      <span>{{ text() }}</span>
+    }
+  </button>
+}

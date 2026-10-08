@@ -1,0 +1,40 @@
+{
+  "name": "@styloviz/citation-sources",
+  "version": "1.0.1",
+  "description": "Numbered citations attached to an answer, with the coverage strip that names the passages nothing supports. 3 variants: inline chips, source cards and a side panel.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "citation",
+    "sources",
+    "rag",
+    "grounding",
+    "provenance",
+    "styloviz"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/citation-sources",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/citation-sources"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/icons": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,271 @@
+<footer
+  [class.dark]="isDark()"
+  class="border-t"
+  [ngClass]="rootClass()"
+  [attr.aria-labelledby]="headingId"
+>
+  <h2 [id]="headingId" class="sr-only">{{ footerLabel() }}</h2>
+
+  @if (isMinimal()) {
+
+    <!-- ══ Minimal ═══════════════════════════════════════════════════════════ -->
+    <div class="mx-auto flex max-w-7xl flex-col items-center gap-4 px-6 py-6 sm:flex-row sm:justify-between lg:px-8">
+      <div class="flex items-center gap-2.5">
+        @if (logoSrc()) {
+          <img [src]="logoSrc()" [alt]="brandName()" class="h-6 w-auto" />
+        }
+        @if (brandName()) {
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ brandName() }}</span>
+        }
+      </div>
+
+      @if (legalLinks().length) {
+        <nav class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2" [attr.aria-label]="legalNavLabel()">
+          @for (l of resolvedLegal(); track l.link.label) {
+            <a
+              [attr.href]="l.href"
+              [attr.role]="l.href ? null : 'link'"
+              [attr.tabindex]="l.href ? null : 0"
+              [attr.rel]="l.external ? 'noopener noreferrer' : null"
+              [attr.target]="l.external ? externalTargetAttr() : null"
+              (click)="onLegalLink(l, $event)"
+              (keydown.enter)="onLegalLink(l, $event)"
+              class="text-xs font-medium text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus-visible:underline dark:text-gray-400 dark:hover:text-white"
+            >{{ l.link.label }}@if (l.external && opensNewTab()) {<span class="sr-only"> {{ newTabLabel() }}</span>}</a>
+          }
+        </nav>
+      }
+
+      <ng-container [ngTemplateOutlet]="socialRow" />
+    </div>
+
+    <div class="mx-auto max-w-7xl border-t border-gray-200/70 px-6 py-3 text-center text-xs text-gray-500 dark:border-white/10 dark:text-gray-400 lg:px-8">
+      {{ resolvedCopyright() }}
+    </div>
+
+  } @else {
+    <!-- ══ Default / Dark ════════════════════════════════════════════════════ -->
+    <div class="relative overflow-hidden">
+      <!-- Top accent + soft glow — adopts the surrounding accent (emerald in-store, primary elsewhere) -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/60 to-transparent"></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 -z-[1] h-48 bg-gradient-to-b from-primary-500/[0.07] to-transparent"></div>
+
+      <div class="relative mx-auto max-w-7xl px-6 lg:px-8">
+
+        <!-- Newsletter band -->
+        @if (newsletter()) {
+          <div class="grid gap-6 border-b border-gray-200/70 py-10 dark:border-white/10 md:grid-cols-2 md:items-center md:gap-10">
+            <div>
+              <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary-500/10 text-primary-600 ring-1 ring-inset ring-primary-500/20 dark:text-primary-400">
+                <sv-icon name="mail" cssClass="h-5 w-5" [strokeWidth]="1.7" />
+              </div>
+              <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl">{{ newsletterTitle() }}</h3>
+              @if (newsletterText()) {
+                <p class="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-gray-400">{{ newsletterText() }}</p>
+              }
+            </div>
+            <div class="w-full md:max-w-md md:justify-self-end">
+            <form
+              class="flex w-full flex-col gap-2.5 sm:flex-row"
+              [attr.aria-busy]="isPending() ? 'true' : null"
+              [attr.data-sv-newsletter-status]="newsletterStatus()"
+              (submit)="onSubmit($event)"
+            >
+              <!--
+                ★ Pending is READONLY + aria-disabled, not `disabled`. The user
+                submitted from one of these two controls, so focus is on it;
+                disabling a focused control strands keyboard focus (the next
+                Tab restarts from the top of the page). The re-submit guard
+                lives in `onSubmit`.
+              -->
+              <label class="sr-only" [attr.for]="emailId">Email address</label>
+              <input
+                [id]="emailId"
+                type="email"
+                required
+                [readOnly]="isPending()"
+                [attr.aria-invalid]="isNewsletterError() ? 'true' : null"
+                [attr.aria-describedby]="newsletterStatusId"
+                [value]="email()"
+                (input)="setEmail($any($event.target).value)"
+                [placeholder]="newsletterPlaceholder()"
+                class="w-full flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-500 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 read-only:cursor-not-allowed read-only:opacity-60 aria-[invalid=true]:border-danger-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-gray-400"
+              />
+              <button
+                type="submit"
+                [attr.aria-disabled]="isPending() ? 'true' : null"
+                class="aria-disabled:cursor-not-allowed aria-disabled:opacity-60 inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600 hover:shadow-md active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:bg-white dark:text-gray-900 dark:hover:bg-primary-500 dark:hover:text-white dark:focus-visible:ring-offset-gray-950"
+              >
+                {{ newsletterCta() }}
+                <sv-icon name="arrow-right" cssClass="h-4 w-4" [strokeWidth]="2" />
+              </button>
+            </form>
+            <!--
+              Always rendered, even when empty: a live region inserted together
+              with its text is not announced by most screen readers — it has
+              to exist before the text changes.
+            -->
+            <p
+              [id]="newsletterStatusId"
+              role="status"
+              aria-live="polite"
+              class="mt-2 min-h-[1rem] text-xs"
+              [ngClass]="isNewsletterError() ? 'text-danger-600 dark:text-danger-400' : 'text-gray-500 dark:text-gray-400'"
+            >{{ newsletterAnnouncement() }}</p>
+            </div>
+          </div>
+        }
+
+        <!-- Main: brand + link columns -->
+        <div class="grid gap-10 py-12 lg:grid-cols-12 lg:gap-8 lg:py-14">
+          <!-- Brand block -->
+          <div class="lg:col-span-4">
+            <div class="flex items-center gap-2.5">
+              @if (logoSrc()) {
+                <img [src]="logoSrc()" [alt]="brandName()" class="h-8 w-auto" />
+              }
+              @if (brandName()) {
+                <span class="text-lg font-bold tracking-tight text-gray-900 dark:text-white">{{ brandName() }}</span>
+              }
+            </div>
+            @if (tagline()) {
+              <p class="mt-4 max-w-xs text-sm leading-relaxed text-gray-500 dark:text-gray-400">{{ tagline() }}</p>
+            }
+            <div class="mt-6">
+              <ng-container [ngTemplateOutlet]="socialRow" />
+            </div>
+          </div>
+
+          <!-- Columns -->
+          @if (columns().length) {
+            <nav class="lg:col-span-8" [attr.aria-label]="navLabel()">
+              <div class="grid grid-cols-2 gap-8 sm:grid-cols-4">
+                @for (col of resolvedColumns(); track col.column.heading) {
+                  <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ col.column.heading }}</h3>
+                    <ul class="mt-4 space-y-2.5">
+                      @for (r of col.links; track r.link.label) {
+                        <li>
+                          <!--
+                            No `href` is the documented SPA case: the host routes
+                            from `linkSelect`. An <a> without one is not focusable
+                            and is not announced as a link, so the role and the tab
+                            stop are put back by hand, and Enter is wired up to
+                            match what the browser would have done for us — only
+                            then: on a real href, Enter already fires a native
+                            click, and handling both emitted `linkSelect` twice.
+                            An href dropped by the URL policy lands here too.
+                          -->
+                          <a
+                            [attr.href]="r.href"
+                            [attr.role]="r.href ? null : 'link'"
+                            [attr.tabindex]="r.href ? null : 0"
+                            [attr.rel]="r.external ? 'noopener noreferrer' : null"
+                            [attr.target]="r.external ? externalTargetAttr() : null"
+                            (click)="onLink(r.link, $event)"
+                            (keydown.enter)="r.href ? null : onLink(r.link, $event)"
+                            class="group/flink inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus-visible:underline dark:text-gray-400 dark:hover:text-white"
+                          >
+                            <span class="relative">
+                              {{ r.link.label }}
+                              <span class="absolute -bottom-0.5 left-0 h-px w-0 bg-current transition-all duration-200 group-hover/flink:w-full"></span>
+                            </span>
+                            @if (r.link.badge) {
+                              <span class="rounded-full bg-danger-100 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-danger-700 dark:bg-danger-500/20 dark:text-danger-300">{{ r.link.badge }}</span>
+                            }
+                            @if (r.external && opensNewTab()) {
+                              <span class="sr-only">{{ newTabLabel() }}</span>
+                            }
+                          </a>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            </nav>
+          }
+        </div>
+
+        <!-- Bottom bar -->
+        <div class="flex flex-col gap-4 border-t border-gray-200/70 py-6 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-xs text-gray-500 dark:text-gray-400">{{ resolvedCopyright() }}</p>
+
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+            @if (legalLinks().length) {
+              <nav class="flex flex-wrap items-center gap-x-4 gap-y-2" [attr.aria-label]="legalNavLabel()">
+                @for (l of resolvedLegal(); track l.link.label) {
+                  <a
+              [attr.href]="l.href"
+              [attr.role]="l.href ? null : 'link'"
+              [attr.tabindex]="l.href ? null : 0"
+              [attr.rel]="l.external ? 'noopener noreferrer' : null"
+              [attr.target]="l.external ? externalTargetAttr() : null"
+              (click)="onLegalLink(l, $event)"
+              (keydown.enter)="onLegalLink(l, $event)"
+              class="text-xs font-medium text-gray-500 transition-colors hover:text-gray-900 focus:outline-none focus-visible:underline dark:text-gray-400 dark:hover:text-white"
+            >{{ l.link.label }}@if (l.external && opensNewTab()) {<span class="sr-only"> {{ newTabLabel() }}</span>}</a>
+                }
+              </nav>
+            }
+            @if (payments().length) {
+              <div class="flex flex-wrap items-center gap-1.5">
+                @for (pay of payments(); track pay.label) {
+                  <span
+                    class="inline-flex h-6 items-center gap-1 rounded-md border border-gray-200 bg-white px-1.5 text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400"
+                  >
+                    @if (pay.icon) {
+                      <!--
+                        ★ The mark REPLACES the text, so the name has to come
+                        back some other way. `title` alone did not do it: it is
+                        not exposed on touch, is not keyboard-reachable, and is
+                        only a fallback accessible name. An `sr-only` span is
+                        the real thing, and it survives a user stylesheet that
+                        kills the icon.
+                      -->
+                      <sv-icon [name]="pay.icon" cssClass="h-4 w-4" />
+                      <span class="sr-only">{{ pay.label }}</span>
+                    } @else {
+                      {{ pay.label }}
+                    }
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</footer>
+
+<!-- ── Shared: social icon row ───────────────────────────────────────────────── -->
+<ng-template #socialRow>
+  @if (socials().length) {
+    <div class="flex items-center gap-2">
+      <!-- ★ A social icon whose href the URL policy dropped (a `javascript:`
+           link) is skipped: an icon-only <a> with no href is neither
+           focusable nor a link, so it would be an unreachable, nameless dot. -->
+      @for (s of resolvedSocials(); track s.link.label) {
+        @if (s.href) {
+        <!--
+          ★ A social profile is another site, so any rendered href carries
+          noopener/noreferrer whether or not it opens a new tab. The target
+          policy applies to external (other-origin http) hrefs only — a
+          `mailto:` in a new tab is an empty tab.
+        -->
+        <a
+          [attr.href]="s.href"
+          rel="noopener noreferrer"
+          [attr.target]="s.external ? externalTargetAttr() : null"
+          [attr.aria-label]="opensNewTab() && s.external ? s.link.label + ' ' + newTabLabel() : s.link.label"
+          class="grid h-9 w-9 place-items-center rounded-full border border-gray-200 text-gray-500 transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:bg-white hover:text-gray-900 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-white/10 dark:text-gray-400 dark:hover:border-white/20 dark:hover:bg-white/5 dark:hover:text-white"
+        >
+          <sv-icon [name]="s.link.iconName" cssClass="h-[18px] w-[18px]" />
+        </a>
+        }
+      }
+    </div>
+  }
+</ng-template>
+

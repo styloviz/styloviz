@@ -1,0 +1,101 @@
+<!--
+  ══ sv-terminal ══════════════════════════════════════════════════════════════
+
+  A prompt, not a transcript. See the component for why nothing typed here is
+  ever evaluated and why the caret is a real <input>.
+-->
+<div
+  class="overflow-hidden rounded-lg border border-gray-200 bg-white font-mono text-[13px] leading-relaxed dark:border-white/10 dark:bg-gray-950"
+>
+  @if (chrome()) {
+    <div
+      data-sv-chrome
+      class="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]"
+    >
+      <!-- Decorative only: three dots that do not close, minimise or zoom
+           anything. `aria-hidden` so a screen reader is not told about window
+           controls that are a picture of window controls. -->
+      <span class="flex gap-1.5" aria-hidden="true">
+        <span class="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-white/15"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-white/15"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-gray-300 dark:bg-white/15"></span>
+      </span>
+      @if (title()) {
+        <span class="truncate text-xs text-gray-500 dark:text-gray-400">{{ title() }}</span>
+      }
+    </div>
+  }
+
+  <!--
+    ★ Click-to-focus lives on the HOST element (see the component's `host`
+      block), so this stays a plain container. `focusPrompt()` bails out
+      mid-selection, so dragging to copy an error message still works.
+  -->
+  <div class="p-3">
+    <!--
+      ★★ role="log" + aria-live="polite": new lines are announced as they
+         arrive. Without the role, a screen reader re-reads the whole session
+         on every keystroke, which makes the component unusable exactly for
+         the people who most need the output spoken.
+    -->
+    <div
+      #scrollEl
+      [id]="logId()"
+      role="log"
+      aria-live="polite"
+      aria-atomic="false"
+      class="overflow-y-auto"
+      [style.min-height]="minHeight()"
+      [style.max-height]="maxHeight()"
+    >
+      @for (line of lines(); track $index) {
+        <!--
+          ★ `min-h` so a blank line is a blank LINE. An empty string in a
+            `whitespace-pre-wrap` div collapses to zero height, so the spacing
+            an author put in their output silently disappears — and output
+            spacing is most of how a terminal is read.
+        -->
+        <div
+          data-sv-line
+          [attr.data-sv-kind]="line.kind"
+          class="min-h-[1.5em] whitespace-pre-wrap break-words"
+          [class]="lineClass(line.kind)"
+        >{{ line.text }}</div>
+      }
+
+      <!-- The live prompt sits inside the scroll box so it scrolls with the
+           session rather than floating below it. -->
+      <div class="mt-1 flex items-baseline gap-2">
+        <label [for]="inputId()" class="shrink-0 select-none text-brand-600 dark:text-brand-400">
+          {{ prompt() }}
+          <span class="sr-only">{{ inputLabel() }}</span>
+        </label>
+
+        <!--
+          ★★★ A REAL <input>. `caret-*` colours the native caret, so there is
+              no fake blinking span to keep in sync — and dictation, IME
+              composition, autocorrect and the phone keyboard all work because
+              this is a text field rather than a picture of one.
+        -->
+        <input
+          #promptInput
+          [id]="inputId()"
+          type="text"
+          [value]="value()"
+          (input)="value.set($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          (keydown.enter)="submit()"
+          [attr.aria-label]="inputLabel()"
+          [attr.aria-describedby]="logId()"
+          [attr.aria-busy]="busy() ? 'true' : null"
+          [disabled]="busy()"
+          autocomplete="off"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          class="min-w-0 flex-1 border-0 bg-transparent p-0 text-gray-900 caret-brand-500 outline-none placeholder:text-gray-500 disabled:opacity-60 dark:text-gray-100"
+        />
+      </div>
+    </div>
+  </div>
+</div>

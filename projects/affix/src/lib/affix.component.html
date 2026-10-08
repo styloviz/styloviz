@@ -1,0 +1,24 @@
+<!-- ★★★ THE PLACEHOLDER IS THE COMPONENT. It stays in flow and holds exactly
+     the height the pinned content used to occupy, so nothing below it moves
+     when the element pins — and because nothing moves, the page height does not
+     change, `scrollY` does not change, and the element cannot oscillate across
+     its own threshold. A debounce papers over that oscillation; this removes it. -->
+<div #holder class="relative"
+     [style.height.px]="state().placeholder || null"
+     [attr.data-sv-affix]="state().mode"
+     [attr.data-sv-at-boundary]="state().atBoundary"
+     [attr.data-sv-containing-block]="containingBlock() ? 'ancestor' : 'viewport'"
+     data-sv-placeholder>
+
+  <div #slot
+       [ngClass]="{
+         'fixed z-30': state().mode === 'fixed',
+         'absolute': state().mode === 'docked'
+       }"
+       [style.top.px]="state().mode === 'static' ? null : state().top"
+       data-sv-slot>
+    <ng-content />
+  </div>
+
+  <span class="sr-only" [id]="afId('state')" data-sv-state-label>{{ label() }}</span>
+</div>

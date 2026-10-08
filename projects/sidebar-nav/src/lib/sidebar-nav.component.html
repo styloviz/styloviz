@@ -1,0 +1,163 @@
+<!--
+  ⚠️ NO BRAND, NO ROUTER, NO <div> WEARING A LINK'S CLOTHES.
+
+  Every destination here is a real <a href> produced by `SvLinkAdapter`, which
+  is what makes middle-click, ⌘-click and "copy link address" work in an app
+  that routes some other way — the whole point of `X-8`, and the thing
+  `sv-sidebar` could not offer because it imported `RouterLink` directly.
+
+  The header and footer are the host's, projected. `sv-sidebar`'s were welded
+  in, which is the half of `N-1` that made a shipped component unusable by
+  anyone who is not this documentation site.
+-->
+<!--
+  `N-1`: below `mobileBreakpoint` this is an off-canvas drawer. The backdrop is a
+  real <button> so a tap outside closes it; it is out of the Tab order and
+  hidden from assistive technology because the keyboard and screen-reader path
+  is the labelled close button inside the drawer, plus Escape.
+  native-element-rule: allow — see above.
+-->
+@if (drawerOpen()) {
+  <button
+    type="button"
+    tabindex="-1"
+    aria-hidden="true"
+    class="fixed inset-0 z-40 cursor-default bg-gray-900/50 backdrop-blur-[1px]"
+    (click)="closeDrawer()"
+  ></button>
+}
+
+<aside [ngClass]="asideClasses()">
+  @if (showHeader()) {
+    <div
+      class="flex h-16 shrink-0 items-center gap-2 border-b border-gray-200 px-3 dark:border-gray-800"
+      [class.justify-center]="railed()"
+    >
+      <ng-content select="[slot=header]" />
+      @if (isDrawer()) {
+        <ng-container [ngTemplateOutlet]="closeButton" />
+      }
+    </div>
+  } @else if (isDrawer()) {
+    <div class="flex shrink-0 justify-end px-3 pt-3">
+      <ng-container [ngTemplateOutlet]="closeButton" />
+    </div>
+  }
+
+  <ng-template #closeButton>
+    <button
+      type="button"
+      class="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500
+             transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none
+             focus-visible:ring-2 focus-visible:ring-primary-500
+             dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+      aria-label="Close navigation"
+      (click)="closeDrawer()"
+    >
+      <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
+    </button>
+  </ng-template>
+
+  <nav class="flex-1 overflow-y-auto px-2.5 py-3" [attr.aria-label]="ariaLabel()">
+    @for (group of menuGroups(); track group.groupLabel) {
+      @if (!railed()) {
+        <p
+          class="mb-1 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500/80 dark:text-gray-400"
+        >
+          {{ group.groupLabel }}
+        </p>
+      } @else {
+        <div class="my-2.5 border-t border-gray-200/80 dark:border-gray-800/60"></div>
+      }
+
+      @for (item of group.items; track item.route) {
+        <!--
+          ⚠️ [attr.href], never [href]. A property binding assigns `a.href =
+          null`, the DOM coerces that to "" and the attribute reflects back —
+          resolving to the CURRENT url, so an item with no resolvable target
+          silently links to the page you are on.
+        -->
+        <a
+          [attr.href]="hrefFor(item)"
+          [ngClass]="itemClasses(item)"
+          [attr.title]="railed() ? item.label : null"
+          [attr.aria-current]="isActive(item) ? 'page' : null"
+          (click)="onSelect($event, group, item, null)"
+        >
+          <sv-icon
+            [name]="item.icon"
+            cssClass="h-[18px] w-[18px] shrink-0 opacity-80"
+            [strokeWidth]="1.8"
+          />
+
+          @if (!railed()) {
+            <span class="flex-1 tracking-tight">{{ item.label }}</span>
+            @if (item.badge) {
+              <span [ngClass]="badgeClasses(item)">{{ item.badge }}</span>
+            }
+          }
+        </a>
+
+        @if (showsChildren(item)) {
+          <div class="mb-1 ml-[1.125rem] border-l border-gray-200/70 pl-3 dark:border-gray-800/50">
+            @for (childGroup of item.childGroups ?? []; track childGroup.label) {
+              <p
+                class="mb-0.5 px-1 text-[9.5px] font-semibold uppercase tracking-widest text-gray-500/70 dark:text-gray-400"
+                [class.mt-3]="!$first"
+                [class.mt-1.5]="$first"
+              >
+                {{ childGroup.label }}
+              </p>
+
+              @for (child of childGroup.items; track child.id) {
+                <a
+                  [attr.href]="hrefFor(item, child)"
+                  [attr.data-sv-nav-item]="child.id"
+                  [ngClass]="childClasses(child)"
+                  [attr.aria-current]="openChildId() === child.id ? 'page' : null"
+                  (click)="onSelect($event, group, item, child)"
+                >
+                  {{ child.label }}
+                </a>
+              }
+            }
+          </div>
+        }
+      }
+    }
+  </nav>
+
+  @if (showFooter()) {
+    <div class="shrink-0 border-t border-gray-200 px-2.5 py-2.5 dark:border-gray-800">
+      <ng-content select="[slot=footer]" />
+
+      <!--
+        A real <button>: collapsing is an action on this page, not a
+        destination, and `docs/native-element-rule.md` is the standing version
+        of why that decides the element rather than the styling. Not in the
+        drawer — a drawer never rails.
+      -->
+      @if (!isDrawer()) {
+      <button
+        type="button"
+        class="mt-1 flex w-full items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px]
+               font-medium text-gray-500 transition-colors hover:bg-gray-100/80 hover:text-gray-800
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset
+               dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-gray-200"
+        [attr.aria-expanded]="!collapsed()"
+        [attr.aria-label]="collapsed() ? 'Expand navigation' : 'Collapse navigation'"
+        (click)="onToggleCollapse()"
+      >
+        <sv-icon
+          [name]="collapsed() ? 'chevron-right' : 'chevron-left'"
+          cssClass="h-4 w-4 shrink-0"
+          [strokeWidth]="2"
+        />
+        @if (!collapsed()) {
+          <span>Collapse</span>
+        }
+      </button>
+      }
+    </div>
+  }
+</aside>

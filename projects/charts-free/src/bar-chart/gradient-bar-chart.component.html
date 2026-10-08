@@ -1,0 +1,136 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="resolvedError()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="plotted().notice"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--bc-anim-dur]="animDuration()">
+
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <div class="w-full overflow-hidden">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgHeight()"
+      [attr.height]="svgHeight()"
+      class="w-full"
+      role="img"
+      [attr.aria-label]="resolvedAriaLabel()"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <!-- SVG gradient definitions — one per series -->
+      <defs>
+        @for (stops of gradientStops(); track $index; let si = $index) {
+          <linearGradient [attr.id]="'grad-' + _uid + '-' + si" x1="0%" y1="0%" [attr.x2]="gradientEnd().x2" [attr.y2]="gradientEnd().y2">
+            <stop offset="0%"   [attr.stop-color]="stops[0]" stop-opacity="1" />
+            <stop offset="100%" [attr.stop-color]="stops[1]" stop-opacity="1" />
+          </linearGradient>
+        }
+      </defs>
+
+      <g [attr.transform]="'translate(' + PADDING.left + ',' + PADDING.top + ')'">
+
+        <!-- Vertical grid lines -->
+        @if (showGrid()) {
+          @for (val of gridValues(); track val) {
+            <line
+              [attr.x1]="gridLineX(val)" y1="0"
+              [attr.x2]="gridLineX(val)" [attr.y2]="plotH()"
+              stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+            />
+          }
+        }
+
+        <!-- Y-axis baseline -->
+        <line
+          x1="0" y1="0" x2="0" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+        />
+
+        <!-- Gradient bars -->
+        @for (bar of horizontalBars(); track $index) {
+          <path
+            [attr.d]="horizBarPath(bar.x, bar.y, bar.barW, bar.barH, bar.r)"
+            [attr.fill]="bar.fill"
+            [attr.data-sv-clamped]="bar.clamped ? '' : null"
+            class="bc-bar-h transition-opacity duration-150 hover:opacity-80 cursor-pointer"
+            [style.animation-delay]="$index * 60 + 'ms'"
+            (mouseenter)="showTooltip($event, bar.cat, bar.series, bar.value, bar.color)"
+            (mouseleave)="hideTooltip()"
+          />
+
+          @if (showValues() && bar.barW > 30) {
+            <text
+              [attr.x]="bar.barW + 6" [attr.y]="bar.y + bar.barH / 2 + 4"
+              text-anchor="start" class="fill-gray-700 dark:fill-gray-300"
+              style="font-size:11px;font-weight:600;font-family:inherit;pointer-events:none;"
+            >{{ formatValue(bar.value) }}</text>
+          }
+        }
+
+        <!-- Y-axis category labels -->
+        @if (showLabels()) {
+          @for (cat of categories(); track cat; let ci = $index) {
+            <text
+              x="-8"
+              [attr.y]="ci * (plotH() / categories().length) + (plotH() / categories().length) / 2 + 4"
+              text-anchor="end" class="fill-gray-500 dark:fill-gray-400"
+              style="font-size:11px;font-family:inherit;"
+            >{{ cat }}</text>
+          }
+        }
+
+        <!-- Tooltip -->
+        @if (tooltip().visible) {
+          <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+            <rect x="0" y="0" rx="6" width="130" height="52"
+              fill="white" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,0.14));"
+            />
+            <text x="10" y="18"
+              style="font-size:11px;font-weight:600;font-family:inherit;fill:var(--color-gray-700);"
+            >{{ tooltip().label }}</text>
+            @for (item of tooltip().items; track item.series) {
+              <circle cx="10" cy="34" r="4" [attr.fill]="item.color" />
+              <text x="20" y="38"
+                style="font-size:11px;font-family:inherit;fill:var(--color-gray-500);"
+              >{{ item.series }}: <tspan style="font-weight:600;fill:var(--color-gray-900);">{{ formatValue(item.value) }}</tspan></text>
+            }
+          </g>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  <!--
+    The accessible alternative to the SVG: one semantic table saying what the
+    picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+    chart templates, and the CSS was the hard part, not the markup — the trap it
+    kept re-learning, and the reason the chart root no longer needs `relative`,
+    is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+    Renders nothing when there are no rows, so it needs no guard here.
+  -->
+  <sv-data-summary-table [summary]="a11ySummary()" />
+
+  @if (showLegend() && datasets().length > 1) {
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center">
+      @for (ds of datasets(); track ds.label; let i = $index) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-block h-2.5 w-8 shrink-0 rounded-sm"
+                style="background: linear-gradient(to right, var(--grad-from), var(--grad-to));"
+                [style]="'background: linear-gradient(to right, ' + gradientStops()[i][0] + ', ' + gradientStops()[i][1] + ')'"></span>
+          {{ ds.label }}
+        </span>
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

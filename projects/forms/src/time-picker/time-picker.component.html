@@ -1,0 +1,231 @@
+<div class="inline-block">
+  @if (label()) {
+    <!--
+      A <span>, not a <label>: the control below is a disclosure <button>, and
+      `for` only associates with form elements. `aria-labelledby` on the button
+      is what names it.
+    -->
+    <span [id]="_uid + '-label'" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</span>
+  }
+
+  <!-- Trigger -->
+  <button type="button" [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+  [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
+    data-trigger
+    [disabled]="resolvedDisabled()"
+    (click)="toggle()"
+    class="inline-flex items-center border border-gray-200 bg-white font-medium text-gray-700
+           shadow-sm transition-all hover:border-gray-300 hover:shadow
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40
+           disabled:cursor-not-allowed disabled:opacity-50
+           dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+    [class]="triggerClass()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="triggerAriaLabel()"
+    aria-haspopup="dialog">
+    <sv-icon name="clock" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="1.8" />
+    <span class="min-w-[80px]">{{ displayValue() || 'Select time' }}</span>
+    <sv-icon
+         name="chevron-down"
+         [cssClass]="open()
+           ? 'ml-auto h-3.5 w-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200 rotate-180'
+           : 'ml-auto h-3.5 w-3.5 text-gray-500 dark:text-gray-400 transition-transform duration-200'"
+         [strokeWidth]="2" />
+  </button>
+
+  <!-- ── Time panel — rendered into document.body via body portal so it escapes
+       ALL parent overflow:hidden and CSS transform containment. ── -->
+  <ng-template #panelTpl>
+    <div [id]="'tp-panel-' + _uid"
+         class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-hidden rounded-2xl border border-gray-200/70
+                bg-white shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
+                dark:border-gray-700/50 dark:bg-gray-900
+                dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.7),0_8px_24px_-8px_rgba(0,0,0,0.5)]"
+         [style.position]="panelStyle()['position']"
+         [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+         [style.top]="panelStyle()['top']"
+      [style.maxHeight]="panelStyle()['maxHeight']"
+         [style.bottom]="panelStyle()['bottom']"
+         [style.left]="panelStyle()['left']"
+         [style.right]="panelStyle()['right']"
+      [style.maxWidth]="panelStyle()['maxWidth']"
+         role="dialog"
+         aria-modal="false"
+         [attr.aria-label]="label() || 'Time picker'">
+
+      <!--
+        Typed entry. FIRST in the panel and focused on open, so the keyboard
+        path to any time is Tab -> Enter -> type -> Enter, whatever the time is.
+        Before this the panel was 146 tab stops with minute 37 at position 61.
+      -->
+      @if (typed()) {
+        <div class="border-b border-gray-100 px-3 pb-2 pt-3 dark:border-gray-800">
+          <input
+            data-typed
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            spellcheck="false"
+            [value]="draft()"
+            (input)="onTypedInput($event)"
+            (keydown)="onTypedKeydown($event)"
+            (blur)="commitTyped()"
+            [attr.aria-label]="(label() || 'Time') + ' — type a time'"
+            [attr.aria-invalid]="draftInvalid() ? 'true' : null"
+            [attr.aria-describedby]="_uid + '-typed-hint'"
+            [placeholder]="typedHint()"
+            class="w-full rounded-lg border bg-white px-2.5 py-1.5 text-sm tabular-nums
+                   text-gray-800 shadow-sm transition-colors
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40
+                   dark:bg-gray-800 dark:text-gray-100"
+            [class.border-gray-200]="!draftInvalid()"
+            [class.dark:border-gray-700]="!draftInvalid()"
+            [class.border-danger-500]="draftInvalid()"
+            [class.dark:border-danger-500]="draftInvalid()" />
+          <!--
+            Persistent, not a placeholder-only hint: a placeholder disappears
+            the moment the field has content, which is exactly when somebody is
+            getting the format wrong.
+          -->
+          <p [id]="_uid + '-typed-hint'"
+             class="mt-1 text-[10px] leading-tight"
+             [class.text-gray-500]="!draftInvalid()"
+             [class.dark:text-gray-400]="!draftInvalid()"
+             [class.text-danger-600]="draftInvalid()"
+             [class.dark:text-danger-400]="draftInvalid()"
+             [attr.role]="draftInvalid() ? 'alert' : null">
+            {{ draftInvalid() ? 'Not a time — ' + typedHint() : typedHint() }}
+          </p>
+        </div>
+      }
+
+      <!-- Column headers -->
+      <div class="grid border-b border-gray-100 dark:border-gray-800"
+           [class]="withSeconds() ? 'grid-cols-3' : (format() === '12h' ? 'grid-cols-3' : 'grid-cols-2')">
+        <span class="py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Hour</span>
+        <span class="py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Min</span>
+        @if (withSeconds()) {
+          <span class="py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Sec</span>
+        }
+        @if (!withSeconds() && format() === '12h') {
+          <span class="py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Period</span>
+        }
+      </div>
+
+      <!-- Scroll columns.
+           ★ Each column is a named group and each cell says whether it is the
+             selected one. With one tab stop per column (the roving tabindex),
+             a screen reader otherwise heard "09, button" then "00, button" —
+             no way to tell the hour column from the minute column, or which
+             value was chosen. -->
+      <div class="flex divide-x divide-gray-100 dark:divide-gray-800">
+
+        <!-- Hours -->
+        <div data-col="hours" role="group" aria-label="Hour" class="flex h-48 w-14 flex-col overflow-y-auto py-1" style="scrollbar-width:thin">
+          @for (h of visibleHours(); track h) {
+            <button type="button"
+              [attr.data-cell]="h"
+              [attr.tabindex]="tabIndexFor('hours', h)"
+              [attr.aria-pressed]="isActiveHour(h)"
+              (keydown)="onColumnKeydown($event, 'hours')"
+              class="flex-shrink-0 py-1.5 text-center text-sm font-medium transition-colors
+                     hover:bg-primary-50 hover:text-primary-600
+                     dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
+              [class.bg-primary-600]="isActiveHour(h)"
+              [class.text-white]="isActiveHour(h)"
+              [class.rounded-md]="isActiveHour(h)"
+              [class.mx-1]="isActiveHour(h)"
+              [class.text-gray-700]="!isActiveHour(h)"
+              [class.dark:text-gray-300]="!isActiveHour(h)"
+              [disabled]="isHourDisabled(h)"
+              [class.cursor-not-allowed]="isHourDisabled(h)"
+              [class.opacity-30]="isHourDisabled(h)"
+              (click)="selectHour(h)">{{ h }}</button>
+          }
+        </div>
+
+        <!-- Minutes -->
+        <div data-col="minutes" role="group" aria-label="Minute" class="flex h-48 w-14 flex-col overflow-y-auto py-1" style="scrollbar-width:thin">
+          @for (m of minutes; track m) {
+            <button type="button"
+              [attr.data-cell]="m"
+              [attr.tabindex]="tabIndexFor('minutes', m)"
+              [attr.aria-pressed]="currentMinute() === m"
+              (keydown)="onColumnKeydown($event, 'minutes')"
+              class="flex-shrink-0 py-1.5 text-center text-sm font-medium transition-colors
+                     hover:bg-primary-50 hover:text-primary-600
+                     dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
+              [class.bg-primary-600]="currentMinute() === m"
+              [class.text-white]="currentMinute() === m"
+              [class.rounded-md]="currentMinute() === m"
+              [class.mx-1]="currentMinute() === m"
+              [class.text-gray-700]="currentMinute() !== m"
+              [class.dark:text-gray-300]="currentMinute() !== m"
+              [disabled]="isMinuteDisabled(m)"
+              [class.cursor-not-allowed]="isMinuteDisabled(m)"
+              [class.opacity-30]="isMinuteDisabled(m)"
+              (click)="selectMinute(m)">{{ m }}</button>
+          }
+        </div>
+
+        <!-- Seconds (optional) -->
+        @if (withSeconds()) {
+          <div data-col="seconds" role="group" aria-label="Second" class="flex h-48 w-14 flex-col overflow-y-auto py-1" style="scrollbar-width:thin">
+            @for (s of seconds; track s) {
+              <button type="button"
+                [attr.data-cell]="s"
+                [attr.tabindex]="tabIndexFor('seconds', s)"
+                [attr.aria-pressed]="currentSecond() === s"
+                (keydown)="onColumnKeydown($event, 'seconds')"
+                class="flex-shrink-0 py-1.5 text-center text-sm font-medium transition-colors
+                       hover:bg-primary-50 hover:text-primary-600
+                       dark:hover:bg-primary-900/20 dark:hover:text-primary-400"
+                [class.bg-primary-600]="currentSecond() === s"
+                [class.text-white]="currentSecond() === s"
+                [class.rounded-md]="currentSecond() === s"
+                [class.mx-1]="currentSecond() === s"
+                [class.text-gray-700]="currentSecond() !== s"
+                [class.dark:text-gray-300]="currentSecond() !== s"
+                (click)="selectSecond(s)">{{ s }}</button>
+            }
+          </div>
+        }
+
+        <!-- AM/PM (12h, no seconds) -->
+        @if (format() === '12h' && !withSeconds()) {
+          <div data-col="period" role="group" aria-label="AM or PM" class="flex w-16 flex-col items-center justify-center gap-2 px-2">
+            @for (p of ['AM', 'PM']; track p) {
+              <button type="button"
+                class="w-full rounded-lg py-2 text-sm font-semibold transition-all"
+                [attr.aria-pressed]="period() === p"
+                [class.bg-primary-600]="period() === p"
+                [class.text-white]="period() === p"
+                [class.shadow-sm]="period() === p"
+                [class.text-gray-500]="period() !== p"
+                [class.hover:bg-gray-100]="period() !== p"
+                [class.dark:text-gray-400]="period() !== p"
+                [class.dark:hover:bg-gray-800]="period() !== p"
+                [disabled]="isPeriodDisabled(p === 'AM' ? 'AM' : 'PM')"
+                [class.cursor-not-allowed]="isPeriodDisabled(p === 'AM' ? 'AM' : 'PM')"
+                [class.opacity-30]="isPeriodDisabled(p === 'AM' ? 'AM' : 'PM')"
+                (click)="togglePeriod(p === 'AM' ? 'AM' : 'PM')">{{ p }}</button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between border-t border-gray-100 px-3 py-2 dark:border-gray-800">
+        <button type="button"
+          class="text-[11px] font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+          (click)="now()">Now</button>
+        <button type="button"
+          class="rounded-lg bg-primary-600 px-3 py-1.5 text-[11px] font-semibold text-white
+                 transition hover:bg-primary-700"
+          (click)="close()">Done</button>
+      </div>
+    </div><!-- /tp-panel -->
+  </ng-template>
+</div>
+<!-- Validation error slot. trigger is a plain button -->
+<sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

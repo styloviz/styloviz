@@ -1,0 +1,11 @@
+@if (error()) {
+  <div data-sv-state="error" class="py-8">
+    <sv-error-shell [error]="error()" [title]="errorTitle()" (retry)="retry.emit()" />
+  </div>
+} @else if (loading()) {
+  <div data-sv-state="loading" class="py-8">
+    <sv-skeleton-shell [variant]="skeleton()" [rows]="rows()" [ariaLabel]="loadingLabel()" />
+  </div>
+} @else {
+  <ng-content />
+}

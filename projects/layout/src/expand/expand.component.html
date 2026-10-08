@@ -1,0 +1,23 @@
+<!-- ★★ `inert` AS WELL AS `aria-hidden`. `aria-hidden` only hides the content
+     from assistive tech; during the closing transition the controls inside are
+     still on screen and still in the tab order, so Tab could land on a button
+     inside a panel that is shrinking to 0. `inert` takes the whole subtree out
+     of the tab order and pointer hit-testing the moment the collapse starts.
+     Focus that was already inside is moved out first (see `returnFocusTo`). -->
+<div
+  #wrapper
+  [attr.id]="panelId() || null"
+  [attr.role]="panelRole()"
+  [attr.aria-labelledby]="ariaLabelledby() || null"
+  [attr.aria-label]="!ariaLabelledby() && ariaLabel() ? ariaLabel() : null"
+  [attr.aria-hidden]="!expanded()"
+  [attr.inert]="expanded() ? null : ''"
+>
+  @if (isVisible()) {
+    <!-- The observed box (`X-4`): the wrapper's own height is pinned while it
+         animates, so content growth only shows here. -->
+    <div #content data-sv-expand-content>
+      <ng-content />
+    </div>
+  }
+</div>

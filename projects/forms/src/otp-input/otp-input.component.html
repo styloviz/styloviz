@@ -1,0 +1,135 @@
+<div class="inline-flex flex-col gap-1.5">
+
+  @if (label()) {
+    <!--
+      A <span> in cells mode, a real <label> in single mode — because in cells
+      mode there is no single control to point at, and in single mode there is,
+      which is the entire difference the mode exists to make.
+    -->
+    @if (isSingle()) {
+      <label [id]="labelId" [for]="labelId + '-field'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</label>
+    } @else {
+      <span [id]="labelId" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</span>
+    }
+  }
+
+  @if (isSingle()) {
+    <!--
+      ── ONE FIELD, DRAWN OVER BOXES ───────────────────────────────────────
+      The input is transparent and stretched across the row; the boxes beneath
+      are `aria-hidden` decoration. So every keystroke, selection, paste and
+      Backspace is the browser's own — and so is the OS keyboard's code
+      suggestion, which only appears for a single `one-time-code` field.
+
+      ★ `text-transparent` with a transparent caret rather than `opacity-0`:
+        an `opacity-0` input is still focusable and still announces, but some
+        password managers skip elements they measure as invisible.
+    -->
+    <div class="relative inline-flex items-center gap-2">
+      @for (i of slots(); track i) {
+        @if (length() === 6 && i === 3) {
+          <span class="h-0.5 w-2 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true"></span>
+        }
+        <span
+          aria-hidden="true"
+          class="flex flex-shrink-0 items-center justify-center font-bold tracking-widest text-gray-900 dark:text-white"
+          [class]="cellBase() + ' ' + cellVariant() + ' ' + cellColorClass(i) + (caretBox() === i ? ' ring-2 ring-primary-500' : '')"
+        >{{ mask() ? (digitAt(i) ? '•' : '') : digitAt(i) }}</span>
+      }
+
+      <input #singleInput
+        [id]="labelId + '-field'"
+        [type]="inputType()"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        autocomplete="one-time-code"
+        [attr.maxlength]="length()"
+        [value]="codeText()"
+        [disabled]="resolvedDisabled()"
+        [attr.aria-label]="label() ? null : 'One-time code'"
+        [attr.aria-invalid]="status() === 'error' || fieldError.showError() || null"
+        [attr.aria-describedby]="describedBy()"
+        class="absolute inset-0 h-full w-full cursor-text bg-transparent text-center
+               text-transparent caret-transparent outline-none
+               disabled:cursor-not-allowed"
+        (input)="onSingleInput($event)"
+        (paste)="onPaste($event)"
+        (focus)="onFocus(0)"
+        (blur)="onBlur()" />
+    </div>
+  } @else {
+
+  <!-- Digit cells -->
+  <div class="flex items-center gap-2" role="group"
+       [attr.aria-labelledby]="label() ? labelId : null"
+       [attr.aria-label]="label() ? null : 'One-time code'"
+       [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+       [attr.aria-describedby]="describedBy()">
+    @for (i of slots(); track i) {
+      <!-- Separator after position 2 for 6-digit codes -->
+      @if (length() === 6 && i === 3) {
+        <span class="h-0.5 w-2 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true"></span>
+      }
+
+      <input #digitInput
+        [type]="inputType()"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="1"
+        autocomplete="one-time-code"
+        [disabled]="resolvedDisabled()"
+        [attr.aria-invalid]="status() === 'error' || fieldError.showError() || null"
+        [value]="mask() ? (digitAt(i) ? '•' : '') : digitAt(i)"
+        class="flex-shrink-0 select-all text-center font-bold tracking-widest
+               text-gray-900 caret-primary-500 outline-none transition-all duration-150
+               disabled:cursor-not-allowed disabled:opacity-50
+               dark:text-white"
+        [class]="cellBase() + ' ' + cellVariant() + ' ' + cellColorClass(i)"
+        (keydown)="onKeydown($event, i)"
+        (input)="onInput($event, i)"
+        (paste)="onPaste($event)"
+        (focus)="onFocus(i)"
+        (blur)="onBlur()"
+        [attr.aria-label]="'Digit ' + (i + 1) + ' of ' + length()" />
+    }
+  </div>
+  }
+
+  <!-- Status feedback (announced to assistive tech) -->
+  <div [id]="hintId" role="status" [attr.aria-live]="status() === 'error' ? 'assertive' : 'polite'">
+  @if (status() === 'error' && hint()) {
+    <p class="flex items-center gap-1 text-[11px] text-danger-500">
+      <sv-icon name="alert-circle" cssClass="h-3 w-3 shrink-0" />
+      {{ hint() }}
+    </p>
+  }
+  @if (status() === 'success' && hint()) {
+    <p class="flex items-center gap-1 text-[11px] text-accent-700 dark:text-accent-400">
+      <sv-icon name="check-circle" cssClass="h-3 w-3 shrink-0" />
+      {{ hint() }}
+    </p>
+  }
+  @if (status() === 'loading') {
+    <p class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+      <sv-spinner-arc cssClass="h-3 w-3" />
+      Verifying…
+    </p>
+  }
+  @if (status() === 'idle' && hint()) {
+    <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ hint() }}</p>
+  }
+  <!--
+    Announced, not shown: the empty cells are the visual answer already, and a
+    "Code cleared" line under a "That code is wrong" line is a second sentence
+    saying what the first one's consequence was. Inside the existing region so
+    the rejection and its consequence are announced together rather than as two
+    interrupting events.
+  -->
+  @if (_clearedNotice()) {
+    <span class="sr-only">{{ _clearedNotice() }}</span>
+  }
+  </div>
+
+</div>
+<!-- Validation error slot. -->
+<sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

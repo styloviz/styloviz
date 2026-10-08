@@ -1,0 +1,97 @@
+<!--
+  ★ ONE flat `role="tree"` over the visible rows, not a component that renders
+  itself. A recursive template makes a component instance per node — thousands
+  for an ordinary API response — and puts every row behind a nest that cannot be
+  virtualised or traversed. `aria-level` is what restores the shape for
+  assistive technology, and it is why the rows can be siblings in the DOM.
+
+  The keydown handler sits on the tree rather than on each row so it still fires
+  while focus moves between them; the rows are the focusable elements (roving
+  tabindex), so this container deliberately is not.
+-->
+<!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
+<div
+  role="tree"
+  [attr.aria-label]="ariaLabel()"
+  [ngClass]="rootClasses()"
+  (keydown)="onKeydown($event)"
+>
+  @for (row of rows(); track row.path) {
+
+    @if (row.kind === 'truncated' || row.kind === 'omitted') {
+      <!-- Not a treeitem: it is a notice about the tree, and making it one would
+           put a fake node in the count a screen reader reads out. `omitted` is
+           the same shape — it describes the container above it rather than being
+           a property of it. -->
+      <p
+        class="px-1 leading-5"
+        [ngClass]="valueClasses(row.kind)"
+        [style.padding-left]="indentFor(row.depth)"
+      >{{ row.preview }}</p>
+    } @else {
+      <div
+        role="treeitem"
+        [attr.aria-level]="row.depth + 1"
+        [attr.aria-expanded]="row.expandable ? row.expanded : null"
+        [attr.aria-selected]="isFocused(row.path) ? 'true' : null"
+      >
+        <button
+          type="button"
+          [attr.data-sv-json-row]="row.path"
+          [attr.tabindex]="tabIndexFor(row.path)"
+          [class]="rowClasses(isFocused(row.path))"
+          [style.padding-left]="indentFor(row.depth)"
+          (click)="onRowClick(row)"
+        >
+          <!-- Twisty. A leaf gets a same-size spacer so keys stay in one column;
+               a ragged left edge is the thing that makes a tree unreadable. -->
+          @if (row.expandable) {
+            <sv-icon
+              [name]="row.expanded ? 'chevron-down' : 'chevron-right'"
+              cssClass="mt-0.5 h-3 w-3 shrink-0 text-gray-500 dark:text-gray-400"
+              [strokeWidth]="2"
+            />
+          } @else {
+            <span class="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true"></span>
+          }
+
+          <!--
+            gray-600, not gray-500: the row highlights to `bg-gray-100` and
+            gray-500 on that is 4.40:1 — under AA by a hair, and only while
+            highlighted, which is why it took a rendered scan to catch.
+          -->
+          <span class="shrink-0 text-gray-600 dark:text-gray-400">{{ row.key }}</span>
+          <span class="shrink-0 text-gray-600 dark:text-gray-400">:</span>
+          <!--
+            A masked row says so in words. There is no icon-only version of this:
+            "this field was hidden from you" is not a thing to convey with a tint,
+            and the label is what a screen reader and a translator both need.
+          -->
+          <span
+            class="min-w-0 break-all"
+            [ngClass]="valueClasses(row.kind, row.redacted)"
+          >{{ row.preview }}</span>
+        </button>
+
+        @if (showCopy() && isFocused(row.path)) {
+          <span class="ml-1 inline-flex gap-1 align-middle">
+            <button
+              type="button"
+              tabindex="-1"
+              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              [attr.aria-label]="'Copy value of ' + row.path"
+              (click)="copy(row, 'value')"
+            >{{ justCopied() === row.path ? 'copied' : 'value' }}</button>
+            <button
+              type="button"
+              tabindex="-1"
+              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
+              [attr.aria-label]="'Copy path ' + row.path"
+              (click)="copy(row, 'path')"
+            >path</button>
+          </span>
+        }
+      </div>
+    }
+  }
+</div>

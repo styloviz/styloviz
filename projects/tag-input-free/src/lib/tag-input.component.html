@@ -1,0 +1,114 @@
+<!-- SvTagInputComponent (Free) — Default variant -->
+<div class="relative flex w-full flex-col gap-1.5">
+  @if (label()) {
+    <!--
+      A <span>, not a <label>: the control below is a role="combobox"
+      div, not a form element. `aria-labelledby` on it is what names it.
+    -->
+    <span [id]="labelId" class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+      {{ label() }}
+      @if (required()) { <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span> }
+    </span>
+  }
+  <!-- Field box. Chrome around the real control: the click forwards focus to
+       the <input role="combobox"> inside (focusInput()), which is already in
+       the tab order and whose own focus handler opens the same panel. A
+       tabindex here would add a duplicate tab stop in front of the input. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+  <div #fieldEl data-trigger
+    [class]="['flex flex-wrap cursor-text rounded-xl border transition-all duration-150', fieldMinHeight(),
+      resolvedDisabled() ? 'cursor-not-allowed opacity-50 bg-gray-50 border-gray-200 dark:bg-gray-800/50 dark:border-gray-700'
+      : focused() || isOpen() ? 'border-primary-400 ring-2 ring-primary-400/25 bg-white dark:bg-gray-900 dark:border-primary-500'
+      : resolvedError() ? 'border-danger-400 ring-2 ring-danger-400/20 bg-white dark:bg-gray-900'
+      : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900'].join(' ')"
+    (click)="focusInput()">
+    @for (tag of selectedTags(); track tag.value) {
+      <span [class]="['inline-flex shrink-0 items-center rounded-full font-medium bg-gray-100 text-gray-700 ring-1 ring-gray-200/80 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700', chipSizeClass()].join(' ')">
+        <span class="truncate max-w-[140px]" [class.italic]="tag.unresolved">{{ tagDisplay(tag) }}</span>
+        @if (!resolvedDisabled()) {
+          <button type="button" [attr.aria-label]="'Remove ' + tagDisplay(tag)"
+            class="ml-0.5 -mr-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none"
+            (click)="removeTag(tag.value, $event)">
+            <sv-icon name="close" cssClass="h-2.5 w-2.5" />
+          </button>
+        }
+      </span>
+    }
+    <input #inputEl type="text" autocomplete="off" spellcheck="false"
+      role="combobox" aria-haspopup="listbox" aria-autocomplete="list"
+      [attr.aria-describedby]="describedBy()"
+      [attr.aria-invalid]="resolvedError() ? 'true' : null"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-controls]="isOpen() ? listboxId : null"
+      [attr.aria-activedescendant]="activeDescendantId()"
+      [attr.aria-labelledby]="label() ? labelId : null"
+          [attr.aria-label]="label() ? null : accessibleName()"
+      [placeholder]="values().length === 0 ? placeholder() : ''" [disabled]="resolvedDisabled()" [value]="query()"
+      [class]="['flex-1 min-w-[120px] bg-transparent text-gray-900 placeholder-gray-500 outline-none dark:text-gray-100 dark:placeholder-gray-400', inputTextClass()].join(' ')"
+      (input)="onInput($event)" (paste)="onPaste($event)" (keydown)="onKeydown($event)" (focus)="onInputFocus()" (blur)="onInputBlur()" />
+    <span class="ml-auto flex shrink-0 items-center gap-1 self-center pl-1">
+      @if (values().length > 0 && !resolvedDisabled()) {
+        <button type="button" aria-label="Clear all"
+          class="flex h-5 w-5 items-center justify-center rounded-full text-gray-300 hover:bg-gray-100 hover:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-400 transition-colors"
+          (click)="clearAll($event)">
+          <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2" />
+        </button>
+      }
+      <span class="pointer-events-none">
+        <sv-icon name="chevron-down"
+                 cssClass="h-4 w-4 text-gray-500 transition-transform duration-200 dark:text-gray-400"
+                 [strokeWidth]="2" />
+      </span>
+    </span>
+  </div>
+  <!-- What a partial paste did — `role="status"`: a consequence of the user's
+       own action, not an interruption. Dismissible: it is a past event. -->
+  @if (pasteMessage()) {
+    <p [attr.id]="pasteId" role="status"
+       class="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400">
+      <sv-icon name="alert-circle" cssClass="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {{ pasteMessage() }}
+      <button type="button" class="ml-auto underline underline-offset-2"
+              (click)="dismissPasteReport()">Dismiss</button>
+    </p>
+  }
+  @if (resolvedError()) {
+    <p [attr.id]="errorId" role="alert" class="text-[11px] font-medium text-danger-500 dark:text-danger-400">{{ resolvedError() }}</p>
+  } @else if (hint()) {
+    <p [attr.id]="hintId" class="text-[11px] text-gray-500 dark:text-gray-400">{{ hint() }}</p>
+  }
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────────
+     PORTAL: options dropdown — appended to document.body on open so it escapes
+     every overflow / transform ancestor and is never clipped or mispositioned.
+──────────────────────────────────────────────────────────────────────────────── -->
+<ng-template #panelTpl>
+  <div [attr.id]="listboxId" role="listbox"
+    class="fixed overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900"
+    [style.zIndex]="_stackedPopup.zIndex() ?? 9999"
+    [style.top.px]="panelTop()" [style.bottom.px]="panelBottom()"
+    [style.left.px]="panelLeft()" [style.width.px]="panelWidth()" [style.max-height.px]="panelMaxHeight()">
+    <div role="presentation" class="overflow-y-auto overscroll-contain" style="max-height: inherit">
+      @for (opt of filteredOptions(); track opt.value; let i = $index) {
+        <!-- An option in an aria-activedescendant listbox is deliberately NOT
+             focusable: the text input owns ↑↓/Enter and points at the active option via aria-activedescendant.
+             Giving each option a tab stop would break that pattern and put dozens
+             of stops inside one control. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+        <div role="option" [attr.id]="optionId(i)" [attr.aria-selected]="activeIndex() === i"
+          [class]="['flex cursor-pointer items-center gap-2 px-3 py-2 text-sm transition-colors', opt.disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : '', activeIndex() === i ? 'bg-primary-50 dark:bg-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-800/60'].join(' ')"
+          (mousedown)="$event.preventDefault()"
+          (click)="selectOption(opt)" (mouseenter)="activeIndex.set(i)">
+          <span class="flex-1 truncate font-medium text-gray-800 dark:text-gray-100">{{ opt.label }}</span>
+          @if (activeIndex() === i) {
+            <sv-icon name="check" cssClass="h-3.5 w-3.5 shrink-0 text-primary-500" [strokeWidth]="2.5" />
+          }
+        </div>
+      }
+      @if (noResults()) {
+        <div role="presentation" class="px-4 py-5 text-center text-xs text-gray-500 dark:text-gray-400">No results found</div>
+      }
+    </div>
+  </div>
+</ng-template>

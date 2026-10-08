@@ -1,0 +1,140 @@
+<div class="flex flex-col gap-1">
+  <div class="flex items-start gap-0">
+    <div class="relative shrink-0">
+      <!--
+        Deliberately no outer `<label for>` on this button: `sv-input-mask`
+        below renders the one visible/associated label (via `[label]`), tied
+        to the actual text field. The picker gets its own explicit
+        `aria-label` instead, so it announces the selected country rather
+        than inheriting a "Phone number" label meant for the field beside it.
+      -->
+      <button type="button"
+        [id]="buttonId"
+        [ngClass]="buttonSizeClass()"
+        class="flex items-center gap-1.5 rounded-l-md rounded-r-none border border-r-0 border-gray-200
+               bg-white px-2.5 text-gray-700 outline-none transition-colors
+               hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-400/50
+               disabled:cursor-not-allowed disabled:opacity-50
+               dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700/50"
+        [disabled]="disabled()"
+        [attr.aria-label]="pickerAriaLabel()"
+        aria-haspopup="listbox"
+        [attr.aria-expanded]="open()"
+        [attr.aria-controls]="listboxId"
+        (click)="toggle()"
+        (keydown)="onButtonKeydown($event)">
+        <!--
+          ★★ +1 IS THE US, CANADA AND NINETEEN OTHER TERRITORIES, so a flag and a
+             dial code together still cannot say which is selected — and the flag
+             is the half a reader trusts. The ISO code disambiguates it in the
+             one place that is visible when the picker is closed.
+        -->
+        <sv-phone-flag [code]="activeCountry().code" class="block h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px]" />
+        <span class="tabular-nums">{{ activeCountry().dialCode }}</span>
+        <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ activeCountry().code }}</span>
+        <sv-icon name="chevron-down"
+                 cssClass="h-3 w-3 text-gray-500 dark:text-gray-400"
+                 [strokeWidth]="2" />
+      </button>
+
+      @if (open()) {
+        <ul
+          [id]="listboxId"
+          role="listbox"
+          aria-label="Country"
+          [attr.aria-activedescendant]="listboxId + '-opt-' + activeIndex()"
+          tabindex="-1"
+          class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border
+                 border-gray-200 bg-white py-1 shadow-lg outline-none dark:border-gray-700 dark:bg-gray-800"
+          (keydown)="onListKeydown($event)">
+          @for (c of availableCountries(); track c.code; let i = $index) {
+            <!-- An option in an aria-activedescendant listbox is deliberately NOT
+                 focusable: the trigger button owns ↑↓/Enter/Escape and points at the
+                 active option via aria-activedescendant (onListKeydown/onButtonKeydown
+                 on the ancestors). Giving each option its own tab stop would break
+                 that pattern — same rationale as select-dropdown's flat options. -->
+            <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+            <li
+              [id]="listboxId + '-opt-' + i"
+              role="option"
+              [attr.aria-selected]="c.code === activeCountry().code"
+              class="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-200"
+              [ngClass]="i === activeIndex() ? 'bg-primary-50 dark:bg-primary-900/30' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+              (mouseenter)="activeIndex.set(i)"
+              (click)="select(c.code)">
+              <sv-phone-flag [code]="c.code" class="block h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px]" />
+              <span class="flex-1 truncate">{{ c.name }}</span>
+              <span class="text-gray-500 dark:text-gray-400">{{ c.dialCode }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <!--
+      `sv-input-mask` has no leading-content slot to project the picker
+      button into, so this reaches in with a plain CSS descendant selector
+      (not DOM traversal, not ::ng-deep) to flatten the input's near
+      corners — the two controls sit edge-to-edge and read as one.
+    -->
+    <!--
+      ★★★ THE MASK COVERS THE NATIONAL NUMBER, NOT THE COUNTRY CODE. It used to
+           be `+# (###) ###-####` for every country outside the NANP — one
+           country-code digit and ten national ones, applied to the UK (+44),
+           Australia (+61), Germany (+49), France (+33), India (+91) and Japan
+           (+81). None of those codes fits in `+#`, and none of those plans is
+           ten digits. The picker beside this field already shows the code, so
+           the slot it was spending on it was the slot the number needed.
+    -->
+    <sv-input-mask
+      class="min-w-0 flex-1 [&_input]:rounded-l-none"
+      preset="custom"
+      [customMask]="activeMask()"
+      [(value)]="value"
+      [size]="size()"
+      [disabled]="disabled()"
+      [error]="error()"
+      [label]="label()"
+      (rawChanged)="rawChanged.emit($event)" />
+  </div>
+
+  <!--
+    ★★ A HINT, NOT AN ERROR, and the difference is the whole point: the plan this
+       is measured against changes more often than a release cycle, so a number
+       the table calls too short may be perfectly dialable. It says what it
+       expected and leaves the judgement to whoever can actually check. The one
+       exception is the E.164 ceiling, which is the format's own rule.
+  -->
+  @if (lengthHint(); as hint) {
+    <p class="text-[11px] text-gray-600 dark:text-gray-400"
+       role="status"
+       data-sv-length-hint>{{ hint }}</p>
+  }
+
+  <!--
+    ★★ AN EXTENSION IS NOT PART OF A PHONE NUMBER. E.164 is a country code plus a
+       subscriber number and nothing else, so an extension typed into the main
+       field corrupts the value that gets dialled and stored. Users type them
+       anyway, because there is nowhere else to put them — which is exactly why
+       this field exists, and why it stays out of `e164`.
+  -->
+  @if (showExtension()) {
+    <div class="mt-2 flex items-center gap-2">
+      <label class="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400"
+             [attr.for]="extensionId">Extension</label>
+      <input
+        [id]="extensionId"
+        type="text"
+        inputmode="numeric"
+        autocomplete="tel-extension"
+        maxlength="8"
+        class="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+               disabled:cursor-not-allowed disabled:opacity-60
+               dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+        [disabled]="disabled()"
+        [value]="extension()"
+        (input)="onExtensionInput($event)" />
+    </div>
+  }
+</div>

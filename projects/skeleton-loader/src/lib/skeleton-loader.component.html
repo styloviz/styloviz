@@ -1,0 +1,364 @@
+<!--
+  Root wrapper — provides accessible semantics.
+
+  ★★★ THERE IS NO `aria-busy` HERE, AND REMOVING IT IS THE FIX (T0-8).
+      It used to sit on this element, statically, alongside `role="status"`.
+      `aria-busy="true"` tells assistive technology to STOP REPORTING CHANGES
+      from that subtree until it flips to false — so the live region announced
+      nothing, and the label this component exists to speak was never read.
+      Worse, it could never flip: the skeleton is DESTROYED when content
+      arrives, not updated, so `false` was unreachable by construction.
+
+      `aria-busy` belongs on the region whose contents are CHANGING — the
+      host's, around the swap. It does not belong on the placeholder, because
+      the placeholder IS the busy indicator. The kit's own reference for this
+      is `sv-streaming-markdown`, which binds `aria-busy` conditionally and
+      announces once when it stops.
+
+  ★★ `announce` is how a host takes ownership back (OF-17-I1). A host that
+     marks its own region busy and announces the transition itself does not
+     want a second voice; set it false and this becomes pure decoration.
+
+  ★★ …UNTIL IT OFFERS A RETRY (OF-17-I7). A focusable button inside an
+     `aria-hidden` subtree is reachable by Tab and invisible to a screen
+     reader (axe `aria-hidden-focus`). Once a stalled skeleton offers its
+     retry, the wrapper stops hiding: the bones are empty `div`s and add
+     nothing to the accessibility tree, so what is exposed is the message and
+     the button — and still no live region of its own.
+-->
+<div
+  [ngClass]="['w-full', customClass()]"
+  [attr.role]="announce() ? 'status' : null"
+  [attr.aria-label]="announce() ? ariaLabel() : null"
+  [attr.aria-hidden]="announce() || retryOffered() ? null : 'true'"
+>
+
+  <!-- ════════════════════ PRESET: text-block ════════════════════════════ -->
+  @if (preset() === 'text-block') {
+    <div class="space-y-2.5">
+      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+           [style.height]="lineH()"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+           [style.height]="lineH()"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+           [style.height]="lineH()"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'w-[65%] rounded-md']"
+           [style.height]="lineH()"></div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: paragraph ═════════════════════════════ -->
+  @if (preset() === 'paragraph') {
+    <div class="flex gap-3">
+      <div
+        [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+        [style.width]="avatarSz()"
+        [style.height]="avatarSz()"
+      ></div>
+      <div class="flex-1 space-y-2.5 pt-1">
+        <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+             [style.height]="lineH()"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+             [style.height]="lineH()"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+             [style.height]="lineH()"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'w-[55%] rounded-md']"
+             [style.height]="lineH()"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: card ══════════════════════════════════ -->
+  @if (preset() === 'card') {
+    <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+      <!-- Image area -->
+      <div [ngClass]="[boneBase(), waveClass(), 'h-40 w-full rounded-none']"></div>
+      <div class="space-y-3 p-4">
+        <!-- Title -->
+        <div [ngClass]="[boneBase(), waveClass(), 'h-4 w-3/4 rounded-md']"></div>
+        <!-- Body lines -->
+        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+             [style.height]="lineH()"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'w-[70%] rounded-md']"
+             [style.height]="lineH()"></div>
+        <!-- Footer -->
+        <div class="flex items-center justify-between pt-1">
+          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-20 rounded-full']"></div>
+          <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-24 rounded-lg']"></div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: stat-card ═════════════════════════════ -->
+  @if (preset() === 'stat-card') {
+    <div class="rounded-xl border border-t-2 border-gray-200 bg-white p-5 shadow-sm
+                dark:border-gray-800 dark:bg-gray-900 space-y-4">
+      <!--
+        ★★★ EVERY BONE HERE IS `sv-stat-card`'S OWN SKELETON, BONE FOR BONE
+            (`OF-17-I5`, `OF-17-M1`). It used to be a second, independent
+            drawing of the same card and every bone was off by a step — label
+            h-3.5/w-28 against the card's h-3/w-20, icon 40px against 32px,
+            value h-8/w-36 against h-7/w-28. Swapping this preset in for a
+            loading stat card therefore moved every line, which is the second
+            layout shift `OF-17-I5` names: worse than the blank it replaced,
+            because the user has already started reading.
+
+        ★★ `check:skeleton-presets` PINS IT. The card's own loading block is
+           the authority (it ships inside the card), and the gate compares
+           bone-for-bone — so a stat-card redesign fails this preset's check
+           instead of shipping a shift.
+      -->
+      <!-- Icon + label -->
+      <div class="flex items-center justify-between">
+        <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-20 rounded-full']"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-8 rounded-xl']"
+             [style.width]="statIconSz()" [style.height]="statIconSz()"></div>
+      </div>
+      <!-- Big number -->
+      <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-28 rounded-md']"></div>
+      <!-- Trend chip + label -->
+      <div class="flex items-center gap-2">
+        <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-12 rounded-full']"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-16 rounded-full']"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: table-row ═════════════════════════════ -->
+  @if (preset() === 'table-row') {
+    <div class="flex items-center gap-4 px-4 py-3">
+      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+           [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 flex-1 rounded-md']"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-24 rounded-md hidden sm:block']"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-16 rounded-full hidden md:block']"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-20 rounded-md hidden lg:block']"></div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-7 rounded-md']"></div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: table ════════════════════════════════ -->
+  @if (preset() === 'table') {
+    <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
+      <!-- Header -->
+      <div class="flex items-center gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3
+                  dark:border-gray-800 dark:bg-gray-800/50">
+        <div [ngClass]="[boneBase(), 'h-3 w-4 rounded opacity-50']"></div>
+        <div [ngClass]="[boneBase(), 'h-3 flex-1 rounded opacity-50']"></div>
+        <div [ngClass]="[boneBase(), 'h-3 w-24 rounded hidden sm:block opacity-50']"></div>
+        <div [ngClass]="[boneBase(), 'h-3 w-16 rounded hidden md:block opacity-50']"></div>
+        <div [ngClass]="[boneBase(), 'h-3 w-20 rounded hidden lg:block opacity-50']"></div>
+        <div [ngClass]="[boneBase(), 'h-3 w-7 rounded opacity-50']"></div>
+      </div>
+      <!-- Rows -->
+      <div class="divide-y divide-gray-100 dark:divide-gray-800">
+        @for (_ of [0,1,2,3,4]; track $index) {
+          <div class="flex items-center gap-4 px-4 py-3">
+            <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+                 [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 flex-1 rounded-md']"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-24 rounded-md hidden sm:block']"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-16 rounded-full hidden md:block']"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-20 rounded-md hidden lg:block']"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-7 rounded-md']"></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: list-item ═════════════════════════════ -->
+  @if (preset() === 'list-item') {
+    <div class="flex items-center gap-3">
+      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+           [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
+      <div class="flex flex-1 flex-col gap-2 min-w-0">
+        <div [ngClass]="[boneBase(), waveClass(), 'w-2/5 rounded-md']"
+             [style.height]="lineH()"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+             [style.height]="lineH()"></div>
+      </div>
+      <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-14 shrink-0 rounded-full']"></div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: list ══════════════════════════════════ -->
+  @if (preset() === 'list') {
+    <div class="divide-y divide-gray-100 dark:divide-gray-800">
+      @for (_ of [0,1,2,3,4]; track $index) {
+        <div class="flex items-center gap-3 py-3">
+          <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+               [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
+          <div class="flex flex-1 flex-col gap-2 min-w-0">
+            <div [ngClass]="[boneBase(), waveClass(), 'w-2/5 rounded-md']"
+                 [style.height]="lineH()"></div>
+            <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+                 [style.height]="lineH()"></div>
+          </div>
+          <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-14 shrink-0 rounded-full']"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: profile-header ════════════════════════ -->
+  @if (preset() === 'profile-header') {
+    <div class="flex flex-col items-center gap-4 py-6 sm:flex-row sm:items-start sm:gap-6">
+      <!-- Large avatar -->
+      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+           style="width: 5rem; height: 5rem;"></div>
+      <div class="flex-1 space-y-2.5 text-center sm:text-left">
+        <!-- Name -->
+        <div [ngClass]="[boneBase(), waveClass(), 'mx-auto h-5 w-48 rounded-md sm:mx-0']"></div>
+        <!-- Role -->
+        <div [ngClass]="[boneBase(), waveClass(), 'mx-auto h-3.5 w-32 rounded-full sm:mx-0']"></div>
+        <!-- Meta chips -->
+        <div class="flex justify-center gap-2 pt-1 sm:justify-start">
+          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-20 rounded-full']"></div>
+          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-24 rounded-full']"></div>
+          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-16 rounded-full']"></div>
+        </div>
+      </div>
+      <!-- Action buttons -->
+      <div class="flex gap-2 shrink-0">
+        <div [ngClass]="[boneBase(), waveClass(), 'h-9 w-24 rounded-lg']"></div>
+        <div [ngClass]="[boneBase(), waveClass(), 'h-9 w-9 rounded-lg']"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: form ══════════════════════════════════ -->
+  @if (preset() === 'form') {
+    <div class="space-y-5">
+      @for (_ of [0,1,2]; track $index) {
+        <div class="space-y-1.5">
+          <!-- Label -->
+          <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-24 rounded-full']"></div>
+          <!-- Input field -->
+          <div [ngClass]="[boneBase(), waveClass(), 'h-10 w-full rounded-lg']"></div>
+        </div>
+      }
+      <!-- Submit button -->
+      <div class="flex justify-end pt-2">
+        <div [ngClass]="[boneBase(), waveClass(), 'h-10 w-32 rounded-lg']"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ PRESET: dashboard ══════════════════════════════ -->
+  @if (preset() === 'dashboard') {
+    <div class="space-y-6">
+      <!-- Stat cards row -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        @for (_ of [0,1,2]; track $index) {
+          <div class="rounded-xl border border-t-2 border-gray-200 bg-white p-5 shadow-sm
+                      dark:border-gray-800 dark:bg-gray-900 space-y-4">
+            <!-- ★ The same five bones as the `stat-card` preset above, and
+                 pinned to `sv-stat-card` by the same gate: three cards drifting
+                 together is still three cards in the wrong place. -->
+            <div class="flex items-center justify-between">
+              <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-20 rounded-full']"></div>
+              <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-8 rounded-xl']"></div>
+            </div>
+            <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-28 rounded-md']"></div>
+            <div class="flex items-center gap-2">
+              <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-12 rounded-full']"></div>
+              <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-16 rounded-full']"></div>
+            </div>
+          </div>
+        }
+      </div>
+      <!-- Chart placeholder -->
+      <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm
+                  dark:border-gray-800 dark:bg-gray-900 space-y-4">
+        <div class="flex items-center justify-between">
+          <div [ngClass]="[boneBase(), waveClass(), 'h-4 w-40 rounded-md']"></div>
+          <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-24 rounded-lg']"></div>
+        </div>
+        <!-- Y-axis labels + bars -->
+        <div class="flex items-end gap-2 pt-2" style="height: 10rem;">
+          <div class="flex w-8 shrink-0 flex-col justify-between py-1">
+            @for (_ of [0,1,2,3,4]; track $index) {
+              <div [ngClass]="[boneBase(), 'h-2.5 w-6 rounded opacity-50']"></div>
+            }
+          </div>
+          <div class="flex flex-1 items-end gap-1.5 h-full">
+            @for (h of [55,72,48,88,65,94,70,58,82,76,90,68]; track $index) {
+              <div
+                [ngClass]="[boneBase(), waveClass(), 'flex-1 rounded-t-sm']"
+                [style.height.%]="h"
+              ></div>
+            }
+          </div>
+        </div>
+        <!-- X-axis labels -->
+        <div class="flex justify-around pl-8">
+          @for (_ of [0,1,2,3,4,5,6,7,8,9,10,11]; track $index) {
+            <div [ngClass]="[boneBase(), 'h-2.5 w-4 rounded opacity-40']"></div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════ CUSTOM / single-bone ═══════════════════════════ -->
+  @if (preset() === 'custom') {
+    <div
+      class="flex flex-col"
+      [class.gap-2]="lines() > 1"
+    >
+      @for (item of lineItems(); track $index) {
+        <div
+          [ngClass]="[boneBase(), waveClass(), roundedClass()]"
+          [style.width]="item.width"
+          [style.height]="height()"
+        ></div>
+      }
+    </div>
+  }
+
+  <!--
+    ── Escalation (OF-17-I7) ────────────────────────────────────────────────
+
+    ★★★ NO `role="status"` OF ITS OWN, AND THAT IS THE WHOLE POINT. This
+        element sits INSIDE the wrapper's region, which is already
+        `role="status"` and which already existed before this text appeared —
+        exactly the arrangement a live region needs. A second region here
+        would be a second voice for one wait, which is the defect `OF-17-I1`
+        was about, and the first version of this block was caught by that
+        rule's own tests finding two status regions in one skeleton.
+
+    ★ So when `announce` is false the host owns the announcement of this too,
+      along with everything else about the wait. The text is still on screen.
+
+    Empty until there is something to say, so a normal wait adds nothing to
+    the accessibility tree and nothing to the layout.
+  -->
+  <div class="mt-3 flex flex-col items-start gap-1.5 empty:hidden">
+    @if (waitMessage(); as message) {
+      <span
+        data-sv-state="escalation"
+        [attr.data-sv-stage]="waitStage()"
+        class="text-xs text-gray-500 dark:text-gray-400"
+      >{{ message }}</span>
+    }
+    @if (retryOffered()) {
+      <button
+        data-sv-retry
+        type="button"
+        class="rounded text-xs font-semibold text-primary-700 underline underline-offset-2
+               hover:no-underline focus-visible:outline-none focus-visible:ring-2
+               focus-visible:ring-primary-500 dark:text-primary-300"
+        (click)="requestRetry()"
+      >{{ retryLabel() }}</button>
+    }
+  </div>
+
+</div>
+
+<!--
+  Wave shimmer — a pure CSS technique using an overlay gradient that sweeps
+  left-to-right. Implemented as a global @layer utility so no extra .scss is needed.
+  Tailwind's @layer utilities picks this up at build time.
+-->

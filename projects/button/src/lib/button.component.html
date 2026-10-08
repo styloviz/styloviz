@@ -1,0 +1,130 @@
+@if (href()) {
+  <a
+    [href]="isDisabled() ? null : href()"
+    [target]="target()"
+    [attr.rel]="computedRel()"
+    [attr.download]="download()"
+    [attr.role]="'link'"
+    [attr.tabindex]="isDisabled() ? -1 : null"
+    [attr.aria-disabled]="isDisabled() ? 'true' : null"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    [attr.aria-label]="accessibleLabel()"
+    [attr.aria-pressed]="pressed() === null ? null : pressed() ? 'true' : 'false'"
+    [attr.title]="title() || null"
+    [class]="classes()"
+    (click)="handleClick($event)"
+    (focus)="focused.emit($event)"
+    (blur)="blurred.emit($event)"
+  >
+    <ng-container [ngTemplateOutlet]="btnInner" />
+  </a>
+} @else {
+  <button
+    [type]="type()"
+    [disabled]="isDisabled()"
+    [attr.name]="name() || null"
+    [attr.value]="value() || null"
+    [attr.autofocus]="autofocus() ? '' : null"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    [attr.aria-label]="accessibleLabel()"
+    [attr.aria-pressed]="pressed() === null ? null : pressed() ? 'true' : 'false'"
+    [attr.title]="title() || null"
+    [class]="classes()"
+    (click)="handleClick($event)"
+    (focus)="focused.emit($event)"
+    (blur)="blurred.emit($event)"
+  >
+    <ng-container [ngTemplateOutlet]="btnInner" />
+  </button>
+}
+
+<ng-template #btnInner>
+
+  @if (loading()) {
+    @if (loadingStyle() === 'spinner') {
+      <sv-spinner-arc [cssClass]="spinnerSizeClass()" />
+    }
+    @if (loadingStyle() === 'dots') {
+      <span class="flex items-center gap-0.5" aria-hidden="true">
+        @for (dot of [0, 1, 2]; track dot) {
+          <span
+            [class]="spinnerSizeClass() + ' rounded-full bg-current animate-bounce'"
+            [style.animation-delay]="(dot * 150) + 'ms'"
+          ></span>
+        }
+      </span>
+    }
+    @if (loadingStyle() === 'pulse') {
+      <span [class]="spinnerSizeClass() + ' shrink-0 rounded-full bg-current/80 animate-pulse'" aria-hidden="true"></span>
+    }
+    <!--
+      Part of the control's NAME, and only where it can actually be part of it:
+      `aria-label` replaces element contents outright when the name is computed,
+      so this span is inert the moment `accessibleLabel()` is non-null. The
+      announcement itself is the live region at the bottom of this file.
+    -->
+    @if (!accessibleLabel()) {
+      <span class="sr-only">{{ loadingLabel() || 'Loading' }}</span>
+    }
+  }
+
+  @if (!loading() && (iconPosition() === 'leading' || iconPosition() === 'only')) {
+    @if (iconTemplate(); as tpl) {
+      <span [class]="customIconWrapperClass()" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="tpl" />
+      </span>
+    } @else if (icon()) {
+      <sv-icon [name]="icon()"
+               [cssClass]="iconSizeClass() + ' shrink-0'"
+               [strokeWidth]="1.8" />
+    }
+  }
+
+  @if (iconPosition() !== 'only') {
+    <span>{{ displayLabel() }}</span>
+  }
+
+  @if (!loading() && iconPosition() === 'trailing') {
+    @if (iconTemplate(); as tpl) {
+      <span [class]="customIconWrapperClass()" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="tpl" />
+      </span>
+    } @else if (icon()) {
+      <sv-icon [name]="icon()"
+               [cssClass]="iconSizeClass() + ' shrink-0'"
+               [strokeWidth]="1.8" />
+    }
+  }
+
+  @if (!loading()) {
+    @if (trailingIconTemplate(); as tpl) {
+      <span [class]="trailingCustomIconWrapperClass()" aria-hidden="true">
+        <ng-container [ngTemplateOutlet]="tpl" />
+      </span>
+    } @else if (trailingIcon()) {
+      <sv-icon [name]="trailingIcon()"
+               [cssClass]="iconSizeClass() + ' shrink-0 opacity-70'"
+               [strokeWidth]="1.8" />
+    }
+  }
+
+  @if (hasCounter()) {
+    <span
+      class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center
+             rounded-full bg-danger-600 px-1 text-[9px] font-bold leading-none text-white
+             ring-2 ring-white dark:ring-gray-950"
+      aria-hidden="true"
+    >{{ counterText() }}</span>
+  }
+
+</ng-template>
+
+<!--
+  The standardized loading announcement (`FI-02-M3`).
+
+  Outside the button and the anchor, so it is never swallowed by `aria-label`,
+  and rendered unconditionally with empty content rather than added when
+  loading starts: a live region that appears already populated is frequently
+  not announced at all, because the reader has nothing to compare it against.
+-->
+<span role="status" class="sr-only">{{ busyAnnouncement() }}</span>

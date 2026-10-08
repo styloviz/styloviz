@@ -1,0 +1,103 @@
+<!--
+  `tabindex="-1"` only while invalid, so `sv-form-error-summary` can actually
+  reach a group-level error. A summary entry is a promise that activating it
+  takes you to the thing that is wrong; a container that is not focusable makes
+  that promise unkeepable, and the summary reports `reachFailed` instead of
+  moving anyone. Not in the tab order — `-1` is programmatic focus only, so a
+  keyboard user still tabs straight into the first field.
+-->
+<div
+  role="group"
+  [attr.aria-labelledby]="label() ? _uid : null"
+  [attr.aria-invalid]="hasError() ? 'true' : null"
+  [attr.aria-describedby]="describedBy()"
+  [attr.tabindex]="hasError() ? -1 : null"
+  [ngClass]="outerClass()"
+>
+  <!-- Header — label + optional collapse toggle -->
+  @if (label()) {
+    <div class="flex w-full items-center justify-between pb-3">
+      <div>
+        <span [id]="_uid" class="text-sm font-semibold text-gray-900 dark:text-white">
+          {{ label() }}
+        </span>
+        @if (description()) {
+          <p [id]="descriptionId" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ description() }}</p>
+        }
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!--
+          The count of what is wrong behind the chevron. Rendered only while
+          collapsed: expanded, each of these errors is on screen next to the
+          field it belongs to, and a second tally beside the legend is noise.
+          The number alone is not a sentence, hence the sr-only completion —
+          a reader that announced "3" here would be telling nobody anything.
+        -->
+        @if (showErrorCount()) {
+          <span
+            [id]="errorCountId"
+            class="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full
+                   bg-danger-100 px-1.5 text-[11px] font-semibold text-danger-700
+                   dark:bg-danger-900/50 dark:text-danger-300"
+          >
+            <span aria-hidden="true">{{ errorCount() }}</span>
+            <span class="sr-only">{{ errorCountLabel() }}</span>
+          </span>
+        }
+
+      @if (collapsible()) {
+        <!--
+          The chevron is the button's only content and `sv-icon` renders it
+          `aria-hidden`, so without a label this is an unnamed button: a screen
+          reader announced "button, collapsed" with no clue what collapses. The
+          group's own label is what it acts on, hence naming it from there.
+
+          `aria-describedby` → the count: the user who collapses a section with
+          errors in it is still ON this button when the badge appears, and the
+          container's description is not re-read to someone already inside it.
+          Without this the tally reached everyone except the person who just
+          hid the errors (`FI-11-M1`).
+        -->
+        <button
+          type="button"
+          [attr.aria-label]="(isExpanded() ? 'Collapse ' : 'Expand ') + label()"
+          [attr.aria-describedby]="showErrorCount() ? errorCountId : null"
+          [attr.aria-expanded]="isExpanded()"
+          [attr.aria-controls]="collapsible() ? 'group-content-' + _uid : null"
+          class="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-gray-400
+                 transition-colors hover:bg-gray-100 hover:text-gray-600
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400
+                 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+          (click)="toggleCollapse()"
+        >
+          <sv-icon
+            name="chevron-down"
+            weight="solid"
+            [cssClass]="isCollapsed()
+              ? 'h-4 w-4 transition-transform duration-200 -rotate-90'
+              : 'h-4 w-4 transition-transform duration-200 rotate-0'" />
+        </button>
+      }
+      </div>
+    </div>
+  }
+
+  <!-- Content — always rendered (single ng-content location avoids Angular
+       content-projection + @if re-projection bugs).
+       Visibility controlled via JS height animation in toggleCollapse(). -->
+  <div
+    #groupContent
+    [attr.id]="collapsible() ? 'group-content-' + _uid : null"
+    [ngClass]="innerClass()"
+  >
+    <ng-content />
+  </div>
+
+  <!--
+    Group-level validation — "Select at least one option". Inside the container
+    it describes, and outside the collapsible region, so a message about the
+    group never disappears with the group's contents.
+  -->
+  <sv-field-error [id]="errorId" [message]="errorMessage()" class="mt-2 block" />
+</div>

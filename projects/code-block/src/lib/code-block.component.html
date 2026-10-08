@@ -1,0 +1,403 @@
+<div
+  class="group/cb overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm
+         dark:border-gray-800 dark:bg-gray-900">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  @if (showHeader()) {
+    <div
+      class="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2
+             dark:border-gray-800 dark:bg-gray-950/40">
+
+      @if (variant() === 'tabs' && resolvedFiles().length > 1) {
+        <!-- Tab strip -->
+        <div role="tablist" aria-label="Files" class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          @for (file of resolvedFiles(); track file.name; let i = $index) {
+            <button
+              type="button"
+              role="tab"
+              [id]="'sv-cb-tab-' + _uid + '-' + i"
+              [attr.aria-selected]="i === activeTab()"
+              [attr.tabindex]="i === activeTab() ? 0 : -1"
+              class="shrink-0 rounded-lg px-2.5 py-1 font-mono text-xs transition-colors
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              [class]="i === activeTab()
+                ? 'bg-white text-gray-900 shadow-sm ring-1 ring-gray-200 dark:bg-gray-800 dark:text-white dark:ring-gray-700'
+                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'"
+              (click)="selectTab(i)"
+              (keydown)="onTabKeydown($event, i)">
+              {{ file.name }}
+            </button>
+          }
+        </div>
+      } @else {
+        <!-- File name + language badge -->
+        <div class="flex min-w-0 flex-1 items-center gap-2">
+          @if (activeFile().name) {
+            <span class="truncate font-mono text-xs text-gray-600 dark:text-gray-300">
+              {{ activeFile().name }}
+            </span>
+          }
+          @if (languageLabel()) {
+            <span
+              class="shrink-0 rounded-md bg-gray-200/70 px-1.5 py-0.5 font-mono text-[10px]
+                     uppercase tracking-wide text-gray-600
+                     dark:bg-gray-800 dark:text-gray-300">
+              {{ languageLabel() }}
+            </span>
+          }
+          @if (variant() === 'diff') {
+            <!--
+              `aria-hidden` because `diffSummary()` already describes the region:
+              read out, these announce as "plus twelve" and "minus four" — two
+              bare numbers with no noun — and repeating the counts is exactly
+              the duplication a description is meant to replace.
+            -->
+            <span class="shrink-0 font-mono text-[11px] text-accent-700 dark:text-accent-400"
+                  aria-hidden="true">
+              +{{ diffStats().added }}
+            </span>
+            <span class="shrink-0 font-mono text-[11px] text-danger-600 dark:text-danger-400"
+                  aria-hidden="true">
+              −{{ diffStats().removed }}
+            </span>
+          }
+        </div>
+      }
+
+      <!-- Copy -->
+      @if (copyable()) {
+        <button
+          type="button"
+          class="shrink-0 rounded-lg p-1.5 text-gray-500 dark:text-gray-400 transition-colors
+                 hover:bg-gray-200/70 hover:text-gray-700
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+          [attr.aria-label]="copyLabel()"
+          [attr.title]="copyLabel()"
+          (click)="copy()">
+          @if (copyDone()) {
+            <sv-check-icon [size]="16" cssClass="text-accent-500" />
+          } @else {
+            <sv-copy-icon [size]="16" />
+          }
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Screen-reader confirmation for the copy action -->
+  <span class="sr-only" role="status" aria-live="polite">
+    @if (copyDone()) { Copied to clipboard }
+  </span>
+
+  <!-- The diff's scale in words — see `diffSummary`. Not a live region: it
+       describes the region below rather than announcing a change. -->
+  @if (variant() === 'diff' && diffSummary()) {
+    <span class="sr-only" [id]="diffSummaryId">{{ diffSummary() }}</span>
+  }
+
+  <!-- Highlighting that did not happen — see `highlightNote`. The badge says
+       "plain text"; this says why, for a reader who cannot see the badge. -->
+  @if (highlightNote()) {
+    <span class="sr-only" [id]="highlightNoteId">{{ highlightNote() }}</span>
+  }
+
+  <!-- ── Body ───────────────────────────────────────────────────────────── -->
+  <!--
+    ★★ `dir="ltr"` IS LOAD-BEARING, NOT TIDINESS. Source is written
+       left-to-right whatever it contains, and inheriting a host's `dir="rtl"`
+       reverses the visual order of every line while leaving the underlying
+       text alone — the same read-one-thing-copy-another gap that
+       `revealBidi` closes for control characters, arrived at through a
+       parent's layout instead.
+  -->
+  <div
+    class="overflow-auto text-[13px] leading-[1.6]"
+    dir="ltr"
+    [style.maxHeight]="maxHeight()"
+    tabindex="0"
+    role="region"
+    [attr.aria-label]="regionLabel()"
+    [attr.aria-describedby]="regionDescribedBy()">
+
+    @switch (variant()) {
+
+      <!-- ── Diff ──────────────────────────────────────────────────────── -->
+      @case ('diff') {
+        <!--
+          `displayHunks` for RENDERING; the accept / reject buttons pass `hi` so
+          `act()` can emit the host's OWN hunk object. Emitting the rewritten
+          copy would hand back an object whose text is not the text the host
+          gave us, which is not something a caller could apply.
+        -->
+        @for (hunk of displayHunks(); track hunk.id; let hi = $index) {
+          <div class="border-b border-gray-100 last:border-b-0 dark:border-gray-800">
+
+            @if (hunk.header || reviewable()) {
+              <div
+                class="flex items-center gap-2 bg-gray-50 px-3 py-1.5
+                       dark:bg-gray-950/40">
+                <span class="min-w-0 flex-1 truncate font-mono text-[11px] text-gray-500 dark:text-gray-400">
+                  {{ hunk.header }}
+                </span>
+                @if (reviewable()) {
+                  <!--
+                    ★ The visible word is enough on screen because the hunk it
+                      belongs to is the thing you are looking at. In a list of
+                      buttons it is not: a three-hunk diff offered "Accept,
+                      button" three times, indistinguishable. The position is
+                      the name, not `hunk.header` — `@@ -12,7 +12,9 @@` read
+                      aloud is worse than no detail at all.
+                  -->
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium
+                           text-accent-700 ring-1 ring-accent-200 transition-colors
+                           hover:bg-accent-50 focus-visible:outline-none
+                           focus-visible:ring-2 focus-visible:ring-primary-500
+                           dark:text-accent-400 dark:ring-accent-900 dark:hover:bg-accent-950/40"
+                    [attr.aria-label]="'Accept change ' + (hi + 1) + ' of ' + displayHunks().length"
+                    (click)="act(hi, 'accept')">
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium
+                           text-danger-700 ring-1 ring-danger-200 transition-colors
+                           hover:bg-danger-50 focus-visible:outline-none
+                           focus-visible:ring-2 focus-visible:ring-primary-500
+                           dark:text-danger-400 dark:ring-danger-900 dark:hover:bg-danger-950/40"
+                    [attr.aria-label]="'Reject change ' + (hi + 1) + ' of ' + displayHunks().length"
+                    (click)="act(hi, 'reject')">
+                    Reject
+                  </button>
+                }
+              </div>
+            }
+
+            @if (diffMode() === 'split') {
+              <!--
+                ══ Side-by-side ═══════════════════════════════════════════════
+
+                ★★★ EACH PANE CLIPS ITS OWN OVERFLOW, AND THAT IS NOT OPTIONAL.
+
+                    A grid column does not constrain an over-wide child by
+                    default, so a long line in the left pane runs straight
+                    across the divider and paints ON TOP of the right pane's
+                    text. The result is two overlapping columns of code — which
+                    reads as a font-rendering glitch rather than as a layout
+                    bug, so it survives review.
+
+                    `min-w-0` is the half people miss: without it a flex/grid
+                    item's automatic minimum size is its CONTENT, so
+                    `overflow-hidden` on the child has nothing to clip against.
+
+                ★★★ THE SCROLL CONTAINER IS THE PANE, NOT THE ROW.
+
+                    Scrolling per row satisfies the clipping rule above and
+                    still fails WCAG 2.1.1: every row becomes its own scroll
+                    region holding nothing focusable, so a mouse can read a long
+                    line and a keyboard cannot. Making each row focusable would
+                    trade that for ~22 tab stops on one demo, so the pane owns
+                    the scroll and takes a single `tabindex` — two stops for a
+                    whole diff, and the two sides scroll as units the way every
+                    side-by-side diff viewer does.
+
+                    Rows then need `w-max min-w-full`: inside a scroll container
+                    a block-level row is only as wide as the VISIBLE box, so an
+                    add/delete tint would stop at the fold and slide out of
+                    register as soon as the reader scrolls.
+
+                ★★★ A BLANK HALF STILL HAS TO OCCUPY A LINE.
+
+                    The panes are independent columns, so nothing stretches a
+                    row to match its opposite number any more — an empty span
+                    forms no line box, collapses to height 0, and every row
+                    below it in that pane slides up out of register with the
+                    other side. Measured: a 7-row hunk with 4 blank left halves
+                    put line 16 opposite line 20.
+
+                    Hence the `?? ' '` fallback: with `whitespace-pre` on the
+                    same span a single space renders and carries the full line
+                    height, in every browser. `min-h-[1lh]` would say this more
+                    directly but the kit sets no browser floor, and where `lh`
+                    is unsupported the rows silently collapse again.
+              -->
+              <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
+                <!--
+                  ★ Each pane is a focusable scroll container, so each needs a
+                    NAME — two unlabelled tab stops per hunk otherwise. The
+                    names also make the duplication coherent: a context line
+                    genuinely appears on both sides, and "Before … After …"
+                    reads as a comparison rather than as the same line twice.
+                    `unified` remains the less verbose choice nonvisually.
+                -->
+                <div class="min-w-0 overflow-x-auto" tabindex="0" role="group" aria-label="Before">
+                  @for (row of splitRows()[hi]; track row.id) {
+                    <!--
+                      A row with no `left` is ALIGNMENT PADDING, not a line: it
+                      exists so the two panes stay in step. Announced, it is a
+                      blank line the file does not contain — so it is hidden.
+                    -->
+                    <div
+                      class="flex w-max min-w-full font-mono"
+                      [attr.aria-hidden]="row.left ? null : 'true'"
+                      [class]="row.left?.kind === 'del'
+                        ? 'bg-danger-50/70 dark:bg-danger-950/25'
+                        : (row.left ? '' : 'bg-gray-50/60 dark:bg-gray-950/30')">
+                      @if (lineNumbers()) {
+                        <span
+                          class="shrink-0 select-none px-2 text-right text-gray-500 dark:text-gray-400"
+                          [style.width]="'4ch'" aria-hidden="true">{{ row.left?.oldNo }}</span>
+                      }
+                      @if (row.left?.kind === 'del') {
+                        <span class="sr-only">Removed:</span>
+                      }
+                      <span class="whitespace-pre px-2 text-gray-700 [unicode-bidi:isolate] dark:text-gray-300">{{ row.left?.text ?? ' ' }}</span>
+                    </div>
+                  }
+                </div>
+                <div class="min-w-0 overflow-x-auto" tabindex="0" role="group" aria-label="After">
+                  @for (row of splitRows()[hi]; track row.id) {
+                    <div
+                      class="flex w-max min-w-full font-mono"
+                      [attr.aria-hidden]="row.right ? null : 'true'"
+                      [class]="row.right?.kind === 'add'
+                        ? 'bg-accent-50/70 dark:bg-accent-950/25'
+                        : (row.right ? '' : 'bg-gray-50/60 dark:bg-gray-950/30')">
+                      @if (lineNumbers()) {
+                        <span
+                          class="shrink-0 select-none px-2 text-right text-gray-500 dark:text-gray-400"
+                          [style.width]="'4ch'" aria-hidden="true">{{ row.right?.newNo }}</span>
+                      }
+                      @if (row.right?.kind === 'add') {
+                        <span class="sr-only">Added:</span>
+                      }
+                      <span class="whitespace-pre px-2 text-gray-700 [unicode-bidi:isolate] dark:text-gray-300">{{ row.right?.text ?? ' ' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <!-- Unified -->
+              @for (line of hunk.lines; track $index) {
+                <div
+                  class="flex font-mono"
+                  [class]="line.kind === 'add'
+                    ? 'bg-accent-50/70 dark:bg-accent-950/25'
+                    : line.kind === 'del'
+                      ? 'bg-danger-50/70 dark:bg-danger-950/25'
+                      : ''">
+                  @if (lineNumbers()) {
+                    <span class="shrink-0 select-none px-2 text-right text-gray-500 dark:text-gray-400"
+                          [style.width]="'4ch'" aria-hidden="true">{{ line.oldNo }}</span>
+                    <span class="shrink-0 select-none px-2 text-right text-gray-500 dark:text-gray-400"
+                          [style.width]="'4ch'" aria-hidden="true">{{ line.newNo }}</span>
+                  }
+                  <!--
+                    ★★ THE GLYPH STAYS HIDDEN, THE MEANING DOES NOT. `−` read
+                       aloud is "minus", which is a character, not a fact — but
+                       with it hidden and the tint being colour, an added line
+                       and a context line announced IDENTICALLY. Colour was the
+                       only thing carrying the change. Context lines are left
+                       silent deliberately: labelling the unchanged majority
+                       triples the reading for no information.
+                  -->
+                  <span
+                    class="shrink-0 select-none px-1 font-semibold"
+                    [class]="line.kind === 'add'
+                      ? 'text-accent-700 dark:text-accent-400'
+                      : line.kind === 'del'
+                        ? 'text-danger-600 dark:text-danger-400'
+                        : 'text-transparent'"
+                    aria-hidden="true">{{ line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ' ' }}</span>
+                  @if (line.kind !== 'context') {
+                    <span class="sr-only">{{ line.kind === 'add' ? 'Added:' : 'Removed:' }}</span>
+                  }
+                  <span class="whitespace-pre pr-3 text-gray-700 [unicode-bidi:isolate] dark:text-gray-300">{{ line.text }}</span>
+                </div>
+              }
+            }
+          </div>
+        }
+      }
+
+      <!-- ── Terminal ──────────────────────────────────────────────────── -->
+      @case ('terminal') {
+        <div class="bg-gray-950 px-3 py-2.5 font-mono">
+          @for (line of displayTerminalLines(); track $index) {
+            <div class="flex gap-2">
+              @if (line.kind === 'command') {
+                <span class="select-none text-accent-400" aria-hidden="true">$</span>
+                <span class="whitespace-pre-wrap break-all text-gray-100 [unicode-bidi:isolate]">{{ line.text }}</span>
+              } @else if (line.kind === 'stderr') {
+                <span class="whitespace-pre-wrap break-all pl-4 text-danger-400 [unicode-bidi:isolate]">{{ line.text }}</span>
+              } @else if (line.kind === 'exit') {
+                <span class="whitespace-pre-wrap break-all pl-4 text-warning-400 [unicode-bidi:isolate]">{{ line.text }}</span>
+              } @else {
+                <span class="whitespace-pre-wrap break-all pl-4 text-gray-400 [unicode-bidi:isolate]">{{ line.text }}</span>
+              }
+            </div>
+          }
+          @if (streaming()) {
+            <span class="ml-4 inline-block h-3.5 w-1.5 animate-pulse bg-gray-300 align-middle"
+                  aria-hidden="true"></span>
+          }
+        </div>
+      }
+
+      <!-- ── Block / Tabs ──────────────────────────────────────────────── -->
+      @default {
+        <pre class="m-0 py-2.5 font-mono"><code>@for (line of lines(); track line.no) {<span
+            class="flex"
+            [class]="isHighlighted(line.no)
+              ? 'bg-primary-50 dark:bg-primary-950/30'
+              : ''"><!--
+            -->@if (lineNumbers()) {<span
+                class="shrink-0 select-none px-3 text-right text-gray-500 dark:text-gray-400"
+                [style.width]="gutterWidth()"
+                aria-hidden="true">{{ line.no }}</span>}<!--
+            --><span
+              class="px-3 [unicode-bidi:isolate]"
+              [class]="wrap() ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'">@for (t of line.tokens; track $index) {<span [class]="tokenClass[t.kind]">{{ t.text }}</span>}@if (streaming() && $last && hiddenLineCount() === 0) {<span class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-gray-400 align-middle dark:bg-gray-500" aria-hidden="true"></span>}</span></span>}</code></pre>
+      }
+    }
+  </div>
+
+  <!--
+    ★★ THE TRUNCATION SAYS SO, AND THE WAY PAST IT IS A BUTTON.
+
+       OUTSIDE the scroll region, not at the end of the code. Placed after the
+       last rendered line it sits below a screenful of source, so the reader
+       learns the file was cut only by scrolling to the bottom of the part they
+       were given — which is the one place they have no reason to go.
+
+       Not `aria-hidden`, and a real `<button>`: "there is more file" is not
+       decoration, and the control that reveals it has to be reachable by
+       keyboard like any other.
+
+       The `variant()` guard short-circuits before `hiddenLineCount()`, so the
+       diff and terminal variants never tokenise `code` just to ask a question
+       whose answer cannot apply to them.
+  -->
+  @if (variant() !== 'diff' && variant() !== 'terminal' && hiddenLineCount() > 0) {
+    <div
+      class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-gray-200
+             bg-gray-50 px-3 py-2 text-xs text-gray-600
+             dark:border-gray-800 dark:bg-gray-950/40 dark:text-gray-400">
+      <span>
+        Showing the first {{ lines().length | number }} of {{ allLines().length | number }} lines.
+      </span>
+      <button
+        type="button"
+        class="rounded-md px-1.5 py-0.5 font-medium text-primary-700 underline
+               decoration-dotted underline-offset-2 transition-colors
+               hover:bg-primary-50 focus-visible:outline-none
+               focus-visible:ring-2 focus-visible:ring-primary-500
+               dark:text-primary-400 dark:hover:bg-primary-950/40"
+        (click)="showAllLines()">
+        Show all {{ allLines().length | number }} lines
+      </button>
+    </div>
+  }
+</div>

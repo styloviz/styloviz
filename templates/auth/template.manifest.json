@@ -1,0 +1,94 @@
+{
+  "id": "auth",
+  "name": "styloviz-auth-template",
+  "title": "Styloviz Auth Template",
+  "version": "1.0.1",
+  "route": "templates/auth",
+  "requiresPro": false,
+  "generatedAt": "2026-10-07T18:50:10.341Z",
+  "dependencies": [
+    {
+      "pkg": "@styloviz/alert-banner",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/button",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/core",
+      "tier": "infra",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/forms",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/icons",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/input-field",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/password-strength",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    }
+  ],
+  "vendored": [],
+  "layout": "angular-project",
+  "templatePath": "src/app/templates/auth",
+  "packageDependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@styloviz/alert-banner": "^1.0.1",
+    "@styloviz/button": "^1.0.1",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/forms": "^1.0.1",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/input-field": "^1.0.1",
+    "@styloviz/layout": "^1.0.1",
+    "@styloviz/password-strength": "^1.0.1",
+    "@styloviz/toast": "^1.0.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0"
+  },
+  "projectFiles": [
+    ".editorconfig",
+    ".gitignore",
+    ".postcssrc.json",
+    ".vscode/extensions.json",
+    "angular.json",
+    "package.json",
+    "src/app/app.config.ts",
+    "src/app/app.routes.ts",
+    "src/app/app.ts",
+    "src/index.html",
+    "src/main.ts",
+    "tsconfig.app.json",
+    "tsconfig.json"
+  ],
+  "publicAssets": [
+    "favicon.ico",
+    "fonts/LICENSE-Manrope-OFL.txt",
+    "fonts/manrope-cyrillic-ext.woff2",
+    "fonts/manrope-cyrillic.woff2",
+    "fonts/manrope-greek.woff2",
+    "fonts/manrope-latin-ext.woff2",
+    "fonts/manrope-latin.woff2",
+    "fonts/manrope-vietnamese.woff2",
+    "logo-icon-sm.svg"
+  ]
+}

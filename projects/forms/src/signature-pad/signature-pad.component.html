@@ -1,0 +1,137 @@
+<div [class]="rootClasses()">
+
+  <!--
+    ★★★ THE CONSENT WORDING SITS ABOVE THE PAD, NOT BELOW IT (`FI-21-M1`).
+
+    What a person is agreeing to has to be readable BEFORE the act, not
+    discoverable after it — "I didn't see that" is the whole substance of a
+    disputed e-signature, and a sentence under the canvas is one a signer on a
+    phone reaches only by scrolling past the thing they came to do.
+
+    ★★ It is `aria-describedby`-linked to the canvas and to the typed-name
+    field, so a screen-reader user meets it as part of the control rather than
+    as a paragraph they may already have passed.
+
+    ⚠️ The wording is the HOST'S and the component never invents one — see the
+    `consentText` input. A plausible-sounding default would ship in real
+    agreements, unread, because it looked finished.
+  -->
+  @if (consentText()) {
+    <p [id]="consentId"
+       class="mb-2 text-xs leading-relaxed text-gray-700 dark:text-gray-300">{{ consentText() }}</p>
+  }
+
+  <div
+    class="relative overflow-hidden rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900"
+    [class.border-dashed]="isEmpty()"
+  >
+    <!--
+      ★★ `touch-action: none` IS LOAD-BEARING ON A PHONE.
+
+      Without it the browser claims the gesture for scrolling the moment a
+      finger moves, so the pad receives a `pointerdown`, a `pointercancel` and
+      nothing else — the page scrolls and the signature is a dot. It is set as
+      an inline style rather than a class so it cannot be purged or overridden
+      by a host's own utility.
+    -->
+    <canvas
+      #canvas
+      [class]="'block w-full ' + heightClass()"
+      style="touch-action: none"
+      role="img"
+      [attr.aria-label]="label()"
+      [attr.aria-describedby]="consentText() ? consentId : null"
+      [attr.aria-disabled]="disabled() ? 'true' : null"
+      (pointerdown)="onPointerDown($event)"
+      (pointermove)="onPointerMove($event)"
+      (pointerup)="onPointerUp($event)"
+      (pointercancel)="onPointerCancel($event)"
+    ></canvas>
+
+    <!--
+      The baseline and the prompt sit UNDER the canvas as siblings, not drawn
+      into it: anything painted onto the bitmap would be exported with the
+      signature, and a contract PDF containing the words "Sign above" through
+      the middle of the signature is not a contract anybody wants.
+    -->
+    @if (showBaseline()) {
+      <div class="pointer-events-none absolute inset-x-6 bottom-8 border-b border-gray-300 dark:border-gray-700" aria-hidden="true"></div>
+    }
+
+    @if (isEmpty() && !disabled()) {
+      <p class="pointer-events-none absolute inset-x-0 bottom-2.5 text-center text-xs text-gray-500 dark:text-gray-400" aria-hidden="true">
+        {{ label() }}
+      </p>
+    }
+  </div>
+
+  <!--
+    ── The typed-name alternative ────────────────────────────────────────────
+    ★★★ A canvas you must draw on cannot be operated from a keyboard. Not
+        "is awkward to" — cannot. Without this the pad is a required field with
+        no path through it for a screen-reader user, a keyboard-only user, or
+        anyone with a tremor.
+
+    ★ A real `<label for>`, because here there IS a single control to point at —
+      unlike the canvas above, which is named with `aria-label` because it has
+      no text and no associated label element.
+
+    ⚠️ The attestation sentence belongs in `hint`, and belongs to the host. A
+       component that writes "By typing my name I agree…" is writing a contract
+       it has not read.
+  -->
+  @if (allowTyped() && !disabled()) {
+    <div class="mt-2 flex flex-col gap-1">
+      <label [attr.for]="typedNameId" class="text-xs font-medium text-gray-700 dark:text-gray-300">
+        {{ typedNameLabel() }}
+      </label>
+      <input
+        [id]="typedNameId"
+        type="text"
+        autocomplete="name"
+        [attr.aria-describedby]="typedNameDescribedBy()"
+        [value]="typedName()"
+        (input)="onTypedNameInput($event)"
+        class="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900
+               placeholder-gray-500 outline-none transition focus:border-primary-500
+               focus:ring-2 focus:ring-primary-500/25
+               dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400" />
+    </div>
+  }
+
+  <div class="mt-1.5 flex items-start gap-3">
+    @if (hint()) {
+      <p [id]="hintId" class="min-w-0 flex-1 text-xs text-gray-500 dark:text-gray-400">{{ hint() }}</p>
+    } @else {
+      <span class="flex-1"></span>
+    }
+
+    @if (showActions() && !disabled()) {
+      <div class="flex shrink-0 items-center gap-1">
+        <!--
+          ★ Both actions are DISABLED while there is nothing to act on, rather
+          than hidden. A toolbar that appears once you start drawing moves the
+          pad under the user's hand mid-signature.
+        -->
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-800"
+          [disabled]="strokeCount() === 0"
+          (click)="undo()"
+        >
+          <sv-icon name="undo" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+          Undo
+        </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-400 dark:hover:bg-gray-800"
+          [disabled]="isEmpty()"
+          (click)="clear()"
+        >
+          <sv-icon name="trash" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+          Clear
+        </button>
+      </div>
+    }
+  </div>
+</div>

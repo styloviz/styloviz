@@ -1,0 +1,54 @@
+<div [ngClass]="['w-full', customClass()]">
+  <label [attr.for]="selectId" [ngClass]="labelClasses()">{{ label() }}</label>
+
+  <div class="relative">
+    <!--
+      ★ A native <select>, deliberately — see the class comment. This component
+      is the SMALL form of other navigation, so the platform's own picker (a
+      wheel on iOS, a dialog on Android, the OS's font scaling and accessibility
+      settings) beats anything the kit could draw on a device it cannot see.
+    -->
+    <!--
+      `[selected]` on each option as well as `[value]` on the select: on the
+      first render the select's own binding runs before the @for below has
+      created any options, so a preset `value` names nothing yet and the browser
+      shows the first option. The per-option binding lands after its option
+      exists.
+    -->
+    <select
+      [id]="selectId"
+      [ngClass]="selectClasses()"
+      [disabled]="disabled()"
+      [value]="value()"
+      (change)="onChange($event)"
+    >
+      @if (placeholder() && !hasSelection()) {
+        <option value="" disabled selected>{{ placeholder() }}</option>
+      }
+
+      @for (group of groups(); track $index) {
+        @if (group.label) {
+          <optgroup [label]="group.label">
+            @for (item of group.items; track item.id) {
+              <option [value]="item.id" [disabled]="item.disabled" [selected]="item.id === value()">{{ item.label }}</option>
+            }
+          </optgroup>
+        } @else {
+          @for (item of group.items; track item.id) {
+            <option [value]="item.id" [disabled]="item.disabled" [selected]="item.id === value()">{{ item.label }}</option>
+          }
+        }
+      }
+    </select>
+
+    <!--
+      Decorative chevron, from the icon library — never an inline <svg>.
+      `appearance-none` removed the platform one, and `pointer-events-none` keeps
+      the whole control clickable through it.
+    -->
+    <sv-icon
+      name="chevron-down"
+      cssClass="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400"
+      [strokeWidth]="2" />
+  </div>
+</div>

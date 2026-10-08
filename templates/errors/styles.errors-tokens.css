@@ -1,0 +1,75 @@
+/* ============================================================
+   Styloviz Errors Template — Theme Tokens
+   ============================================================
+   These tokens are ALREADY in this project's src/styles.css.
+   This copy is for adding the template to an existing app
+   (see INSTALL.md): paste BOTH blocks below into YOUR Tailwind
+   v4 entry stylesheet.
+
+   1. The @theme block DECLARES the `brand-*` / `brandaccent-*`
+      accent utilities so Tailwind generates them (values here are
+      the defaults / fallback).
+
+   2. The `.tpl-errors` block is the template's actual
+      palette — accents PLUS any neutral remap (`--color-white`,
+      `--color-gray-*`) that repaints surfaces to this template's
+      look. It is SCOPED to the template root (which already carries
+      the `tpl-errors` class), so it recolours the
+      template — including the Styloviz components inside it — WITHOUT
+      touching the rest of your app's colours. Edit values here to
+      rebrand.
+
+   The template also expects Tailwind's dark mode to activate on a
+   `.dark` root. If your app doesn't already do this, add:
+     @custom-variant dark (&:where(.dark, .dark *));
+   ============================================================ */
+
+@theme {
+  --color-brand-50: #f8fafc;
+  --color-brand-100: #f1f5f9;
+  --color-brand-200: #e2e8f0;
+  --color-brand-300: #cbd5e1;
+  --color-brand-400: #94a3b8;
+  --color-brand-500: #64748b;
+  --color-brand-600: #475569;
+  --color-brand-700: #334155;
+  --color-brand-800: #1e293b;
+  --color-brand-900: #0f172a;
+  --color-brand-950: #020617;
+  --color-brandaccent-50: #fffbeb;
+  --color-brandaccent-100: #fef3c7;
+  --color-brandaccent-200: #fde68a;
+  --color-brandaccent-300: #fcd34d;
+  --color-brandaccent-400: #fbbf24;
+  --color-brandaccent-500: #d97706; /* re-indexed one stop darker — see the note above */
+  --color-brandaccent-600: #b45309;
+  --color-brandaccent-700: #92400e;
+  --color-brandaccent-800: #78350f;
+  --color-brandaccent-900: #451a03;
+  --color-brandaccent-950: #2f1202;
+}
+
+.tpl-errors {
+  --color-brand-50: #f8fafc;
+  --color-brand-100: #f1f5f9;
+  --color-brand-200: #e2e8f0;
+  --color-brand-300: #cbd5e1;
+  --color-brand-400: #94a3b8;
+  --color-brand-500: #64748b;
+  --color-brand-600: #475569;
+  --color-brand-700: #334155;
+  --color-brand-800: #1e293b;
+  --color-brand-900: #0f172a;
+  --color-brand-950: #020617;
+  --color-brandaccent-50: #fffbeb;
+  --color-brandaccent-100: #fef3c7;
+  --color-brandaccent-200: #fde68a;
+  --color-brandaccent-300: #fcd34d;
+  --color-brandaccent-400: #fbbf24;
+  --color-brandaccent-500: #d97706; /* re-indexed one stop darker — see the note above */
+  --color-brandaccent-600: #b45309;
+  --color-brandaccent-700: #92400e;
+  --color-brandaccent-800: #78350f;
+  --color-brandaccent-900: #451a03;
+  --color-brandaccent-950: #2f1202;
+}

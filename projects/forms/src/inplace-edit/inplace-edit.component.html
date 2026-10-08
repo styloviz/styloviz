@@ -1,0 +1,206 @@
+<div [ngClass]="rootClasses()">
+
+  @if (inConflict()) {
+
+    <!--
+      ★★★ SHOW BOTH, AND LET THE PERSON WHO IS THERE DECIDE.
+
+      The two usual answers are both wrong. Last-write-wins destroys someone's
+      work and tells nobody. Refusing the save leaves the user holding text with
+      nowhere to put it — and they will paste it over the top anyway, having now
+      lost the other version as well. Only the human in front of it knows which
+      of these two sentences is the right one.
+    -->
+    <div class="flex w-full min-w-0 flex-col gap-2" role="group"
+         [attr.aria-label]="conflictLabel()" data-sv-state="conflict">
+
+      <p class="text-xs text-warning-700 dark:text-warning-400" role="alert">{{ conflictLabel() }}</p>
+
+      <div class="flex w-full min-w-0 flex-col gap-2 sm:flex-row">
+        <div class="min-w-0 flex-1 rounded-md border border-gray-200 p-2 dark:border-gray-700">
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Yours</p>
+          <p class="break-words text-sm text-gray-900 dark:text-gray-100" data-sv-conflict="mine">{{ mine() }}</p>
+          <button type="button" class="mt-2 rounded-md px-2 py-1 text-xs font-medium
+                         text-primary-700 hover:bg-primary-50 focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-primary-500
+                         dark:text-primary-300 dark:hover:bg-primary-950"
+                  data-sv-conflict-action
+                  (click)="keepMine()">Keep mine</button>
+        </div>
+
+        <div class="min-w-0 flex-1 rounded-md border border-gray-200 p-2 dark:border-gray-700">
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Theirs</p>
+          <p class="break-words text-sm text-gray-900 dark:text-gray-100" data-sv-conflict="theirs">{{ conflict()!.theirs }}</p>
+          <button type="button" class="mt-2 rounded-md px-2 py-1 text-xs font-medium
+                         text-primary-700 hover:bg-primary-50 focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-primary-500
+                         dark:text-primary-300 dark:hover:bg-primary-950"
+                  (click)="takeTheirs()">Use theirs</button>
+        </div>
+      </div>
+    </div>
+
+  } @else if (open()) {
+
+    <div class="flex w-full min-w-0 flex-col gap-1">
+      <div class="flex w-full min-w-0 items-start gap-1">
+
+        @switch (mode()) {
+          @case ('textarea') {
+            <textarea
+              #editor
+              [ngClass]="editorClasses()"
+              [rows]="rows()"
+              [value]="draft()"
+              [attr.placeholder]="placeholder() || null"
+              [attr.maxlength]="maxlength() > 0 ? maxlength() : null"
+              [attr.aria-label]="label() || null"
+              [attr.aria-invalid]="message() ? 'true' : null"
+              [attr.aria-describedby]="message() ? messageId : null"
+              [disabled]="saving()"
+              (input)="onInput($event)"
+              (keydown)="onKeydown($event)"
+              (blur)="onBlur()"
+            ></textarea>
+          }
+          @case ('select') {
+            <select
+              #editor
+              [ngClass]="editorClasses()"
+              [attr.aria-label]="label() || null"
+              [attr.aria-invalid]="message() ? 'true' : null"
+              [attr.aria-describedby]="message() ? messageId : null"
+              [disabled]="saving()"
+              (change)="onSelect($event)"
+              (keydown)="onKeydown($event)"
+              (blur)="onBlur()"
+            >
+              @for (opt of options(); track opt.value) {
+                <option [value]="opt.value" [disabled]="opt.disabled ?? false"
+                        [selected]="opt.value === draft()">{{ opt.label }}</option>
+              }
+            </select>
+          }
+          @default {
+            <input
+              #editor
+              type="text"
+              [ngClass]="editorClasses()"
+              [value]="draft()"
+              [attr.placeholder]="placeholder() || null"
+              [attr.maxlength]="maxlength() > 0 ? maxlength() : null"
+              [attr.aria-label]="label() || null"
+              [attr.aria-invalid]="message() ? 'true' : null"
+              [attr.aria-describedby]="message() ? messageId : null"
+              [disabled]="saving()"
+              (input)="onInput($event)"
+              (keydown)="onKeydown($event)"
+              (blur)="onBlur()"
+            />
+          }
+        }
+
+        @if (saving()) {
+          <sv-spinner-arc cssClass="mt-1.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" label="Saving" />
+        } @else if (actionsVisible()) {
+          <!--
+            ★★★ PREVENTING THE DEFAULT ON MOUSEDOWN IS THE WHOLE POINT HERE.
+
+            Without it, pressing either button blurs the editor first, the blur
+            handler commits, and only then does the click land — so pressing
+            Cancel SAVES. Preventing the default on mousedown means focus never
+            leaves the field, no blur fires, and the click alone decides.
+          -->
+          <button
+            type="button"
+            [ngClass]="actionClasses"
+            [attr.aria-label]="'Save'"
+            (mousedown)="$event.preventDefault()"
+            (click)="commit()"
+          >
+            <sv-icon name="check" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+          <button
+            type="button"
+            [ngClass]="actionClasses"
+            [attr.aria-label]="'Cancel'"
+            (mousedown)="$event.preventDefault()"
+            (click)="revert()"
+          >
+            <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        }
+      </div>
+
+      @if (message()) {
+        <p [id]="messageId" role="alert" class="text-xs text-danger-600 dark:text-danger-400">{{ message() }}</p>
+      }
+    </div>
+
+  } @else if (lockReason()) {
+
+    <!--
+      A field the user may not edit says so HERE, rather than letting them type
+      and failing on save — which costs them the edit as well as the answer.
+      The reason is `aria-describedby`'d from the value, so it is announced with
+      it rather than found by accident.
+    -->
+    <span [ngClass]="staticClasses()"
+          [attr.aria-describedby]="lockReasonId"
+          data-sv-state="locked">{{ mode() === 'select' ? selectedLabel() : displayText() }}</span>
+    <span [attr.id]="lockReasonId"
+          class="self-center text-xs text-gray-500 dark:text-gray-400">{{ lockReason() }}</span>
+
+  } @else if (disabled()) {
+
+    <!-- Nothing to press: a disabled field is text, not a button that refuses. -->
+    <span [ngClass]="staticClasses()">{{ mode() === 'select' ? selectedLabel() : displayText() }}</span>
+
+  } @else if (trigger() === 'button') {
+
+    <span [ngClass]="staticClasses()">{{ mode() === 'select' ? selectedLabel() : displayText() }}</span>
+    <button
+      type="button"
+      data-sv-inplace-trigger
+      [ngClass]="triggerButtonClasses()"
+      [attr.aria-label]="triggerLabel()"
+      (click)="beginEdit()"
+    >
+      <sv-icon name="edit" cssClass="h-4 w-4" [strokeWidth]="2" />
+    </button>
+
+  } @else {
+
+    <!--
+      ★ A BUTTON, not a div with a click handler.
+
+      The read view is the only way into edit mode, so it has to be reachable by
+      keyboard and announced as pressable. `aria-label` says what pressing it
+      edits — the button's own text is the VALUE, which on its own announces
+      "Ada Lovelace, button" and never says which field that is.
+    -->
+    <button
+      type="button"
+      data-sv-inplace-trigger
+      [ngClass]="triggerClasses()"
+      [attr.aria-label]="triggerLabel()"
+      (click)="beginEdit()"
+    >{{ mode() === 'select' ? selectedLabel() : displayText() }}</button>
+
+    <!--
+      ★ `auto` adds a pencil that is ALWAYS visible on a touch screen.
+      Tailwind compiles `hover:` to `@media (hover: hover)`, so the underline
+      this mode relies on never renders on a phone — the field looks like plain
+      text and nothing says otherwise. `aria-hidden`, because the value button
+      beside it already carries the accessible name and offers the same action;
+      two tab stops onto one field would be worse than none.
+    -->
+    @if (showTriggerButton()) {
+      <span [ngClass]="triggerButtonClasses()" aria-hidden="true" class="self-center">
+        <sv-icon name="edit" cssClass="h-4 w-4" [strokeWidth]="2" />
+      </span>
+    }
+
+  }
+
+</div>

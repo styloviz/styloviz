@@ -1,0 +1,461 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="height()"
+  [notice]="gapNote()"
+  (retry)="retry.emit()"
+>
+
+<!-- Root wrapper -->
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--lc-anim-dur]="animDuration()">
+
+  <!-- Title + subtitle -->
+  @if (title()) {
+    <div>
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+      @if (subtitle()) {
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ subtitle() }}</p>
+      }
+    </div>
+  }
+
+  <!-- SVG container -->
+  <div class="w-full overflow-hidden">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgHeight()"
+      [attr.height]="svgHeight()"
+      class="w-full"
+      role="img"
+      [attr.aria-label]="resolvedAriaLabel()"
+      xmlns="http://www.w3.org/2000/svg"
+      (mousemove)="onMouseMove($event)"
+      (mouseleave)="onMouseLeave()"
+    >
+
+      <!-- ── Defs: fill gradients + zone clip paths ───────────────────── -->
+      <defs>
+        @for (s of series(); track s.label; let i = $index) {
+          @if (s.fill) {
+            <linearGradient [attr.id]="'lc-fill-' + _uid + '-' + i" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   [attr.stop-color]="seriesColors()[i]" stop-opacity="0.20" />
+              <stop offset="100%" [attr.stop-color]="seriesColors()[i]" stop-opacity="0.01" />
+            </linearGradient>
+          }
+        }
+        @if (hasZones()) {
+          @for (s of series(); track s.label; let si = $index) {
+            @for (zone of s.zones ?? []; track $index; let zi = $index) {
+              <clipPath [attr.id]="zoneClipId(si, zi)">
+                <rect
+                  x="0"
+                  [attr.y]="zoneClipRect(si, zi).y"
+                  [attr.width]="plotW()"
+                  [attr.height]="zoneClipRect(si, zi).height"
+                />
+              </clipPath>
+            }
+          }
+        }
+      </defs>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- NORMAL LAYOUT  (line / spline / step / stacked / stacked-%)   -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      @if (!isInversed()) {
+        <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">
+
+          <!-- Grid lines -->
+          @if (showGrid()) {
+            @for (val of gridValues(); track val) {
+              <line
+                x1="0" [attr.y1]="gridLineY(val)"
+                [attr.x2]="plotW()" [attr.y2]="gridLineY(val)"
+                stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+              />
+            }
+          }
+
+          <!-- Y-axis labels -->
+          @if (showLabels()) {
+            @for (val of gridValues(); track val) {
+              <text
+                x="-8" [attr.y]="gridLineY(val) + 4"
+                text-anchor="end"
+                class="fill-gray-400 dark:fill-gray-500"
+                style="font-size:10px;font-family:inherit;"
+              >{{ formatValue(val) }}</text>
+            }
+          }
+
+          <!-- Y-axis title (rotated) -->
+          @if (yAxisTitle()) {
+            <text
+              [attr.x]="-(plotH() / 2)" y="-42"
+              text-anchor="middle"
+              transform="rotate(-90)"
+              class="fill-gray-400 dark:fill-gray-500"
+              style="font-size:10px;font-family:inherit;"
+            >{{ yAxisTitle() }}</text>
+          }
+
+          <!-- X-axis baseline -->
+          <line
+            x1="0" [attr.y1]="plotH()"
+            [attr.x2]="plotW()" [attr.y2]="plotH()"
+            stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+          />
+
+          <!-- X-axis labels -->
+          @if (showLabels()) {
+            @for (cat of categories(); track cat; let ci = $index) {
+              <text
+                [attr.x]="xForIndex(ci)" [attr.y]="plotH() + 18"
+                text-anchor="middle"
+                class="fill-gray-500 dark:fill-gray-400"
+                style="font-size:11px;font-family:inherit;"
+              >{{ cat }}</text>
+            }
+          }
+
+          <!-- X-axis title -->
+          @if (xAxisTitle()) {
+            <text
+              [attr.x]="plotW() / 2" [attr.y]="plotH() + 40"
+              text-anchor="middle"
+              class="fill-gray-400 dark:fill-gray-500"
+              style="font-size:10px;font-family:inherit;"
+            >{{ xAxisTitle() }}</text>
+          }
+
+          <!-- Annotations -->
+          @for (ann of annotations(); track ann.label) {
+            @if (ann.type === 'horizontal') {
+              <line
+                x1="0" [attr.y1]="gridLineY(ann.value)"
+                [attr.x2]="plotW()" [attr.y2]="gridLineY(ann.value)"
+                [attr.stroke]="ann.color ?? 'var(--color-gray-500)'"
+                stroke-width="1.5" stroke-dasharray="6 3" opacity="0.7"
+              />
+              <text
+                [attr.x]="plotW() - 4" [attr.y]="gridLineY(ann.value) - 4"
+                text-anchor="end"
+                [attr.fill]="ann.color ?? 'var(--color-gray-500)'"
+                style="font-size:10px;font-family:inherit;font-weight:500;"
+              >{{ ann.label }}</text>
+            } @else {
+              <line
+                [attr.x1]="xForIndex(ann.value)" y1="0"
+                [attr.x2]="xForIndex(ann.value)" [attr.y2]="plotH()"
+                [attr.stroke]="ann.color ?? 'var(--color-gray-500)'"
+                stroke-width="1.5" stroke-dasharray="6 3" opacity="0.7"
+              />
+              <text
+                [attr.x]="xForIndex(ann.value) + 4" y="12"
+                [attr.fill]="ann.color ?? 'var(--color-gray-500)'"
+                style="font-size:10px;font-family:inherit;font-weight:500;"
+              >{{ ann.label }}</text>
+            }
+          }
+
+          <!-- ── Series fill areas (below lines) ─────────────────────── -->
+          @for (s of series(); track s.label; let si = $index) {
+            @if (s.fill) {
+              <path [attr.d]="fillPath(si)" [attr.fill]="'url(#lc-fill-' + _uid + '-' + si + ')'" />
+            }
+          }
+
+          <!-- ── Series lines ─────────────────────────────────────────── -->
+          @for (s of series(); track s.label; let si = $index) {
+
+            <!-- ZONE variant: full path rendered once per zone, clipped -->
+            @if (s.zones?.length) {
+              @for (zone of s.zones!; track $index; let zi = $index) {
+                <path
+                  [attr.d]="seriesPath(si)"
+                  [attr.stroke]="zone.color"
+                  [attr.stroke-width]="s.strokeWidth ?? 2.5"
+                  [attr.stroke-dasharray]="zone.dashArray ?? null"
+                  [ngClass]="animated() && !zone.dashArray ? 'lc-line' : (animated() ? 'lc-fade' : '')"
+                  [style.animation-delay]="animated() ? ((s.animationDelay ?? 0) + 'ms') : ''"
+                  fill="none" stroke-linecap="round" stroke-linejoin="round"
+                  [attr.clip-path]="'url(#' + zoneClipId(si, zi) + ')'"
+                />
+              }
+            }
+            <!-- MULTICOLOR variant: one segment per adjacent point pair -->
+            @else if (s.pointColors?.length) {
+              @for (seg of multiColorSegments(si); track $index) {
+                <path
+                  [attr.d]="seg.d"
+                  [attr.stroke]="seg.color"
+                  [attr.stroke-width]="s.strokeWidth ?? 2.5"
+                  [ngClass]="animated() ? 'lc-fade' : ''"
+                  [style.animation-delay]="animated() ? ((s.animationDelay ?? 0) + 'ms') : ''"
+                  fill="none" stroke-linecap="round"
+                />
+              }
+            }
+            <!-- NORMAL variant: single path -->
+            @else {
+              <path
+                [attr.d]="seriesPath(si)"
+                [attr.stroke]="seriesColors()[si]"
+                [attr.stroke-width]="s.strokeWidth ?? 2"
+                [attr.stroke-dasharray]="s.dashArray ?? null"
+                [ngClass]="animated() ? (s.dashArray ? 'lc-fade' : 'lc-line') : ''"
+                [style.animation-delay]="animated() ? ((s.animationDelay ?? 0) + 'ms') : ''"
+                fill="none" stroke-linecap="round" stroke-linejoin="round"
+              />
+            }
+
+            <!-- Markers -->
+            @if (showDots()) {
+              @for (dot of dots(si); track dot.ci) {
+                @if (!s.markerShape || s.markerShape === 'circle') {
+                  <circle
+                    [attr.cx]="dot.x" [attr.cy]="dot.y"
+                    [attr.r]="tooltip().visible && tooltip().catIndex === dot.ci ? 5.5 : 3.5"
+                    [attr.fill]="dot.color"
+                    stroke="white" stroke-width="1.5"
+                    class="transition-all duration-150"
+                  />
+                } @else {
+                  <path
+                    [attr.d]="markerPath(s.markerShape, dot.x, dot.y)"
+                    [attr.fill]="dot.color"
+                    stroke="white" stroke-width="1.5"
+                    class="transition-all duration-150"
+                  />
+                }
+              }
+            }
+
+            <!-- Data labels -->
+            @if (showDataLabels()) {
+              @for (dot of dots(si); track dot.ci) {
+                <text
+                  [attr.x]="dot.x" [attr.y]="dot.y - 8"
+                  text-anchor="middle"
+                  [attr.fill]="seriesColors()[si]"
+                  style="font-size:10px;font-weight:600;font-family:inherit;"
+                >{{ formatValue(dot.value) }}</text>
+              }
+            }
+          }
+
+          <!-- Crosshair (vertical line) -->
+          @if (showCrosshair() && tooltip().visible) {
+            <line
+              [attr.x1]="tooltip().crossX" y1="0"
+              [attr.x2]="tooltip().crossX" [attr.y2]="plotH()"
+              stroke="currentColor" class="text-gray-300 dark:text-gray-600"
+              stroke-width="1" stroke-dasharray="4 3"
+            />
+          }
+
+        </g>
+      }
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- INVERSED LAYOUT  (categories on Y-axis, values on X-axis)     -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      @if (isInversed()) {
+        <g [attr.transform]="'translate(' + PAD_INV.left + ',' + PAD_INV.top + ')'">
+
+          <!-- Vertical grid lines -->
+          @if (showGrid()) {
+            @for (val of gridValues(); track val) {
+              <line
+                [attr.x1]="gridLineX_inv(val)" y1="0"
+                [attr.x2]="gridLineX_inv(val)" [attr.y2]="plotH_inv()"
+                stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+              />
+            }
+          }
+
+          <!-- Category labels (left side) -->
+          @if (showLabels()) {
+            @for (cat of categories(); track cat; let ci = $index) {
+              <text
+                x="-10" [attr.y]="yForIndex_inv(ci) + 4"
+                text-anchor="end"
+                class="fill-gray-600 dark:fill-gray-400"
+                style="font-size:11px;font-family:inherit;"
+              >{{ cat }}</text>
+            }
+          }
+
+          <!-- Value labels (bottom) -->
+          @if (showLabels()) {
+            @for (val of gridValues(); track val) {
+              <text
+                [attr.x]="gridLineX_inv(val)" [attr.y]="plotH_inv() + 18"
+                text-anchor="middle"
+                class="fill-gray-400 dark:fill-gray-500"
+                style="font-size:10px;font-family:inherit;"
+              >{{ formatValue(val) }}</text>
+            }
+          }
+
+          <!-- Bottom axis line -->
+          <line
+            x1="0" [attr.y1]="plotH_inv()"
+            [attr.x2]="plotW_inv()" [attr.y2]="plotH_inv()"
+            stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+          />
+
+          <!-- Left axis line (value=0 baseline) -->
+          <line
+            x1="0" y1="0" x2="0" [attr.y2]="plotH_inv()"
+            stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+          />
+
+          <!-- Series (horizontal lines) -->
+          @for (s of series(); track s.label; let si = $index) {
+            <path
+              [attr.d]="inversedPath(si)"
+              [attr.stroke]="seriesColors()[si]"
+              [attr.stroke-width]="s.strokeWidth ?? 2"
+              [attr.stroke-dasharray]="s.dashArray ?? null"
+              [ngClass]="animated() ? (s.dashArray ? 'lc-fade' : 'lc-line') : ''"
+              [style.animation-delay]="animated() ? ((s.animationDelay ?? 0) + 'ms') : ''"
+              fill="none" stroke-linecap="round" stroke-linejoin="round"
+            />
+
+            @if (showDots()) {
+              @for (dot of dotsInv(si); track dot.ci) {
+                @if (!s.markerShape || s.markerShape === 'circle') {
+                  <circle
+                    [attr.cx]="dot.x" [attr.cy]="dot.y"
+                    [attr.r]="tooltip().visible && tooltip().catIndex === dot.ci ? 5.5 : 3.5"
+                    [attr.fill]="dot.color"
+                    stroke="white" stroke-width="1.5"
+                    class="transition-all duration-150"
+                  />
+                } @else {
+                  <path
+                    [attr.d]="markerPath(s.markerShape, dot.x, dot.y)"
+                    [attr.fill]="dot.color"
+                    stroke="white" stroke-width="1.5"
+                  />
+                }
+              }
+            }
+
+            @if (showDataLabels()) {
+              @for (dot of dotsInv(si); track dot.ci) {
+                <text
+                  [attr.x]="dot.x + 8" [attr.y]="dot.y + 4"
+                  [attr.fill]="seriesColors()[si]"
+                  style="font-size:10px;font-weight:600;font-family:inherit;"
+                >{{ formatValue(dot.value) }}</text>
+              }
+            }
+          }
+
+          <!-- Crosshair (horizontal) for inversed layout -->
+          @if (showCrosshair() && tooltip().visible) {
+            <line
+              x1="0" [attr.y1]="tooltip().crossY"
+              [attr.x2]="plotW_inv()" [attr.y2]="tooltip().crossY"
+              stroke="currentColor" class="text-gray-300 dark:text-gray-600"
+              stroke-width="1" stroke-dasharray="4 3"
+            />
+          }
+
+        </g>
+      }
+
+      <!-- ── Tooltip (absolute SVG coords, works for both layouts) ─────── -->
+      @if (tooltip().visible) {
+        @let tipH = 24 + tooltip().items.length * 18 + 10;
+        <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+          <rect
+            x="0" y="0" rx="7" width="150" [attr.height]="tipH"
+            fill="white"
+            class="dark:fill-gray-800"
+            style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.16));"
+          />
+          <text x="10" y="17"
+            style="font-size:11px;font-weight:600;font-family:inherit;"
+            class="fill-gray-700 dark:fill-gray-200"
+          >{{ tooltip().label }}</text>
+          @for (item of tooltip().items; track item.series; let j = $index) {
+            <circle [attr.cx]="10" [attr.cy]="32 + j * 18" r="4" [attr.fill]="item.color" />
+            <text [attr.x]="20" [attr.y]="36 + j * 18"
+              style="font-size:11px;font-family:inherit;"
+              class="fill-gray-500 dark:fill-gray-400"
+            >{{ item.series }}: <tspan style="font-weight:600;" class="fill-gray-800 dark:fill-gray-100">{{ formatReading(item.value) }}</tspan></text>
+          }
+        </g>
+      }
+
+    </svg>
+  </div>
+
+  <!--
+    The accessible alternative to the SVG: one semantic table saying what the
+    picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+    chart templates, and the CSS was the hard part, not the markup — the trap it
+    kept re-learning, and the reason the chart root no longer needs `relative`,
+    is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+    Renders nothing when there are no rows, so it needs no guard here.
+  -->
+  <sv-data-summary-table [summary]="a11ySummary()" />
+
+  <!-- ── Series legend ─────────────────────────────────────────────────────── -->
+  @if (showLegend() && !hasZones()) {
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 justify-center mt-1">
+      @for (s of series(); track s.label; let i = $index) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          @if (s.dashArray) {
+            <!-- Dashed swatch -->
+            <svg width="20" height="10" class="shrink-0" aria-hidden="true">
+              <line x1="0" y1="5" x2="20" y2="5"
+                [attr.stroke]="seriesColors()[i]"
+                stroke-width="2"
+                [attr.stroke-dasharray]="s.dashArray"
+              />
+            </svg>
+          } @else {
+            <span
+              class="inline-block h-0.5 w-5 shrink-0 rounded-full"
+              [style.background-color]="seriesColors()[i]"
+            ></span>
+          }
+          {{ s.label }}
+        </span>
+      }
+    </div>
+  }
+
+  <!-- ── Zone legend (replaces series legend when zones are active) ──────── -->
+  @if (showLegend() && hasZones() && uniqueZoneLabels().length) {
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 justify-center mt-1">
+      @for (z of uniqueZoneLabels(); track z.label) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          @if (z.dashArray) {
+            <svg width="20" height="10" class="shrink-0" aria-hidden="true">
+              <line x1="0" y1="5" x2="20" y2="5"
+                [attr.stroke]="z.color" stroke-width="2"
+                [attr.stroke-dasharray]="z.dashArray"
+              />
+            </svg>
+          } @else {
+            <span
+              class="inline-block h-1 w-5 shrink-0 rounded-full"
+              [style.background-color]="z.color"
+            ></span>
+          }
+          {{ z.label }}
+        </span>
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

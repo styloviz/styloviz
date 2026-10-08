@@ -1,0 +1,302 @@
+<!-- ── Reusable fragments ──────────────────────────────────────────────────── -->
+
+<ng-template #iconTpl let-item>
+  @if (iconNameFor(item); as iconName) {
+    <sv-icon [name]="iconName"
+                 [cssClass]="iconClass()"
+                 [strokeWidth]="2" />
+  }
+</ng-template>
+
+<ng-template #badgeTpl let-item>
+  @if (item.badge !== undefined && item.badge !== null) {
+    <span
+      class="inline-flex items-center justify-center rounded-full bg-gray-200 px-1.5 py-0.5
+             text-[10px] font-semibold leading-none text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+    >
+      {{ item.badge }}
+    </span>
+  }
+</ng-template>
+
+<ng-template #labelTpl let-item>
+  @if (truncateLabels()) {
+    <span
+      class="inline-block max-w-[10rem] truncate align-bottom"
+      [attr.title]="item.title ?? item.label"
+    >{{ item.label }}</span>
+  } @else {
+    {{ item.label }}
+  }
+</ng-template>
+
+<!-- Shared by the trail AND the loading skeleton — `NV-03-I8`. A skeleton that
+     hard-codes `/` while the trail renders a configured chevron reserves the
+     wrong width, so there is one separator and both branches use it. -->
+<ng-template #separatorTpl>
+  @if (isSvgSeparator()) {
+    <sv-icon [name]="separatorIcon()!"
+                 [cssClass]="separatorClass() + ' shrink-0 text-gray-300 dark:text-gray-600'"
+                 [strokeWidth]="2" />
+  } @else {
+    <span
+      class="shrink-0 select-none text-gray-300 dark:text-gray-600"
+      aria-hidden="true"
+    >
+      {{ separatorChar() }}
+    </span>
+  }
+</ng-template>
+
+<ng-template #menuTriggerTpl let-item let-idx="idx">
+  @if (item.menu?.length && !item.disabled) {
+    <button
+      type="button"
+      data-trigger
+      class="flex items-center rounded p-0.5 text-gray-500 transition-colors hover:text-gray-700
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+             focus-visible:ring-offset-1 dark:text-gray-400 dark:hover:text-gray-200"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="openMenuIndex() === idx"
+      [attr.aria-controls]="menuPanelId"
+      [attr.aria-label]="'Switch page under ' + item.label"
+      (click)="toggleMenu(idx, $event)"
+    >
+      <sv-icon [name]="menuCaretIcon"
+                   cssClass="h-3 w-3"
+                   [strokeWidth]="2" />
+    </button>
+  }
+</ng-template>
+
+<!-- ── Sibling-menu panel — rendered into document.body via a true body portal
+     (dropdown-instruction.md §1) so it always escapes ancestor overflow/transform
+     clipping. Never rendered in place; only instantiated on open by toggleMenu(). ── -->
+<ng-template #menuPanelTpl>
+  @if (openMenuItem(); as item) {
+    <!-- role="menu" container. Focus never rests here: `onMenuKeydown` handles
+         arrow/Home/End/Escape for the role="menuitem" anchors below, each of
+         which carries tabindex="-1" and is focused programmatically (roving
+         focus). A tabindex on the container would add a dead tab stop. -->
+    <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
+    <div
+      [id]="menuPanelId"
+      role="menu"
+      [attr.aria-label]="item.label + ' pages'"
+      class="overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl
+             dark:border-gray-800 dark:bg-gray-900"
+      [style.position]="menuPanelStyle()['position']"
+      [style.zIndex]="_stackedPopup.zIndex() ?? menuPanelStyle()['zIndex']"
+      [style.minWidth]="menuPanelStyle()['minWidth']"
+      [style.top]="menuPanelStyle()['top']"
+      [style.bottom]="menuPanelStyle()['bottom']"
+      [style.left]="menuPanelStyle()['left']"
+      [style.right]="menuPanelStyle()['right']"
+      (keydown)="onMenuKeydown($event)"
+    >
+      @for (mi of item.menu; track mi.label) {
+        <a
+          role="menuitem"
+          tabindex="-1"
+          #menuItemEl
+          [attr.href]="hrefFor(mi.routerLink)"
+          class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600 transition-colors
+                 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:bg-gray-50
+                 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white dark:focus-visible:bg-gray-800"
+          (click)="selectMenuItem(mi, $event)"
+        >
+          @if (mi.icon) {
+            <sv-icon [name]="mi.icon"
+                         cssClass="h-3.5 w-3.5 shrink-0"
+                         [strokeWidth]="2" />
+          }
+          {{ mi.label }}
+        </a>
+      }
+    </div>
+  }
+</ng-template>
+
+<!-- ── Root ─────────────────────────────────────────────────────────────────── -->
+
+<nav
+  [ngClass]="['flex', navWrapperClass(), customClass()]"
+  [attr.aria-label]="ariaLabel()"
+>
+  @if (error()) {
+    <!--
+      Compact and non-retryable by default: a breadcrumb is a *secondary* trail.
+      A full error card here would out-shout whatever failed on the page itself.
+    -->
+    <sv-error-shell
+      [error]="error()"
+      [compact]="true"
+      (retry)="retry.emit()"
+      data-sv-state="error" />
+  } @else if (loading()) {
+    <!--
+      ── `NV-03-I8`: the skeleton reserves the trail's box ──────────────────────
+      Same `<ol>`, same `<li>`, same `gap-1`, same separator and the same
+      `textClass()` as the real trail below, because the shift this fixes was
+      never only about width: a `gap-2` `<div>` of 14px bars is a different HEIGHT
+      from a `gap-1` `<ol>` of text, and a height change moves the whole page
+      rather than just the trail.
+
+      Each segment reserves a real line box (the invisible content) with the pulse
+      bar laid over it, so the bar can be any height without deciding the row's.
+    -->
+    <div role="status" aria-live="polite" aria-busy="true">
+      <span class="sr-only">Loading breadcrumb…</span>
+      <ol
+        role="list"
+        [ngClass]="['flex flex-wrap items-center gap-1', textClass()]"
+      >
+        @for (crumb of skeletonCrumbs(); track crumb.key; let last = $last) {
+          <li class="flex items-center gap-1">
+            <!-- The crumb's own box: `flex items-center gap-1` like every crumb
+                 span/anchor, plus the variant's padding/border/weight
+                 (`boxClass`) — a pill is taller than bare text, so leaving it
+                 out was a vertical shift. -->
+            <span [ngClass]="['flex items-center gap-1', crumb.boxClass]" aria-hidden="true">
+              @if (crumb.icon) {
+                <!-- The icon slot, sized exactly as `iconTpl` draws it. -->
+                <span
+                  data-sv-skeleton-icon
+                  [ngClass]="[iconClass(), 'shrink-0 animate-pulse rounded bg-gray-200 dark:bg-gray-700']"
+                ></span>
+              }
+              <span class="relative inline-block">
+                @if (crumb.label !== null) {
+                  <!-- The trail is known — reserve its own text, exactly. -->
+                  <span class="invisible">{{ crumb.label }}</span>
+                } @else {
+                  <!-- No trail yet. The width is a guess; the line box is not. -->
+                  <span class="invisible" [style.width.ch]="crumb.width">&#8203;</span>
+                }
+                <span
+                  class="absolute left-0 right-0 top-1/2 h-[1em] -translate-y-1/2 animate-pulse
+                         rounded bg-gray-200 dark:bg-gray-700"
+                ></span>
+              </span>
+            </span>
+            @if (!last) {
+              <ng-container *ngTemplateOutlet="separatorTpl" />
+            }
+          </li>
+        }
+      </ol>
+    </div>
+  } @else {
+    <ol
+      role="list"
+      [ngClass]="['flex flex-wrap items-center gap-1', textClass()]"
+    >
+      @for (item of visibleItems(); track trackCrumb($index, item); let last = $last, idx = $index) {
+
+        <li
+          [ngClass]="[
+            'flex items-center gap-1',
+            (collapseOnMobile() && isMiddleItem(item)) ? 'hidden sm:flex' : ''
+          ]"
+        >
+
+          <!-- ── Crumb ─────────────────────────────────────────────────── -->
+          @if (isBreadcrumbItem(item)) {
+
+            @if (item.disabled) {
+              <!-- Disabled crumb — non-interactive.
+                   `aria-current` still applies when it is also the last crumb:
+                   `disabled` is checked first, so a permission-gated current page
+                   used to lose the one attribute that says where the reader is
+                   (`NV-03-I3` — the current page must not misreport its state). -->
+              <span
+                [ngClass]="disabledClasses()"
+                aria-disabled="true"
+                [attr.aria-current]="last ? 'page' : null"
+              >
+                <ng-container *ngTemplateOutlet="iconTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="labelTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="badgeTpl; context: { $implicit: item }" />
+              </span>
+
+            } @else if (last) {
+              <!-- Current page — plain text, aria-current -->
+              <span [ngClass]="currentClasses()" aria-current="page">
+                <ng-container *ngTemplateOutlet="iconTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="labelTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="badgeTpl; context: { $implicit: item }" />
+              </span>
+              <ng-container *ngTemplateOutlet="menuTriggerTpl; context: { $implicit: item, idx: idx }" />
+
+            } @else if (item.routerLink) {
+              <!-- Linked crumb -->
+              <a
+                [attr.href]="hrefFor(item.routerLink)"
+                [ngClass]="linkClasses()"
+                (click)="onCrumbClick(item, $event)"
+              >
+                <ng-container *ngTemplateOutlet="iconTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="labelTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="badgeTpl; context: { $implicit: item }" />
+              </a>
+              <ng-container *ngTemplateOutlet="menuTriggerTpl; context: { $implicit: item, idx: idx }" />
+
+            } @else {
+              <!-- Non-linked crumb (middle, no routerLink) -->
+              <span [ngClass]="middleClasses()">
+                <ng-container *ngTemplateOutlet="iconTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="labelTpl; context: { $implicit: item }" />
+                <ng-container *ngTemplateOutlet="badgeTpl; context: { $implicit: item }" />
+              </span>
+              <ng-container *ngTemplateOutlet="menuTriggerTpl; context: { $implicit: item, idx: idx }" />
+            }
+
+          } @else {
+            <!-- Ellipsis / collapse toggle — a real open↔close button when expandable -->
+            @if (expandable()) {
+              <button
+                type="button"
+                data-sv-crumb-ellipsis
+                class="flex items-center gap-0.5 rounded px-1 py-0.5 text-gray-500 transition-colors
+                       hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                       focus-visible:ring-offset-1"
+                [attr.aria-expanded]="isExpanded()"
+                [attr.aria-label]="isExpanded()
+                  ? 'Hide ' + toggleCount() + ' page' + (toggleCount() === 1 ? '' : 's')
+                  : 'Show ' + toggleCount() + ' hidden page' + (toggleCount() === 1 ? '' : 's')"
+                (click)="toggleCollapse()"
+              >
+                @if (isExpanded()) {
+                  <sv-icon name="chevrons-left" cssClass="h-3 w-3" [strokeWidth]="2" />
+                } @else {
+                  <span class="h-1 w-1 rounded-full bg-current"></span>
+                  <span class="h-1 w-1 rounded-full bg-current"></span>
+                  <span class="h-1 w-1 rounded-full bg-current"></span>
+                }
+              </button>
+            } @else {
+              <span
+                data-sv-crumb-ellipsis
+                class="flex items-center gap-0.5 text-gray-500 dark:text-gray-400"
+                role="img"
+                aria-label="More pages"
+              >
+                <span class="h-1 w-1 rounded-full bg-current"></span>
+                <span class="h-1 w-1 rounded-full bg-current"></span>
+                <span class="h-1 w-1 rounded-full bg-current"></span>
+              </span>
+            }
+          }
+
+          <!-- ── Separator (between items, not after the last) ─────────── -->
+          @if (!last) {
+            <ng-container *ngTemplateOutlet="separatorTpl" />
+          }
+
+        </li>
+
+      }
+    </ol>
+  }
+</nav>

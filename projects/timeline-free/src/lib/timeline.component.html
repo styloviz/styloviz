@@ -1,0 +1,875 @@
+@if (loading()) {
+
+  <!-- First page. An event-shaped placeholder so the layout does not jump. -->
+  <div class="p-2" data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="5" ariaLabel="Loading timeline" />
+  </div>
+
+} @else if (error()) {
+
+  <sv-error-shell
+    [error]="error()"
+    title="Could not load these events"
+    (retry)="retry.emit()"
+    data-sv-state="error"
+  >
+    <sv-icon svShellIcon name="alert-triangle" cssClass="h-8 w-8" [strokeWidth]="1.5" />
+  </sv-error-shell>
+
+} @else if (isEmpty()) {
+
+  <sv-empty-shell reason="no-data" [title]="emptyMessage()" data-sv-state="empty">
+    <sv-icon svShellIcon name="clock" cssClass="h-10 w-10" [strokeWidth]="1.5" />
+  </sv-empty-shell>
+
+} @else {
+
+
+<!-- The feed has moved on above. -->
+@if (hasNewer() || loadingNewer()) {
+  <div class="pb-3">
+    @if (loadingNewer()) {
+      <div data-sv-state="loading-newer">
+        <sv-skeleton-shell variant="list" [rows]="1" ariaLabel="Loading newer events" />
+      </div>
+    } @else {
+      <button type="button"
+        class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+        (click)="onLoadMore('newer')">
+        Load newer
+      </button>
+    }
+  </div>
+}
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     Root wrapper
+     ══════════════════════════════════════════════════════════════════════════ -->
+<div [ngClass]="['relative', customClass()]">
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 1 — HORIZONTAL LAYOUT
+       Items flow left-to-right along a horizontal connector line.
+       Content alternates top/bottom based on horizontalAlign input.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @if (layout() === 'horizontal') {
+    <!--
+      A horizontal timeline scrolls, so `tabindex="0"` makes it a keyboard landing
+      place — and an unnamed one announces as nothing at all.
+    -->
+    <div class="overflow-x-auto pb-2 -mx-1 px-1"
+         tabindex="0"
+         role="region"
+         [attr.aria-label]="listLabel(intentLabel()) + ', scrollable'">
+      <ol class="flex min-w-max" [attr.aria-label]="listLabel(intentLabel())">
+
+        @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+          <li class="flex flex-col items-center" style="min-width:160px; max-width:200px;">
+
+            <!-- Top content slot (shown when horizontalAlign dictates top) -->
+            <div class="h-28 flex flex-col justify-end pb-3 text-center px-3 w-full">
+              @if (showTopContent(i)) {
+                @if (item.timestamp) {
+                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums block mb-1', timeClass()]">
+                    {{ item.timestamp }}
+                  </time>
+                }
+                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  {{ item.title }}
+                </p>
+                @if (item.description) {
+                  <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+                    {{ item.description }}
+                  </p>
+                }
+              }
+            </div>
+
+            <!-- Connector row: left half-line + dot + right half-line -->
+            <div class="flex items-center w-full">
+              <!-- Left half-line (invisible for first item) -->
+              <div class="flex-1 h-0.5"
+                   [ngClass]="isFirst(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
+              </div>
+
+              <!-- Dot -->
+              <div [ngClass]="[
+                     'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
+                     dotClass(item), dotSize()
+                   ]"
+                   [attr.role]="variantLabel(item) ? 'img' : null"
+                   [attr.aria-label]="variantLabel(item)">
+                @if (dotIcon(item); as glyph) {
+                  <sv-icon [name]="glyph"
+                           [cssClass]="'shrink-0 text-white ' + iconSize()"
+                           [strokeWidth]="2" />
+                }
+              </div>
+
+              <!-- Right half-line (invisible for last item) -->
+              <div class="flex-1 h-0.5"
+                   [ngClass]="isLast(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
+              </div>
+            </div>
+
+            <!-- Bottom content slot -->
+            <div class="h-28 flex flex-col justify-start pt-3 text-center px-3 w-full">
+              @if (showBottomContent(i)) {
+                @if (item.timestamp) {
+                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums block mb-1', timeClass()]">
+                    {{ item.timestamp }}
+                  </time>
+                }
+                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  {{ item.title }}
+                </p>
+                @if (item.description) {
+                  <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+                    {{ item.description }}
+                  </p>
+                }
+              }
+            </div>
+
+          </li>
+        }
+
+      </ol>
+    </div>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 2 — ALTERNATE (ZIGZAG) LAYOUT
+       True center-line with items alternating left and right.
+       Collapses to single-column on small screens.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else if (layout() === 'alternate') {
+    <div class="relative">
+
+      <!-- Vertical center line -->
+      @if (showConnector()) {
+        <div class="absolute left-1/2 -translate-x-1/2 top-4 bottom-4 w-0.5
+                    bg-gray-200 dark:bg-gray-700 hidden sm:block">
+        </div>
+      }
+
+      <ol class="space-y-2" [attr.aria-label]="listLabel(intentLabel())">
+        @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+
+          <!-- On mobile: single-column (left layout). On sm+: zigzag. -->
+          <li class="flex items-start gap-3 sm:gap-0">
+
+            <!-- ── LEFT half (content for even, empty for odd) ── -->
+            <div class="hidden sm:flex sm:w-[calc(50%-1.25rem)] sm:justify-end sm:pr-8">
+              @if (i % 2 === 0) {
+                <div class="text-right max-w-xs w-full pb-8">
+                  @if (item.timestamp || item.badge) {
+                    <div class="flex flex-wrap items-center justify-end gap-2 mb-1">
+                      @if (item.badge) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                     bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                          {{ item.badge }}
+                        </span>
+                      }
+                      @if (item.timestamp) {
+                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                          {{ item.timestamp }}
+                        </time>
+                      }
+                    </div>
+                  }
+                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                    {{ item.title }}
+                  </p>
+                  @if (item.description) {
+                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                      {{ item.description }}
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- ── CENTER dot (always visible) ── -->
+            <div class="flex flex-col items-center shrink-0 sm:w-10 sm:relative sm:z-10">
+              <div [ngClass]="[
+                     'flex shrink-0 items-center justify-center rounded-full ring-4',
+                     dotClass(item), dotSize()
+                   ]"
+                   [attr.role]="variantLabel(item) ? 'img' : null"
+                   [attr.aria-label]="variantLabel(item)">
+                @if (dotIcon(item); as glyph) {
+                  <sv-icon [name]="glyph"
+                           [cssClass]="'shrink-0 text-white ' + iconSize()"
+                           [strokeWidth]="2" />
+                }
+              </div>
+              <!-- Mobile-only vertical connector -->
+              @if (showConnector() && !isLast(i)) {
+                <div class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1 min-h-8 sm:hidden"></div>
+              }
+            </div>
+
+            <!-- ── RIGHT half (content for odd, empty for even — desktop; all items on mobile) ── -->
+            <div [ngClass]="i % 2 !== 0 ? 'sm:w-[calc(50%-1.25rem)] sm:pl-8 flex-1 min-w-0' : 'hidden sm:block sm:w-[calc(50%-1.25rem)] sm:pl-8'">
+              @if (i % 2 !== 0) {
+                <div class="pb-8 sm:max-w-xs">
+                  @if (item.timestamp || item.badge) {
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                      @if (item.timestamp) {
+                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                          {{ item.timestamp }}
+                        </time>
+                      }
+                      @if (item.badge) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                     bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                          {{ item.badge }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                    {{ item.title }}
+                  </p>
+                  @if (item.description) {
+                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                      {{ item.description }}
+                    </p>
+                  }
+                </div>
+              }
+              <!-- Mobile fallback for even items -->
+              <div class="sm:hidden pb-6 flex-1">
+                @if (i % 2 === 0) {
+                  @if (item.timestamp || item.badge) {
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                      @if (item.timestamp) {
+                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                          {{ item.timestamp }}
+                        </time>
+                      }
+                      @if (item.badge) {
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                     bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                          {{ item.badge }}
+                        </span>
+                      }
+                    </div>
+                  }
+                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                    {{ item.title }}
+                  </p>
+                  @if (item.description) {
+                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                      {{ item.description }}
+                    </p>
+                  }
+                }
+              </div>
+            </div>
+
+          </li>
+        }
+      </ol>
+    </div>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 4 — ACTIVITY FEED MODE
+       Compact avatar-based feed. Ideal for audit logs, notifications, commits.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else if (displayMode() === 'feed') {
+    <ol class="space-y-0" [attr.aria-label]="listLabel(intentLabel())">
+      @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+        <li class="flex gap-x-3">
+
+          <!-- Avatar column -->
+          <div class="flex flex-col items-center">
+            <!-- Avatar circle -->
+            <div class="relative shrink-0 h-8 w-8 rounded-full overflow-hidden ring-2 ring-white dark:ring-gray-900">
+              @if (item.avatarUrl) {
+                <img [src]="item.avatarUrl" [alt]="item.actorName ?? item.title"
+                     class="h-full w-full object-cover" loading="lazy" />
+              } @else {
+                <div [ngClass]="['h-full w-full flex items-center justify-center text-white text-xs font-bold', avatarBg(item.actorName)]">
+                  {{ avatarInitials(item.actorName) }}
+                </div>
+              }
+            </div>
+            <!-- Connector -->
+            @if (showConnector() && !isLast(i)) {
+              <div class="w-px flex-1 bg-gray-200 dark:bg-gray-700 mt-1 mb-1 min-h-4"></div>
+            }
+          </div>
+
+          <!-- Feed content -->
+          <div class="flex-1 min-w-0 pb-4">
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+                @if (item.actorName) {
+                  <span class="font-semibold text-gray-900 dark:text-white">{{ item.actorName }}</span>
+                  <span class="text-gray-500 dark:text-gray-400"> {{ item.title }}</span>
+                } @else {
+                  <span class="font-medium">{{ item.title }}</span>
+                }
+              </p>
+              @if (item.timestamp) {
+                <time [ngClass]="['shrink-0 text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                  {{ item.timestamp }}
+                </time>
+              }
+            </div>
+            @if (item.description) {
+              <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+                {{ item.description }}
+              </p>
+            }
+            @if (item.badge) {
+              <span class="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                           bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                {{ item.badge }}
+              </span>
+            }
+          </div>
+
+        </li>
+      }
+    </ol>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 5 — STATUS / PROGRESS TRACKER MODE
+       Each item carries complete / active / pending state.
+       Active item has a pulsing ring. Pending connector is dimmed.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else if (displayMode() === 'status') {
+    <ol class="space-y-0" [attr.aria-label]="listLabel(intentLabel())">
+      @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+
+        @let status = stepStatus(i, item);
+
+        <li class="flex gap-x-4" [attr.aria-current]="currentValue(status === 'active')">
+
+          <!-- Screen-reader step status -->
+          <span class="sr-only">{{ stepStatusLabel(status) }}:</span>
+
+          <!-- Status dot column -->
+          <div class="flex flex-col items-center">
+
+            <!-- Dot -->
+            <div class="relative flex shrink-0 items-center justify-center">
+
+              @if (status === 'active') {
+                <!-- Pulsing ring for active step -->
+                <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40', pulseClass(item)]"></span>
+              }
+
+              @if (status === 'complete') {
+                <!-- Complete: filled with checkmark -->
+                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40', dotSize()]">
+                  <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
+                </div>
+              } @else if (status === 'active') {
+                <!-- Active: filled primary with dot icon -->
+                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60', dotSize()]">
+                  @if (item.icon) {
+                    <sv-icon [name]="item.icon"
+                             [cssClass]="'text-white ' + iconSize()"
+                             [strokeWidth]="2" />
+                  } @else {
+                    <span class="h-2.5 w-2.5 rounded-full bg-white"></span>
+                  }
+                </div>
+              } @else {
+                <!-- Pending: hollow dot -->
+                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600', dotSize()]">
+                  <span class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                </div>
+              }
+
+            </div>
+
+            <!-- Connector -->
+            @if (showConnector() && !isLast(i)) {
+              <div [ngClass]="['w-0.5 flex-1 mt-1 mb-1 min-h-6', stepConnectorClass(status)]"></div>
+            }
+
+          </div>
+
+          <!-- Content -->
+          <div class="flex-1 min-w-0 pb-6">
+            @if (item.timestamp || item.badge) {
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                @if (item.timestamp) {
+                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                    {{ item.timestamp }}
+                  </time>
+                }
+                @if (item.badge) {
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                               bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                    {{ item.badge }}
+                  </span>
+                }
+              </div>
+            }
+            <p [ngClass]="[
+                 titleClass(),
+                 status === 'pending'
+                   ? 'text-gray-500 dark:text-gray-400'
+                   : 'text-gray-900 dark:text-white',
+                 'leading-snug'
+               ]">
+              {{ item.title }}
+            </p>
+            @if (item.description) {
+              <p [ngClass]="[
+                   descClass(),
+                   status === 'pending'
+                     ? 'text-gray-300 dark:text-gray-600'
+                     : 'text-gray-500 dark:text-gray-400',
+                   'mt-1 leading-relaxed'
+                 ]">
+                {{ item.description }}
+              </p>
+            }
+          </div>
+
+        </li>
+      }
+    </ol>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 6 — RICH CARD MODE
+       Each item renders inside a content card with optional image, tags, CTA.
+       Works with left and right layouts.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else if (displayMode() === 'rich') {
+    <ol class="space-y-0" [attr.aria-label]="listLabel(intentLabel())">
+      @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+
+        <li [ngClass]="[
+              'flex gap-x-4',
+              layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
+            ]">
+
+          <!-- Dot column -->
+          <div class="flex flex-col items-center">
+            <div [ngClass]="[
+                   'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
+                   dotClass(item), dotSize()
+                 ]"
+                 [attr.role]="variantLabel(item) ? 'img' : null"
+                 [attr.aria-label]="variantLabel(item)">
+              @if (dotIcon(item); as glyph) {
+                <sv-icon [name]="glyph"
+                         [cssClass]="'shrink-0 text-white ' + iconSize()"
+                         [strokeWidth]="2" />
+              }
+            </div>
+            @if (showConnector() && !isLast(i)) {
+              <div class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-2 mb-2 min-h-6"></div>
+            }
+          </div>
+
+          <!-- Rich card content -->
+          <div [ngClass]="['flex-1 min-w-0 pb-6', layout() === 'right' ? 'flex justify-end' : '']">
+            <div class="w-full max-w-sm rounded-2xl border border-gray-200 dark:border-gray-700
+                        bg-white dark:bg-gray-900 shadow-sm overflow-hidden
+                        transition-shadow hover:shadow-md">
+
+              <!-- Optional card image -->
+              @if (item.imageUrl) {
+                <img [src]="item.imageUrl" [alt]="item.title"
+                     class="w-full h-36 object-cover" loading="lazy" />
+              }
+
+              <div class="p-4">
+                <!-- Timestamp + badge -->
+                @if (item.timestamp || item.badge) {
+                  <div class="flex flex-wrap items-center gap-2 mb-2">
+                    @if (item.timestamp) {
+                      <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                        {{ item.timestamp }}
+                      </time>
+                    }
+                    @if (item.badge) {
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                   bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                        {{ item.badge }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- Title -->
+                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  {{ item.title }}
+                </p>
+
+                <!-- Description -->
+                @if (item.description) {
+                  <p [ngClass]="[descClass(), 'mt-1.5 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                    {{ item.description }}
+                  </p>
+                }
+
+                <!-- Tags -->
+                @if (item.tags && item.tags.length > 0) {
+                  <div class="flex flex-wrap gap-1.5 mt-3">
+                    @for (tag of item.tags; track tag) {
+                      <span [ngClass]="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', tagColor(tag)]">
+                        {{ tag }}
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- CTA button -->
+                @if (item.actionLabel) {
+                  <a [href]="item.actionUrl ?? '#'"
+                     (click)="onActionClick(item, $event)"
+                     class="mt-3 inline-flex items-center gap-1 text-sm font-medium
+                            text-brandaccent-600 dark:text-brandaccent-400 hover:text-brandaccent-800
+                            dark:hover:text-brandaccent-300 transition-colors group">
+                    {{ item.actionLabel }}
+                    <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" [strokeWidth]="2" />
+                  </a>
+                }
+              </div>
+            </div>
+          </div>
+
+        </li>
+      }
+    </ol>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATION 7 — DATE-GROUPED LAYOUT
+       Items grouped under date header separators using their groupDate field.
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else if (groupByDate()) {
+    <div>
+      @for (group of groupedItems(); track trackByDate($index, group); let gi = $index) {
+
+        <!-- Date header separator -->
+        <div class="flex items-center gap-3 mb-4" [ngClass]="gi > 0 ? 'mt-8' : ''">
+          <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider
+                       text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-950 px-2">
+            {{ group.date }}
+          </span>
+          <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
+        </div>
+
+        <!-- Items within this group -->
+        <ol [attr.aria-label]="groupListLabel(group.date)">
+          @for (item of group.items; track item.id; let ii = $index) {
+
+            <li [ngClass]="[
+                  'flex gap-x-4',
+                  layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
+                ]">
+
+              <!-- Dot column -->
+              <div class="flex flex-col items-center">
+                <div [ngClass]="[
+                       'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
+                       dotClass(item), dotSize()
+                     ]"
+                     [attr.role]="variantLabel(item) ? 'img' : null"
+                     [attr.aria-label]="variantLabel(item)">
+                  @if (dotIcon(item); as glyph) {
+                    <sv-icon [name]="glyph"
+                             [cssClass]="'shrink-0 text-white ' + iconSize()"
+                             [strokeWidth]="2" />
+                  }
+                </div>
+                @if (showConnector() && !isLastInGroup(gi, ii)) {
+                  <div class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1 mb-1 min-h-6"></div>
+                }
+              </div>
+
+              <!-- Content -->
+              <div class="flex-1 min-w-0 pb-5">
+                @if (item.timestamp || item.badge) {
+                  <div class="flex flex-wrap items-center gap-2 mb-1">
+                    @if (item.timestamp) {
+                      <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                        {{ item.timestamp }}
+                      </time>
+                    }
+                    @if (item.badge) {
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                   bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                        {{ item.badge }}
+                      </span>
+                    }
+                  </div>
+                }
+                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  {{ item.title }}
+                </p>
+                @if (item.description) {
+                  <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                    {{ item.description }}
+                  </p>
+                }
+              </div>
+
+            </li>
+          }
+        </ol>
+      }
+    </div>
+  }
+
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       VARIATIONS 3 + 8 — DEFAULT / LEFT / RIGHT LAYOUT
+       Handles:
+         • dotStyle='dot'    → standard colored dot with optional icon
+         • dotStyle='number' → numbered step badge (Variation 3a)
+         • dotStyle='check'  → check/pending stepper (Variation 3b)
+         • layout='left'     → connector column on left  (default)
+         • layout='right'    → connector column on right (Variation 8)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  @else {
+    <ol class="space-y-0" [attr.aria-label]="listLabel(intentLabel())">
+      @for (item of visibleItems(); track trackById($index, item); let i = $index) {
+
+        @let status = stepStatus(i, item);
+        @let isStepper = dotStyle() === 'check' || dotStyle() === 'number';
+
+        <!--
+          ★★★ `aria-current` USED TO READ `isStepper && …`, WHERE `isStepper`
+               MEANT "the dot is a tick or a number". Whether a screen reader
+               was told where the reader is in a process depended on THE SHAPE
+               OF THE DOT: swap it for a plain circle and the current item
+               announced as nothing at all. `intent` decides it now, and
+               `dotStyle` is back to being a picture.
+        -->
+        <li [ngClass]="[
+              'flex gap-x-4',
+              layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
+            ]"
+            [attr.aria-current]="currentValue(status === 'active')">
+
+          <!-- Screen-reader step status (stepper dot styles only) -->
+          @if (isStepper) {
+            <span class="sr-only">{{ stepStatusLabel(status) }}:</span>
+          }
+
+          <!-- ── Connector column (dot + line) ──────────────────────── -->
+          <div class="flex flex-col items-center">
+
+            <!-- ─ dotStyle: NUMBER ─ -->
+            @if (dotStyle() === 'number') {
+              @if (status === 'complete') {
+                <div [ngClass]="[
+                       'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40',
+                       dotSize()
+                     ]">
+                  <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
+                </div>
+              } @else if (status === 'active') {
+                <div class="relative flex shrink-0 items-center justify-center">
+                  <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40', pulseClass(item)]"></span>
+                  <div [ngClass]="[
+                         'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60',
+                         dotSize()
+                       ]">
+                    <span [ngClass]="['text-white', numberSize()]">{{ i + 1 }}</span>
+                  </div>
+                </div>
+              } @else {
+                <div [ngClass]="[
+                       'flex shrink-0 items-center justify-center rounded-full ring-2 bg-gray-100 dark:bg-gray-800 ring-gray-300 dark:ring-gray-600',
+                       dotSize()
+                     ]">
+                  <span [ngClass]="['text-gray-500 dark:text-gray-400', numberSize()]">{{ i + 1 }}</span>
+                </div>
+              }
+            }
+
+            <!-- ─ dotStyle: CHECK ─ -->
+            @else if (dotStyle() === 'check') {
+              @if (status === 'complete') {
+                <div [ngClass]="[
+                       'flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40',
+                       dotSize()
+                     ]">
+                  <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
+                </div>
+              } @else if (status === 'active') {
+                <div class="relative flex shrink-0 items-center justify-center">
+                  <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40 bg-brandaccent-400']"></span>
+                  <div [ngClass]="[
+                         'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60',
+                         dotSize()
+                       ]">
+                    @if (item.icon) {
+                      <sv-icon [name]="item.icon"
+                               [cssClass]="'text-white ' + iconSize()"
+                               [strokeWidth]="2" />
+                    } @else {
+                      <span class="h-2.5 w-2.5 rounded-full bg-white"></span>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div [ngClass]="[
+                       'flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600',
+                       dotSize()
+                     ]">
+                  <span class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                </div>
+              }
+            }
+
+            <!-- ─ dotStyle: DOT (default) ─ -->
+            @else {
+              <div [ngClass]="[
+                     'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
+                     dotClass(item), dotSize()
+                   ]"
+                   [attr.role]="variantLabel(item) ? 'img' : null"
+                   [attr.aria-label]="variantLabel(item)">
+                @if (dotIcon(item); as glyph) {
+                  <sv-icon [name]="glyph"
+                           [cssClass]="'shrink-0 text-white ' + iconSize()"
+                           [strokeWidth]="2" />
+                }
+              </div>
+            }
+
+            <!-- Connector line -->
+            @if (showConnector() && !isLast(i)) {
+              @if (dotStyle() === 'check' || dotStyle() === 'number') {
+                <div [ngClass]="['w-0.5 flex-1 mt-1 mb-1 min-h-6', stepConnectorClass(status)]"></div>
+              } @else {
+                <div class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1 mb-1 min-h-6"></div>
+              }
+            }
+
+          </div>
+
+          <!-- ── Content column ──────────────────────────────────────── -->
+          <div [ngClass]="[
+                 'flex-1 min-w-0 pb-6',
+                 layout() === 'right' ? 'text-right' : '',
+                 displayMode() === 'interactive'
+                   ? 'cursor-pointer rounded-lg -mx-2 px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brandaccent-400 ' +
+                     (isSelected(item)
+                       ? 'bg-brandaccent-50 dark:bg-brandaccent-900/25'
+                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50')
+                   : ''
+               ]"
+               [attr.role]="displayMode() === 'interactive' ? 'button' : null"
+               [attr.tabindex]="displayMode() === 'interactive' ? 0 : null"
+               [attr.aria-pressed]="displayMode() === 'interactive' ? isSelected(item) : null"
+               (click)="onItemActivate(item)"
+               (keydown)="onItemKeydown($event, item)">
+
+            <!-- Timestamp + badge row -->
+            @if (item.timestamp || item.badge) {
+              <div [ngClass]="[
+                     'flex flex-wrap items-center gap-2 mb-1',
+                     layout() === 'right' ? 'justify-end' : ''
+                   ]">
+                @if (item.timestamp) {
+                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                    {{ item.timestamp }}
+                  </time>
+                }
+                @if (item.badge) {
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                               bg-brandaccent-50 text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+                    {{ item.badge }}
+                  </span>
+                }
+              </div>
+            }
+
+            <!-- Title -->
+            <p [ngClass]="[
+                 titleClass(),
+                 (dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending'
+                   ? 'text-gray-500 dark:text-gray-400'
+                   : 'text-gray-900 dark:text-white',
+                 'leading-snug'
+               ]">
+              {{ item.title }}
+            </p>
+
+            <!-- Description -->
+            @if (item.description) {
+              <p [ngClass]="[
+                   descClass(),
+                   (dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending'
+                     ? 'text-gray-300 dark:text-gray-600'
+                     : 'text-gray-500 dark:text-gray-400',
+                   'mt-1 leading-relaxed'
+                 ]">
+                {{ item.description }}
+              </p>
+            }
+
+          </div>
+
+        </li>
+      }
+    </ol>
+  }
+
+
+</div>
+
+<!-- History continues below. -->
+<!--
+  ★★ A LONG HISTORY IS NOT A LIST, IT IS A WALL. `loadMore` below covers fetching
+     more from a server; this covers the opposite problem — too much already in
+     hand. The control names the COUNT, because "show more" reads the same
+     whether it is three entries or three hundred.
+-->
+@if (hiddenCount() > 0) {
+  <div class="pt-3">
+    <button type="button"
+      class="w-full rounded-lg border border-dashed border-gray-200 px-3 py-2 text-xs font-medium
+             text-gray-500 transition-colors hover:border-primary-300 hover:text-primary-600
+             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500
+             dark:border-gray-700 dark:text-gray-400 dark:hover:border-primary-700
+             dark:hover:text-primary-400"
+      [attr.aria-expanded]="expanded()"
+      (click)="toggleExpanded()">
+      {{ expandLabel() }}
+    </button>
+  </div>
+}
+
+@if (hasOlder() || loadingOlder()) {
+  <div class="pt-3">
+    @if (loadingOlder()) {
+      <div data-sv-state="loading-older">
+        <sv-skeleton-shell variant="list" [rows]="2" ariaLabel="Loading older events" />
+      </div>
+    } @else {
+      <button type="button"
+        class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+        (click)="onLoadMore('older')">
+        Load older
+      </button>
+    }
+  </div>
+}
+
+}<!-- /@else timeline content -->

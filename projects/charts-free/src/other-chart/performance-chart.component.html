@@ -1,0 +1,127 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--lc-anim-dur]="animDuration()">
+
+  <!-- Header row -->
+  <div class="flex items-center justify-between gap-2">
+    @if (title()) {
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+    }
+    <div class="flex items-center gap-2 ml-auto">
+      <span class="inline-flex items-center gap-1 rounded-full bg-brandaccent-50 px-2.5 py-0.5 text-xs font-semibold text-brandaccent-700 dark:bg-brandaccent-900/30 dark:text-brandaccent-300">
+        <svg aria-hidden="true" class="size-3" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5"/></svg>
+        {{ pointCount() | number }} pts
+      </span>
+      <!-- Only when the chart synthesised the series itself. Against host data
+           there is no generation to time, and the badge read "⚡ 0ms". -->
+      @if (renderMs() !== null) {
+        <span class="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2.5 py-0.5 text-xs font-semibold text-accent-700 dark:bg-accent-900/30 dark:text-accent-300">
+          ⚡ {{ renderMs() }}ms
+        </span>
+      }
+    </div>
+  </div>
+
+  <div class="w-full overflow-hidden">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgH()"
+      [attr.height]="svgH()"
+      class="w-full"
+      role="img"
+      [attr.aria-label]="title() || 'Performance chart'"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <linearGradient [attr.id]="'perf-area-grad-' + _uid" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="var(--color-brandaccent-500)" stop-opacity="0.3" />
+          <stop offset="100%" stop-color="var(--color-brandaccent-500)" stop-opacity="0.02" />
+        </linearGradient>
+        <!-- Clip path so area doesn't overflow plot bounds -->
+        <clipPath [attr.id]="'perf-clip-' + _uid">
+          <rect x="0" y="0" [attr.width]="plotW()" [attr.height]="plotH()" />
+        </clipPath>
+      </defs>
+
+      <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">
+
+        <!-- Grid lines -->
+        @if (showGrid()) {
+          @for (v of yTicks(); track v) {
+            <line
+              x1="0" [attr.y1]="yTickY(v)"
+              [attr.x2]="plotW()" [attr.y2]="yTickY(v)"
+              stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+            />
+          }
+        }
+
+        <!-- Area fill -->
+        @if (showArea()) {
+          <path
+            [attr.d]="areaPath()"
+            [attr.fill]="'url(#perf-area-grad-' + _uid + ')'"
+            [attr.clip-path]="'url(#perf-clip-' + _uid + ')'"
+            class="bc-fade-in"
+          />
+        }
+
+        <!-- Main line — draws in via lc-draw animation -->
+        <path
+          [attr.d]="linePath()"
+          fill="none"
+          stroke="var(--color-brandaccent-500)"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          class="lc-line"
+          [attr.clip-path]="'url(#perf-clip-' + _uid + ')'"
+        />
+
+        <!-- Y-axis labels -->
+        @for (v of yTicks(); track v) {
+          <text
+            x="-8" [attr.y]="yTickY(v) + 4"
+            text-anchor="end"
+            class="fill-gray-400 dark:fill-gray-500"
+            style="font-size:10px;font-family:inherit;"
+          >{{ fmt(v) }}</text>
+        }
+
+        <!-- X axis baseline -->
+        <line
+          x1="0" [attr.y1]="plotH()"
+          [attr.x2]="plotW()" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-300 dark:text-gray-600" stroke-width="1"
+        />
+
+        <!-- X-axis labels (start / middle / end) -->
+        @for (pct of [0, 0.25, 0.5, 0.75, 1]; track pct) {
+          <text
+            [attr.x]="pct * plotW()"
+            [attr.y]="plotH() + 16"
+            text-anchor="middle"
+            class="fill-gray-400 dark:fill-gray-500"
+            style="font-size:10px;font-family:inherit;"
+          >{{ fmt(pct * (rawData().length - 1)) }}</text>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  <!-- Info row -->
+  <p class="text-center text-xs text-gray-500 dark:text-gray-400">
+    {{ pointCount() | number }} data points rendered as a single SVG path — no canvas, no WebGL.
+  </p>
+
+</div>
+
+</sv-chart-frame>

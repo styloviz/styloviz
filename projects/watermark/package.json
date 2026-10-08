@@ -1,0 +1,39 @@
+{
+  "name": "@styloviz/watermark",
+  "version": "1.0.1",
+  "description": "A repeating overlay tiled from the ROTATED bounding box, so the marks neither collide nor gap at an angle. Staggered rows, an opacity band that says which way it is wrong, and a signature a host can compare against to detect tampering.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "watermark",
+    "overlay",
+    "tile",
+    "branding",
+    "confidential",
+    "styloviz"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/watermark",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/watermark"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

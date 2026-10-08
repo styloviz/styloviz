@@ -1,0 +1,63 @@
+<span
+  [ngClass]="rootClasses()"
+  [attr.aria-label]="hostAriaLabel()"
+  [attr.role]="hostRole()"
+  [attr.aria-live]="live() ? 'polite' : null"
+>
+  @if (dot()) {
+    <span
+      class="relative inline-flex shrink-0 rounded-full"
+      [ngClass]="[
+        size() === 'sm' ? 'h-1.5 w-1.5' : size() === 'lg' ? 'h-2.5 w-2.5' : 'h-2 w-2',
+        dotColorClass()
+      ]"
+      aria-hidden="true"
+    >
+      @if (pulseDot()) {
+        <!--
+          ★★ A PULSING DOT IS EXACTLY THE MOTION `prefers-reduced-motion` EXISTS
+             FOR: small, peripheral and endless, which is the shape most likely
+             to trigger a vestibular response. `motion-reduce` stops the
+             animation while KEEPING the dot — the dot is the status indicator,
+             and removing it would delete information to fix a comfort problem.
+        -->
+        <span
+          class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75
+                 motion-reduce:animate-none"
+          [ngClass]="dotColorClass()"
+        ></span>
+      }
+    </span>
+  }
+
+  @if (icon()) {
+    <sv-icon [name]="icon()"
+             [cssClass]="'shrink-0 ' + (size() === 'sm' ? 'h-3 w-3' : size() === 'lg' ? 'h-4.5 w-4.5' : 'h-3.5 w-3.5')"
+             [strokeWidth]="2" />
+  }
+
+  @if (isCountMode()) {
+    <span class="tabular-nums leading-none">{{ displayCount() }}</span>
+  } @else if (label()) {
+    <span class="leading-none whitespace-nowrap">{{ label() }}</span>
+  }
+  @if (toneWord() && !ariaLabel()) {
+    <span class="sr-only" data-sv-badge-tone>, {{ toneWord() }}</span>
+  }
+
+  @if (dismissible() && !isCountMode()) {
+    <button
+      type="button"
+      class="inline-flex shrink-0 items-center justify-center rounded-full transition-colors
+             duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+      [ngClass]="[
+        size() === 'sm' ? 'h-3 w-3 -mr-0.5' : size() === 'lg' ? 'h-4.5 w-4.5 -mr-0.5' : 'h-3.5 w-3.5 -mr-0.5',
+        dismissColorClass()
+      ]"
+      (click)="onDismiss($event)"
+      [attr.aria-label]="'Remove ' + (label() || ariaLabel() || 'badge')"
+    >
+      <sv-icon name="close" cssClass="h-full w-full" [strokeWidth]="2" />
+    </button>
+  }
+</span>

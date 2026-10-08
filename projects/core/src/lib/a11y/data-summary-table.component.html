@@ -1,0 +1,30 @@
+@if (rows().length) {
+  <div class="sv-summary">
+    @if (summary().overview) {
+      <p>{{ summary().overview }}</p>
+    }
+    <table>
+      @if (caption()) {
+        <caption>{{ caption() }}</caption>
+      }
+      <thead>
+        <tr>
+          <!-- `track $index`: a pivot's column labels repeat across groups. -->
+          @for (label of summary().columns; track $index) {
+            <th scope="col">{{ label }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.key) {
+          <tr>
+            <th scope="row">{{ row.header }}</th>
+            @for (cell of row.cells; track $index) {
+              <td>{{ cell }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}

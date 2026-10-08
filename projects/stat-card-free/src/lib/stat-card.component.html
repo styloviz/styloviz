@@ -1,0 +1,334 @@
+<!-- ── Root card ─────────────────────────────────────────────────────────── -->
+<article
+  class="group relative flex flex-col overflow-hidden rounded-xl border bg-white
+         shadow-sm transition-all duration-200 hover:shadow-md
+         dark:bg-gray-900 dark:shadow-gray-950/60"
+  [ngClass]="[accentClass(), customClass()]"
+  [attr.aria-label]="title()"
+  role="region"
+>
+
+  <!-- ════════════════════════ LOAD FAILURE ════════════════════════════════ -->
+  <!-- Ahead of the skeleton, and in place of the metric rather than beneath it.
+       The card had a loading state but no way to say the load failed, so a failed
+       refresh left the previous figure on screen looking current — a dashboard
+       reporting yesterday's revenue as today's, with nothing on the card to
+       suggest otherwise. Compact, because the whole shell has to fit where a
+       single number used to sit. -->
+  @if (error()) {
+    <div class="p-4">
+      <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" data-sv-state="error" />
+    </div>
+  }
+
+  <!-- ════════════════════════ LOADING SKELETON ════════════════════════════ -->
+  @if (loading() && !error()) {
+    <div class="flex flex-col gap-4 p-5 animate-pulse">
+      <div class="flex items-center justify-between">
+        <div class="h-3 w-20 rounded-full bg-gray-200 dark:bg-gray-700/70"></div>
+        <div class="h-8 w-8 rounded-xl bg-gray-200 dark:bg-gray-700/70"></div>
+      </div>
+      <div class="h-7 w-28 rounded-md bg-gray-200 dark:bg-gray-700/70"></div>
+      <div class="flex items-center gap-2">
+        <div class="h-5 w-12 rounded-full bg-gray-200 dark:bg-gray-700/70"></div>
+        <div class="h-3 w-16 rounded-full bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════════ DEFAULT LAYOUT ══════════════════════════════ -->
+  @if (showBody() && layout() === 'default') {
+    <div class="flex flex-1 flex-col px-5 pt-5 pb-4 gap-3.5">
+
+      <!-- Row 1 — label + icon -->
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <p class="text-[13px] font-medium tracking-tight text-gray-500 dark:text-gray-400 truncate">
+            {{ title() }}
+          </p>
+          @if (description()) {
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+              {{ description() }}
+            </p>
+          }
+        </div>
+        @if (hasIcon()) {
+          <span
+            class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-xl
+                   ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.06]"
+            [ngClass]="iconClasses()"
+            aria-hidden="true"
+          >
+            <sv-icon [name]="icon()" cssClass="h-4 w-4" [strokeWidth]="1.75" />
+          </span>
+        }
+      </div>
+
+      <!-- Row 2 — primary value -->
+      <div class="flex items-end justify-between gap-2">
+        <p
+          class="text-[28px] font-bold tracking-tight text-gray-900 dark:text-white tabular-nums leading-none"
+          aria-live="polite"
+        >
+          @if (prefix()) {
+            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+          }
+          {{ displayValue() }}
+          @if (suffix()) {
+            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+          }
+        </p>
+
+        <!-- Sparkline (right-aligned) -->
+        @if (hasSparkline()) {
+          <sv-sparkline
+            class="mb-0.5 shrink-0"
+            [data]="sparkline()"
+            [width]="120"
+            [height]="32"
+            [strokeWidth]="1.75"
+            tone="neutral"
+            [ariaHidden]="true" />
+        }
+      </div>
+
+      <!-- Row 3 — trend + label -->
+      @if (hasTrend()) {
+        <div class="flex items-center gap-2">
+          <ng-container *ngTemplateOutlet="trendChip; context: {
+            chipClass: 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ' + trendClasses(),
+            iconClass: 'h-3 w-3'
+          }" />
+          <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-xs text-gray-500 dark:text-gray-400' }" />
+        </div>
+      }
+    </div>
+
+    <ng-container *ngTemplateOutlet="freshnessLine; context: { lineClass: 'px-5 pb-3' }" />
+
+    <!-- View more link -->
+    @if (hasLink()) {
+      <button
+        type="button"
+        class="flex items-center justify-between border-t border-gray-100 px-5 py-2.5
+               text-xs font-medium text-gray-500 transition-colors duration-150
+               hover:bg-gray-50/80 hover:text-primary-600
+               dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-800/60
+               dark:hover:text-primary-400"
+        (click)="linkClick.emit()"
+      >
+        <span>{{ linkLabel() }}</span>
+        <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      </button>
+    }
+  }
+
+  <!-- ════════════════════════ COMPACT LAYOUT ══════════════════════════════ -->
+  @if (showBody() && layout() === 'compact') {
+    <div class="flex items-center gap-3.5 px-4 py-3.5">
+      @if (hasIcon()) {
+        <span
+          class="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-xl
+                 ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.06]"
+          [ngClass]="iconClasses()"
+          aria-hidden="true"
+        >
+          <sv-icon [name]="icon()" cssClass="h-4 w-4" [strokeWidth]="1.75" />
+        </span>
+      }
+      <div class="flex-1 min-w-0">
+        <p class="text-[12px] font-medium text-gray-500 dark:text-gray-400 truncate leading-tight">{{ title() }}</p>
+        <p class="text-xl font-bold text-gray-900 dark:text-white tabular-nums leading-snug">
+          @if (prefix()) { <span class="text-sm text-gray-500 dark:text-gray-400">{{ prefix() }}</span> }
+          {{ displayValue() }}
+          @if (suffix()) { <span class="text-sm text-gray-500 dark:text-gray-400">{{ suffix() }}</span> }
+        </p>
+      </div>
+      @if (hasTrend()) {
+        <div class="flex shrink-0 flex-col items-end gap-0.5">
+          <ng-container *ngTemplateOutlet="trendChip; context: {
+            chipClass: 'inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ' + trendClasses(),
+            iconClass: 'h-3 w-3'
+          }" />
+          <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] leading-tight text-gray-500 dark:text-gray-400 text-right' }" />
+        </div>
+      }
+    </div>
+    <ng-container *ngTemplateOutlet="freshnessLine; context: { lineClass: 'px-4 pb-3 -mt-1.5' }" />
+  }
+
+  <!-- ════════════════════════ HORIZONTAL LAYOUT ═══════════════════════════ -->
+  <!-- Two-column split: left = icon + label + context | right = value + trend -->
+  @if (showBody() && layout() === 'horizontal') {
+    <div class="flex items-stretch min-h-[88px]">
+
+      <!-- Left column — identity / context -->
+      <div class="flex flex-1 flex-col justify-center gap-1.5 px-5 py-4
+                  border-r border-gray-100 dark:border-gray-800">
+        @if (hasIcon()) {
+          <span
+            class="inline-flex items-center justify-center h-9 w-9 rounded-xl mb-1
+                   ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.06]"
+            [ngClass]="iconClasses()"
+            aria-hidden="true"
+          >
+            <sv-icon [name]="icon()" cssClass="h-4 w-4" [strokeWidth]="1.75" />
+          </span>
+        }
+        <p class="text-[13px] font-semibold text-gray-700 dark:text-gray-200 tracking-tight leading-tight truncate">
+          {{ title() }}
+        </p>
+        @if (description()) {
+          <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ description() }}</p>
+        }
+        <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'block text-[11px] text-gray-500 dark:text-gray-400' }" />
+        <ng-container *ngTemplateOutlet="freshnessLine; context: { lineClass: '' }" />
+      </div>
+
+      <!-- Right column — metric + trend -->
+      <div class="flex flex-col items-end justify-center gap-2 px-5 py-4 shrink-0">
+        <p class="text-[26px] font-bold tracking-tight text-gray-900 dark:text-white tabular-nums leading-none">
+          @if (prefix()) {
+            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+          }
+          {{ displayValue() }}
+          @if (suffix()) {
+            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+          }
+        </p>
+
+        @if (hasTrend()) {
+          <ng-container *ngTemplateOutlet="trendChip; context: {
+            chipClass: 'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ' + trendClasses(),
+            iconClass: 'h-3 w-3'
+          }" />
+        }
+
+        @if (hasSparkline()) {
+          <sv-sparkline
+            class="mt-1"
+            [data]="sparkline()"
+            [width]="120"
+            [height]="28"
+            [strokeWidth]="1.75"
+            tone="neutral"
+            [ariaHidden]="true" />
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ════════════════════════ MINIMAL LAYOUT ══════════════════════════════ -->
+  <!-- Accent bar + tinted background + large value + plain trend text (no pill) -->
+  @if (showBody() && layout() === 'minimal') {
+    <div class="flex items-stretch" [ngClass]="minimalAccentClass().bg">
+
+      <!-- Colored left accent bar —— the defining visual signature of this layout -->
+      <div class="w-1 shrink-0" [ngClass]="minimalAccentClass().bar" aria-hidden="true"></div>
+
+      <!-- Content -->
+      <div class="flex flex-1 items-center justify-between gap-4 px-4 py-4">
+
+        <!-- Left: optional icon + label + value -->
+        <div class="flex items-center gap-3 min-w-0">
+          @if (hasIcon()) {
+            <span
+              class="inline-flex shrink-0 items-center justify-center h-10 w-10 rounded-xl
+                     ring-1 ring-inset ring-black/[0.06] dark:ring-white/[0.06]"
+              [ngClass]="iconClasses()"
+              aria-hidden="true"
+            >
+              <sv-icon [name]="icon()" cssClass="h-5 w-5" [strokeWidth]="1.75" />
+            </span>
+          }
+          <div class="min-w-0">
+            <p class="text-[10px] font-semibold tracking-widest uppercase text-gray-500 dark:text-gray-400 truncate mb-1">
+              {{ title() }}
+            </p>
+            <p class="text-[30px] font-extrabold text-gray-900 dark:text-white tabular-nums leading-none">
+              @if (prefix()) {
+                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+              }
+              {{ displayValue() }}
+              @if (suffix()) {
+                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+              }
+            </p>
+            @if (description()) {
+              <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ description() }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Right: plain colored trend (no pill/chip) -->
+        @if (hasTrend()) {
+          <div class="flex flex-col items-end shrink-0 gap-0.5">
+            <ng-container *ngTemplateOutlet="trendChip; context: {
+              chipClass: 'inline-flex items-center gap-1 text-sm font-bold ' + minimalTrendColor(),
+              iconClass: 'h-4 w-4'
+            }" />
+            <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] text-gray-500 dark:text-gray-400 text-right leading-tight' }" />
+          </div>
+        }
+      </div>
+    </div>
+    <ng-container *ngTemplateOutlet="freshnessLine; context: { lineClass: 'px-5 py-2 border-t border-gray-100 dark:border-gray-800' }" />
+  }
+
+  <!-- ════════════════════════ SHARED PIECES ═══════════════════════════════ -->
+  <!--
+    ★★ ONE TREND CHIP, ONE PERIOD, ONE FRESHNESS LINE — FOR EVERY LAYOUT. They
+       used to be written out per layout, and only `default` got the accessible
+       name with its comparison period and the freshness line: the same figure
+       in `compact`, `horizontal` or `minimal` read as a bare "12.4%" and a
+       cached KPI looked live. Each layout now only chooses the chip's CLASSES.
+  -->
+  <ng-template #trendChip let-chipClass="chipClass" let-iconClass="iconClass">
+    <span
+      data-sv-trend
+      [ngClass]="chipClass"
+      [attr.role]="trendAriaLabel() ? 'img' : null"
+      [attr.aria-label]="trendAriaLabel() || null"
+    >
+      @if (trend() === 'up') {
+        <sv-icon name="arrow-up" [cssClass]="iconClass" [strokeWidth]="2.5" />
+      }
+      @if (trend() === 'down') {
+        <sv-icon name="arrow-down" [cssClass]="iconClass" [strokeWidth]="2.5" />
+      }
+      @if (displayTrendPercent()) {
+        {{ displayTrendPercent() }}
+      }
+      @if (trendValue() !== null && displayTrendPercent() === '') {
+        {{ trendValue()! | number }}
+      }
+    </span>
+  </ng-template>
+
+  <ng-template #trendPeriod let-periodClass="periodClass">
+    @if (trendLabel()) {
+      <span data-sv-trend-period [ngClass]="periodClass">{{ trendLabel() }}</span>
+    }
+  </ng-template>
+
+  <!--
+    ★★★ A CACHED KPI LOOKS IDENTICAL TO A LIVE ONE. A number is a number, and
+        nothing about a stale one announces itself — so the reader assumes the
+        dashboard is current, which is exactly the assumption a broken
+        pipeline exploits.
+  -->
+  <ng-template #freshnessLine let-lineClass="lineClass">
+    @if (freshnessLabel(); as freshness) {
+      <p data-sv-freshness
+         class="text-[11px]"
+         [ngClass]="lineClass"
+         [class.text-gray-500]="!isStale()"
+         [class.dark:text-gray-400]="!isStale()"
+         [class.text-warning-800]="isStale()"
+         [class.dark:text-warning-200]="isStale()">
+        {{ freshness }}
+      </p>
+    }
+  </ng-template>
+
+</article>

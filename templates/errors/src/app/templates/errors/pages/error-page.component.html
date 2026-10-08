@@ -1,0 +1,259 @@
+<div class="relative w-full max-w-2xl">
+
+  <!--
+    ★ The status code as a backdrop, not a heading. It is the thing a developer
+    scans for and the thing a visitor does not need to read, so it is enormous
+    and almost invisible — and `aria-hidden`, because the real code is in the
+    chip below where a screen reader will reach it in the right order.
+  -->
+  @if (error().code) {
+    <span
+      class="pointer-events-none absolute -top-10 right-0 select-none text-[9rem] font-black leading-none tracking-tighter sm:-top-14 sm:text-[13rem]"
+      [class]="tone().ghost"
+      aria-hidden="true"
+    >{{ error().code }}</span>
+  }
+
+  <!-- A soft glow behind the badge, tinted by severity. -->
+  <span
+    class="pointer-events-none absolute left-1/2 top-0 h-56 w-56 -translate-x-1/2 -translate-y-1/3 rounded-full bg-gradient-to-b to-transparent blur-3xl"
+    [class]="tone().glow"
+    aria-hidden="true"
+  ></span>
+
+  <div class="relative">
+    <span
+      class="inline-flex h-14 w-14 items-center justify-center rounded-2xl ring-1 ring-inset"
+      [class]="tone().badge"
+    >
+      <sv-icon [name]="error().icon" [cssClass]="'h-6 w-6 ' + tone().ink" [strokeWidth]="1.7" />
+    </span>
+
+    <p class="mt-5 flex flex-wrap items-center gap-2 text-xs font-medium">
+      @if (error().code) {
+        <span class="rounded-md bg-gray-900/[0.06] px-2 py-1 font-mono tabular-nums text-gray-600 dark:bg-white/10 dark:text-gray-300">
+          {{ error().code }}
+        </span>
+      }
+      <span [class]="tone().ink">{{ error().label }}</span>
+    </p>
+
+    <h1 class="mt-3 text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl dark:text-white">
+      {{ error().title }}
+    </h1>
+    <p class="mt-3 max-w-prose text-base leading-relaxed text-gray-500 dark:text-gray-400">
+      {{ error().message }}
+    </p>
+
+    <!--
+      ★★ THE ADDRESS THAT FAILED, ECHOED BACK. On a 404 the typo is usually in
+      the URL, and the URL is the one thing the visitor cannot see once the
+      browser has rendered a page over it.
+    -->
+    @if (error().showSearch && requestedPath()) {
+      <p class="mt-4 truncate rounded-xl border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400">
+        {{ requestedPath() }}
+      </p>
+    }
+
+    <!--
+      ★★ THE CONNECTION BANNER FLIPS BY ITSELF. The offline page listens for
+      `online`, so somebody who reconnects sees the page change under them
+      rather than wondering whether it is safe to press anything.
+    -->
+    @if (error().watchConnection) {
+      <div
+        class="mt-4 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm"
+        [class]="backOnline()
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-500/10 dark:text-emerald-300'
+          : 'border-gray-200 bg-white text-gray-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-400'"
+        role="status"
+      >
+        <span
+          class="h-2 w-2 shrink-0 rounded-full"
+          [class]="backOnline() ? 'bg-emerald-500' : 'bg-gray-400 dark:bg-gray-600'"
+          aria-hidden="true"
+        ></span>
+        @if (backOnline()) {
+          <span class="font-medium">You're back online.</span>
+          <span class="ml-auto">
+            <sv-button size="xs" variant="primary" label="Reload" (clicked)="reload()" />
+          </span>
+        } @else {
+          <span>Still no connection. We're watching for it.</span>
+        }
+      </div>
+    }
+
+    <!--
+      ★★ AUTO-RETRY, WITH A WAY OUT. A 503 that clears in forty seconds should
+      not need somebody to keep pressing a button to find out — but a countdown
+      that cannot be stopped is a page that reloads while you are reading it.
+    -->
+    <!-- Always rendered: a live region has to exist before its text changes to
+         be announced. The ticking number below is deliberately outside it. -->
+    <p class="sr-only" role="status">{{ retryAnnouncement() }}</p>
+    @if (countdown() > 0) {
+      <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm dark:border-gray-800 dark:bg-gray-900/60">
+        <sv-icon name="refresh-cw" cssClass="h-4 w-4 shrink-0 text-gray-400" [strokeWidth]="1.8" />
+        <span class="text-gray-500 tabular-nums dark:text-gray-400">
+          Trying again in {{ countdown() }}s
+        </span>
+        <button
+          type="button"
+          class="ml-auto rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+          (click)="cancelCountdown()"
+        >Stop</button>
+      </div>
+    }
+
+    <!-- Actions -->
+    <div class="mt-6 flex flex-wrap gap-2.5">
+      @for (action of error().actions; track action.id) {
+        <sv-button
+          [label]="action.label"
+          [variant]="action.style"
+          [elevated]="action.style === 'primary'"
+          (clicked)="onAction(action)" />
+      }
+    </div>
+
+    <!-- What you can try -->
+    @if (error().tips.length) {
+      <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          What you can try
+        </h2>
+        <ul class="mt-3 grid gap-2.5">
+          @for (tip of error().tips; track tip) {
+            <li class="flex gap-2.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+              <sv-icon name="check" [cssClass]="'mt-0.5 h-4 w-4 shrink-0 ' + tone().ink" [strokeWidth]="2.4" />
+              <span>{{ tip }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <!-- Search + suggestions (404 / 410) -->
+    @if (error().showSearch) {
+      <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Find it instead
+        </h2>
+
+        <!-- flex+gap, not space-y: sv-* hosts are display:inline. -->
+        <form class="mt-3 flex flex-col gap-2 sm:flex-row" (submit)="$event.preventDefault(); search()">
+          <div class="min-w-0 flex-1">
+            <sv-input-field
+              type="search"
+              placeholder="Search for a page…"
+              ariaLabel="Search for a page"
+              leadingIcon="search"
+              [value]="query()"
+              (valueChange)="query.set($event)" />
+          </div>
+          <sv-button type="submit" label="Search" variant="secondary" [disabled]="!query().trim()" />
+        </form>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          @for (item of suggestions; track item.href) {
+            <a
+              [routerLink]="item.href"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 transition-colors hover:border-brand-300 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300 dark:hover:text-white"
+            >
+              <sv-icon [name]="item.icon" cssClass="h-3.5 w-3.5" [strokeWidth]="1.8" />
+              {{ item.label }}
+            </a>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Notify me (maintenance / coming-soon) -->
+    @if (error().showNotify) {
+      <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+        @if (!subscribed()) {
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Tell me when it's ready
+          </h2>
+          <form class="mt-3 flex flex-col gap-2 sm:flex-row" (submit)="$event.preventDefault(); notify()">
+            <div class="min-w-0 flex-1">
+              <sv-input-field
+                type="email"
+                placeholder="you@example.com"
+                ariaLabel="Email address"
+                autocomplete="email"
+                leadingIcon="mail"
+                [value]="email()"
+                (valueChange)="email.set($event)" />
+            </div>
+            <sv-button
+              type="submit"
+              label="Notify me"
+              variant="primary"
+              [loading]="submitting()"
+              [disabled]="!emailValid()" />
+          </form>
+          @if (notifyFailed()) {
+            <p class="mt-2 flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400" role="alert">
+              <sv-icon name="alert-triangle" cssClass="h-4 w-4 shrink-0" [strokeWidth]="2" />
+              That did not go through. Try again in a moment.
+            </p>
+          }
+        } @else {
+          <p
+            class="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400"
+            data-sv-state="success"
+          >
+            <sv-icon name="check-circle" cssClass="h-4 w-4 shrink-0" [strokeWidth]="2" />
+            {{ error().notifyDone }}
+          </p>
+        }
+      </div>
+    }
+
+    <!--
+      ★★★ THE REFERENCE IS THE POINT OF A 5xx PAGE.
+      "Something went wrong" tells somebody what they already knew. A string
+      your support team can paste into a log search is the only part of this
+      page that shortens the conversation that follows.
+    -->
+    @if (error().showReference && reference()) {
+      <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          Reference
+        </h2>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <code class="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 font-mono text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-200">{{ reference() }}</code>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+            (click)="copyReference()"
+          >
+            <sv-icon [name]="copied() ? 'check' : copyFailed() ? 'alert-triangle' : 'copy'"
+                     [cssClass]="copyFailed() ? 'h-3.5 w-3.5 text-amber-500' : 'h-3.5 w-3.5'"
+                     [strokeWidth]="2" />
+            {{ copied() ? 'Copied' : copyFailed() ? 'Select & copy' : 'Copy' }}
+          </button>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Quote this if you contact us — it points straight at what failed.
+        </p>
+      </div>
+    }
+
+    <!-- Footer links -->
+    <div class="mt-8 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-200 pt-5 text-sm dark:border-gray-800">
+      @if (error().showStatus) {
+        <a [href]="statusUrl" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+          <sv-icon name="external-link" cssClass="h-3.5 w-3.5" [strokeWidth]="1.8" />
+          Check system status<span class="sr-only"> (opens in a new tab)</span>
+        </a>
+      }
+      <a [href]="mailto()" class="text-gray-500 transition-colors hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+        Contact {{ brand.supportEmail }}
+      </a>
+    </div>
+  </div>
+</div>

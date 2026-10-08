@@ -1,0 +1,43 @@
+/*
+  Why this is not Tailwind's `sr-only`, which is what every hand-rolled copy of
+  this table used.
+
+  ★★★ `sr-only` is `position: absolute` + a 1×1 clip. Absolute resolves against
+      the nearest POSITIONED ancestor, and the charts that first shipped this had
+      none — so a table of twenty rows resolved against the initial containing
+      block, hung past the fold, and the WINDOW grew a scrollbar for a table
+      nobody can see. The fix there was `relative` on the chart root. That fix
+      does not survive being copied: this component is rendered by a dozen
+      surfaces, and the requirement "your root must be positioned" is invisible
+      at the call site and silently unmet by the thirteenth.
+
+  ★★ `fixed` needs no positioned ancestor and cannot lengthen the document,
+     whatever it is dropped into. 1×1 and clipped, so there is nothing to see at
+     the corner it resolves to.
+
+  ★★ Out of flow either way, which is the other half of why this is not an
+     in-flow clipped box: the surfaces render this inside `flex` containers with
+     `gap`, and an in-flow 1px box would add 1px AND a gap to a dozen layouts.
+
+  ★ `pointer-events: none` because it does resolve over the viewport corner, and
+    a 1×1 invisible box that eats a click is a bug nobody would find.
+
+  The table keeps its own `display`. Making it a block would strip the row and
+  header semantics this exists for — the accessibility tree reads `display`, and
+  a table that is not a table announces as text.
+*/
+:host {
+  display: contents;
+}
+
+.sv-summary {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  pointer-events: none;
+}

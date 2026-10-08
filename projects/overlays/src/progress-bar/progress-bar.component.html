@@ -1,0 +1,91 @@
+<style>
+  @keyframes progress-stripe {
+    from { background-position: 1rem 0; }
+    to   { background-position: 0 0; }
+  }
+  @keyframes progress-indeterminate {
+    0%   { left: -35%; right: 100%; }
+    60%  { left: 100%; right: -90%; }
+    100% { left: 100%; right: -90%; }
+  }
+  @keyframes progress-indeterminate-short {
+    0%   { left: -200%; right: 100%; }
+    60%  { left: 107%; right: -8%;  }
+    100% { left: 107%; right: -8%;  }
+  }
+</style>
+
+<div class="w-full" [class]="customClass()"
+     role="progressbar"
+     [attr.aria-label]="accessibleName()"
+     [attr.aria-busy]="indeterminate() ? 'true' : null"
+     [attr.aria-valuenow]="indeterminate() ? null : announcedPercent()"
+     [attr.aria-valuetext]="indeterminate() ? null : resolvedValueText()"
+     [attr.aria-valuemin]="indeterminate() ? null : 0"
+     [attr.aria-valuemax]="indeterminate() ? null : 100">
+
+  <!-- Top label row -->
+  @if (labelPos() === 'top' && displayText()) {
+    <div class="mb-1.5 flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+        {{ stageLabel() ? displayText() : (label() || '') }}
+      </span>
+      @if (showPercent()) {
+        <span class="text-xs font-semibold tabular-nums text-gray-800 dark:text-gray-100">
+          {{ percentText() }}
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Track + fill row -->
+  <div class="flex items-center gap-3">
+    <div class="relative flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/60"
+         [class]="trackHeight()">
+
+      @if (indeterminate()) {
+        <!-- Indeterminate: two animated bars -->
+        <div class="absolute inset-0 overflow-hidden rounded-full">
+          <div class="absolute top-0 bottom-0 w-[35%] rounded-full [animation:progress-indeterminate_2.1s_cubic-bezier(0.65,0.815,0.735,0.395)_infinite]"
+               [ngClass]="{
+                 'bg-primary-500': variant() === 'primary',
+                 'bg-accent-500': variant() === 'success',
+                 'bg-warning-500':   variant() === 'warning',
+                 'bg-danger-500':     variant() === 'danger',
+                 'bg-info-500':     variant() === 'info',
+                 'bg-gray-500':    variant() === 'neutral'
+               }"></div>
+          <div class="absolute top-0 bottom-0 w-[35%] rounded-full [animation:progress-indeterminate-short_2.1s_cubic-bezier(0.165,0.84,0.44,1)_1.15s_infinite]"
+               [ngClass]="{
+                 'bg-primary-400': variant() === 'primary',
+                 'bg-accent-400': variant() === 'success',
+                 'bg-warning-400':   variant() === 'warning',
+                 'bg-danger-400':     variant() === 'danger',
+                 'bg-info-400':     variant() === 'info',
+                 'bg-gray-400':    variant() === 'neutral'
+               }"></div>
+        </div>
+
+      } @else {
+        <!-- Determinate fill -->
+        <div [class]="fillClasses()"
+             [style.width.%]="percent()">
+          <!-- Inside label (only on 'lg' size) -->
+          @if (insideLabelVisible()) {
+            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white">
+              {{ percentText() }}
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Right-side label -->
+    @if (labelPos() === 'right' && displayText()) {
+      <span class="shrink-0 text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-300">
+        {{ displayText() }}
+      </span>
+    }
+  </div>
+
+</div>

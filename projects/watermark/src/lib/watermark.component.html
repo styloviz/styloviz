@@ -1,0 +1,98 @@
+<div #box class="relative" data-sv-watermark [attr.data-sv-variant]="variant()">
+  <ng-content />
+
+  <!-- ★★★ `pointer-events: none` OR THE MARK EATS EVERY CLICK UNDER IT. An
+       overlay stretched across the content is, by default, a transparent sheet
+       intercepting every pointer event — which turns the whole watermarked
+       region into a dead zone and is the single commonest way this control ships
+       broken. `aria-hidden` for the same reason on the other side: the marks are
+       decorative repetition, and a screen reader reading "Confidential" forty
+       times is not accessibility. -->
+  <!-- X-7 forced colors: the overlay opts out of forced-color adjustment so
+       the UA does not draw a Canvas "readability backplate" behind every rotated
+       mark (forty opaque boxes over the content), and each mark paints in the
+       user's CanvasText instead of a grey that may match their Canvas. -->
+  <div #overlay class="pointer-events-none absolute inset-0 overflow-hidden select-none forced-colors:forced-color-adjust-none"
+       aria-hidden="true"
+       [style.opacity]="opacity()"
+       [attr.data-sv-signature]="signature()"
+       data-sv-overlay>
+
+    <!-- ★ The probe: one unrotated, invisible mark whose rendered width replaces
+         the per-character estimate once web fonts have loaded, so a font swap
+         after first paint re-tiles instead of leaving the marks colliding. -->
+    <span #probe class="invisible absolute left-0 top-0 whitespace-nowrap font-semibold"
+          [style.font-size.px]="fontSize()"
+          data-sv-probe>{{ markText() }}</span>
+
+    @if (variant() === 'single') {
+    <span class="absolute left-1/2 top-1/2 whitespace-nowrap font-semibold text-gray-900
+                 dark:text-white forced-colors:text-[CanvasText]"
+          [style.transform]="'translate(-50%, -50%) rotate(' + angle() + 'deg)'"
+          [style.font-size.px]="fontSize()"
+          data-sv-mark>{{ markText() }}</span>
+    } @else {
+    @for (row of rows(); track row) {
+    @for (col of cols(); track col) {
+    <span class="absolute whitespace-nowrap font-semibold text-gray-900 dark:text-white forced-colors:text-[CanvasText]"
+          [style.left.px]="col * tile().width + rowOffset(row) - tile().width / 2"
+          [style.top.px]="row * tile().height"
+          [style.transform]="'rotate(' + angle() + 'deg)'"
+          [style.font-size.px]="fontSize()"
+          [attr.data-sv-row]="row"
+          data-sv-mark>{{ markText() }}</span>
+    }
+    }
+    }
+  </div>
+
+  <!-- ★★ THE MARK IS ANNOUNCED ONCE, IN WORDS, rather than forty times as
+       repeated text. -->
+  <span class="sr-only" data-sv-label>{{ label() }}</span>
+</div>
+
+@if (variant() === 'inspect') {
+<dl class="mt-2 max-w-md space-y-1 text-[11px] text-gray-700 dark:text-gray-300"
+    data-sv-inspect>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">tile</dt>
+    <dd class="font-mono tabular-nums" data-sv-inspect-tile>
+      {{ tile().width.toFixed(0) }}×{{ tile().height.toFixed(0) }}px
+      <span class="text-gray-500 dark:text-gray-400">
+        (rotated extent {{ tile().contentWidth.toFixed(0) }}×{{ tile().contentHeight.toFixed(0) }},
+        not the {{ textWidth().toFixed(0) }}×{{ textHeight().toFixed(0) }} text box)
+      </span>
+    </dd>
+  </div>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">marks</dt>
+    <dd class="font-mono tabular-nums" data-sv-inspect-count>{{ markCount() }}</dd>
+  </div>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">opacity</dt>
+    <dd [attr.data-sv-opacity-verdict]="opacityVerdict()" data-sv-inspect-opacity>
+      <span class="font-mono tabular-nums">{{ opacity() }}</span>
+      <span class="ml-1"
+            [class.text-warning-700]="opacityVerdict() !== 'usable'"
+            [class.dark:text-warning-400]="opacityVerdict() !== 'usable'">
+        {{ opacityLabel() }}
+      </span>
+    </dd>
+  </div>
+</dl>
+<!--
+  The caveat sits AFTER the list, not in it. A <dl> may only contain dt/dd
+  groups and <div> wrappers, so a stray <p> made the whole list malformed and
+  cost every term/definition pair its semantics.
+-->
+<p class="pt-1 text-gray-500 dark:text-gray-400" data-sv-inspect-caveat>
+  This is not a security control. Anything rendered in the browser can be removed by
+  somebody with the page source; a watermark defeats the casual crop-and-share, which
+  is what almost every real leak actually is.
+  <span data-sv-inspect-threat-model>
+    A tamper report only means the overlay was changed in this browser; it is not proof the
+    content is protected and not a compliance control.
+  </span>
+</p>
+
+}

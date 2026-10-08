@@ -1,0 +1,39 @@
+{
+  "name": "@styloviz/ai-insight-cards",
+  "version": "1.0.1",
+  "description": "5 variants: `feed` (priority-ordered list), `grid` (confidence-ring cards), `inline` (single featured insight), `panel` (detailed insight with evidence) and `anomaly` (the baseline behind each claim) — with confidence provenance, evidence links, trend arrows, sparklines and action buttons.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "ai",
+    "ai-insight-cards",
+    "styloviz",
+    "insight",
+    "cards"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/ai-insight-cards",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/ai-insight-cards"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/icons": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

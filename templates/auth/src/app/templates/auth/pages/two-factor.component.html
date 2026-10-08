@@ -1,0 +1,105 @@
+<div class="w-full max-w-md">
+
+  <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 ring-1 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-300 dark:ring-brand-400/20">
+    <sv-icon name="shield-check" cssClass="h-6 w-6" />
+  </span>
+
+  <h1 class="mt-5 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+    Two-step verification
+  </h1>
+  <p class="mt-1.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+    @if (useRecovery()) {
+      Enter one of the recovery codes you saved when you turned on two-step verification.
+    } @else {
+      Enter the {{ length }}-digit code from your authenticator app, or the one we sent to
+      <span class="font-medium text-gray-700 dark:text-gray-200">{{ maskedEmail() }}</span>.
+    }
+  </p>
+
+  @if (error()) {
+    <sv-alert-banner
+      class="mt-5 block"
+      variant="danger"
+      alertStyle="soft"
+      size="sm"
+      [dismissible]="false"
+      [message]="error()" />
+  }
+
+  <div class="mt-6 flex flex-col gap-4">
+    @if (useRecovery()) {
+      <sv-input-field
+        inputId="recovery-code"
+        label="Recovery code"
+        placeholder="XXXX-XXXX-XXXX"
+        leadingIcon="lock"
+        autocomplete="off"
+        [(value)]="recoveryCode"
+        (submitted)="verify()" />
+    } @else {
+      <sv-otp-input
+        size="lg"
+        label="Verification code"
+        [length]="length"
+        [value]="code()"
+        [status]="otpStatus()"
+        [autoFocus]="true"
+        (changed)="onCodeChange($event)"
+        (complete)="onComplete($event)" />
+    }
+
+    <sv-button
+      variant="primary"
+      size="lg"
+      [block]="true"
+      label="Verify"
+      loadingLabel="Verifying"
+      [loading]="submitting()"
+      [disabled]="!canSubmit()"
+      (clicked)="verify()" />
+
+    @if (!useRecovery()) {
+      <div class="flex items-center justify-center">
+        @if (cooldown() > 0) {
+          <!-- A countdown, not a disabled button with no explanation: the
+               question "why can I not press this" should never need asking. -->
+          <span class="text-sm text-gray-500 dark:text-gray-400">
+            You can send a new code in {{ cooldown() }}s
+          </span>
+        } @else {
+          <sv-button
+            btnStyle="link"
+            variant="primary"
+            size="sm"
+            label="Send a new code"
+            icon="refresh-cw"
+            (clicked)="resend()" />
+        }
+      </div>
+    }
+  </div>
+
+  <div class="mt-7 flex flex-col items-center gap-3 border-t border-gray-200 pt-6 dark:border-white/10">
+    <sv-button
+      btnStyle="link"
+      variant="neutral"
+      size="sm"
+      [label]="useRecovery() ? 'Use a verification code instead' : 'Use a recovery code instead'"
+      (clicked)="toggleRecovery()" />
+    <a [routerLink]="base + '/login'"
+       class="text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+      Sign in as someone else
+    </a>
+  </div>
+
+  @if (!isWired) {
+    <p class="mt-5 flex items-start gap-2 rounded-xl bg-gray-100 px-3.5 py-2.5 text-xs leading-relaxed text-gray-600 dark:bg-white/[0.04] dark:text-gray-400">
+      <sv-icon name="info" cssClass="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>
+        Demo mode — any code verifies except
+        <code class="rounded bg-white px-1 py-0.5 font-mono text-[11px] dark:bg-white/10">000000</code>,
+        which shows the rejection state.
+      </span>
+    </p>
+  }
+</div>

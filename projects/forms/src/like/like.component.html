@@ -1,0 +1,127 @@
+<div class="inline-flex flex-col items-start">
+<div class="relative inline-flex">
+  <!--
+    Burst particles.
+
+    ★★ A four-hue confetti sparkle, so all four stay on literal Tailwind hues.
+       Tokenising them couples three UNRELATED roles into one decorative effect
+       — `danger`, `warning` and `brand` would jointly decide a confetti
+       palette, so a buyer picking a blue error colour and a green warning gets
+       a burst that reads as neither celebration nor anything else. Same
+       reasoning as `alert-banner`'s announcement gradient: a decorative stop is
+       not a role.
+
+    ★ `pink` has no token family to fold into at all, so tokenising the other
+      three left one literal particle among three themed ones — a burst that
+      half-followed the theme, which is worse than one that does not.
+
+    ★★ The particles start OPAQUE and `animate-ping` fades them out as it
+       scales them up. They used to carry `opacity-0` as well, and ping's
+       keyframes only define the END state (`opacity: 0`), so the animation ran
+       from 0 to 0 and the burst never painted for anyone. Centred particles are
+       placed with `calc()` rather than `translateX(-50%)`, because ping's
+       `transform: scale(2)` replaces a transform and would snap them sideways.
+
+    ★ Reduced motion: `burst()` does not start one, and `motion-reduce:hidden`
+      removes any burst already running if the preference changes mid-flight —
+      the particles are absent, not frozen on the button.
+  -->
+  @if (isBursting()) {
+    <span aria-hidden="true" data-sv-like-burst
+          class="pointer-events-none absolute inset-0 flex items-center justify-center motion-reduce:hidden">
+      <span class="absolute h-1.5 w-1.5 motion-safe:animate-ping rounded-full bg-rose-400"
+            style="top:-6px; left:calc(50% - 3px); animation-delay:0ms"></span>
+      <span class="absolute h-1 w-1 motion-safe:animate-ping rounded-full bg-amber-400"
+            style="top:20%; right:-6px; animation-delay:80ms"></span>
+      <span class="absolute h-1.5 w-1.5 motion-safe:animate-ping rounded-full bg-pink-400"
+            style="bottom:-6px; left:calc(50% - 3px); animation-delay:50ms"></span>
+      <span class="absolute h-1 w-1 motion-safe:animate-ping rounded-full bg-violet-400"
+            style="top:20%; left:-6px; animation-delay:120ms"></span>
+    </span>
+  }
+
+  <!--
+    ★★ The LIKED state is literal and per-variant — see `likedClass` in the TS,
+       which is where the four hues and the reasoning live. Rose for a heart,
+       sky for a thumb, amber for a star, violet for applause: the hue is the
+       reaction's identity, not a semantic role, so it opts out of the token
+       sweep rather than following a buyer's `danger` colour.
+
+    The UNLIKED state is `gray`, which IS a token family, so the button's resting
+    chrome still follows a buyer's neutrals. Only the reaction colour opts out.
+
+    ★ A FAILED write is a danger ring AND a triangle glyph, never the ring alone.
+      The ring is the only thing a buyer will think to add, and it says nothing
+      to a screen reader and nothing to a red-green viewer — so the failure is
+      also in `ariaLabel()` and in a visible icon.
+  -->
+  <button
+    type="button"
+    [attr.aria-pressed]="liked()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-disabled]="isInert() || null"
+    [attr.aria-busy]="pending() || null"
+    [attr.aria-describedby]="errorMessage() ? errorId : null"
+    [disabled]="isInert()"
+    (click)="toggle()"
+    class="inline-flex cursor-pointer select-none items-center border font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+    [ngClass]="[
+      buttonSize(),
+      liked()
+        ? likedClass()
+        : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700 focus-visible:ring-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300',
+      errorMessage() ? 'ring-2 ring-danger-500 dark:ring-danger-400' : '',
+      pending() ? 'cursor-progress motion-safe:animate-pulse' : ''
+    ]"
+  >
+    <!-- Icon -->
+    <!--
+      Liked reads as a FILLED glyph, so it switches weight rather than toggling
+      a `fill` attribute on hand-drawn path data. `solid` is safe for all four
+      of these names — every one of them fills to the silhouette its outline
+      describes.
+    -->
+    <sv-icon
+      [name]="iconName()"
+      [weight]="liked() ? 'solid' : 'line'"
+      [cssClass]="'shrink-0 motion-safe:transition-transform motion-safe:duration-200 ' + iconSize()
+        + (isBursting() ? ' scale-125' : ' scale-100')"
+      [strokeWidth]="1.75" />
+
+    <!-- Count -->
+    @if (showCount()) {
+      <span
+        class="tabular-nums transition-all duration-150"
+        [ngClass]="liked() ? 'font-semibold' : 'font-medium'"
+      >
+        {{ count() }}
+      </span>
+    }
+
+    <!-- Failed write — the shape carries the state, the ring only reinforces it. -->
+    @if (errorMessage()) {
+      <sv-icon
+        name="alert-triangle"
+        weight="line"
+        aria-hidden="true"
+        [cssClass]="'shrink-0 text-danger-600 dark:text-danger-400 ' + iconSize()"
+        [strokeWidth]="1.75" />
+    }
+  </button>
+</div>
+
+  <!--
+    ★ The failure as visible TEXT, not only a ring and a glyph: a sighted reader
+      should not have to guess why the heart is outlined in red. The live region
+      is always rendered so the message is announced when it arrives, and the
+      button points at it with `aria-describedby`.
+  -->
+  <span aria-live="polite">
+    @if (errorMessage()) {
+      <span [id]="errorId" data-sv-like-error
+            class="mt-1 block text-xs text-danger-600 dark:text-danger-400">
+        Not saved: {{ errorMessage() }}
+      </span>
+    }
+  </span>
+</div>

@@ -1,0 +1,209 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="resolvedError()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="plotted().notice"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--bc-anim-dur]="animDuration()">
+
+  <!-- Header: title + drillback breadcrumbs -->
+  <div class="flex items-center justify-between gap-2 flex-wrap min-h-7">
+    @if (title()) {
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+    }
+    <nav class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" aria-label="Chart breadcrumbs">
+      @for (crumb of breadcrumbs(); track crumb; let last = $last; let first = $first) {
+        @if (!first) {
+          <span class="text-gray-300 dark:text-gray-600 select-none">/</span>
+        }
+        <span [class]="last
+          ? 'font-semibold text-brandaccent-600 dark:text-brandaccent-400'
+          : 'text-gray-500 dark:text-gray-400'"
+        >{{ crumb }}</span>
+      }
+      @if (canDrillBack()) {
+        <button
+          type="button"
+          (click)="drillBack()"
+          class="ml-2 flex items-center gap-1 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          aria-label="Go back one level"
+        >
+          <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" class="shrink-0">
+            <path d="M7 2L3 5l4 3" stroke="currentColor" stroke-width="1.5" fill="none"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Back
+        </button>
+      }
+    </nav>
+  </div>
+
+  <div class="w-full overflow-hidden">
+    <!--
+      ★★ `role="group"`, NOT `role="img"`, BECAUSE THE MARKS ARE FOCUSABLE.
+
+         `img` is a leaf role: its subtree is replaced by its own accessible name,
+         so a focusable descendant is a control a screen reader has been told does
+         not exist. axe reports it as `nested-interactive`, and it was real — this
+         chart carried `role="img"` while its columns were given `tabindex="0"`
+         and `role="button"`, which is a tab stop that announces nothing. `group`
+         is the role that owns labelled children, and it is what every other
+         interactive chart in the kit already uses.
+
+         The chart keeps its accessible name either way; what changes is that the
+         per-mark `aria-label`s become reachable instead of discarded.
+    -->
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgHeight()"
+      [attr.height]="svgHeight()"
+      class="w-full"
+      role="group"
+      [attr.aria-label]="resolvedAriaLabel()"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g [attr.transform]="'translate(' + PADDING.left + ',' + PADDING.top + ')'">
+
+        <!-- Horizontal grid lines -->
+        @if (showGrid()) {
+          @for (val of gridValues(); track val) {
+            <line
+              x1="0" [attr.y1]="gridY(val)"
+              [attr.x2]="plotW()" [attr.y2]="gridY(val)"
+              stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+            />
+          }
+        }
+
+        <!-- Y-axis value labels -->
+        @if (showLabels()) {
+          @for (val of gridValues(); track val) {
+            <text
+              x="-6" [attr.y]="gridY(val) + 4"
+              text-anchor="end" class="fill-gray-400 dark:fill-gray-500"
+              style="font-size:10px;font-family:inherit;"
+            >{{ formatValue(val) }}</text>
+          }
+        }
+
+        <!-- X-axis baseline -->
+        <line
+          x1="0" [attr.y1]="plotH()" [attr.x2]="plotW()" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-300 dark:text-gray-600" stroke-width="1"
+        />
+
+        <!-- Bars -->
+        @for (bar of bars(); track bar.cat + ':' + bar.series) {
+          @if (bar.barH > 0) {
+            <!--
+              ★ ONLY DRILLABLE BARS ARE TAB STOPS. Drilling in was mouse-only —
+                the chart shipped a keyboard-reachable *back* button with no way
+                in — but a leaf bar has no action, so making every bar focusable
+                would buy the fix with a row of dead tab stops. The value of a
+                leaf bar stays available through the chart's own summary.
+            -->
+            <g
+              [class]="(bar.hasDrilldown ? 'cursor-pointer' : 'cursor-default') + ' outline-none focus-visible:stroke-2 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white'"
+              [attr.tabindex]="bar.hasDrilldown ? 0 : null"
+              [attr.role]="bar.hasDrilldown ? 'button' : null"
+              [attr.aria-label]="bar.hasDrilldown ? barAriaLabel(bar) : null"
+              [attr.data-sv-clamped]="bar.clamped ? '' : null"
+              (click)="drillDown(bar)"
+              (mouseenter)="showTooltip($event, bar)"
+              (mouseleave)="hideTooltip()"
+              (focus)="focusTooltip(bar)"
+              (blur)="hideTooltip()"
+              (keydown.enter)="onBarKey($event, bar)"
+              (keydown.space)="onBarKey($event, bar)"
+            >
+              <path
+                [attr.d]="barPath(bar)"
+                [attr.fill]="bar.color"
+                [attr.fill-opacity]="bar.hasDrilldown ? '1' : '0.88'"
+                class="bc-bar-v transition-opacity duration-150 hover:opacity-75"
+                [style.animation-delay]="bar.catIndex * 60 + 'ms'"
+              />
+              <!-- Drillable indicator dot -->
+              @if (bar.hasDrilldown) {
+                <circle
+                  [attr.cx]="bar.x + bar.barW / 2"
+                  [attr.cy]="bar.y - 6"
+                  r="3"
+                  [attr.fill]="bar.color"
+                  class="animate-pulse"
+                />
+              }
+              @if (showValues() && bar.barH > 16) {
+                <text
+                  [attr.x]="bar.x + bar.barW / 2" [attr.y]="bar.y + 12"
+                  text-anchor="middle" fill="white"
+                  style="font-size:9px;font-weight:600;font-family:inherit;pointer-events:none;"
+                >{{ formatValue(bar.value) }}</text>
+              }
+            </g>
+          }
+        }
+
+        <!-- X-axis category labels -->
+        @if (showLabels()) {
+          @for (cat of displayCategories(); track cat; let ci = $index) {
+            <text
+              [attr.x]="(ci + 0.5) * (plotW() / displayCategories().length)"
+              [attr.y]="plotH() + 18"
+              text-anchor="middle" class="fill-gray-500 dark:fill-gray-400"
+              style="font-size:11px;font-family:inherit;"
+            >{{ cat }}</text>
+          }
+        }
+
+        <!-- Tooltip -->
+        @if (tooltip().visible) {
+          <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+            <rect x="0" y="0" rx="6" width="140" height="52"
+              fill="white" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,0.14));"
+            />
+            <text x="10" y="18"
+              style="font-size:11px;font-weight:600;font-family:inherit;fill:var(--color-gray-700);"
+            >{{ tooltip().label }}</text>
+            @for (item of tooltip().items; track item.series) {
+              <circle cx="10" cy="34" r="4" [attr.fill]="item.color" />
+              <text x="20" y="38"
+                style="font-size:11px;font-family:inherit;fill:var(--color-gray-500);"
+              >{{ item.series }}: <tspan style="font-weight:600;fill:var(--color-gray-900);">{{ formatValue(item.value) }}</tspan></text>
+            }
+          </g>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  @if (showLegend() && displayDatasets().length > 1) {
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center">
+      @for (ds of displayDatasets(); track ds.label; let i = $index) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                [style.background-color]="seriesColors()[i]"></span>
+          {{ ds.label }}
+        </span>
+      }
+    </div>
+  }
+
+  @if (canDrillBack()) {
+    <p class="text-center text-xs text-gray-500 dark:text-gray-400">
+      Click a bar to drill deeper &bull; Use <strong>Back</strong> to return
+    </p>
+  } @else {
+    <p class="text-center text-xs text-gray-500 dark:text-gray-400">
+      Click a highlighted bar to drill down
+    </p>
+  }
+
+</div>
+
+</sv-chart-frame>

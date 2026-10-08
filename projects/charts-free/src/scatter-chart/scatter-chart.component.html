@@ -1,0 +1,200 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="notice()"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div class="flex flex-col gap-2" [class]="customClass()">
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <div class="relative overflow-visible">
+    <!-- `group`, not `img`: the shapes below are focusable, and `img` is
+         children-presentational — it would drop every one of them from the
+         accessibility tree while leaving them in the tab order.
+
+         The arrow keys are handled here rather than on each mark: there is ONE
+         tab stop in the plot and the keys walk it, so a dense chart is one Tab
+         away from the rest of the page instead of four hundred. -->
+    <svg #plotRoot [attr.width]="width()" [attr.height]="height()"
+         [attr.viewBox]="'0 0 ' + width() + ' ' + height()"
+         class="overflow-visible w-full" role="group"
+         [attr.aria-label]="resolvedAriaLabel()"
+         (keydown)="onKeydown($event, plotRoot)">
+
+      <!-- Grid lines. Driven by the same scales as the points, so a line always
+           lands on the value its label claims. -->
+      @if (showGrid()) {
+        @for (t of gridLines().yTicks; track t) {
+          <line [attr.x1]="pad.l" [attr.y1]="scaleY(t)"
+                [attr.x2]="pad.l + innerW()" [attr.y2]="scaleY(t)"
+                stroke="var(--color-gray-200)" stroke-width="1"
+                class="dark:stroke-gray-700" stroke-dasharray="4 3"/>
+        }
+        @for (t of gridLines().xTicks; track t) {
+          <line [attr.x1]="scaleX(t)" [attr.y1]="pad.t"
+                [attr.x2]="scaleX(t)" [attr.y2]="pad.t + innerH()"
+                stroke="var(--color-gray-200)" stroke-width="1"
+                class="dark:stroke-gray-700" stroke-dasharray="4 3"/>
+        }
+      }
+
+      <!-- Axes -->
+      <line [attr.x1]="pad.l" [attr.y1]="pad.t"
+            [attr.x2]="pad.l" [attr.y2]="pad.t + innerH()"
+            stroke="var(--color-gray-300)" stroke-width="1.5" class="dark:stroke-gray-600"/>
+      <line [attr.x1]="pad.l" [attr.y1]="pad.t + innerH()"
+            [attr.x2]="pad.l + innerW()" [attr.y2]="pad.t + innerH()"
+            stroke="var(--color-gray-300)" stroke-width="1.5" class="dark:stroke-gray-600"/>
+
+      <!-- Axis tick labels Y -->
+      @for (t of gridLines().yTicks; track t) {
+        <text [attr.x]="pad.l - 6" [attr.y]="scaleY(t)"
+              text-anchor="end" dominant-baseline="middle"
+              font-size="9" fill="var(--color-gray-400)">{{ yTick(t) }}</text>
+      }
+      <!-- Axis tick labels X -->
+      @for (t of gridLines().xTicks; track t) {
+        <text [attr.x]="scaleX(t)" [attr.y]="pad.t + innerH() + 14"
+              text-anchor="middle" font-size="9" fill="var(--color-gray-400)">{{ xTick(t) }}</text>
+      }
+
+      <!-- Axis labels -->
+      <text [attr.x]="pad.l + innerW() / 2" [attr.y]="height() - 2"
+            text-anchor="middle" font-size="10" font-weight="600" fill="var(--color-gray-500)"
+            class="dark:fill-gray-400">{{ xLabel() }}</text>
+      <text [attr.transform]="'rotate(-90,' + (pad.l - 34) + ',' + (pad.t + innerH() / 2) + ')'"
+            [attr.x]="pad.l - 34" [attr.y]="pad.t + innerH() / 2"
+            text-anchor="middle" font-size="10" font-weight="600" fill="var(--color-gray-500)"
+            class="dark:fill-gray-400">{{ yLabel() }}</text>
+
+      <!-- The painted point layer, above the switch-over count.
+
+           `aria-hidden` because it is a picture of marks the hexagons below
+           already announce one by one; a second, unlabelled copy in the
+           accessibility tree would just be a phantom.
+
+           A `data:` URL, so the export path can still rasterise this SVG through
+           a canvas without tainting it. -->
+      @if (rasterHref(); as href) {
+        <image [attr.href]="href" x="0" y="0"
+               [attr.width]="width()" [attr.height]="height()"
+               aria-hidden="true"/>
+      }
+
+      <!-- Density bins. The picture when there are too many points to draw one
+           by one, and the hover / keyboard targets in every dense mode. -->
+      @for (b of binMarks(); track b.transform; let i = $index) {
+        <path
+          [attr.d]="hexPath()"
+          [attr.transform]="b.transform"
+          [attr.data-mark-index]="i"
+          [class]="binsAreVisible()
+            ? b.fillClass + ' cursor-pointer outline-none stroke-primary-300 dark:stroke-primary-700 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white'
+            : 'fill-transparent cursor-pointer outline-none stroke-transparent hover:stroke-gray-500 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white'"
+          [attr.stroke-width]="isBinActive(b.event) ? 2 : 1"
+          [attr.tabindex]="isTabStop(i) ? 0 : -1"
+          role="button"
+          [attr.aria-label]="b.ariaLabel"
+          (mouseenter)="hoverBin(b.event)"
+          (mouseleave)="clearHover()"
+          (focus)="focusMark(i); hoverBin(b.event)"
+          (blur)="clearHover()"
+          (click)="selectBin(b.event)"
+          (keydown.enter)="selectBin(b.event); $event.preventDefault()"
+          (keydown.space)="selectBin(b.event); $event.preventDefault()"/>
+      }
+
+      <!-- Individual points, below the switch-over count. -->
+      @for (m of pointMarks(); track m.series.name + '|' + $index; let i = $index) {
+        <circle
+          [attr.cx]="m.cx"
+          [attr.cy]="m.cy"
+          [attr.r]="m.radius + (isActive(m.series, m.point) ? 3 : 0)"
+          [attr.fill]="m.color"
+          [attr.fill-opacity]="isActive(m.series, m.point) ? 1 : 0.75"
+          [attr.stroke]="m.color"
+          stroke-width="1.5"
+          [attr.data-mark-index]="i"
+          [attr.tabindex]="isTabStop(i) ? 0 : -1"
+          role="button"
+          [attr.aria-label]="m.ariaLabel"
+          class="cursor-pointer outline-none transition-all duration-150 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white"
+          (mouseenter)="hoverPoint(m.series, m.point)"
+          (mouseleave)="clearHover()"
+          (focus)="focusMark(i); hoverPoint(m.series, m.point)"
+          (blur)="clearHover()"
+          (click)="selectPoint(m.series, m.point)"
+          (keydown.enter)="selectPoint(m.series, m.point); $event.preventDefault()"
+          (keydown.space)="selectPoint(m.series, m.point); $event.preventDefault()"/>
+      }
+    </svg>
+
+    <!-- Tooltip -->
+    @if (hoveredPoint(); as hp) {
+      <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <p class="text-xs font-semibold text-gray-800 dark:text-white">{{ hp.series }}</p>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+          {{ xLabel() }}: {{ hp.point.x }}&nbsp;&nbsp;{{ yLabel() }}: {{ hp.point.y }}
+        </p>
+      </div>
+    }
+    @if (hoveredBin(); as hb) {
+      <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <p class="text-xs font-semibold text-gray-800 dark:text-white">
+          {{ hb.count }} {{ hb.count === 1 ? 'point' : 'points' }}
+        </p>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+          {{ xLabel() }}: ~{{ xTick(hb.x) }}&nbsp;&nbsp;{{ yLabel() }}: ~{{ yTick(hb.y) }}
+        </p>
+        @if (hb.shares.length > 1) {
+          <ul class="mt-1 space-y-0.5">
+            @for (s of hb.shares; track s.series) {
+              <li class="flex items-center gap-1.5 text-[11px] text-gray-600 dark:text-gray-300">
+                <span class="inline-block h-2 w-2 rounded-full" [style.background]="s.color"></span>
+                {{ s.series }} {{ s.count }}
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Legend. The series key when points are drawn; the density key as well when
+       bins are, because a shade with no scale beside it is decoration. -->
+  <div class="flex flex-wrap items-center gap-4">
+    @for (s of series(); track s.name) {
+      <div class="flex items-center gap-1.5">
+        <span class="inline-block h-3 w-3 rounded-full border-2"
+              [style.background]="s.color + 'BF'"
+              [style.border-color]="s.color"></span>
+        <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">{{ s.name }}</span>
+      </div>
+    }
+
+    @if (binsAreVisible() && densityLegend().length) {
+      <div class="flex items-center gap-1.5">
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Points per bin</span>
+        @for (k of densityLegend(); track k.step) {
+          <span class="flex items-center gap-1">
+            <svg width="12" height="12" viewBox="-7 -7 14 14" aria-hidden="true" class="shrink-0">
+              <path [attr.d]="legendHexPath" [class]="k.fillClass"/>
+            </svg>
+            <span class="text-[11px] text-gray-600 dark:text-gray-400">{{ k.label }}</span>
+          </span>
+        }
+      </div>
+    }
+  </div>
+
+  <sv-data-summary-table [summary]="a11ySummary()" />
+</div>
+
+</sv-chart-frame>

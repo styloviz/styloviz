@@ -1,0 +1,205 @@
+<div class="max-w-full" data-sv-image-compare [attr.data-sv-variant]="variant()">
+
+  <!-- ★★★ THE WARNING SITS ABOVE THE IMAGES, NOT UNDER THEM. The failure it
+       describes is invisible — the widget looks exactly right and the difference
+       it shows is real, it is just the wrong difference — so a reader who has
+       already drawn a conclusion from the picture will not go looking for a
+       footnote. -->
+  @if (aspectLabel()) {
+  <p class="mb-2 flex gap-2 rounded-md border border-warning-300 bg-warning-50 px-3 py-2 text-xs
+            text-warning-900 dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-200"
+     role="status"
+     data-sv-aspect-warning>{{ aspectLabel() }}</p>
+  }
+
+  <!--
+    Not a warning — the wipe IS honest here. Said anyway, because a soft "after"
+    against a sharp "before" reads as a quality regression, and the cause is the
+    upscale rather than anything in the picture.
+  -->
+  @if (frameNote()) {
+  <p class="mb-2 text-[11px] text-gray-600 dark:text-gray-400"
+     data-sv-frame-note>{{ frameNote() }}</p>
+  }
+
+  <div #box
+       class="relative select-none overflow-hidden rounded-lg touch-none"
+       [class.cursor-ew-resize]="showHandle()"
+       (pointerdown)="onPointerDown($event)"
+       (pointermove)="onPointerMove($event)"
+       (pointerup)="onPointerUp()"
+       (pointercancel)="onPointerUp()"
+       data-sv-box>
+
+    <img class="block w-full"
+         [src]="beforeSrc()"
+         [alt]="beforeAlt()"
+         (load)="onImageLoad('before', $event)"
+         draggable="false"
+         data-sv-before />
+
+    <!-- ★★ THE "AFTER" IS ABSOLUTELY POSITIONED OVER THE "BEFORE" AND CLIPPED.
+         The before image alone is what gives the box its height, so the two are
+         guaranteed to occupy the same rectangle — and `aria-hidden` because the
+         pair is announced once, in words, by the read-out below. -->
+    <img class="absolute inset-0 block h-full w-full object-cover"
+         [src]="afterSrc()"
+         [alt]="afterAlt()"
+         [style.clip-path]="clip()"
+         (load)="onImageLoad('after', $event)"
+         draggable="false"
+         aria-hidden="true"
+         data-sv-after />
+
+    <!-- ★★★ THE LABELS SIT ON THE SIDES THE IMAGES ACTUALLY OCCUPY, WHICH IS
+         NOT THE READING ORDER OF THE WORDS "BEFORE" AND "AFTER".
+
+         `position` means "how much of the after is showing", the handle sits at
+         `left: position%`, and the after is therefore clipped to the region to
+         the LEFT of the handle — that is what makes dragging right reveal more
+         of it. The before is what remains on the right.
+
+         The first version put "Before" bottom-left because that is the order
+         the words come in, and every comparison in the kit was consequently
+         captioned backwards: the label named one image while pointing at the
+         other. A caption that contradicts the picture is worse than no caption,
+         because the reader believes it. -->
+    @if (afterLabel()) {
+    <span class="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5
+                 text-[11px] font-medium text-white"
+          data-sv-label-after>{{ afterLabel() }}</span>
+    }
+    @if (beforeLabel()) {
+    <span class="pointer-events-none absolute bottom-2 right-2 rounded bg-black/60 px-2 py-0.5
+                 text-[11px] font-medium text-white"
+          data-sv-label-before>{{ beforeLabel() }}</span>
+    }
+
+    <!--
+      ★★★ DRAWN ONCE, OVER THE WHOLE BOX, ABOVE BOTH LAYERS — never inside the
+           clipped one. A landmark that travelled with the wipe would sit at the
+           same place on whatever happened to be under it and prove nothing. The
+           entire value is that it stays put while the images change beneath it,
+           so a feature on the line in one image and beside it in the other is
+           the proof the component itself cannot compute: two files of identical
+           dimensions can still be different crops, and no measurement a browser
+           can take will say so.
+
+           Two-tone strokes because the reference has to stay visible over both
+           a white sky and a black shadow, and a single colour loses one of them.
+    -->
+    @if (showLandmarks()) {
+    <svg class="pointer-events-none absolute inset-0 h-full w-full"
+         preserveAspectRatio="none"
+         viewBox="0 0 100 100"
+         aria-hidden="true"
+         data-sv-landmarks
+         [attr.data-sv-landmark-set]="landmarks()">
+      @for (x of landmarkLines().x; track x) {
+        <line [attr.x1]="x * 100" y1="0" [attr.x2]="x * 100" y2="100"
+              stroke="rgb(0 0 0 / 0.45)" stroke-width="0.9" vector-effect="non-scaling-stroke" />
+        <line [attr.x1]="x * 100" y1="0" [attr.x2]="x * 100" y2="100"
+              stroke="rgb(255 255 255 / 0.75)" stroke-width="0.35"
+              stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+      }
+      @for (y of landmarkLines().y; track y) {
+        <line x1="0" [attr.y1]="y * 100" x2="100" [attr.y2]="y * 100"
+              stroke="rgb(0 0 0 / 0.45)" stroke-width="0.9" vector-effect="non-scaling-stroke" />
+        <line x1="0" [attr.y1]="y * 100" x2="100" [attr.y2]="y * 100"
+              stroke="rgb(255 255 255 / 0.75)" stroke-width="0.35"
+              stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+      }
+    </svg>
+    }
+
+    @if (showHandle()) {
+    <span class="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+          [style.left.%]="ariaValue()"
+          aria-hidden="true"
+          data-sv-divider></span>
+    }
+
+    <!-- ★★★ A REAL SLIDER, WITH THE REAL ROLE AND THE REAL KEYBOARD CONTRACT.
+         `role="slider"` plus `aria-valuenow` is what makes a screen reader
+         announce the position on every arrow press; `tabindex="0"` is what lets
+         anyone reach it at all. The keyboard handler only calls
+         `preventDefault()` for keys the slider owns, so Tab still leaves. -->
+    <div class="absolute top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center
+                rounded-full bg-white text-gray-700 shadow ring-1 ring-black/10
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+         [class.sr-only]="!showHandle()"
+         [style.left.%]="showHandle() ? ariaValue() : null"
+         role="slider"
+         tabindex="0"
+         [attr.aria-label]="ariaLabel()"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         [attr.aria-valuenow]="ariaValue()"
+         [attr.aria-valuetext]="positionLabel()"
+         [attr.aria-describedby]="icId('readout')"
+         (keydown)="onKeydown($event)"
+         data-sv-handle>
+      @if (showHandle()) {
+      <sv-icon name="chevrons-left-right" [size]="16" data-sv-handle-glyph />
+      }
+    </div>
+  </div>
+
+  <span [id]="icId('readout')" class="sr-only" data-sv-readout>{{ positionLabel() }}</span>
+</div>
+
+@if (variant() === 'inspect') {
+<dl class="mt-2 max-w-md space-y-1 text-[11px] text-gray-700 dark:text-gray-300"
+    data-sv-inspect>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">before</dt>
+    <dd class="font-mono tabular-nums" data-sv-inspect-before>
+      {{ beforeWidth() }}×{{ beforeHeight() }}
+      <span class="text-gray-500 dark:text-gray-400">({{ aspect().before.toFixed(3) }}:1)</span>
+    </dd>
+  </div>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">after</dt>
+    <dd class="font-mono tabular-nums" data-sv-inspect-after>
+      {{ afterWidth() }}×{{ afterHeight() }}
+      <span class="text-gray-500 dark:text-gray-400">({{ aspect().after.toFixed(3) }}:1)</span>
+    </dd>
+  </div>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">difference</dt>
+    <dd [attr.data-sv-comparable]="!aspect().mismatched" data-sv-inspect-difference>
+      <span class="font-mono tabular-nums">{{ (aspect().difference * 100).toFixed(2) }}%</span>
+      <span class="ml-1"
+            [class.text-warning-700]="aspect().mismatched"
+            [class.dark:text-warning-400]="aspect().mismatched"
+            [attr.data-sv-verdict]="frames().verdict">
+        @switch (frames().verdict) {
+          @case ('rotated')   { a quarter turn apart }
+          @case ('reshaped')  { not comparable by wiping }
+          @case ('scaled')    { the same shape, different sizes }
+          @case ('identical') { the same dimensions }
+          @default            { not measured yet }
+        }
+      </span>
+    </dd>
+  </div>
+  <div class="flex gap-2">
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">position</dt>
+    <dd class="font-mono tabular-nums" data-sv-inspect-position>{{ ariaValue() }}%</dd>
+  </div>
+</dl>
+<!--
+  The caveat sits AFTER the list, not in it. A <dl> may only contain dt/dd
+  groups and <div> wrappers, so a stray <p> made the whole list malformed and
+  cost every term/definition pair its semantics.
+-->
+<p class="pt-1 text-gray-500 dark:text-gray-400" data-sv-inspect-caveat>
+  The ratios are read from each file's intrinsic size, not from the boxes on screen —
+  the layout stretches both to the same rectangle, so the rendered sizes always agree
+  even when the pictures do not. Matching dimensions do not prove matching
+  <em>framing</em>: two files the same size can still be different crops of the same
+  scene, which nothing measurable from a browser can detect. Turn on
+  <code>landmarks</code> and check a fixed feature against the same line on both sides.
+</p>
+
+}

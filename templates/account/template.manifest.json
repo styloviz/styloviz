@@ -1,0 +1,129 @@
+{
+  "id": "account",
+  "name": "styloviz-account-template",
+  "title": "Styloviz Account Template",
+  "version": "1.0.1",
+  "route": "templates/account",
+  "requiresPro": false,
+  "generatedAt": "2026-10-07T18:50:11.064Z",
+  "dependencies": [
+    {
+      "pkg": "@styloviz/avatar",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/badge",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/button",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/core",
+      "tier": "infra",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/data",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/forms",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/icons",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/input-field",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/modal",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/password-strength",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/tabs",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    },
+    {
+      "pkg": "@styloviz/toggle-switch",
+      "tier": "free",
+      "registry": "https://registry.npmjs.org"
+    }
+  ],
+  "vendored": [],
+  "layout": "angular-project",
+  "templatePath": "src/app/templates/account",
+  "packageDependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@styloviz/avatar": "^1.0.1",
+    "@styloviz/badge": "^1.0.1",
+    "@styloviz/button": "^1.0.1",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/data": "^1.0.1",
+    "@styloviz/forms": "^1.0.1",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/input-field": "^1.0.1",
+    "@styloviz/layout": "^1.0.1",
+    "@styloviz/modal": "^1.0.1",
+    "@styloviz/password-strength": "^1.0.1",
+    "@styloviz/tabs": "^1.0.1",
+    "@styloviz/toast": "^1.0.1",
+    "@styloviz/toggle-switch": "^1.0.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0"
+  },
+  "projectFiles": [
+    ".editorconfig",
+    ".gitignore",
+    ".postcssrc.json",
+    ".vscode/extensions.json",
+    "angular.json",
+    "package.json",
+    "src/app/app.config.ts",
+    "src/app/app.routes.ts",
+    "src/app/app.ts",
+    "src/index.html",
+    "src/main.ts",
+    "tsconfig.app.json",
+    "tsconfig.json"
+  ],
+  "publicAssets": [
+    "demo/avatar-1.svg",
+    "demo/avatar-2.svg",
+    "demo/avatar-3.svg",
+    "demo/avatar-4.svg",
+    "demo/avatar-5.svg",
+    "favicon.ico",
+    "fonts/LICENSE-Manrope-OFL.txt",
+    "fonts/manrope-cyrillic-ext.woff2",
+    "fonts/manrope-cyrillic.woff2",
+    "fonts/manrope-greek.woff2",
+    "fonts/manrope-latin-ext.woff2",
+    "fonts/manrope-latin.woff2",
+    "fonts/manrope-vietnamese.woff2",
+    "logo-icon-sm.svg"
+  ]
+}

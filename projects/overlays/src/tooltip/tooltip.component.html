@@ -1,0 +1,79 @@
+<!--
+  ★ `effectiveTrigger()`, not `trigger()`: on a pointer that cannot hover, a
+  `hover` tooltip becomes a tap-to-toggle one, because a hover tooltip on a
+  touchscreen half-works rather than simply failing — the synthesised
+  `mouseenter` shows it over the control the user just pressed, and nothing
+  hides it again. See `effectiveTrigger` in the component.
+
+  Trigger wrapper. Focus lives on the projected trigger content, not here — the
+  (focusin)/(focusout) bindings below are what surface the tooltip for keyboard
+  users, and Enter/Space on a projected <button> reaches `toggle()` as a
+  synthesised click. The wrapper must stay out of the tab order so the trigger
+  is not announced twice.
+-->
+<!--
+  ★★ `[attr.tabindex]` BELOW IS THE ONLY WAY A DISABLED CONTROL'S EXPLANATION IS
+     REACHABLE BY KEYBOARD (`OF-20-I4`). `disabled` takes the control out of the
+     tab order, so without a tab stop on this wrapper the tooltip is mouse-only
+     — and it is the one tooltip whose whole job is to answer "why can't I
+     press this?". The wrapper already carries `aria-describedby`, so focus
+     landing here is what reads the reason out. It is added ONLY under
+     `[forDisabledControl]`: a tab stop around every tooltip in the kit would
+     double the tab stops on a toolbar.
+
+  ★ Under the preset `aria-describedby` is written from the start rather than
+    on show: the wrapper is what takes focus, and a description that arrives
+    after focus has landed is one a screen reader does not read. For the same
+    reason a `click` tooltip over a disabled control toggles on Enter/Space
+    pressed ON the wrapper (`onWrapperActivate`) — the wrapper is a div, and
+    a div synthesises no click from a key.
+
+  ⚠️ There WAS an `eslint-disable-next-line interactive-supports-focus` here and
+     it no longer fires — the wrapper takes a real `tabindex` under
+     `[forDisabledControl]`, which is what the rule wanted. ESLint reported the
+     directive as unused and `--fix` removed it; the rule is doing its job
+     unaided, so nothing is being suppressed.
+-->
+<div
+  #wrap
+  [class]="wrapperClasses()"
+  [attr.aria-describedby]="(visible() || forDisabledControl()) && text() ? tooltipId : null"
+  [attr.tabindex]="forDisabledControl() ? 0 : null"
+  (mouseenter)="effectiveTrigger() === 'hover' ? show() : null"
+  (mouseleave)="effectiveTrigger() === 'hover' ? hide() : null"
+  (focusin)="effectiveTrigger() === 'hover' || effectiveTrigger() === 'focus' ? show() : null"
+  (focusout)="effectiveTrigger() === 'hover' || effectiveTrigger() === 'focus' ? hide() : null"
+  (click)="effectiveTrigger() === 'click' ? toggle() : null"
+  (keydown.escape)="hide()"
+  (keydown.enter)="onWrapperActivate($event)"
+  (keydown.space)="onWrapperActivate($event)"
+>
+  <!-- Trigger content (default slot) -->
+  <ng-content />
+
+  <!-- Tooltip bubble -->
+  @if (text()) {
+    <div
+      #bubble
+      [id]="tooltipId"
+      role="tooltip"
+      [class]="tooltipClasses() + ' ' + customClass()"
+      [style.max-width.px]="maxWidth()"
+      [attr.aria-hidden]="!visible()"
+      [style.top.px]="portal() ? _bubbleTop() : null"
+      [style.left.px]="portal() ? _bubbleLeft() : null"
+      [style.z-index]="portal() ? _z() : null"
+    >
+      {{ text() }}
+      <!-- Arrow. Portalled, the bubble may have been clamped away from the
+           trigger's centre, so the arrow is placed from the engine's measured
+           offset instead of the `left-1/2` the CSS path uses. -->
+      <span
+        [class]="arrowClasses()"
+        [style.left.px]="portal() && _horizontalSide() ? _arrowX() : null"
+        [style.top.px]="portal() && !_horizontalSide() ? _arrowY() : null"
+        aria-hidden="true"
+      ></span>
+    </div>
+  }
+</div>

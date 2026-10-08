@@ -1,0 +1,76 @@
+<span class="inline-flex flex-col gap-0.5" [ngClass]="alignClass()">
+
+  <span class="inline-flex flex-wrap items-baseline gap-x-2 gap-y-0.5" [ngClass]="alignClass()">
+    @if (isFree()) {
+      <span
+        class="font-semibold text-accent-700 dark:text-accent-400"
+        [ngClass]="amountClass()"
+      >{{ freeLabel() }}</span>
+    } @else {
+      @if (isFrom()) {
+        <span
+          class="font-medium text-gray-500 dark:text-gray-400"
+          [ngClass]="compareClass()"
+        >{{ fromLabel() }}</span>
+      }
+
+      <span
+        class="font-semibold tabular-nums"
+        [ngClass]="[
+          amountClass(),
+          hasDiscount() ? 'text-danger-600 dark:text-danger-400' : 'text-gray-900 dark:text-white'
+        ]"
+      >@if (hasDiscount()) {<span class="sr-only">Sale price </span>}@if (isCredit()) {<span class="sr-only">Credit </span>}{{ formattedAmount() }}</span>
+
+      @if (hasRange()) {
+        <!--
+          The dash is decoration: an en dash is read as nothing by some screen
+          readers and as "dash" by others, so the word carries the meaning and
+          the glyph is hidden.
+        -->
+        <span
+          aria-hidden="true"
+          class="font-semibold text-gray-500 dark:text-gray-400"
+          [ngClass]="amountClass()"
+        >–</span>
+
+        <span
+          class="font-semibold tabular-nums text-gray-900 dark:text-white"
+          [ngClass]="amountClass()"
+        ><span class="sr-only">to </span>{{ formattedAmountTo() }}</span>
+      }
+    }
+
+    @if (hasDiscount()) {
+      <!--
+        A strike-through conveys nothing to a screen reader: without these two
+        labels the pair reads as "$49.99 $79.99" and there is no way to tell
+        which one is being charged.
+      -->
+      <s
+        class="tabular-nums text-gray-500 dark:text-gray-400"
+        [ngClass]="compareClass()"
+      ><span class="sr-only">Regular price </span>{{ formattedCompareAt() }}</s>
+
+      @if (discount() === 'badge') {
+        <!--
+          The visible − is U+2212, which reads as "minus". role="img" is what makes
+          the aria-label legal on a span AND what replaces the glyph with it.
+        -->
+        <span
+          role="img"
+          class="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-700 dark:bg-danger-900/50 dark:text-danger-300"
+          [attr.aria-label]="discountPercent() + '% off'"
+        >−{{ discountPercent() }}%</span>
+      } @else if (discount() === 'text') {
+        <span class="text-xs font-medium text-accent-700 dark:text-accent-400">
+          Save {{ discountPercent() }}%
+        </span>
+      }
+    }
+  </span>
+
+  @if (taxNote()) {
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ taxNote() }}</span>
+  }
+</span>

@@ -1,0 +1,235 @@
+<div class="w-full">
+  @if (label()) {
+    <label [attr.for]="_uid + '-input'" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</label>
+  }
+
+  <div class="relative">
+    <!-- Search icon -->
+    <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+      @if (loading()) {
+        <sv-spinner-arc cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" />
+      } @else {
+        <sv-icon [name]="icon()" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+      }
+    </div>
+
+    <input #inputEl type="text"
+      [id]="_uid + '-input'"
+      [class]="inputClass()"
+      [value]="query()"
+      [placeholder]="placeholder()"
+      [disabled]="resolvedDisabled()"
+      autocomplete="off"
+      role="combobox"
+      [attr.aria-label]="label() ? null : accessibleName()"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="open() ? 'ac-panel-' + _uid : null"
+      [attr.aria-activedescendant]="activeDescendantId()"
+      aria-autocomplete="list"
+      [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+      [attr.aria-describedby]="fieldError.showError() ? validationErrorId : null"
+      (input)="onInputChange($any($event.target).value)"
+      (focus)="onFocus()"
+      (blur)="onBlur()"
+      (keydown)="onKeydown($event)" />
+
+    <!-- Clear button -->
+    @if (clearable() && query()) {
+      <button type="button"
+        class="absolute inset-y-0 right-2 flex items-center p-1 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none"
+        aria-label="Clear"
+        [disabled]="resolvedDisabled()"
+        (click)="clear()">
+        <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      </button>
+    }
+  </div>
+
+  <!-- ── Dropdown — rendered into document.body via body portal so it escapes
+       ALL parent overflow:hidden and CSS transform containment. ── -->
+  <ng-template #panelTpl>
+
+    @if (filtered().length > 0) {
+      <!-- Results list -->
+      <ul [id]="'ac-panel-' + _uid"
+          class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-xl border border-gray-200/70
+                 bg-white py-1
+                 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
+                 dark:border-gray-700/50 dark:bg-gray-900
+                 dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.7),0_8px_24px_-8px_rgba(0,0,0,0.5)]"
+          [style.position]="panelStyle()['position']"
+          [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+          [style.width]="panelStyle()['width']"
+          [style.top]="panelStyle()['top']"
+      [style.maxHeight]="panelStyle()['maxHeight']"
+          [style.bottom]="panelStyle()['bottom']"
+          [style.left]="panelStyle()['left']"
+          [style.right]="panelStyle()['right']"
+      [style.maxWidth]="panelStyle()['maxWidth']"
+          [style.max-height]="'300px'"
+          [svStale]="stale()"
+          role="listbox">
+        @if (grouped()) {
+          @for (grp of groupedFiltered(); track grp.label) {
+            @if (grp.label) {
+              <li role="presentation"
+                  class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {{ grp.label }}
+              </li>
+            }
+            @for (row of grp.rows; track row.opt.value) {
+              <ng-container [ngTemplateOutlet]="optionRow"
+                            [ngTemplateOutletContext]="{ opt: row.opt, i: row.index }" />
+            }
+          }
+        } @else {
+          @for (opt of filtered(); track opt.value; let i = $index) {
+            <ng-container [ngTemplateOutlet]="optionRow"
+                          [ngTemplateOutletContext]="{ opt, i }" />
+          }
+        }
+      </ul>
+
+      <!-- Single-sourced option row, reused by flat and grouped rendering -->
+      <ng-template #optionRow let-opt="opt" let-i="i">
+        <!-- An option in an aria-activedescendant listbox is deliberately NOT
+             focusable: the text input owns ↑↓/Enter and points at the active option via aria-activedescendant.
+             Giving each option a tab stop would break that pattern and put dozens
+             of stops inside one control. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+        <li role="option"
+            [id]="optionId(i)"
+            [attr.aria-selected]="value() === opt.value"
+            [attr.aria-disabled]="opt.disabled || null"
+            class="flex cursor-pointer items-center gap-2.5 px-3 py-2 transition-colors duration-100"
+            [class.bg-primary-50]="highlightIdx() === i || value() === opt.value"
+            [class.dark:bg-primary-900/20]="highlightIdx() === i || value() === opt.value"
+            [class.opacity-50]="opt.disabled"
+            [class.cursor-not-allowed]="opt.disabled"
+            (mouseenter)="highlightIdx.set(i)"
+            (click)="pick(opt)">
+
+          @if (opt.icon) {
+            <sv-icon [name]="opt.icon!" cssClass="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+          }
+
+          <div class="min-w-0 flex-1">
+            <!--
+              ★★★ NO `[innerHTML]`, AND THE WHITESPACE HERE IS LOAD-BEARING.
+              `highlightSegments` returns runs of plain text; this template
+              writes the only markup involved, so a label containing `<img>` is
+              interpolated as characters rather than parsed as a tag
+              (`FI-01-I3`). The `@for` / `@if` are written closed-up against
+              their neighbours on purpose — Angular preserves the whitespace
+              between control-flow blocks, so laying this out over several
+              indented lines inserts spaces INSIDE the word being highlighted.
+            -->
+            <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-200"
+            >@for (seg of highlightSegments(opt.label); track $index) {@if (seg.match) {<mark
+                class="rounded bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300"
+              >{{ seg.text }}</mark>} @else {{{ seg.text }}}}</p>
+            @if (opt.sublabel) {
+              <p class="truncate text-[11px] text-gray-500 dark:text-gray-400">{{ opt.sublabel }}</p>
+            }
+          </div>
+
+          @if (value() === opt.value) {
+            <sv-icon name="check" cssClass="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" [strokeWidth]="2.5" />
+          }
+        </li>
+      </ng-template>
+
+      <!--
+        ★★★ THE TRUNCATION, DISCLOSED (`FI-01-I2`).
+
+        `role="presentation"` and `aria-hidden`, because a bare <li> inside a
+        listbox is an unlabelled OPTION as far as assistive tech is concerned —
+        this row would otherwise announce as a ninth result that no key can
+        reach. The same sentence is announced separately through the live
+        region below the field, which is where a status belongs.
+      -->
+      @if (isTruncated()) {
+        <li role="presentation" aria-hidden="true"
+            class="border-t border-gray-200/70 px-3 py-2 text-[11px] text-gray-500
+                   dark:border-gray-700/50 dark:text-gray-400"
+            data-sv-state="truncated">
+          {{ truncationNote() }}
+        </li>
+      }
+    } @else if (error()) {
+      <!-- A failed lookup is not "no results". Saying so sends the user hunting
+           for an entry that is there. -->
+      <div [id]="'ac-panel-' + _uid"
+           class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
+                  bg-white shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
+                  dark:border-gray-700/50 dark:bg-gray-900"
+           [style.position]="panelStyle()['position']"
+           [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+           [style.width]="panelStyle()['width']"
+           [style.top]="panelStyle()['top']"
+           [style.maxHeight]="panelStyle()['maxHeight']"
+           [style.bottom]="panelStyle()['bottom']"
+           [style.left]="panelStyle()['left']"
+           [style.right]="panelStyle()['right']"
+           [style.maxWidth]="panelStyle()['maxWidth']"
+           data-sv-state="error">
+        <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" />
+      </div>
+    } @else if (belowMinChars() && query()) {
+      <div [id]="'ac-panel-' + _uid"
+           class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
+                  bg-white px-4 py-6 text-center text-sm text-gray-500
+                  shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
+                  dark:border-gray-700/50 dark:bg-gray-900 dark:text-gray-400"
+           [style.position]="panelStyle()['position']"
+           [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+           [style.width]="panelStyle()['width']"
+           [style.top]="panelStyle()['top']"
+           [style.maxHeight]="panelStyle()['maxHeight']"
+           [style.bottom]="panelStyle()['bottom']"
+           [style.left]="panelStyle()['left']"
+           [style.right]="panelStyle()['right']"
+           [style.maxWidth]="panelStyle()['maxWidth']"
+           data-sv-state="min-chars">
+        {{ minCharsHint() }}
+      </div>
+    } @else if (!loading() && query()) {
+      <!-- Empty state -->
+      <div [id]="'ac-panel-' + _uid"
+           class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
+                  bg-white px-4 py-6 text-center
+                  shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
+                  dark:border-gray-700/50 dark:bg-gray-900
+                  dark:shadow-[0_24px_64px_-12px_rgba(0,0,0,0.7),0_8px_24px_-8px_rgba(0,0,0,0.5)]"
+           [style.position]="panelStyle()['position']"
+           [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+           [style.width]="panelStyle()['width']"
+           [style.top]="panelStyle()['top']"
+      [style.maxHeight]="panelStyle()['maxHeight']"
+           [style.bottom]="panelStyle()['bottom']"
+           [style.left]="panelStyle()['left']"
+           [style.right]="panelStyle()['right']"
+      [style.maxWidth]="panelStyle()['maxWidth']">
+        <sv-icon name="search" cssClass="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" [strokeWidth]="1.5" />
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ noResultsLabel() }}</p>
+      </div>
+    }
+
+  </ng-template>
+</div>
+
+<!--
+  The truncation as a STATUS, for the half of the audience that cannot see the
+  footer row inside the panel.
+
+  `role="status"` rather than `alert`: nothing is wrong, and an assertive
+  announcement on every keystroke-pause would make the field unusable. It lives
+  outside the listbox because a status inside one is an option, and it is
+  rendered only while truncated so the region is not announced empty.
+-->
+<span class="sr-only" role="status" data-sv-state="truncation-status">
+  @if (isTruncated() && open()) { {{ truncationNote() }} }
+</span>
+
+<!-- Form validation error (distinct from the lookup error inside the panel). -->
+<sv-field-error [id]="validationErrorId" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

@@ -1,0 +1,106 @@
+<div class="tpl-auth flex min-h-screen bg-white dark:bg-gray-950">
+
+  <!--
+    ═══════════════ Brand panel ═══════════════
+
+    ★ Hidden below `lg` rather than stacked above the form. On a phone, moving
+    it above would push the single field this page exists for below the fold.
+  -->
+  @if (showPanel()) {
+    <aside
+      class="relative hidden w-[44%] max-w-2xl shrink-0 flex-col justify-between overflow-hidden bg-brand-950 p-10 text-white lg:flex xl:p-12"
+      aria-label="About this sign-in"
+    >
+      <!--
+        The wash. Two radial gradients and a grid, all in CSS — no image to
+        download, and nothing that needs a second colour scheme.
+      -->
+      <div
+        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(129,140,248,0.45),transparent_55%),radial-gradient(circle_at_82%_78%,rgba(56,189,248,0.35),transparent_55%)]"
+        aria-hidden="true"
+      ></div>
+      <div
+        class="pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:48px_48px]"
+        aria-hidden="true"
+      ></div>
+
+      <div class="relative">
+        <a [routerLink]="brand.homeLink" class="inline-flex items-center gap-2.5 text-base font-semibold">
+          <img [src]="brand.logoSrc" [alt]="brand.logoAlt" class="h-8 w-8" width="32" height="32" />
+          <span>{{ brand.name }}<span class="text-brand-300">{{ brand.nameAccent }}</span></span>
+        </a>
+      </div>
+
+      <div class="relative max-w-md">
+        <h2 class="text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">{{ panel.headline }}</h2>
+        <p class="mt-3 text-sm leading-relaxed text-white/70">{{ panel.subhead }}</p>
+
+        <ul class="mt-9 space-y-5">
+          @for (point of panel.points; track point.title) {
+            <li class="flex gap-3.5">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 ring-1 ring-inset ring-white/15">
+                <sv-icon [name]="point.icon" cssClass="h-4.5 w-4.5 text-brand-200" [strokeWidth]="1.8" />
+              </span>
+              <span class="min-w-0">
+                <span class="block text-sm font-medium">{{ point.title }}</span>
+                <span class="mt-0.5 block text-sm leading-relaxed text-white/60">{{ point.body }}</span>
+              </span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="relative flex flex-wrap items-center gap-2">
+        @for (chip of panel.trust; track chip) {
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/75 ring-1 ring-inset ring-white/10">
+            <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+            {{ chip }}
+          </span>
+        }
+      </div>
+    </aside>
+  }
+
+  <!-- ═══════════════ Form side ═══════════════ -->
+  <div class="flex min-w-0 flex-1 flex-col bg-gray-50 dark:bg-gray-950">
+
+    <header class="flex shrink-0 items-center justify-between px-5 py-5 sm:px-8">
+      <!-- The wordmark repeats below `lg`, where the panel that carries it is gone —
+           and at every width once `AUTH_PANEL.points` is emptied and there is no panel. -->
+      <a
+        [routerLink]="brand.homeLink"
+        class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"
+        [class.lg:invisible]="showPanel()"
+      >
+        <img [src]="brand.logoSrc" [alt]="brand.logoAlt" class="h-6 w-6" width="24" height="24" />
+        <span>{{ brand.name }}<span class="text-brand-600 dark:text-brand-400">{{ brand.nameAccent }}</span></span>
+      </a>
+
+      <button
+        type="button"
+        (click)="theme.toggleTheme()"
+        class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500
+               dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+        [attr.aria-label]="theme.isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+        @if (theme.isDark()) {
+          <sv-icon name="sun" size="sm" />
+        } @else {
+          <sv-icon name="moon" size="sm" />
+        }
+      </button>
+    </header>
+
+    <main class="flex flex-1 items-center justify-center px-5 py-6 sm:px-8">
+      <router-outlet />
+    </main>
+
+    <footer class="shrink-0 px-5 pb-7 pt-2 sm:px-8">
+      <div class="mx-auto flex w-full max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+        <span>© {{ year }} {{ brand.name }}{{ brand.nameAccent }}</span>
+        <a [href]="support.helpHref" class="transition-colors hover:text-gray-600 dark:hover:text-gray-400">{{ support.helpLabel }}</a>
+        <a [href]="support.statusHref" target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-gray-600 dark:hover:text-gray-400">{{ support.statusLabel }}<span class="sr-only"> (opens in a new tab)</span></a>
+      </div>
+    </footer>
+  </div>
+</div>

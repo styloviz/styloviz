@@ -1,0 +1,50 @@
+/*
+ * Bone styling lives here rather than in Tailwind utilities because the sweep
+ * needs a pseudo-element and a keyframe. Colours stay in sync with
+ * @styloviz/skeleton-loader so the two never look like different products.
+ *
+ * The `var()`s carry no hex fallback on purpose. `@theme` always declares the
+ * gray ramp, so a fallback can never fire — and the ones that used to be here
+ * held the pre-v4 values, so if one ever did fire it would paint the wrong
+ * gray rather than rescue anything.
+ */
+/*
+ * ★★ THE THEME ARRIVES AS TWO CUSTOM PROPERTIES SET ON THE HOST, not as a
+ *    `:where(.dark)` rule here. Under emulated encapsulation Angular scopes
+ *    that selector to `:where(.dark[_ngcontent-…])` — a `.dark` element INSIDE
+ *    this component, which never exists — so every skeleton in a dark app drew
+ *    light bones. The host's classes (see the component) resolve through the
+ *    kit's own `dark:` variant, `.sv-force-light` exemption included.
+ */
+.sv-bone {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.375rem;
+  background-color: var(--sv-bone-fill);
+}
+
+.sv-bone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--sv-bone-sheen) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: sv-bone-wave 1.6s ease-in-out infinite;
+}
+
+@keyframes sv-bone-wave {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* A shimmering block is exactly the kind of motion that triggers vestibular
+   symptoms; the layout placeholder still does its job without it. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-bone::after {
+    animation: none;
+  }
+}

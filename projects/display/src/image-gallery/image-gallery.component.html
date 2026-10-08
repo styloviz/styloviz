@@ -1,0 +1,429 @@
+@if (loading()) {
+  <div class="p-4" data-sv-state="loading">
+    <sv-skeleton-shell variant="card" [rows]="3" ariaLabel="Loading" />
+  </div>
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
+} @else if (isEmpty()) {
+  <sv-empty-shell
+    [reason]="filtered() ? 'no-results' : 'no-data'"
+    [message]="emptyMessage()"
+    data-sv-state="empty" />
+} @else {
+
+<!--
+  ★★★ THE SELECTION SURVIVES A PAGE TURN, AND THAT IS THE POINT — the component
+       never prunes ids for images it cannot see, because a gallery that "tidied
+       up" the selection to match the current page would silently delete the
+       user's choices on every turn. What comes with keeping them is the duty to
+       SHOW them: select twelve on page one, turn to page two, and none of them
+       is ticked here while "Delete selected" still acts on all twelve.
+-->
+@if (selectable() && selectionSummary(); as summary) {
+  <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary-200
+              bg-primary-50/70 px-3 py-2 text-xs font-medium text-primary-900
+              dark:border-primary-900/50 dark:bg-primary-950/30 dark:text-primary-200"
+       role="status"
+       data-sv-selection-summary>
+    <span>{{ summary }}</span>
+    <button
+      type="button"
+      class="rounded-md px-2 py-0.5 text-[11px] font-semibold underline-offset-2 hover:underline
+             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+      (click)="clearSelection()"
+      data-sv-clear-selection>Clear selection</button>
+  </div>
+}
+
+<!-- ═══════════════════════════════════════════════════════
+     GRID layout — uniform rows, same height cards
+════════════════════════════════════════════════════════ -->
+@if (layout() === 'grid') {
+  <!--
+    ★★★ A GALLERY IS A LIST, AND THIS WAS A PILE OF DIVS. The arrangement said
+        "these eight things belong together, and there are eight of them" to
+        anyone who could see it and to nobody else: a listener walked eight alt
+        texts with no count, no boundaries and no way to know they had reached
+        the end. `role="list"` is not redundant here — Tailwind's preflight
+        removes `list-style`, and that is enough for Safari/VoiceOver to drop the
+        list role from a bare `<ul>`.
+  -->
+  <ul [class]="gridClass()" role="list" [attr.aria-label]="ariaLabel().trim() || null">
+    @for (img of renderImages(); track img.id; let i = $index) {
+      <li class="group relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800"
+           [class.ring-2]="isSelected(img.id)"
+           [class.ring-primary-500]="isSelected(img.id)">
+
+        <!--
+          ★★★ A BROKEN IMAGE IS THE ONE STATE A GALLERY IS GUARANTEED TO HIT — a
+              moved asset, an expired signed URL, a CDN that 404s. The browser's
+              own glyph is a tiny torn icon with no text beside it, so the tile
+              reads as something still loading, and the alt text a screen reader
+              would have used is thrown away with it. The placeholder keeps the
+              tile's size, so nothing reflows, and keeps the alt text, so the
+              picture is still described.
+        -->
+        @if (isBroken(img.src)) {
+          <div data-sv-broken class="flex h-44 w-full flex-col items-center justify-center gap-1
+                      bg-gray-100 text-center dark:bg-gray-800"
+               role="img"
+               [attr.aria-label]="(img.alt || 'Image') + ' — could not be loaded'">
+            <span aria-hidden="true" class="text-lg text-gray-500 dark:text-gray-400">⃠</span>
+            <span class="px-2 text-[10px] leading-tight text-gray-500 dark:text-gray-400">
+              Could not load
+            </span>
+          </div>
+        } @else {
+          <img [src]="img.src" [alt]="img.alt" (error)="onImageError(img.src)"
+               class="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+               loading="lazy" />
+        }
+
+        <!-- Gradient overlay on hover -->
+        <!--
+          `group-focus-within` as well as `group-hover`: the Select and View
+          buttons live in here, so tabbing to one used to move focus onto a
+          control that was still at `opacity-0` — WCAG 2.4.7, and unusable by
+          anyone driving the gallery from the keyboard.
+        -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent
+                    opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <div class="absolute bottom-0 left-0 right-0 p-3">
+            @if (captions() && img.title) {
+              <p class="text-[12px] font-semibold text-white leading-tight">{{ img.title }}</p>
+            }
+            @if (captions() && img.author) {
+              <p class="text-[10px] text-white/60 mt-0.5">{{ img.author }}</p>
+            }
+          </div>
+
+          <div class="absolute right-2 top-2 flex items-center gap-1.5">
+            @if (selectable()) {
+              <button type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white
+                       backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none transition-colors"
+                [attr.aria-label]="(isSelected(img.id) ? 'Deselect ' : 'Select ') + (img.title || img.alt)"
+                (click)="toggleSelect(img.id); $event.stopPropagation()">
+                @if (isSelected(img.id)) {
+                  <sv-icon name="check" cssClass="h-3.5 w-3.5" [strokeWidth]="3" />
+                } @else {
+                  <span aria-hidden="true" class="h-3.5 w-3.5 rounded-[3px] border-2 border-current"></span>
+                }
+              </button>
+            }
+            @if (lightbox()) {
+              <button type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white
+                       backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none transition-colors"
+                [attr.aria-label]="'View ' + (img.title || img.alt) + ' full size'"
+                [attr.data-sv-lightbox-trigger]="img.id"
+                (click)="openLightbox(i)">
+                <sv-icon name="maximize" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Tags -->
+        @if (img.tags?.length) {
+          <div class="absolute left-2 top-2 flex flex-wrap gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <!-- black/60, not /40: this scrim is the only thing standing between
+                 white text and an arbitrary caller image, so it has to be opaque
+                 enough for the WORST image rather than a typical one. Over pure
+                 white — the worst sRGB case — /40 composites to #999999 (2.85:1),
+                 /50 to #808080 (3.95:1) and /60 to #666666 (5.74:1). The icon
+                 buttons in this file stay at /40 on purpose: they carry no text,
+                 so 1.4.11's 3:1 applies to them and not 1.4.3's 4.5:1. -->
+            @for (tag of (img.tags ?? []); track tag) {
+              <span class="rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                {{ tag }}
+              </span>
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+}
+
+<!-- ═══════════════════════════════════════════════════════
+     MASONRY layout — Pinterest-style, images keep their
+     natural aspect ratios using CSS columns
+════════════════════════════════════════════════════════ -->
+<!--
+  ★★★ CSS MULTI-COLUMN FLOWS TOP-TO-BOTTOM, THEN ACROSS. A sighted reader
+      scanning left-to-right across the first row sees images 1, 4, 7 — while
+      the DOM, the tab order and a screen reader all give 1, 2, 3. Masonry does
+      not reorder anything; it is the VISUAL order that diverges, and no amount
+      of ARIA fixes that, because the markup is already correct.
+
+      The options were to preserve order (impossible with CSS columns), to
+      reimplement masonry as absolutely-positioned JS layout (a large cost for a
+      look), or to say so and point at `grid`. This says so.
+-->
+@if (layoutNote(); as note) {
+  <p data-sv-notice
+     class="mb-2 rounded-lg bg-warning-50 px-3 py-2 text-[11px] leading-relaxed text-warning-800
+            dark:bg-warning-500/10 dark:text-warning-200">
+    {{ note }}
+  </p>
+}
+
+@if (layout() === 'masonry') {
+  <ul [class]="masonryClass()" class="gap-2.5 space-y-0" role="list"
+      [attr.aria-label]="ariaLabel().trim() || null">
+    @for (img of renderImages(); track img.id; let i = $index) {
+      <li class="group relative mb-2.5 break-inside-avoid overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800"
+           [class.ring-2]="isSelected(img.id)"
+           [class.ring-primary-500]="isSelected(img.id)">
+
+        <!-- Same broken-image placeholder as the grid; masonry has no fixed
+             height, so it takes a modest one rather than collapsing to 0. -->
+        @if (isBroken(img.src)) {
+          <div data-sv-broken class="flex h-40 w-full flex-col items-center justify-center gap-1 bg-gray-100 text-center dark:bg-gray-800"
+               role="img"
+               [attr.aria-label]="(img.alt || 'Image') + ' — could not be loaded'">
+            <span aria-hidden="true" class="text-lg text-gray-500 dark:text-gray-400">⃠</span>
+            <span class="px-2 text-[10px] leading-tight text-gray-600 dark:text-gray-400">Could not load</span>
+          </div>
+        } @else {
+          <img [src]="img.src" [alt]="img.alt" (error)="onImageError(img.src)"
+               class="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+               style="display:block"
+               loading="lazy" />
+        }
+
+        <!-- Overlay -->
+        <!--
+          `group-focus-within` as well as `group-hover`: the Select and View
+          buttons live in here, so tabbing to one used to move focus onto a
+          control that was still at `opacity-0` — WCAG 2.4.7, and unusable by
+          anyone driving the gallery from the keyboard.
+        -->
+        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent
+                    opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <div class="absolute bottom-0 left-0 right-0 p-3">
+            @if (captions() && img.title) {
+              <p class="text-[12px] font-semibold text-white leading-tight">{{ img.title }}</p>
+            }
+            @if (captions() && img.author) {
+              <p class="text-[10px] text-white/60 mt-0.5">by {{ img.author }}</p>
+            }
+          </div>
+          <div class="absolute right-2 top-2 flex gap-1.5">
+            @if (selectable()) {
+              <button type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none"
+                [attr.aria-label]="(isSelected(img.id) ? 'Deselect ' : 'Select ') + (img.title || img.alt)"
+                (click)="toggleSelect(img.id); $event.stopPropagation()">
+                @if (isSelected(img.id)) {
+                  <sv-icon name="check" cssClass="h-3.5 w-3.5" [strokeWidth]="3" />
+                } @else {
+                  <span aria-hidden="true" class="h-3.5 w-3.5 rounded-[3px] border-2 border-current"></span>
+                }
+              </button>
+            }
+            @if (lightbox()) {
+              <button type="button"
+                class="flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none"
+                [attr.aria-label]="'View ' + (img.title || img.alt) + ' full size'"
+                [attr.data-sv-lightbox-trigger]="img.id"
+                (click)="openLightbox(i)">
+                <sv-icon name="maximize" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+              </button>
+            }
+          </div>
+        </div>
+      </li>
+    }
+  </ul>
+}
+
+<!-- ═══════════════════════════════════════════════════════
+     STRIP layout — horizontal scrolling filmstrip with
+     tall fixed-height images and captions below
+════════════════════════════════════════════════════════ -->
+@if (layout() === 'strip') {
+  <ul class="flex gap-3 overflow-x-auto pb-3" style="scrollbar-width:thin" role="list"
+      [attr.aria-label]="ariaLabel().trim() || null">
+    @for (img of renderImages(); track img.id; let i = $index) {
+      <!--
+        A thumbnail that opens the lightbox is a control, so it is a button:
+        Tab-reachable, Enter/Space-activated, and announced as actionable.
+
+        ★★ THE TILE ITSELF CANNOT BE THAT BUTTON, because it holds the
+        selection checkbox. `<button>` has no permitted button descendants, so
+        the parser reparents the checkbox out of the tile entirely, and `button`
+        being children-presentational in ARIA hid whatever survived.
+
+        The overlay below is the control instead: a real <button> sized to the
+        tile, so a click anywhere on the thumbnail still opens the lightbox. The
+        checkbox is lifted onto `z-10` to keep its own hit area, and the two
+        purely decorative overlays are `pointer-events-none` so they do not
+        shadow the tile-sized target beneath them.
+      -->
+      <li
+           class="group relative flex-none overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 cursor-pointer text-left"
+           style="width: 200px"
+           [class.ring-2]="isSelected(img.id)"
+           [class.ring-primary-500]="isSelected(img.id)">
+
+        <button type="button"
+          class="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400/60"
+          [attr.aria-label]="'Open ' + (img.alt || 'image')"
+          [attr.data-sv-lightbox-trigger]="img.id"
+          (click)="openLightbox(i)"></button>
+
+        @if (isBroken(img.src)) {
+          <div data-sv-broken class="flex h-[260px] w-full flex-col items-center justify-center gap-1 bg-gray-100 text-center dark:bg-gray-800"
+               role="img"
+               [attr.aria-label]="(img.alt || 'Image') + ' — could not be loaded'">
+            <span aria-hidden="true" class="text-lg text-gray-500 dark:text-gray-400">⃠</span>
+            <span class="px-2 text-[10px] leading-tight text-gray-600 dark:text-gray-400">Could not load</span>
+          </div>
+        } @else {
+          <img [src]="img.src" [alt]="img.alt" (error)="onImageError(img.src)"
+               class="w-full object-cover transition-transform duration-500 group-hover:scale-105"
+               style="height: 260px"
+               loading="lazy" />
+        }
+
+        <!-- Always-visible caption strip at bottom -->
+        <div class="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent p-3">
+          @if (captions() && img.title) {
+            <p class="text-[11px] font-semibold text-white leading-tight truncate">{{ img.title }}</p>
+          }
+          @if (img.tags?.[0]) {
+            <span class="mt-1 inline-block rounded-full bg-white/20 px-1.5 py-0.5 text-[9px] font-medium text-white backdrop-blur-sm">
+              {{ img.tags![0] }}
+            </span>
+          }
+        </div>
+
+        <!--
+          Fullscreen affordance — decoration, not a control. It did exactly what
+          the tile-sized button already does (`openLightbox(i)`), so as a second
+          button it added a duplicate tab stop announcing the same action twice.
+          `group-focus-within` still reveals it, because the tile button that
+          replaced it is a descendant of the same group.
+        -->
+        <div aria-hidden="true"
+             class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          <span class="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm">
+            <sv-icon name="maximize" cssClass="h-5 w-5" [strokeWidth]="2" />
+          </span>
+        </div>
+
+        <!-- Selection checkbox -->
+        @if (selectable()) {
+          <button type="button"
+            class="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 focus-visible:outline-none"
+            [attr.aria-label]="(isSelected(img.id) ? 'Deselect ' : 'Select ') + (img.title || img.alt)"
+            (click)="toggleSelect(img.id); $event.stopPropagation()">
+            @if (isSelected(img.id)) {
+              <sv-icon name="check" cssClass="h-3.5 w-3.5" [strokeWidth]="3" />
+            } @else {
+              <span aria-hidden="true" class="h-3.5 w-3.5 rounded-[3px] border-2 border-current"></span>
+            }
+          </button>
+        }
+      </li>
+    }
+  </ul>
+}
+
+
+<!-- ═══════════════════════════════════════════════════════
+     VIEWER layout — product viewer: large main image with
+     hover-zoom + a thumbnail strip to switch images
+════════════════════════════════════════════════════════ -->
+@if (layout() === 'viewer') {
+  <div [class]="viewerWidthClass()">
+    @if (mainImage(); as main) {
+      <!-- Main image + hover zoom -->
+      <div
+        class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-gray-800"
+        [class]="viewerAspectClass()"
+        (mouseenter)="onZoomEnter()"
+        (mousemove)="onZoomMove($event)"
+        (mouseleave)="onZoomLeave()">
+
+        @if (isBroken(main.src)) {
+          <div data-sv-broken class="flex h-full w-full flex-col items-center justify-center gap-1 bg-gray-100 text-center dark:bg-gray-800"
+               role="img"
+               [attr.aria-label]="(main.alt || 'Image') + ' — could not be loaded'">
+            <span aria-hidden="true" class="text-lg text-gray-500 dark:text-gray-400">⃠</span>
+            <span class="px-2 text-[10px] leading-tight text-gray-600 dark:text-gray-400">Could not load</span>
+          </div>
+        } @else {
+        <img [src]="main.src" [alt]="main.alt" (error)="onImageError(main.src)"
+             class="h-full w-full object-cover transition-transform duration-200 ease-out"
+             [class.cursor-zoom-in]="zoom()"
+             [style.transform-origin]="zoomOrigin()"
+             [style.transform]="(zoom() && zoomActive()) ? 'scale(' + zoomLevel() + ')' : 'scale(1)'"
+             loading="lazy" />
+        }
+
+        <!-- Fullscreen affordance -->
+        @if (lightbox()) {
+          <button type="button"
+            class="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            aria-label="View full size"
+            (click)="openLightbox(currentIndex())">
+            <sv-icon name="maximize" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        }
+
+        <!-- Zoom hint -->
+        @if (zoom()) {
+          <!-- black/60 for the same reason as the tag badge above; measured at
+               4.29:1 over the demo image at /50. -->
+          <span class="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm transition-opacity duration-200"
+                [class.opacity-0]="zoomActive()">
+            <sv-icon name="search" cssClass="h-3 w-3" [strokeWidth]="2" />
+            Hover to zoom
+          </span>
+        }
+
+        <!-- Caption -->
+        @if (captions() && main.title) {
+          <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3 transition-opacity duration-200"
+               [class.opacity-0]="zoomActive()">
+            <p class="text-[12px] font-semibold leading-tight text-white">{{ main.title }}</p>
+            @if (main.author) {
+              <p class="mt-0.5 text-[10px] text-white/60">{{ main.author }}</p>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Thumbnail strip -->
+    <div class="mt-3 flex gap-2 overflow-x-auto pb-1" style="scrollbar-width:thin"
+         role="tablist" aria-label="Product images">
+      @for (img of renderImages(); track img.id; let i = $index) {
+        <button type="button" role="tab"
+          [attr.aria-selected]="i === currentIndex()"
+          [attr.aria-label]="'View ' + (img.title || img.alt)"
+          [attr.data-sv-lightbox-trigger]="img.id"
+          class="relative h-16 w-16 flex-none overflow-hidden rounded-lg border-2 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          [class]="i === currentIndex()
+            ? 'border-primary-500 ring-1 ring-primary-500'
+            : 'border-transparent opacity-60 hover:opacity-100'"
+          (click)="setActive(i)">
+          @if (isBroken(img.src)) {
+            <div data-sv-broken class="flex h-full w-full flex-col items-center justify-center gap-1 bg-gray-100 text-center dark:bg-gray-800"
+               role="img"
+               [attr.aria-label]="(img.alt || 'Image') + ' — could not be loaded'">
+            <span aria-hidden="true" class="text-xs text-gray-500 dark:text-gray-400">⃠</span>
+          </div>
+          } @else {
+            <img [src]="img.src" [alt]="img.alt" (error)="onImageError(img.src)" class="h-full w-full object-cover" loading="lazy" />
+          }
+        </button>
+      }
+    </div>
+  </div>
+}
+
+}<!-- /@else content -->

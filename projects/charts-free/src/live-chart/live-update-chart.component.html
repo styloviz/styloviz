@@ -1,0 +1,120 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="240"
+  (retry)="retry.emit()"
+>
+
+<div class="flex flex-col gap-3">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ title() }}</h3>
+
+    <!-- Dataset switcher buttons -->
+    <div class="flex items-center rounded-lg border border-gray-200 bg-gray-100/70 p-0.5
+                dark:border-gray-700/50 dark:bg-gray-800/70">
+      @for (src of sources(); track src.id) {
+        <button type="button"
+                (click)="switchSource(src.id)"
+                class="rounded-[6px] px-3 py-1.5 text-[11.5px] font-medium transition-all duration-150
+                       focus-visible:outline-none"
+                [ngClass]="activeSourceId() === src.id
+                  ? 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-200/80 dark:bg-gray-700 dark:text-white dark:ring-gray-600/40'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+          {{ src.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- ── SVG Chart ────────────────────────────────────────────────────────── -->
+  <div class="relative w-full overflow-hidden" [style.height.px]="chartHeight()">
+    <svg [attr.viewBox]="'0 0 ' + SVG_W + ' ' + chartHeight()"
+         preserveAspectRatio="xMidYMid meet"
+         class="h-full w-full"
+         role="img" [attr.aria-label]="resolvedAriaLabel()">
+
+      <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">
+
+        <!-- Grid lines (fixed to globalMax — never rescale) -->
+        @if (showGrid()) {
+          @for (v of gridValues(); track v) {
+            <line [attr.x1]="0"       [attr.y1]="gridLineY(v)"
+                  [attr.x2]="plotW()" [attr.y2]="gridLineY(v)"
+                  stroke-width="1" stroke-dasharray="4,3"
+                  class="stroke-gray-200 dark:stroke-gray-700/60"/>
+            <text [attr.x]="-6" [attr.y]="gridLineY(v) + 4"
+                  text-anchor="end" font-size="10"
+                  class="fill-gray-400 dark:fill-gray-500">{{ formatValue(v) }}</text>
+          }
+        }
+
+        <!-- Baseline -->
+        <line [attr.x1]="0"       [attr.y1]="plotH()"
+              [attr.x2]="plotW()" [attr.y2]="plotH()"
+              stroke-width="1"
+              class="stroke-gray-200 dark:stroke-gray-700/60"/>
+
+        <!--
+          Bars — keyed by cat+series so the SAME <rect> DOM node is reused
+          on every source switch. Angular only patches the changed style values
+          (`y` and `height`), which triggers the CSS transition automatically.
+
+          `y` and `height` are SVG 2.0 geometry-as-CSS properties, supported
+          in Chrome 56+, Firefox 72+, Safari 15+ — all modern browsers.
+        -->
+        @for (bar of bars(); track (bar.cat + bar.series)) {
+          <rect
+            [attr.x]="bar.x"
+            [attr.width]="bar.barW"
+            [attr.rx]="barRadius()"
+            [style.y.px]="bar.y"
+            [style.height.px]="bar.barH"
+            [style.fill]="bar.color"
+            [style.transition]="barTransition()"
+            fill-opacity="0.9">
+            <title>{{ bar.series }}: {{ bar.value }} ({{ bar.cat }})</title>
+          </rect>
+
+          <!-- Value labels — positioned via `bar.y` which is already up to date -->
+          @if (showValues() && bar.barH > 16) {
+            <text [attr.x]="bar.x + bar.barW / 2"
+                  [attr.y]="bar.y - 4"
+                  text-anchor="middle" font-size="9.5"
+                  [attr.fill]="bar.color"
+                  [style.transition]="barTransition()">{{ formatValue(bar.value) }}</text>
+          }
+        }
+
+        <!-- X-axis category labels -->
+        @let cats = categories(); @let ncat = cats.length;
+        @for (cat of cats; track cat; let ci = $index) {
+          <text [attr.x]="(ci + 0.5) * (plotW() / ncat)"
+                [attr.y]="plotH() + 16"
+                text-anchor="middle" font-size="10"
+                class="fill-gray-500 dark:fill-gray-400">{{ cat }}</text>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  <!-- ── Legend ────────────────────────────────────────────────────────────── -->
+  @if (showLegend()) {
+    <div class="flex flex-wrap items-center gap-4">
+      @for (ds of activeSource()?.datasets ?? []; track ds.label; let i = $index) {
+        <div class="flex items-center gap-1.5">
+          <span class="h-2.5 w-5 rounded-full" [style.background-color]="seriesColors()[i]"></span>
+          <span class="text-[11.5px] text-gray-600 dark:text-gray-400">{{ ds.label }}</span>
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

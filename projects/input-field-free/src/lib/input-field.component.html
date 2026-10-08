@@ -1,0 +1,253 @@
+<!-- Root wrapper -->
+<div [ngClass]="rootClasses()" class="flex flex-col gap-1.5">
+
+  <!-- ── Label row (hidden for floating variant) ────────────────────────────── -->
+  @if (label()) {
+    <div class="flex items-baseline justify-between gap-2">
+      <label
+        [ngClass]="['font-medium text-gray-700 dark:text-gray-200', labelSizeClass()]"
+        [attr.for]="resolvedId()"
+      >
+        {{ label() }}
+        @if (required()) {
+          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+        }
+        @if (optionalTag() && !required()) {
+          <span class="ml-1.5 font-normal text-gray-500 dark:text-gray-400 text-xs">(optional)</span>
+        }
+      </label>
+    </div>
+  }
+
+  <!-- ── Input track ────────────────────────────────────────────────────── -->
+  <div [ngClass]="trackClasses()">
+    <!-- Floating label (renders inside track, animates to border on focus/value) -->
+    @if (isFloating() && label()) {
+      <label
+        [ngClass]="floatingLabelClasses()"
+        [attr.for]="resolvedId()"
+      >
+        {{ label() }}
+        @if (required()) {
+          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+        }
+      </label>
+    }
+    <!-- Leading icon -->
+    @if (leadingIcon()) {
+      <span
+        class="flex shrink-0 items-center"
+        [ngClass]="[iconPadClass(), 'text-gray-500 dark:text-gray-400']"
+        aria-hidden="true"
+      >
+        <sv-icon [name]="leadingIcon()" [cssClass]="iconClass()" [strokeWidth]="2" />
+      </span>
+    }
+
+    <!-- Leading text addon (e.g. "https://") -->
+    @if (leadingAddon() && !leadingIcon()) {
+      <span [ngClass]="leadingAddonClasses()">{{ leadingAddon() }}</span>
+    }
+
+    <!-- ── Native <select> ── -->
+    @if (isSelect()) {
+      <select
+        #inputEl
+        svAutofill
+        [ngClass]="nativeInputClasses()"
+        [attr.id]="resolvedId()"
+        [attr.name]="inputName() || null"
+        [disabled]="resolvedDisabled()"
+        [attr.autofocus]="autofocus() ? '' : null"
+        [attr.autocomplete]="autocomplete() || null"
+        [attr.aria-label]="resolvedAriaLabel()"
+        [attr.aria-required]="required() || null"
+        [attr.aria-invalid]="resolvedState() === 'error' || null"
+        [attr.aria-describedby]="describedByIds()"
+        [value]="value()"
+        (change)="onNativeChange($event)"
+        (focus)="onFocus($event)"
+        (blur)="onBlur($event)"
+      >
+        @if (placeholder()) {
+          <option value="" disabled [selected]="!value()">{{ isFloating() && !labelIsFloated() ? '' : placeholder() }}</option>
+        }
+        @for (opt of options(); track opt.value) {
+          <option
+            [value]="opt.value"
+            [disabled]="opt.disabled ?? false"
+            [selected]="value() === opt.value"
+          >{{ opt.label }}</option>
+        }
+      </select>
+
+    <!-- ── Native <textarea> ── -->
+    } @else if (multiline()) {
+      <textarea
+        #inputEl
+        svAutofill
+        [ngClass]="nativeInputClasses()"
+        [attr.id]="resolvedId()"
+        [attr.name]="inputName() || null"
+        [placeholder]="isFloating() && !labelIsFloated() ? ' ' : placeholder()"
+        [disabled]="resolvedDisabled()"
+        [readOnly]="readonly()"
+        [attr.maxlength]="maxLength() > 0 ? maxLength() : null"
+        [attr.minlength]="minLength() > 0 ? minLength() : null"
+        [attr.spellcheck]="spellcheck()"
+        [attr.autofocus]="autofocus() ? '' : null"
+        [attr.autocomplete]="autocomplete() || null"
+        [attr.aria-label]="resolvedAriaLabel()"
+        [attr.aria-required]="required() || null"
+        [attr.aria-invalid]="resolvedState() === 'error' || null"
+        [attr.aria-describedby]="describedByIds()"
+        [value]="value()"
+        (input)="onNativeChange($event)"
+        (focus)="onFocus($event)"
+        (blur)="onBlur($event)"
+      ></textarea>
+
+    <!-- ── Native <input> (default) ── -->
+    } @else {
+      <input
+        #inputEl
+        svAutofill
+        [ngClass]="nativeInputClasses()"
+        [type]="resolvedType()"
+        [attr.id]="resolvedId()"
+        [attr.name]="inputName() || null"
+        [placeholder]="isFloating() && !labelIsFloated() ? ' ' : placeholder()"
+        [disabled]="resolvedDisabled()"
+        [readOnly]="readonly()"
+        [attr.maxlength]="maxLength() > 0 ? maxLength() : null"
+        [attr.minlength]="minLength() > 0 ? minLength() : null"
+        [attr.pattern]="nativePattern()"
+        [attr.min]="min()"
+        [attr.max]="max()"
+        [attr.step]="step()"
+        [attr.inputmode]="inputMode() || null"
+        [attr.spellcheck]="spellcheck()"
+        [attr.autofocus]="autofocus() ? '' : null"
+        [attr.autocomplete]="resolvedAutocomplete()"
+        [attr.aria-label]="resolvedAriaLabel()"
+        [attr.aria-required]="required() || null"
+        [attr.aria-invalid]="resolvedState() === 'error' || null"
+        [attr.aria-describedby]="describedByIds()"
+        [value]="value()"
+        (input)="onNativeChange($event)"
+        (keydown)="onKeydown($event)"
+        (focus)="onFocus($event)"
+        (blur)="onBlur($event)"
+      />
+    }
+
+    <!-- Loading spinner -->
+    @if (loading()) {
+      <span class="flex shrink-0 items-center pr-3 text-gray-500 dark:text-gray-400" aria-hidden="true">
+        <sv-spinner-arc [cssClass]="iconClass()" />
+      </span>
+
+    <!-- Password eye toggle -->
+    } @else if (isPassword() && !loading()) {
+      <button
+        type="button"
+        class="flex shrink-0 items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-600
+               dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2
+               focus-visible:ring-primary-400 rounded"
+        (click)="togglePassword()"
+        [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+        [attr.aria-pressed]="showPassword()"
+        [attr.aria-controls]="resolvedId()"
+      >
+        @if (showPassword()) {
+          <!-- Eye-off -->
+          <sv-icon name="eye-off" [cssClass]="iconClass()" [strokeWidth]="2" />
+        } @else {
+          <!-- Eye -->
+          <sv-icon name="eye" [cssClass]="iconClass()" [strokeWidth]="2" />
+        }
+      </button>
+
+    <!-- State icon (error / success / warning) — only when no trailing icon/addon -->
+    } @else if (stateIconName() && !trailingIcon() && !trailingAddon()) {
+      <span
+        class="flex shrink-0 items-center pr-3"
+        [ngClass]="stateIconColorClass()"
+        aria-hidden="true"
+      >
+        <sv-icon [name]="stateIconName()" [cssClass]="iconClass()" [strokeWidth]="2" />
+      </span>
+
+    <!-- Custom trailing icon -->
+    } @else if (trailingIcon()) {
+      <span
+        class="flex shrink-0 items-center text-gray-500 dark:text-gray-400"
+        [ngClass]="iconPadClass()"
+        aria-hidden="true"
+      >
+        <sv-icon [name]="trailingIcon()" [cssClass]="iconClass()" [strokeWidth]="2" />
+      </span>
+    }
+
+    <!-- Trailing text addon (e.g. ".com", "USD") -->
+    @if (trailingAddon() && !trailingIcon()) {
+      <span [ngClass]="trailingAddonClasses()">{{ trailingAddon() }}</span>
+    }
+
+  </div>
+
+  <!-- ── Below-input row: hint / error / counter ───────────────────────── -->
+  @if (showHint() || showError() || showSuccess() || showCounter()) {
+    <div class="flex items-start justify-between gap-2">
+
+      <!-- Left: hint / error / success message -->
+      <div>
+        @if (showError()) {
+          <p
+            [attr.id]="describedById()"
+            class="flex items-center gap-1 text-xs font-medium text-danger-600 dark:text-danger-400"
+            role="alert"
+          >
+            <sv-icon name="alert-circle"
+                     cssClass="h-3.5 w-3.5 shrink-0"
+                     [strokeWidth]="2" />
+            {{ resolvedError() }}
+          </p>
+        }
+        @if (showSuccess()) {
+          <p
+            [attr.id]="describedById()"
+            class="flex items-center gap-1 text-xs font-medium text-accent-700 dark:text-accent-400"
+          >
+            <sv-icon name="check-circle" cssClass="h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+            {{ successMessage() }}
+          </p>
+        }
+        @if (showHint()) {
+          <p
+            [attr.id]="describedById()"
+            [ngClass]="['text-xs', hintColorClass()]"
+          >
+            {{ hint() }}
+          </p>
+        }
+      </div>
+
+      <!-- Right: character counter -->
+      @if (showCounter()) {
+        <p
+          [attr.id]="describedByCounterId()"
+          class="shrink-0 text-xs tabular-nums"
+          [ngClass]="counterOver()
+            ? 'font-semibold text-danger-600 dark:text-danger-400'
+            : 'text-gray-500 dark:text-gray-400'"
+          aria-live="polite"
+        >
+          {{ charCount() }}&thinsp;/&thinsp;{{ maxLength() }}
+        </p>
+      }
+
+    </div>
+  }
+
+</div>

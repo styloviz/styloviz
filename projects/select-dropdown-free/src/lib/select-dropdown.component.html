@@ -1,0 +1,523 @@
+<!-- Root wrapper -->
+<div [ngClass]="['flex flex-col gap-1.5 w-full', customClass()]">
+
+  <!-- Label row (hidden for floating variant) -->
+  @if (label()) {
+    <div class="flex items-baseline justify-between gap-2">
+      <label
+        [attr.id]="labelId()"
+        [ngClass]="['font-medium text-gray-700 dark:text-gray-200', labelSizeClass()]"
+        [attr.for]="resolvedId()"
+      >
+        {{ label() }}
+        @if (required()) {
+          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+        }
+        @if (optionalTag() && !required()) {
+          <span class="ml-1.5 font-normal text-gray-500 dark:text-gray-400 text-xs">(optional)</span>
+        }
+      </label>
+    </div>
+  }
+
+  <!-- Trigger button -->
+  <div class="relative">
+
+    <!-- Floating label (renders inside trigger wrapper, animates to border on open/value) -->
+    @if (isFloating() && label()) {
+      <label
+        [attr.id]="labelId()"
+        [ngClass]="floatingLabelClasses()"
+        [attr.for]="resolvedId()"
+      >
+        {{ label() }}
+        @if (required()) {
+          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+        }
+        @if (optionalTag() && !required()) {
+          <span class="ml-1 font-normal text-[0.65rem]" aria-hidden="true">(opt)</span>
+        }
+      </label>
+    }
+    <button
+      #trigger
+      type="button"
+      role="combobox"
+      [attr.id]="resolvedId()"
+      [attr.aria-expanded]="isOpen()"
+      [attr.aria-haspopup]="'listbox'"
+      [attr.aria-controls]="isOpen() ? listboxId() : null"
+      [attr.aria-activedescendant]="isOpen() ? activeDescendantId() : null"
+      [attr.aria-required]="required() || null"
+      [attr.aria-invalid]="!!resolvedError() || null"
+      [attr.aria-labelledby]="label() ? labelId() : null"
+      [attr.aria-label]="label() ? null : (ariaLabel() || placeholder())"
+      [attr.aria-describedby]="hasDescription() ? describedById() : null"
+      [disabled]="resolvedDisabled() || loading()"
+      [ngClass]="triggerClasses()"
+      (click)="toggleDropdown()"
+      (keydown)="onTriggerKeydown($event)"
+      (focus)="onFocus()"
+      (blur)="onBlur()"
+    >
+
+      <!-- Loading spinner -->
+      @if (loading()) {
+        <span class="flex shrink-0 items-center text-gray-500 dark:text-gray-400" aria-hidden="true">
+          <sv-spinner-arc [cssClass]="iconSizeClass()" />
+        </span>
+      }
+
+      <!-- Selected value(s) display -->
+      <span class="flex min-w-0 flex-1 items-center gap-1.5">
+
+        @if (multiple()) {
+          <!-- Multi: single-row chip strip (clips overflow visually) -->
+          <span #chipWrapper
+                class="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden">
+            <!--
+              ★★ Values that no longer resolve to an option get a chip of their
+                 own, FIRST so it can never be clipped into "+N more". Without it
+                 a multi-select holding a dropped value rendered only the chips it
+                 could resolve — or, with every value dropped, an empty trigger —
+                 while the form still submitted them (`FI-23-I2`).
+            -->
+            @if (hasStaleValue()) {
+              <span
+                data-sv-stale-chip
+                title="No longer in the list of options."
+                [ngClass]="[
+                  'inline-flex shrink-0 items-center gap-1 rounded-md border border-warning-300 bg-warning-50 italic',
+                  'text-warning-700 dark:border-warning-700 dark:bg-warning-900/30 dark:text-warning-400',
+                  chipTextClass(), 'px-1.5 py-0.5 font-medium leading-none'
+                ]"
+              >
+                {{ staleLabel() }}
+                @if (!resolvedDisabled()) {
+                  <button
+                    type="button"
+                    class="ml-0.5 rounded text-warning-700 dark:text-warning-400 hover:text-warning-800 dark:hover:text-warning-300
+                           focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
+                    [attr.aria-label]="'Remove ' + staleLabel()"
+                    (click)="removeStale($event)"
+                    tabindex="-1"
+                  >
+                    <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                  </button>
+                }
+              </span>
+            }
+            @for (chip of visibleChips(); track chip.value) {
+              <span
+                data-chip
+                [ngClass]="[
+                  'inline-flex shrink-0 items-center gap-1 rounded-md border border-gray-200 bg-gray-100',
+                  'text-gray-700 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200',
+                  chipTextClass(), 'px-1.5 py-0.5 font-medium leading-none'
+                ]"
+              >
+                @if (chip.icon) {
+                  <sv-icon [name]="chip.icon"
+                           [cssClass]="'h-3 w-3'"
+                           [strokeWidth]="2" />
+                }
+                {{ chip.label }}
+                @if (!resolvedDisabled()) {
+                  <button
+                    type="button"
+                    class="ml-0.5 rounded text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
+                           focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
+                    [attr.aria-label]="'Remove ' + chip.label"
+                    (click)="removeChip(chip.value, $event)"
+                    tabindex="-1"
+                  >
+                    <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                  </button>
+                }
+              </span>
+            }
+
+            @if (!hasValue() && (!isFloating() || labelIsFloated())) {
+              <span class="text-gray-500 dark:text-gray-400 truncate">{{ placeholder() }}</span>
+            }
+          </span>
+
+          <!-- Overflow badge — lives OUTSIDE the clipping wrapper so it's always visible -->
+          @if (overflowCount() > 0) {
+            <span [ngClass]="[chipTextClass(), 'shrink-0 text-gray-500 dark:text-gray-400 font-medium']">
+              +{{ overflowCount() }} more
+            </span>
+          }
+
+        } @else {
+          <!-- Single: label or placeholder -->
+          @if (displayLabel()) {
+            @let selectedOpt = selectedOptions()[0];
+            <span class="flex min-w-0 items-center gap-2">
+              @if (selectedOpt?.avatarUrl) {
+                <img [src]="selectedOpt.avatarUrl" alt=""
+                     class="h-5 w-5 shrink-0 rounded-full object-cover" aria-hidden="true"/>
+              } @else if (selectedOpt?.icon) {
+                <sv-icon [name]="selectedOpt!.icon!"
+                         [cssClass]="iconSizeClass()"
+                         [strokeWidth]="2" />
+              }
+              <!--
+                ★★ A value that no longer resolves to an option is shown as
+                   UNAVAILABLE rather than as a normal selection — same text
+                   slot, different treatment, so the trigger neither lies with
+                   the placeholder nor passes an orphaned id off as a label.
+              -->
+              <span class="truncate"
+                    [class.text-gray-900]="!hasStaleValue()"
+                    [class.dark:text-gray-100]="!hasStaleValue()"
+                    [class.text-warning-700]="hasStaleValue()"
+                    [class.dark:text-warning-400]="hasStaleValue()"
+                    [class.italic]="hasStaleValue()"
+                    [attr.title]="hasStaleValue() ? 'This value is no longer in the list of options.' : null"
+              >{{ displayLabel() }}</span>
+            </span>
+          } @else if (!isFloating() || labelIsFloated()) {
+            <!-- gray-600: the `filled` appearance's trigger is `bg-gray-100`
+                 (component.ts:728), where gray-500 reads 4.39:1 — so the
+                 placeholder, the one line present before the user has chosen
+                 anything, is the text that fails. gray-600 is 6.87:1 on the
+                 fill and 7.56:1 on the outlined trigger's white. -->
+            <span class="truncate text-gray-600 dark:text-gray-400">{{ placeholder() }}</span>
+          }
+        }
+      </span>
+
+      <!-- Right-side controls -->
+      <span class="ml-auto flex shrink-0 items-center gap-1 pl-1">
+
+        <!-- Clear button -->
+        @if (showClear()) {
+          <span
+            role="button"
+            tabindex="-1"
+            class="flex items-center rounded text-gray-500 hover:text-gray-600 dark:hover:text-gray-300
+                   focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
+            aria-label="Clear selection"
+            (click)="clearAll($event)"
+            (mousedown)="$event.preventDefault()"
+          >
+            <sv-icon name="close" [cssClass]="chevronSizeClass()" [strokeWidth]="2.5" />
+          </span>
+          <span class="h-4 w-px bg-gray-300 dark:bg-gray-600"></span>
+        }
+
+        <!-- Chevron -->
+        <sv-icon name="chevron-down" [cssClass]="[chevronSizeClass(), 'text-gray-500 dark:text-gray-400 transition-transform duration-200', isOpen() ? 'rotate-180' : ''].join(' ')" [strokeWidth]="2.5" />
+
+      </span>
+    </button>
+
+    <!-- ── Dropdown panel — portaled into document.body ──────────────────── -->
+    <ng-template #panelTpl>
+      <div
+        class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden rounded-xl border
+               border-gray-200 bg-white shadow-xl shadow-gray-900/10
+               dark:border-gray-700 dark:bg-gray-900 dark:shadow-gray-900/40"
+        [style.position]="panelStyle()['position']"
+        [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+        [style.top]="panelStyle()['top']"
+        [style.bottom]="panelStyle()['bottom']"
+        [style.left]="panelStyle()['left']"
+        [style.right]="panelStyle()['right']"
+        [style.width]="panelStyle()['width']"
+        [style.maxHeight]="panelStyle()['maxHeight']"
+        role="dialog"
+        aria-modal="false"
+      >
+
+        <!-- Search input -->
+        @if (resolvedSearchable()) {
+          <div class="border-b border-gray-100 px-3 py-2.5 dark:border-gray-800">
+            <div class="flex items-center gap-2">
+              <sv-icon name="search" cssClass="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+              <input
+                #searchInput
+                type="text"
+                role="combobox"
+                [attr.aria-expanded]="true"
+                [attr.aria-controls]="listboxId()"
+                [attr.aria-activedescendant]="activeDescendantId()"
+                [attr.aria-label]="label() || 'Search options'"
+                class="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-500
+                       outline-none dark:text-gray-100 dark:placeholder-gray-400"
+                [attr.placeholder]="resolvedSearchPlaceholder()"
+                autocomplete="off"
+                [value]="searchQuery()"
+                (input)="setSearch($any($event.target).value)"
+                (keydown)="onSearchKeydown($event)"
+              />
+              @if (searchQuery()) {
+                <button type="button"
+                        class="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                        (click)="setSearch('')" tabindex="-1" aria-label="Clear search">
+                  <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2.5" />
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Multi-select count bar -->
+        @if (multiple() && maxSelected() > 0) {
+          <div class="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
+            <p class="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
+              {{ selectedValues().length }} / {{ maxSelected() }} selected
+            </p>
+          </div>
+        }
+
+        <!-- Options list -->
+        <ul
+          #listbox
+          [attr.id]="listboxId()"
+          role="listbox"
+          [attr.aria-multiselectable]="multiple()"
+          [attr.aria-label]="label() || placeholder()"
+          class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1.5"
+          [svStale]="panelStale()"
+        >
+
+          @if (panelError()) {
+            <!-- A failed option load is not "no results". Saying so sends the
+                 user hunting for an entry that is there. -->
+            <li>
+              <sv-error-shell
+                [error]="panelError()"
+                [compact]="true"
+                (retry)="onRetry()"
+                data-sv-state="error"
+              />
+            </li>
+          } @else if (belowMinChars()) {
+            <li class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                data-sv-state="min-chars">
+              {{ minCharsHint() }}
+            </li>
+          } @else if (noResults() && panelLoading()) {
+            <!-- The first fetch has nothing to dim, so it needs a state of its
+                 own. Ordered after `error` and `min-chars` and before `empty`:
+                 an in-flight first load is not "no results found", and saying
+                 so sends the user hunting for an entry that is on its way. A
+                 *refinement* never reaches here — it has options on screen, so
+                 `noResults()` is false and `svStale` dims them instead. -->
+            <li class="flex items-center justify-center gap-2 px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
+                role="status" data-sv-state="loading">
+              <sv-spinner-arc cssClass="h-4 w-4" />
+              {{ resolvedLoadingText() }}
+            </li>
+          } @else if (noResults() && !panelLoading()) {
+            <li class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                data-sv-state="empty">
+              <sv-icon name="search" cssClass="mx-auto mb-2 h-8 w-8 opacity-40" [strokeWidth]="1.5" />
+              {{ resolvedNoResultsText() }}
+            </li>
+          }
+
+          <!-- Flat options -->
+          @for (opt of filteredOptions(); track opt.value) {
+            <!-- An option in an aria-activedescendant listbox is deliberately NOT
+                 focusable: the trigger (role="combobox") owns ↑↓/Enter and points at the active option via aria-activedescendant.
+                 Giving each option a tab stop would break that pattern and put dozens
+                 of stops inside one control. -->
+            <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+            <li
+              role="option"
+              [attr.id]="optionDomId(opt.value)"
+              [attr.aria-selected]="isSelected(opt.value)"
+              [attr.aria-disabled]="opt.disabled || null"
+              [attr.data-active]="opt === activeOption()"
+              [ngClass]="[
+                'flex cursor-pointer items-center gap-3 transition-colors duration-100',
+                optionPadClass(), optionTextClass(),
+                opt.disabled
+                  ? 'cursor-not-allowed opacity-40'
+                  : opt === activeOption()
+                    ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                    : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60'
+              ]"
+              (click)="selectOption(opt)"
+              (mouseenter)="activeIndex.set(activeIndexForOption(opt))"
+            >
+
+              <!-- Checkbox for multi -->
+              @if (multiple()) {
+                <span
+                  [ngClass]="[
+                    'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
+                    isSelected(opt.value)
+                      ? 'border-primary-500 bg-primary-500 dark:border-primary-400 dark:bg-primary-400'
+                      : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'
+                  ]"
+                  aria-hidden="true"
+                >
+                  @if (isSelected(opt.value)) {
+                    <sv-icon name="check" cssClass="h-2.5 w-2.5 text-white dark:text-gray-900" [strokeWidth]="3" />
+                  }
+                </span>
+              }
+
+              <!-- Avatar -->
+              @if (opt.avatarUrl) {
+                <img [src]="opt.avatarUrl" alt="" class="h-6 w-6 shrink-0 rounded-full object-cover" aria-hidden="true"/>
+              } @else if (opt.icon) {
+                <sv-icon [name]="opt.icon"
+                         [cssClass]="'shrink-0' + ' ' + iconSizeClass()"
+                         [strokeWidth]="2" />
+              }
+
+              <!-- Label + sublabel -->
+              <span class="min-w-0 flex-1">
+                <span class="block truncate font-medium">{{ opt.label }}</span>
+                @if (opt.sublabel) {
+                  <span class="block truncate text-xs text-gray-500 dark:text-gray-400">{{ opt.sublabel }}</span>
+                }
+              </span>
+
+              <!-- Badge -->
+              @if (opt.badge) {
+                <span [ngClass]="['shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', badgeColorMap[opt.badgeColor ?? 'gray'] ?? badgeColorMap['gray']]">
+                  {{ opt.badge }}
+                </span>
+              }
+
+              <!-- Checkmark for single -->
+              @if (!multiple() && isSelected(opt.value)) {
+                <sv-icon name="check" cssClass="ml-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
+              }
+
+            </li>
+          }
+
+          <!-- Grouped options -->
+          @for (group of filteredGroups(); track group.label) {
+            <li role="presentation">
+              <p class="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 first:pt-1.5">
+                {{ group.label }}
+              </p>
+              <ul role="group" [attr.aria-label]="group.label">
+                @for (opt of group.options; track opt.value) {
+                  <!-- An option in an aria-activedescendant listbox is deliberately NOT
+                       focusable: the trigger (role="combobox") owns ↑↓/Enter and points at the active option via aria-activedescendant.
+                       Giving each option a tab stop would break that pattern and put dozens
+                       of stops inside one control. -->
+                  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+                  <li
+                    role="option"
+                    [attr.id]="optionDomId(opt.value)"
+                    [attr.aria-selected]="isSelected(opt.value)"
+                    [attr.aria-disabled]="opt.disabled || null"
+                    [attr.data-active]="opt === activeOption()"
+                    [ngClass]="[
+                      'flex cursor-pointer items-center gap-3 transition-colors duration-100',
+                      optionPadClass(), optionTextClass(),
+                      opt.disabled
+                        ? 'cursor-not-allowed opacity-40'
+                        : opt === activeOption()
+                          ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800/60'
+                    ]"
+                    (click)="selectOption(opt)"
+                    (mouseenter)="activeIndex.set(activeIndexForOption(opt))"
+                  >
+                    @if (multiple()) {
+                      <span
+                        [ngClass]="[
+                          'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
+                          isSelected(opt.value)
+                            ? 'border-primary-500 bg-primary-500 dark:border-primary-400 dark:bg-primary-400'
+                            : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800'
+                        ]"
+                        aria-hidden="true"
+                      >
+                        @if (isSelected(opt.value)) {
+                          <sv-icon name="check" cssClass="h-2.5 w-2.5 text-white dark:text-gray-900" [strokeWidth]="3" />
+                        }
+                      </span>
+                    }
+                    @if (opt.avatarUrl) {
+                      <img [src]="opt.avatarUrl" alt="" class="h-6 w-6 shrink-0 rounded-full object-cover" aria-hidden="true"/>
+                    } @else if (opt.icon) {
+                      <sv-icon [name]="opt.icon"
+                               [cssClass]="'shrink-0' + ' ' + iconSizeClass()"
+                               [strokeWidth]="2" />
+                    }
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate font-medium">{{ opt.label }}</span>
+                      @if (opt.sublabel) {
+                        <span class="block truncate text-xs text-gray-500 dark:text-gray-400">{{ opt.sublabel }}</span>
+                      }
+                    </span>
+                    @if (opt.badge) {
+                      <span [ngClass]="['shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', badgeColorMap[opt.badgeColor ?? 'gray'] ?? badgeColorMap['gray']]">
+                        {{ opt.badge }}
+                      </span>
+                    }
+                    @if (!multiple() && isSelected(opt.value)) {
+                      <sv-icon name="check" cssClass="ml-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
+                    }
+                  </li>
+                }
+              </ul>
+            </li>
+          }
+
+          <!-- The server has more than this page. -->
+          @if (resolvedHasMore() || resolvedLoadingMore()) {
+            <li class="border-t border-gray-100 px-2 py-1.5 dark:border-gray-700">
+              @if (resolvedLoadingMore()) {
+                <p class="px-2 py-1 text-center text-xs text-gray-500 dark:text-gray-400"
+                   role="status" data-sv-state="loading-more">Loading…</p>
+              } @else {
+                <button
+                  type="button"
+                  class="w-full rounded-md px-2 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-primary-400 dark:hover:bg-primary-950/40"
+                  (click)="onLoadMore(); $event.stopPropagation()">
+                  Load more
+                </button>
+              }
+            </li>
+          }
+        </ul>
+
+        <!-- Footer slot: multi select-all / clear -->
+        @if (multiple() && hasValue()) {
+          <div class="border-t border-gray-100 px-3 py-2 dark:border-gray-800">
+            <button
+              type="button"
+              class="text-xs font-medium text-gray-500 hover:text-gray-700
+                     dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              (click)="clearAll($event)"
+            >
+              Clear all ({{ selectedValues().length }})
+            </button>
+          </div>
+        }
+
+      </div>
+    </ng-template>
+
+  </div><!-- /relative -->
+
+  <!-- Hint / error -->
+  @if (resolvedError() || hint()) {
+    <div>
+      @if (resolvedError()) {
+        <p [attr.id]="describedById()" class="flex items-center gap-1 text-xs font-medium text-danger-600 dark:text-danger-400" role="alert">
+          <sv-icon name="alert-circle"
+                   cssClass="h-3.5 w-3.5 shrink-0"
+                   [strokeWidth]="2" />
+          {{ resolvedError() }}
+        </p>
+      } @else if (hint()) {
+        <p [attr.id]="describedById()" class="text-xs text-gray-500 dark:text-gray-400">{{ hint() }}</p>
+      }
+    </div>
+  }
+
+</div>

@@ -1,0 +1,64 @@
+<svg viewBox="0 0 20 15" xmlns="http://www.w3.org/2000/svg" role="img" [attr.aria-label]="code()" class="block h-full w-full">
+  @switch (code()) {
+    @case ('US') {
+      <rect width="20" height="15" fill="#fff"/>
+      <rect y="0" width="20" height="1.15" fill="#B22234"/>
+      <rect y="2.3" width="20" height="1.15" fill="#B22234"/>
+      <rect y="4.6" width="20" height="1.15" fill="#B22234"/>
+      <rect y="6.9" width="20" height="1.15" fill="#B22234"/>
+      <rect y="9.2" width="20" height="1.15" fill="#B22234"/>
+      <rect y="11.5" width="20" height="1.15" fill="#B22234"/>
+      <rect y="13.8" width="20" height="1.2" fill="#B22234"/>
+      <rect width="8" height="8.1" fill="#3C3B6E"/>
+    }
+    @case ('CA') {
+      <rect width="20" height="15" fill="#fff"/>
+      <rect width="5" height="15" fill="#D80621"/>
+      <rect x="15" width="5" height="15" fill="#D80621"/>
+      <path d="M10 4 l1 2.4 2.2-1-0.8 2.3 1.6 0.2-1.6 1.4 0.6 1-1.9-0.4-0.1 1.4-1-1.2-1 1.2-0.1-1.4-1.9 0.4 0.6-1-1.6-1.4 1.6-0.2-0.8-2.3 2.2 1z" fill="#D80621"/>
+    }
+    @case ('GB') {
+      <rect width="20" height="15" fill="#00247D"/>
+      <path d="M0 0 L20 15 M20 0 L0 15" stroke="#fff" stroke-width="2.4"/>
+      <path d="M0 0 L20 15 M20 0 L0 15" stroke="#CF142B" stroke-width="1"/>
+      <path d="M10 0 V15 M0 7.5 H20" stroke="#fff" stroke-width="3.6"/>
+      <path d="M10 0 V15 M0 7.5 H20" stroke="#CF142B" stroke-width="1.6"/>
+    }
+    @case ('AU') {
+      <rect width="20" height="15" fill="#00247D"/>
+      <path d="M0 0 L8 6 M8 0 L0 6" stroke="#fff" stroke-width="1.4"/>
+      <path d="M0 0 L8 6 M8 0 L0 6" stroke="#CF142B" stroke-width="0.6"/>
+      <path d="M4 0 V6 M0 3 H8" stroke="#fff" stroke-width="1.8"/>
+      <path d="M4 0 V6 M0 3 H8" stroke="#CF142B" stroke-width="0.8"/>
+      <circle cx="15" cy="4" r="0.55" fill="#fff"/>
+      <circle cx="17.3" cy="7.2" r="0.55" fill="#fff"/>
+      <circle cx="15.6" cy="10.5" r="0.55" fill="#fff"/>
+      <circle cx="12.6" cy="9" r="0.55" fill="#fff"/>
+      <circle cx="12.6" cy="5.3" r="0.7" fill="#fff"/>
+    }
+    @case ('DE') {
+      <rect width="20" height="5" fill="#000"/>
+      <rect y="5" width="20" height="5" fill="#DD0000"/>
+      <rect y="10" width="20" height="5" fill="#FFCE00"/>
+    }
+    @case ('FR') {
+      <rect width="20" height="15" fill="#fff"/>
+      <rect width="6.67" height="15" fill="#0055A4"/>
+      <rect x="13.33" width="6.67" height="15" fill="#EF4135"/>
+    }
+    @case ('IN') {
+      <rect width="20" height="5" fill="#FF9933"/>
+      <rect y="5" width="20" height="5" fill="#fff"/>
+      <rect y="10" width="20" height="5" fill="#138808"/>
+      <circle cx="10" cy="7.5" r="1.6" fill="none" stroke="#000080" stroke-width="0.35"/>
+      <circle cx="10" cy="7.5" r="0.35" fill="#000080"/>
+    }
+    @case ('JP') {
+      <rect width="20" height="15" fill="#fff"/>
+      <circle cx="10" cy="7.5" r="3.2" fill="#BC002D"/>
+    }
+    @default {
+      <rect width="20" height="15" rx="1.5" fill="currentColor" class="text-gray-300 dark:text-gray-600"/>
+    }
+  }
+</svg>

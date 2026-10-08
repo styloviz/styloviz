@@ -1,0 +1,78 @@
+<label
+  [for]="resolvedId()"
+  [ngClass]="customClass()"
+  class="flex items-center gap-2.5"
+  [class.cursor-not-allowed]="resolvedDisabled()"
+  [class.opacity-60]="resolvedDisabled()"
+  [class.cursor-pointer]="!resolvedDisabled() && !pending()"
+  [class.cursor-progress]="pending() && !resolvedDisabled()"
+>
+  <!--
+    Real, focusable native checkbox: visually hidden with `sr-only` but kept in
+    the tab order so it owns keyboard activation (Space) and role/state
+    announcements. The `peer` class drives the focus ring on the visual box.
+  -->
+  <input
+    type="checkbox"
+    [id]="resolvedId()"
+    class="peer sr-only"
+    [checked]="checked()"
+    [disabled]="resolvedDisabled()"
+    [indeterminate]="indeterminate()"
+    [required]="required()"
+    [attr.name]="name() || null"
+    [attr.value]="value() || null"
+    [attr.autofocus]="autofocus() ? '' : null"
+    [attr.aria-checked]="indeterminate() ? 'mixed' : checked()"
+    [attr.aria-required]="required() || null"
+    [attr.aria-labelledby]="hasVisibleLabel() ? labelId() : null"
+    [attr.aria-label]="hasVisibleLabel() ? null : (ariaLabel() || null)"
+    [attr.aria-describedby]="describedBy()"
+    [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+    [attr.aria-busy]="pending() || null"
+    [attr.data-sv-state]="pending() ? 'pending' : null"
+    (click)="onClick($event)"
+    (change)="toggle()"
+  />
+
+  <!-- Visual checkbox box (focus ring driven by the peer input) -->
+  <span [class]="boxClasses()" aria-hidden="true">
+    @if (indeterminate()) {
+      <svg [class]="iconSize()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M2 6h8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    } @else if (checked()) {
+      <svg [class]="iconSize()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    }
+  </span>
+
+  <!-- Label + description -->
+  @if (label()) {
+    <span class="flex flex-col">
+      <span [id]="labelId()" [class]="labelSize() + ' font-medium text-gray-800 dark:text-gray-100 leading-tight select-none'">
+        {{ label() }}
+      </span>
+      @if (description()) {
+        <span [id]="descId()" class="mt-0.5 text-xs text-gray-500 dark:text-gray-400 select-none">
+          {{ description() }}
+        </span>
+      }
+    </span>
+  }
+</label>
+
+<!-- The write did not land (`X-6`). Outside the <label> for the same reason as
+     the validation slot below, and NOT that slot: it self-expires on the next
+     value change, and a rollback IS a change. -->
+@if (writeErrorMessage()) {
+  <span [id]="writeErrorId()"
+        role="alert"
+        class="mt-1.5 block text-xs text-danger-600 dark:text-danger-400"
+        data-sv-state="error">{{ writeErrorMessage() }}</span>
+}
+
+<!-- Validation error — outside the <label> on purpose: a role="alert" inside it
+     would be announced as part of the checkbox's own name. -->
+<sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

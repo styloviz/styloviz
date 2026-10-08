@@ -1,0 +1,235 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="resolvedError()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="notice()"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--bc-anim-dur]="animDuration()">
+
+  <!-- Title -->
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <!-- SVG wrapper -->
+  <div class="w-full overflow-x-auto">
+    <!-- `group`, not `img`: the shapes below are focusable, and `img` is
+         children-presentational — it would drop every one of them from the
+         accessibility tree while leaving them in the tab order. -->
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_W + ' ' + svgH()"
+      [attr.height]="svgH()"
+      class="w-full min-w-[320px]"
+      role="group"
+      [attr.aria-label]="resolvedAriaLabel()"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+
+      <!-- ── Grid lines ────────────────────────────────────────── -->
+      <!-- `track $index`, not `track gl.value`: the tick values are derived from
+           the axis, and an axis with no span emits the same value six times —
+           duplicate keys, from a dataset that is merely unusual rather than
+           wrong. Position is the identity of a grid line anyway. -->
+      @if (showGrid()) {
+        @for (gl of gridLines(); track $index) {
+          <line
+            [attr.x1]="gl.x1" [attr.y1]="gl.y1"
+            [attr.x2]="gl.x2" [attr.y2]="gl.y2"
+            stroke="currentColor"
+            stroke-width="1"
+            class="text-gray-100 dark:text-gray-800"
+          />
+        }
+      }
+
+      <!-- ── Value axis labels (Y-axis for vertical, X-axis for horizontal) ── -->
+      @for (gl of gridLines(); track $index) {
+        <text
+          [attr.x]="gl.labelX"
+          [attr.y]="gl.labelY"
+          [attr.text-anchor]="gl.anchor"
+          style="font-size:10px;font-family:inherit;"
+          class="fill-gray-400 dark:fill-gray-500"
+        >{{ gl.label }}</text>
+      }
+
+      <!-- ── Zero reference line (only when data spans both +/- sides) ─── -->
+      @if (zeroLine().visible) {
+        <line
+          [attr.x1]="zeroLine().x1" [attr.y1]="zeroLine().y1"
+          [attr.x2]="zeroLine().x2" [attr.y2]="zeroLine().y2"
+          stroke="currentColor"
+          stroke-width="1.5"
+          class="text-gray-500 dark:text-gray-400"
+        />
+      }
+
+      <!-- ── Bars, connectors, labels, and category axis ─────── -->
+      <!-- `track bar.index`, deliberately: a label is not an identity in a
+           waterfall. The same "Adjustment" can legitimately appear twice, and
+           position is what carries the meaning — see the ordering note on
+           `data`. Tracking by label would recycle one bar's DOM into another
+           step's slot. -->
+      @for (bar of bars(); track bar.index) {
+
+        <!-- Bar. A flagged bar keeps its own fill — a total that does not
+             reconcile is still a total — and takes a dashed outline, which the
+             legend names and the notice under the plot explains. -->
+        <path
+          [attr.d]="barPath(bar.rx, bar.ry, bar.rw, bar.rh, barR(), bar.isPositive, orientation() === 'vertical')"
+          [attr.fill]="bar.color"
+          fill-opacity="0.85"
+          [attr.stroke]="bar.flagged ? FLAGGED_STROKE : null"
+          [attr.stroke-width]="bar.flagged ? 1.5 : null"
+          [attr.stroke-dasharray]="bar.flagged ? '4 3' : null"
+          [ngClass]="[bar.animClass, 'cursor-pointer outline-none transition-[fill-opacity] duration-150 hover:fill-opacity-100 focus-visible:fill-opacity-100']"
+          [style.animation-delay]="bar.delay + 'ms'"
+          tabindex="0"
+          role="button"
+          [attr.aria-label]="barAriaLabel(bar)"
+          (mouseenter)="showTooltip($event, bar)"
+          (mouseleave)="hideTooltip()"
+          (focus)="focusBar(bar)"
+          (blur)="hideTooltip()"
+          (click)="selectBar(bar)"
+          (keydown.enter)="selectBar(bar); $event.preventDefault()"
+          (keydown.space)="selectBar(bar); $event.preventDefault()"
+        />
+
+        <!-- Dashed connector line to the next bar -->
+        @if (bar.hasConnector && showConnectors()) {
+          <line
+            [attr.x1]="bar.cx1" [attr.y1]="bar.cy1"
+            [attr.x2]="bar.cx2" [attr.y2]="bar.cy2"
+            stroke="var(--color-gray-400)"
+            stroke-width="1.5"
+            stroke-dasharray="4 3"
+            class="dark:stroke-gray-500"
+            pointer-events="none"
+          />
+        }
+
+        <!-- Value data label -->
+        @if (showLabels()) {
+          <text
+            [attr.x]="bar.lx"
+            [attr.y]="bar.ly"
+            [attr.text-anchor]="bar.lAnchor"
+            [attr.fill]="bar.color"
+            style="font-size:10px;font-weight:600;font-family:inherit;pointer-events:none;"
+          >{{ bar.labelText }}</text>
+        }
+
+        <!-- Category axis label -->
+        <text
+          [attr.x]="bar.catLabelX"
+          [attr.y]="bar.catLabelY"
+          [attr.text-anchor]="bar.catAnchor"
+          style="font-size:10px;font-family:inherit;"
+          class="fill-gray-500 dark:fill-gray-400"
+        >{{ bar.label }}</text>
+
+      }
+
+      <!-- ── Tooltip ───────────────────────────────────────────── -->
+      @if (tooltip().visible) {
+        <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+          <!-- Shadow + card -->
+          <rect
+            x="0" y="0" rx="7" width="168" height="72"
+            class="fill-white dark:fill-gray-800"
+            style="filter:drop-shadow(0 4px 14px rgba(0,0,0,0.14));"
+          />
+          <!-- Color swatch + label -->
+          <circle cx="12" cy="15" r="5" [attr.fill]="tooltip().color" />
+          <text x="22" y="19"
+            style="font-size:11px;font-weight:600;font-family:inherit;"
+            class="fill-gray-700 dark:fill-gray-200"
+          >{{ tooltip().label }}</text>
+          <!-- Type badge (right-aligned) -->
+          <text x="156" y="19"
+            text-anchor="end"
+            style="font-size:10px;font-family:inherit;"
+            class="fill-gray-400 dark:fill-gray-500"
+          >{{ typeLabel(tooltip().type) }}</text>
+          <!-- Delta row -->
+          <text x="10" y="38"
+            style="font-size:10px;font-family:inherit;"
+            class="fill-gray-500 dark:fill-gray-400"
+          >Change:
+            <tspan style="font-weight:700;" [attr.fill]="tooltip().color">
+              {{ fmtTooltipDelta(tooltip()) }}
+            </tspan>
+          </text>
+          <!-- Running total row -->
+          <text x="10" y="56"
+            style="font-size:10px;font-family:inherit;"
+            class="fill-gray-500 dark:fill-gray-400"
+          >Total:
+            <tspan
+              style="font-weight:600;"
+              class="fill-gray-700 dark:fill-gray-200"
+            >{{ fmtTooltipTotal(tooltip().running) }}</tspan>
+          </text>
+        </g>
+      }
+
+    </svg>
+  </div>
+
+  <!-- ── Legend ──────────────────────────────────────────────── -->
+  @if (showLegend()) {
+    <div data-sv-legend class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 pt-1">
+      <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span
+          class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
+          [style.background]="posColor()"
+        ></span>
+        Increase
+      </span>
+      <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span
+          class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
+          [style.background]="negColor()"
+        ></span>
+        Decrease
+      </span>
+      <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span
+          class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
+          [style.background]="totColor()"
+        ></span>
+        Total
+      </span>
+      <!-- The key for the dashed outline in the plot. Shown only when something
+           carries it, so a healthy chart is not asked to explain a mark it does
+           not have. -->
+      @if (hasFlagged()) {
+        <span class="flex items-center gap-1.5 text-xs text-warning-700 dark:text-warning-400">
+          <span
+            class="inline-block h-2.5 w-3 shrink-0 rounded-sm border border-dashed"
+            [style.border-color]="FLAGGED_STROKE"
+          ></span>
+          Does not add up
+        </span>
+      }
+    </div>
+  }
+
+  <!--
+    The accessible alternative to the geometry. The bars are focusable and name
+    themselves, but two figures live nowhere a reader without the picture can
+    reach them: the running total after each step, which is drawn as a bar's
+    vertical position and spoken only by a hover tooltip, and the step number,
+    which is the part of a waterfall that carries the meaning. See `a11ySummary`.
+  -->
+  <sv-data-summary-table [summary]="a11ySummary()" />
+
+</div>
+
+</sv-chart-frame>

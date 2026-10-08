@@ -1,0 +1,219 @@
+<!-- ============================================================
+     Topbar Navigation
+     ============================================================ -->
+
+<header
+  class="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-white/70 bg-white/72
+    px-4 shadow-[0_10px_26px_-22px_color-mix(in_oklab,var(--color-gray-900)_65%,transparent)] backdrop-blur-xl dark:border-gray-700/45
+    dark:bg-gray-900/62 dark:shadow-[0_14px_34px_-24px_color-mix(in_oklab,var(--color-gray-950)_95%,transparent)] sm:px-5">
+
+  <!-- ========== Left: Menu Toggles ========== -->
+  <div class="flex shrink-0 items-center gap-1.5">
+    <!-- Mobile hamburger (opens the sidebar) -->
+    <button
+      type="button"
+      class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700
+             focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+             dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 lg:hidden"
+      (click)="toggleMobileSidebar.emit()"
+      aria-label="Open sidebar">
+      <sv-icon name="menu" cssClass="h-5 w-5" [strokeWidth]="1.5" />
+    </button>
+
+    <!-- Desktop sidebar toggle -->
+    <button
+      type="button"
+      class="group hidden items-center justify-center rounded-lg border border-gray-200/80 bg-white/60 p-2
+             text-gray-500 shadow-sm transition-all hover:border-gray-300 hover:bg-white hover:text-gray-800
+             active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+             focus-visible:ring-offset-1 dark:border-gray-700/70 dark:bg-gray-800/50 dark:text-gray-400
+             dark:hover:border-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-100
+             dark:focus-visible:ring-offset-gray-900 lg:inline-flex"
+      (click)="toggleSidebar.emit()"
+      [attr.aria-label]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      [attr.aria-pressed]="!sidebarCollapsed()"
+      [attr.title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+      <sv-icon
+        [name]="sidebarCollapsed() ? 'panel-left-open' : 'panel-left-close'"
+        cssClass="h-5 w-5"
+        [strokeWidth]="1.6" />
+    </button>
+  </div>
+
+  <!-- ========== Center: Search (host-projected) ========== -->
+  <div class="min-w-0 flex-1">
+    <div class="max-w-md">
+      <ng-content select="[topbar-search]"></ng-content>
+    </div>
+  </div>
+
+  <!-- ========== Right: Nav + Actions ========== -->
+  <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
+
+    <!-- Primary nav (inline on large screens) -->
+    <nav class="hidden items-center lg:flex" aria-label="Primary">
+      @if (isInternal(overviewUrl())) {
+        <a [routerLink]="overviewUrl()" [class]="resourceLinkClass">Overview</a>
+      } @else {
+        <a [href]="overviewUrl()" target="_blank" rel="noopener noreferrer" [class]="resourceLinkClass">Overview</a>
+      }
+      @if (isInternal(docsUrl())) {
+        <a [routerLink]="docsUrl()" [class]="resourceLinkClass">Docs</a>
+      } @else {
+        <a [href]="docsUrl()" target="_blank" rel="noopener noreferrer" [class]="resourceLinkClass">Docs</a>
+      }
+      @if (showTemplates()) {
+        @if (isInternal(templatesUrl())) {
+          <a [routerLink]="templatesUrl()" [class]="resourceLinkClass">Templates</a>
+        } @else {
+          <a [href]="templatesUrl()" target="_blank" rel="noopener noreferrer" [class]="resourceLinkClass">Templates</a>
+        }
+      }
+      @if (isInternal(pricingUrl())) {
+        <a [routerLink]="pricingUrl()" [class]="resourceLinkClass">Pricing</a>
+      } @else {
+        <a [href]="pricingUrl()" target="_blank" rel="noopener noreferrer" [class]="resourceLinkClass">Pricing</a>
+      }
+      @if (showLicense()) {
+        @if (isInternal(licenseUrl())) {
+          <a [routerLink]="licenseUrl()" [class]="resourceLinkClass">License</a>
+        } @else {
+          <a [href]="licenseUrl()" target="_blank" rel="noopener noreferrer" [class]="resourceLinkClass">License</a>
+        }
+      }
+    </nav>
+
+    <span class="mx-1 hidden h-5 w-px bg-gray-200/90 dark:bg-gray-700/70 lg:block"></span>
+
+    <!-- GitHub (large screens) -->
+    @if (showGithub()) {
+      <a
+        [href]="githubUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hidden rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900
+               focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+               dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white lg:inline-flex"
+        aria-label="View on GitHub">
+        <sv-icon name="github" cssClass="h-5 w-5" />
+      </a>
+    }
+
+    <!-- npm (large screens) -->
+    @if (showNpm()) {
+      <a
+        [href]="npmUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hidden items-center rounded-md border border-gray-200/90 px-1.5 py-1 font-mono text-[11px]
+               font-semibold text-gray-500 transition-colors hover:border-primary-300 hover:text-primary-600
+               dark:border-gray-700/80 dark:text-gray-400 dark:hover:border-primary-700 dark:hover:text-primary-300
+               lg:inline-flex"
+        aria-label="View on npm">
+        npm
+      </a>
+    }
+
+    <!-- Theme Toggle (always visible) -->
+    <button
+      type="button"
+      class="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700
+             focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+             dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+      (click)="themeService.toggleTheme()"
+      [attr.aria-label]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'">
+      @if (themeService.isDark()) {
+        <sv-icon name="sun" cssClass="h-5 w-5" [strokeWidth]="1.5" />
+      } @else {
+        <sv-icon name="moon" cssClass="h-5 w-5" [strokeWidth]="1.5" />
+      }
+    </button>
+
+    <!-- Host-projected actions (e.g. Pro license status control) -->
+    <ng-content select="[topbar-actions]"></ng-content>
+
+    <!-- Get Pro CTA (large screens; hidden when the host projects its own control) -->
+    @if (showGetPro()) {
+      <a
+        [href]="pricingUrl()"
+        [attr.target]="isInternal(pricingUrl()) ? null : '_blank'"
+        rel="noopener noreferrer"
+        class="ml-0.5 hidden items-center gap-1.5 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-700
+               px-3.5 py-2 text-[13px] font-semibold text-white shadow-sm transition-all
+               hover:from-primary-700 hover:to-cyan-800 hover:shadow-md
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+               dark:focus-visible:ring-offset-gray-900 lg:inline-flex">
+        <sv-icon name="star" cssClass="h-4 w-4" />
+        <span class="hidden sm:inline">Get Pro</span>
+      </a>
+    }
+
+    <!-- ========== Overflow menu (small screens) ========== -->
+    <div class="relative lg:hidden">
+      <button
+        type="button"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen()"
+        [attr.aria-controls]="menuId"
+        aria-label="More navigation"
+        class="flex items-center justify-center rounded-lg border border-gray-200/80 bg-white/60 p-2 text-gray-500
+               shadow-sm transition-all hover:border-gray-300 hover:bg-white hover:text-gray-800 active:scale-95
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+               dark:border-gray-700/70 dark:bg-gray-800/50 dark:text-gray-400 dark:hover:border-gray-600
+               dark:hover:bg-gray-800 dark:hover:text-gray-100 dark:focus-visible:ring-offset-gray-900">
+        <sv-icon name="menu" cssClass="h-5 w-5" [strokeWidth]="1.7" />
+      </button>
+
+      @if (menuOpen()) {
+        <div class="absolute right-0 top-[calc(100%+0.6rem)] z-40 w-56 overflow-hidden rounded-xl border
+                    border-gray-200/70 bg-white/95 p-1.5 shadow-[0_20px_50px_-20px_color-mix(in_oklab,var(--color-gray-900)_50%,transparent)]
+                    ring-1 ring-black/[0.03] backdrop-blur-xl dark:border-gray-700/50 dark:bg-gray-900/95
+                    dark:ring-white/[0.04]"
+             [id]="menuId">
+          <p class="px-2.5 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+            Navigation
+          </p>
+          @if (isInternal(overviewUrl())) {
+            <a [routerLink]="overviewUrl()" (click)="menuOpen.set(false)" [class]="menuItemClass">Overview</a>
+          } @else {
+            <a [href]="overviewUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">Overview</a>
+          }
+          @if (isInternal(docsUrl())) {
+            <a [routerLink]="docsUrl()" (click)="menuOpen.set(false)" [class]="menuItemClass">Docs</a>
+          } @else {
+            <a [href]="docsUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">Docs</a>
+          }
+          @if (showTemplates()) {
+            @if (isInternal(templatesUrl())) {
+              <a [routerLink]="templatesUrl()" (click)="menuOpen.set(false)" [class]="menuItemClass">Templates</a>
+            } @else {
+              <a [href]="templatesUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">Templates</a>
+            }
+          }
+          @if (isInternal(pricingUrl())) {
+            <a [routerLink]="pricingUrl()" (click)="menuOpen.set(false)" [class]="menuItemClass">Pricing</a>
+          } @else {
+            <a [href]="pricingUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">Pricing</a>
+          }
+          @if (showLicense()) {
+            @if (isInternal(licenseUrl())) {
+              <a [routerLink]="licenseUrl()" (click)="menuOpen.set(false)" [class]="menuItemClass">License</a>
+            } @else {
+              <a [href]="licenseUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">License</a>
+            }
+          }
+
+          <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
+
+          @if (showGithub()) {
+            <a [href]="githubUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">GitHub</a>
+          }
+          @if (showNpm()) {
+            <a [href]="npmUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">npm</a>
+          }
+          <a [href]="communityUrl()" target="_blank" rel="noopener noreferrer" (click)="menuOpen.set(false)" [class]="menuItemClass">Community</a>
+        </div>
+      }
+    </div>
+  </div>
+</header>

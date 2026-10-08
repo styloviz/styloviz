@@ -1,0 +1,63 @@
+<!-- ============================================================
+     Dashboard Shell Layout
+     ============================================================
+     Desktop: sidebar on left, content on right
+     Mobile:  sidebar hidden, hamburger menu in topbar
+     ============================================================ -->
+
+<div class="relative flex h-screen overflow-hidden bg-[linear-gradient(180deg,var(--color-gray-50)_0%,var(--color-brandaccent-50)_48%,var(--color-info-50)_100%)] dark:bg-[linear-gradient(180deg,var(--color-gray-950)_0%,var(--color-gray-900)_52%,var(--color-gray-900)_100%)]">
+
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-300/25 blur-3xl dark:bg-primary-600/20"></div>
+    <div class="absolute bottom-[-8rem] left-[-6rem] h-80 w-80 rounded-full bg-accent-300/20 blur-3xl dark:bg-accent-500/15"></div>
+  </div>
+
+  <!-- ========== Mobile Sidebar Backdrop ========== -->
+  @if (mobileSidebarOpen()) {
+    <div
+      class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+      (click)="closeMobileSidebar()"
+      aria-hidden="true">
+    </div>
+  }
+
+  <!-- ========== Sidebar ========== -->
+  <sv-sidebar
+    [collapsed]="sidebarCollapsed()"
+    [mobileOpen]="mobileSidebarOpen()"
+    (mobileClose)="closeMobileSidebar()"
+    (toggleCollapse)="toggleSidebar()"
+  />
+
+  <!-- ========== Main Content Area ========== -->
+  <div
+    class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300"
+    [class.lg:ml-64]="!sidebarCollapsed()"
+    [class.lg:ml-20]="sidebarCollapsed()">
+
+    <!-- Topbar -->
+    <sv-topbar
+      [sidebarCollapsed]="sidebarCollapsed()"
+      (toggleSidebar)="toggleSidebar()"
+      (toggleMobileSidebar)="toggleMobileSidebar()"
+    />
+
+    <!-- Page Content -->
+    <main class="flex-1 overflow-y-auto px-4 pb-8 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
+      <div class="mx-auto w-full max-w-[1440px]">
+        <router-outlet />
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <sv-footer />
+  </div>
+
+  <!-- Global toast stacks — one host per position, each filters its own toasts -->
+  <sv-toast-host position="top-left"      />
+  <sv-toast-host position="top-center"    />
+  <sv-toast-host position="top-right"     />
+  <sv-toast-host position="bottom-left"   />
+  <sv-toast-host position="bottom-center" />
+  <sv-toast-host position="bottom-right"  />
+</div>

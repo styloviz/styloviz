@@ -1,0 +1,1321 @@
+/* ============================================================
+   Tailwind CSS 4 — Base Import
+   ============================================================
+   Tailwind v4 uses a single CSS import. No tailwind.config.js
+   needed — all customization happens here via @theme.
+   ============================================================ */
+
+@import "tailwindcss" source(none);
+
+/* ============================================================
+   Content Source — what Tailwind scans for class names
+   ============================================================
+   `source(none)` above turns automatic detection off, so these
+   lines are the whole scan:
+     • your own source (specs excluded — their class strings are
+       test fixtures, never markup);
+     • the compiled Styloviz packages. Tailwind v4 skips
+       node_modules by default, so WITHOUT these two lines every
+       Styloviz component renders unstyled. Keep them when you
+       move this stylesheet into another project.
+   ============================================================ */
+@source "./**/*.{html,ts}";
+@source not "./**/*.spec.ts";
+@source "../node_modules/@styloviz";
+@source "../node_modules/@styloviz-pro";
+
+/* ============================================================
+   Typography — Self-Hosted Manrope (variable, OFL 1.1)
+   ============================================================
+   Shipped from public/fonts, never a font CDN. A CDN stylesheet
+   is render-blocking, so an unreachable host stalls first paint,
+   breaks offline/air-gapped production builds (Angular inlines
+   fonts at build time by fetching them), and adds a third-party
+   request that many buyers cannot clear under their CSP or
+   privacy review. See src/index.html for the matching preload,
+   and scripts/check-ui-invariants.mjs (no-external-resource)
+   for the rule that keeps it that way.
+
+   One variable file per unicode subset covers weights 200–800;
+   the unicode-range means a browser downloads only the subsets
+   the rendered text actually needs (latin alone is ~25KB).
+
+   Rebranding: drop your own woff2 into public/fonts, swap the
+   src/font-family here, and update --font-sans below. Nothing
+   else in the kit references a font by name.
+   ============================================================ */
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-latin.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-latin-ext.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-greek.woff2") format("woff2-variations");
+  unicode-range: U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-cyrillic.woff2") format("woff2-variations");
+  unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-cyrillic-ext.woff2") format("woff2-variations");
+  unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;
+}
+
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/manrope-vietnamese.woff2") format("woff2-variations");
+  unicode-range: U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB;
+}
+
+
+/* ============================================================
+   Dark Mode Strategy: class-based
+   ============================================================
+   This tells Tailwind to activate dark: variants when the
+   <html> element has class="dark" instead of using the OS
+   media query. Our ThemeService toggles this class.
+   ============================================================ */
+
+/* `dark:` activates under a `.dark` root — EXCEPT inside an `.sv-force-light`
+   scope. The playground uses that opt-out to render a light preview even while
+   the whole site is in dark mode (a bare `.dark` scope conversely forces dark
+   inside a light page). The admin invoice also opts in transiently while
+   printing (see the invoice print block below) so it prints as a white sheet.
+   Otherwise no element carries `.sv-force-light`, so this is a no-op. */
+/* ★ `>>> kit-css` / `<<< kit-css` markers: everything between a pair is ALSO
+     shipped to npm as `@styloviz/core/styles/styloviz.css` — the stylesheet a
+     consumer imports so the components look the way they do here. It is
+     generated from this file (scripts/generate-kit-stylesheet.mjs) and kept in
+     step by `check:generated`; edit the CSS here, never the copy. */
+/* >>> kit-css: dark-variant */
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.sv-force-light, .sv-force-light *)));
+/* <<< kit-css: dark-variant */
+
+/* ============================================================
+   Theme Tokens
+   ============================================================
+   These CSS custom properties define the design system. Change
+   a value here and every component that paints that role follows
+   — a `.tpl-<id>` scope below, or a Theme Builder export, does
+   the same thing for one subtree.
+
+   ── What each family OWNS ─────────────────────────────────────
+     primary      interactive — links, focus rings, primary fills
+     accent       success, positive deltas, healthy states
+     warning      caution, degraded, approaching a limit
+     danger       destructive, failed, over a limit
+     info         neutral-informational notices, "in progress"
+     brand        the template's primary accent
+     brandaccent  gradient partner / secondary accent
+     gray         every surface, border and body text
+   Neutrals use Tailwind's own `gray`, which is why it is NOT
+   declared here — Tailwind already declares it, and a `.tpl-*`
+   scope can still remap `--color-gray-*` (several below do).
+
+   ★★★ THESE HEXES ARE TAILWIND v4's OWN PALETTE, IN sRGB — and
+   that is load-bearing, not cosmetic. They used to be Tailwind
+   **v3** hexes while every raw utility in the kit (`bg-blue-600`)
+   resolved to v4's `oklch()`, so `bg-primary-600` and `bg-blue-600`
+   were visibly different colours — v4 re-authored its palettes
+   more vividly, up to 78/255 apart on emerald. Two palettes ran
+   side by side and a component was one or the other depending on
+   whether its author reached for a token or a literal.
+
+   Derived by rasterising v4's `oklch()` through a browser canvas
+   and reading the pixel back, NOT through `oklchToHex()` in
+   theme-builder.color.ts. That function reduces *chroma* by
+   bisection to preserve hue and lightness, which is the right
+   answer when generating a ramp from a buyer's base colour but
+   the wrong one here: browsers **clip** channels instead, so
+   bisection lands up to 11/255 away from what actually paints.
+   Regenerate the same way if Tailwind's palette moves.
+
+   ── Where a token CANNOT reach ────────────────────────────────
+   `var(--color-*)` works in a class, in an SVG `fill`/`stroke`
+   and in an inline `[style.*]`. It does NOT work where the colour
+   stops being CSS, and each of these is a real place in the kit:
+
+     • a 2D canvas `strokeStyle` (forms/signature-pad) — canvas
+       never resolves a custom property
+     • a document that leaves the app (rich-editor's HTML/PDF
+       export) — it carries no @theme block
+     • a hex being parsed as arithmetic, e.g.
+       `parseInt(h.slice(0,2), 16)` to interpolate a scale
+       (charts/choropleth-map, charts/heatmap-chart) — a `var()`
+       there is NaN, not a colour
+     • a hex with alpha appended as text (`color + '22'`) — use
+       `color-mix(in oklab, <c> 13%, transparent)`, which also
+       accepts the `rgb()` and named colours those inputs always
+       claimed to allow
+
+   Those exemptions live in scripts/theme-literal.allow.json with
+   a written reason each; `check:ui` fails on an unexplained one.
+   ============================================================ */
+
+/* >>> kit-css: theme */
+@theme {
+  /* >>> kit-css-exclude: site-only */
+  /* Site-only tokens (the showcase's font, shell metrics and landing-page
+     motion) are excluded from the kit stylesheet: a consumer keeps their own
+     font. ONE @theme block on purpose — the Theme Builder spec, the token-usage
+     generator and check:contrast all read the first @theme block in this file. */
+  /* ---- Font Family ---- */
+  --font-sans: "Manrope", "Avenir Next", "Segoe UI", ui-sans-serif, sans-serif;
+
+  /* ---- Sidebar Widths ---- */
+  --sidebar-width: 16rem;
+  --sidebar-collapsed-width: 4.5rem;
+
+  /* ---- Topbar Height ---- */
+  --topbar-height: 4rem;
+
+  /* ---- Get-Started page animations ---- */
+  --animate-gs-aurora: gs-aurora 14s ease-in-out infinite;
+  --animate-gs-float: gs-float 9s ease-in-out infinite;
+  --animate-gs-float-slow: gs-float 13s ease-in-out infinite;
+  --animate-gs-sheen: gs-sheen 2.4s ease-in-out infinite;
+  --animate-gs-swap: gs-swap 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-gs-swap-right: gs-swap-right 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* <<< kit-css-exclude: site-only */
+
+  /* ---- Primary — interactive ---- */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bedbff;
+  --color-primary-300: #8ec5ff;
+  --color-primary-400: #50a2ff;
+  --color-primary-500: #2b7fff;
+  --color-primary-600: #155dfc;
+  --color-primary-700: #1447e6;
+  --color-primary-800: #193cb8;
+  --color-primary-900: #1c398e;
+  --color-primary-950: #162556;
+
+  /* ---- Accent — success and positive deltas ---- */
+  /* ★★ ELEVEN STEPS, NOT THREE. accent/warning/danger used to declare only
+     50/500/600 — "the steps the kit uses" — while the kit was in fact reaching
+     for nine more: sv-stepper paints `bg-accent-400`, `bg-danger-300` and
+     `bg-warning-300`, and sv-accordion and sv-command-palette use the whole
+     `text-<family>-400` set for dark mode. Tailwind v4 emits a utility only for
+     a token declared here, so those nine rendered as NOTHING — the element kept
+     its inherited colour, no build warning, and the specs asserting on the
+     class strings passed the entire time. A partial ramp is a trap for buyers
+     too: `bg-danger-700` in their own markup would silently do nothing. */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d0fae5;
+  --color-accent-200: #a4f4cf;
+  --color-accent-300: #5ee9b5;
+  --color-accent-400: #00d492;
+  --color-accent-500: #00bc7d;
+  --color-accent-600: #009966;
+  --color-accent-700: #007a55;
+  --color-accent-800: #006045;
+  --color-accent-900: #004f3b;
+  --color-accent-950: #002c22;
+
+  /* ============================================================
+     Admin Template — Brand Accent
+     ============================================================
+     The admin template (src/app/templates/admin) uses these two
+     token families for ALL of its accent styling instead of a
+     hardcoded Tailwind colour. To rebrand the entire admin shell
+     to your own colour, change the values below — every button,
+     link, ring, gradient and highlight updates in one place.
+
+       brand        = primary accent (default: violet)
+       brandaccent  = gradient partner / secondary (default: indigo)
+
+     Set brandaccent to the same values as brand for a single-tone
+     accent instead of the default two-tone gradients.
+     ============================================================ */
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6ff;
+  --color-brand-300: #c4b4ff;
+  --color-brand-400: #a684ff;
+  --color-brand-500: #8e51ff;
+  --color-brand-600: #7f22fe;
+  --color-brand-700: #7008e7;
+  --color-brand-800: #5d0ec0;
+  --color-brand-900: #4d179a;
+  --color-brand-950: #2f0d68;
+
+  --color-brandaccent-50: #eef2ff;
+  --color-brandaccent-100: #e0e7ff;
+  --color-brandaccent-200: #c6d2ff;
+  --color-brandaccent-300: #a3b3ff;
+  --color-brandaccent-400: #7c86ff;
+  --color-brandaccent-500: #615fff;
+  --color-brandaccent-600: #4f39f6;
+  --color-brandaccent-700: #432dd7;
+  --color-brandaccent-800: #372aac;
+  --color-brandaccent-900: #312c85;
+  --color-brandaccent-950: #1e1a4d;
+
+  /* ---- Warning — caution, degraded, approaching a limit ---- */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c6;
+  --color-warning-200: #fee685;
+  --color-warning-300: #ffd230;
+  --color-warning-400: #ffb900;
+  --color-warning-500: #fe9a00;
+  --color-warning-600: #e17100;
+  --color-warning-700: #bb4d00;
+  --color-warning-800: #973c00;
+  --color-warning-900: #7b3306;
+  --color-warning-950: #461901;
+
+  /* ---- Danger — destructive, failed, over a limit ---- */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #ffe2e2;
+  --color-danger-200: #ffc9c9;
+  --color-danger-300: #ffa2a2;
+  --color-danger-400: #ff6467;
+  --color-danger-500: #fb2c36;
+  --color-danger-600: #e7000b;
+  --color-danger-700: #c10007;
+  --color-danger-800: #9f0712;
+  --color-danger-900: #82181a;
+  --color-danger-950: #460809;
+
+  /* ---- Info — neutral-informational, "in progress" ---- */
+  /* ★ The kit's components have always had an `info` variant; until now it was
+     painted with literal `sky-*`, so it was the one semantic role a buyer could
+     not rebrand at all. Declaring it here is what lets `bg-info-600` exist —
+     Tailwind v4 emits no rule for an undeclared token, silently. */
+  --color-info-50: #f0f9ff;
+  --color-info-100: #dff2fe;
+  --color-info-200: #b8e6fe;
+  --color-info-300: #74d4ff;
+  --color-info-400: #00bcff;
+  --color-info-500: #00a6f4;
+  --color-info-600: #0084d1;
+  --color-info-700: #0069a8;
+  --color-info-800: #00598a;
+  --color-info-900: #024a70;
+  --color-info-950: #052f4a;
+
+  /* ---- Border Radius ---- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+/* <<< kit-css: theme */
+
+
+/* ============================================================
+   Template accent scopes
+   ============================================================
+   One `.tpl-<id>` block per page template. Each restates the
+   `brand-*` / `brandaccent-*` values for that template. The
+   template's shell root carries the matching class (e.g.
+   <div class="tpl-admin ...">), so every accent utility inside
+   that subtree resolves to this palette — letting multiple
+   templates keep distinct colours side by side.
+
+   The `brand-*` / `brandaccent-*` utilities themselves are still
+   generated from the `@theme` block above (Tailwind v4 only emits
+   utilities for tokens declared in @theme); these scopes only
+   override the VALUES, so template markup never changes when you
+   rebrand.
+
+   The `>>> template-tokens: <id>` / `<<< template-tokens: <id>`
+   markers delimit each block so `scripts/pack-template.mjs` can
+   extract the right palette into the template's source download —
+   keep them intact.
+   ============================================================ */
+
+
+/* >>> template-tokens: errors */
+.tpl-errors {
+  /* ★ THE RAMPS MARKED "re-indexed" BELOW ARE TAILWIND'S, SHIFTED ONE STOP
+       DARKER FROM 500 DOWN — this 600 is Tailwind's 700, and the 950 is a new
+       darker end. Read the values expecting that, or they look wrong.
+
+       The reason is the token contract the whole kit leans on: 600 is the
+       lowest stop that can carry TEXT on a light surface, and 500 is the
+       INDICATOR stop (borders, rings, dots) that never carries any. At their
+       stock stops these hues miss AA as text on white, so pasting the stock
+       ramp in makes `text-brand-600` unreadable while looking perfectly
+       reasonable in the file. `check:contrast`'s palette-contract arm now
+       fails on exactly that, which is how these were found. */
+  /* brand = primary accent (slate — neutral chrome, status colour comes
+     from sv-result/sv-empty-state themselves, not this palette) */
+  --color-brand-50: #f8fafc;
+  --color-brand-100: #f1f5f9;
+  --color-brand-200: #e2e8f0;
+  --color-brand-300: #cbd5e1;
+  --color-brand-400: #94a3b8;
+  --color-brand-500: #64748b;
+  --color-brand-600: #475569;
+  --color-brand-700: #334155;
+  --color-brand-800: #1e293b;
+  --color-brand-900: #0f172a;
+  --color-brand-950: #020617;
+
+  /* brandaccent = amber — gradient partner / secondary */
+  --color-brandaccent-50: #fffbeb;
+  --color-brandaccent-100: #fef3c7;
+  --color-brandaccent-200: #fde68a;
+  --color-brandaccent-300: #fcd34d;
+  --color-brandaccent-400: #fbbf24;
+  --color-brandaccent-500: #d97706; /* re-indexed one stop darker — see the note above */
+  --color-brandaccent-600: #b45309;
+  --color-brandaccent-700: #92400e;
+  --color-brandaccent-800: #78350f;
+  --color-brandaccent-900: #451a03;
+  --color-brandaccent-950: #2f1202;
+}
+/* <<< template-tokens: errors */
+
+
+/* ============================================================
+   Base Layer Overrides
+   ============================================================ */
+
+/* >>> kit-css: base */
+/* Tailwind v4 draws a bare `border` in `currentColor`; every component in the
+   kit was designed against this gray default instead. Layered as `base`, so any
+   `border-*` utility still wins. */
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+}
+/* <<< kit-css: base */
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply font-sans text-gray-900 dark:text-gray-100;
+  }
+
+  /* ── Custom scrollbars ───────────────────────────────────────── */
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent; /* slate-300 / transparent track */
+  }
+  .dark * {
+    scrollbar-color: #334155 transparent; /* slate-700 / transparent track */
+  }
+
+  /* WebKit (Chrome, Edge, Safari) */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* slate-300 */
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* slate-400 */
+  }
+  ::-webkit-scrollbar-thumb:active {
+    background-color: #64748b; /* slate-500 */
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: #334155; /* slate-700 */
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background-color: #475569; /* slate-600 */
+  }
+  .dark ::-webkit-scrollbar-thumb:active {
+    background-color: #64748b; /* slate-500 */
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Better selection.
+
+     The dark arm is hand-written as `.dark ::selection`, not `dark:` inside the
+     @apply. `dark:` expands to `&:where(.dark, .dark *)…`, and appending that
+     AFTER a pseudo-element is invalid CSS — Tailwind emitted `:is():where(.dark,
+     …)`, the minifier dropped the rule as an empty sub-selector, and dark mode
+     had been selecting text in the light palette since the rule was written. The
+     scrollbar rules above already use this form for the same reason. */
+  ::selection { @apply bg-primary-100 text-primary-900; }
+  .dark ::selection { @apply bg-primary-900/60 text-primary-100; }
+
+  /* Focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* ── Theme switch — single GPU cross-fade ─────────────────────
+     Driven by the View Transitions API in ThemeService. The browser
+     snapshots the page, swaps the .dark/.light class, then cross-fades
+     the two snapshots once.
+
+     This replaces the previous `html.transitioning *` rule, which put a
+     300ms transition on EVERY element (plus ::before/::after) at once.
+     On a 25+ component dashboard that promoted thousands of nodes to
+     their own GPU layers, blurring text until the transition finished
+     and lagging the switch. Cross-fading two flat snapshots is one
+     composited operation — sharp and instant regardless of DOM size. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.22s;
+    animation-timing-function: ease;
+  }
+
+  /* Honor reduced-motion: swap instantly with no fade. */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation: none;
+    }
+  }
+}
+
+/* ── Rich text editor content ───────────────────────────────────────────────
+   ★★★ THIS BLOCK USED TO SELECT `app-rich-text-editor`, AN ELEMENT THAT DOES
+   NOT EXIST. The component's selector is `sv-rich-text-editor`; a repo-wide
+   search finds `app-rich-text-editor` in this file and nowhere else. So ~130
+   lines of heading, paragraph, list, link and code-block styling — including a
+   carefully built gradient treatment for `<pre>` — had never once rendered.
+
+   The diagnosis in the old comment here was exactly right, and worth keeping:
+   the editor's content is created by `document.createElement` and by assigning
+   `innerHTML`, so it never receives Angular's `_ngcontent` scope attribute and
+   a normally-encapsulated component rule cannot reach it. The component now
+   handles that itself with `:host ::ng-deep`, which is bounded to its own host
+   element — see `rich-text-editor.component.css`, where the `<pre>` design from
+   this block now lives so that it ships to buyers of the package too.
+
+   To restyle editor content from here, name an ancestor so the rule outweighs
+   the component's own (0,2,0):
+
+       .my-theme sv-rich-text-editor .rte-content ul { … }
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* >>> kit-css: components */
+/* ============================================================
+   Dark Mode — Native date/time input calendar icon
+   ============================================================
+   Browsers render the calendar picker indicator using the OS
+   theme, so in dark mode it appears as a dark icon on a dark
+   background. Inverting it makes it light and legible.
+   ============================================================ */
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.55);
+  cursor: pointer;
+}
+
+/* ============================================================
+   Toast Progress Bar Animation
+   ============================================================
+   Used by ToastHostComponent to animate the progress bar
+   that counts down to auto-dismiss. The animation is applied
+   via inline [style] bound to the toast duration.
+   ============================================================ */
+
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ★ Identical on purpose. A deduplicated toast refreshes in place without its
+   node being recreated, and a running CSS animation only restarts when its
+   `animation-name` changes — so repeats alternate between these two. Without
+   the second name the bar kept emptying from where the FIRST occurrence had
+   left it: a toast shown as about to disappear whose countdown had just
+   restarted. See `SvToastHostComponent.progressStyle`. */
+@keyframes toast-progress-alt {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ============================================================
+   Modal Animations
+   ============================================================
+   Applied inside ModalComponent:
+     .modal-backdrop      — fades the overlay in
+     .modal-panel         — default slide-down + fade (center/top)
+     .modal-panel--up     — slide-up variant for position="bottom"
+   Combines a subtle vertical slide with a fade for polish, and
+   respects prefers-reduced-motion for accessibility.
+   ============================================================ */
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop-in 0.18s ease-out forwards;
+}
+
+.modal-panel {
+  animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-panel--up {
+  animation: modal-in-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel,
+  .modal-panel--up {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* ============================================================
+   Popout Panel — directional entrance / exit animations
+   ============================================================
+   SvPopoutComponent sets .sv-popout-enter-* / .sv-popout-exit-*
+   based on the panel's resolved side (after flip), so the panel
+   slides out of / back toward the trigger edge with a smooth,
+   spring-like ease. Suffix = the side the panel sits on.
+   ============================================================ */
+
+@keyframes sv-popout-in-below { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sv-popout-in-above { from { opacity: 0; transform: translateY(6px) scale(0.98);  } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sv-popout-in-right { from { opacity: 0; transform: translateX(-6px) scale(0.98); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes sv-popout-in-left  { from { opacity: 0; transform: translateX(6px) scale(0.98);  } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+@keyframes sv-popout-out-below { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+@keyframes sv-popout-out-above { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(4px) scale(0.98);  } }
+@keyframes sv-popout-out-right { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(-4px) scale(0.98); } }
+@keyframes sv-popout-out-left  { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(4px) scale(0.98);  } }
+
+.sv-popout-enter-bottom { animation: sv-popout-in-below 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-top    { animation: sv-popout-in-above 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-right  { animation: sv-popout-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-left   { animation: sv-popout-in-left  0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.sv-popout-exit-bottom { animation: sv-popout-out-below 0.14s ease-in both; }
+.sv-popout-exit-top    { animation: sv-popout-out-above 0.14s ease-in both; }
+.sv-popout-exit-right  { animation: sv-popout-out-right 0.14s ease-in both; }
+.sv-popout-exit-left   { animation: sv-popout-out-left  0.14s ease-in both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-popout-enter-bottom, .sv-popout-enter-top, .sv-popout-enter-right, .sv-popout-enter-left,
+  .sv-popout-exit-bottom,  .sv-popout-exit-top,  .sv-popout-exit-right,  .sv-popout-exit-left {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* ============================================================
+   Bar Chart — Premium SVG Bar Animations
+   ============================================================
+   All bar paths use CSS `transform-box: fill-box` so that
+   `transform-origin` is relative to the element's own bounding
+   box rather than the SVG viewport origin.
+
+   Classes applied per bar <path>:
+     .bc-bar-v   — vertical bar, grows upward from baseline
+     .bc-bar-h   — horizontal bar, grows rightward from axis
+     .bc-bar-hr  — horizontal bar, grows leftward (negative side)
+     .bc-range-v — floating range bar, scales from center
+     .bc-range-h — floating horizontal range bar
+
+   animation-delay is bound inline per bar to create a cascade.
+   ============================================================ */
+
+/* ── Keyframes ────────────────────────────────────────────── */
+
+@keyframes bc-grow-v {
+  0%   { transform: scaleY(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes bc-grow-h {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes bc-grow-hr {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes bc-scale-in {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* ── Vertical bar — grows bottom → top ───────────────────── */
+.bc-bar-v {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-v {
+  animation-play-state: running;
+}
+
+/* ── Horizontal bar — grows left → right ─────────────────── */
+.bc-bar-h {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: bc-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-h {
+  animation-play-state: running;
+}
+
+/* ── Horizontal bar (negative) — grows right → left ─────── */
+.bc-bar-hr {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: bc-grow-hr var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-hr {
+  animation-play-state: running;
+}
+
+/* ── Floating range bar — scales from center ─────────────── */
+.bc-range-v {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.55s) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-range-v {
+  animation-play-state: running;
+}
+
+/* ── Floating horizontal range bar ───────────────────────── */
+.bc-range-h {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.55s) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-range-h {
+  animation-play-state: running;
+}
+
+/* ── Cylindrical cap ellipses ─────────────────────────────── */
+.bc-cap {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-cap {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Line Chart — SVG Path Draw-On Animations
+   ============================================================
+   Two CSS animation classes work together with ChartAnimDirective
+   (which adds .bc-animate to the wrapper when it enters viewport):
+
+     .lc-line  — solid series: draws the stroke left→right via
+                 stroke-dashoffset 3500→0 (ANIM_DASH = 3500 covers
+                 any practical path length).
+     .lc-fade  — dashed / multi-color series: simple opacity fade-in
+                 (dashoffset conflicts with their own stroke-dasharray).
+
+   Both classes are paused by default and run only inside .bc-animate.
+   Per-series stagger uses inline [style.animation-delay].
+   ============================================================ */
+
+@keyframes lc-draw {
+  from { stroke-dashoffset: 3500; opacity: 0; }
+  40%  { opacity: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes lc-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Solid line — grows left → right */
+.lc-line {
+  stroke-dasharray: 3500;
+  animation: lc-draw var(--lc-anim-dur, 1.4s) cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-play-state: paused;
+}
+
+/* Dashed / multi-colored line — fades in */
+.lc-fade {
+  opacity: 0;
+  animation: lc-fade var(--lc-anim-dur, 0.9s) ease-out both;
+  animation-play-state: paused;
+}
+
+/* Triggered once the chart scrolls into view */
+.bc-animate .lc-line,
+.bc-animate .lc-fade {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Skeleton Loader — Wave Shimmer Animation
+   ============================================================
+   Used by SkeletonLoaderComponent when animation === 'wave'.
+   The .skeleton-wave class is applied to each bone element;
+   the shimmer sweeps left-to-right to mimic content loading.
+   ============================================================ */
+
+@keyframes skeleton-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-200, #e5e7eb) 25%,
+    var(--color-gray-100, #f3f4f6) 50%,
+    var(--color-gray-200, #e5e7eb) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Dark-mode variant — Tailwind's dark class strategy */
+:where(.dark, .dark *) .skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-700, #374151) 25%,
+    var(--color-gray-600, #4b5563) 50%,
+    var(--color-gray-700, #374151) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   Other Chart Types — Bubble, Funnel, Pyramid, Performance,
+   DateTime Category, Multi-Axis, Axis Label Template,
+   Multi-Level Label
+   ============================================================
+   All new animation classes follow the same
+   bcChartAnim / .bc-animate play-state pattern used by bar
+   and line charts.
+   ============================================================ */
+
+/* ── Bubble — scale in from center ──────────────────────── */
+@keyframes bc-bubble-in {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.bc-bubble {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-bubble-in var(--bc-anim-dur, 0.6s) cubic-bezier(0.34, 1.5, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bubble {
+  animation-play-state: running;
+}
+
+/* ── Funnel / Pyramid segment — scaleX from center ──────── */
+@keyframes bc-seg-in {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+.bc-funnel-seg,
+.bc-pyramid-seg {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-seg-in var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-funnel-seg,
+.bc-animate .bc-pyramid-seg {
+  animation-play-state: running;
+}
+
+/* ── Generic fade-in — used by performance dots & area ──── */
+@keyframes bc-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.bc-fade-in {
+  animation: bc-fade var(--bc-anim-dur, 0.8s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-fade-in {
+  animation-play-state: running;
+}
+
+/* ── Multi-axis secondary bar — same as bc-bar-v ─────────── */
+.bc-bar-v2 {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-v2 {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Pie Chart — SVG Slice Entrance Animations
+   ============================================================
+   .bc-pie-slice  — each individual slice, scales in from the
+                    SVG center. Stagger is applied per-slice via
+                    inline [style.animation-delay].
+   .bc-pie-label  — smart / external labels fade + shift in
+                    after the slices have rendered.
+   .bc-pie-connector — connector lines draw in via opacity.
+   ============================================================ */
+
+@keyframes bc-pie-slice-in {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes bc-pie-label-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bc-pie-connector-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Slice — scale from SVG centre point */
+.bc-pie-slice {
+  transform-box: view-box;
+  transform-origin: center center;
+  animation: bc-pie-slice-in var(--bc-anim-dur, 0.6s) cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-slice {
+  animation-play-state: running;
+}
+
+/* External label */
+.bc-pie-label {
+  animation: bc-pie-label-in var(--bc-anim-dur, 0.5s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-label {
+  animation-play-state: running;
+}
+
+/* Connector lines */
+.bc-pie-connector {
+  animation: bc-pie-connector-in var(--bc-anim-dur, 0.5s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-connector {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Waterfall Chart — Floating Bar Entrance Animations
+   ============================================================
+   Waterfall bars float at arbitrary Y (vertical) or X (horizontal)
+   positions. Each animation grows the bar from the edge that
+   corresponds to the "from" value (the previous running total):
+
+     .bc-wf-up    — positive vertical bar, grows bottom → top
+     .bc-wf-down  — negative vertical bar, grows top → bottom
+     .bc-wf-right — positive horizontal bar, grows left → right
+     .bc-wf-left  — negative horizontal bar, grows right → left
+
+   transform-box: fill-box ensures the transform-origin is
+   relative to the bar's own bounding box so floating bars
+   animate from the correct edge.
+   ============================================================ */
+
+@keyframes bc-wf-grow-v {
+  0%   { transform: scaleY(0); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes bc-wf-grow-h {
+  0%   { transform: scaleX(0); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+/* Positive vertical bar — grows upward from the "from" baseline */
+.bc-wf-up {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-wf-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-up {
+  animation-play-state: running;
+}
+
+/* Negative vertical bar — grows downward from the "from" baseline */
+.bc-wf-down {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: bc-wf-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-down {
+  animation-play-state: running;
+}
+
+/* Positive horizontal bar — grows rightward from the "from" baseline */
+.bc-wf-right {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: bc-wf-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-right {
+  animation-play-state: running;
+}
+
+/* Negative horizontal bar — grows leftward from the "from" baseline */
+.bc-wf-left {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: bc-wf-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-left {
+  animation-play-state: running;
+}
+/* ============================================================
+   .sv-animate — SvChartAnimDirective trigger alias
+   ============================================================
+   SvChartAnimDirective (selector [svChartAnim]) adds .sv-animate
+   to the chart root element once it enters the viewport.
+   All animation classes below are defined with
+   animation-play-state: paused and flipped to running here.
+   ============================================================ */
+
+/* Bar charts */
+.sv-animate .bc-bar-v   { animation-play-state: running; }
+.sv-animate .bc-bar-h   { animation-play-state: running; }
+.sv-animate .bc-bar-hr  { animation-play-state: running; }
+.sv-animate .bc-range-v { animation-play-state: running; }
+.sv-animate .bc-range-h { animation-play-state: running; }
+.sv-animate .bc-cap     { animation-play-state: running; }
+.sv-animate .bc-bar-v2  { animation-play-state: running; }
+
+/* Line charts */
+.sv-animate .lc-line,
+.sv-animate .lc-fade    { animation-play-state: running; }
+
+/* Bubble / funnel / pyramid / fade */
+.sv-animate .bc-bubble      { animation-play-state: running; }
+.sv-animate .bc-funnel-seg  { animation-play-state: running; }
+.sv-animate .bc-pyramid-seg { animation-play-state: running; }
+.sv-animate .bc-fade-in     { animation-play-state: running; }
+
+/* Pie charts */
+.sv-animate .bc-pie-slice     { animation-play-state: running; }
+.sv-animate .bc-pie-label     { animation-play-state: running; }
+.sv-animate .bc-pie-connector { animation-play-state: running; }
+
+/* Waterfall */
+.sv-animate .bc-wf-up    { animation-play-state: running; }
+.sv-animate .bc-wf-down  { animation-play-state: running; }
+.sv-animate .bc-wf-right { animation-play-state: running; }
+.sv-animate .bc-wf-left  { animation-play-state: running; }
+
+/* ============================================================
+   Command Palette — Panel Entrance Animation
+   ============================================================
+   .cp-panel is applied to the dialog panel element.
+   The component drives opacity/scale/translate via Tailwind
+   signal-bound classes; this keyframe adds a subtle spring
+   on top for a premium feel.
+
+   .cp-kbd used to be a shared keyboard key chip for the footer
+   legend, defined here so Tailwind's JIT scanner picked it up
+   without a dynamic class name. It was the design basis for
+   @styloviz/kbd's default `solid` variant; command-palette now
+   renders <sv-kbd> directly, so the class is retired.
+   ============================================================ */
+
+@keyframes cp-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cp-panel {
+  animation: cp-panel-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Kanban: thin scrollbar for the fixed-header card body
+   ───────────────────────────────────────────────────────────── */
+.kb-col-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.kb-col-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kb-col-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: #d1d5db; /* gray-300 */
+}
+.dark .kb-col-scroll::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* gray-600 */
+}
+.kb-col-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af; /* gray-400 */
+}
+.dark .kb-col-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280; /* gray-500 */
+}
+
+/* ============================================================
+   Speed Dial — action item entrance animation
+   ============================================================ */
+@keyframes speedDialIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.speed-dial-item {
+  animation: speedDialIn 0.22s ease both;
+}
+/* X-7 / LU-09-M2: this rule is unlayered, so it outranks the template's
+   layered `motion-reduce:[animation:none]` utility — the guard has to live here too. */
+@media (prefers-reduced-motion: reduce) {
+  .speed-dial-item {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Reveal transition — SvRevealDirective (@styloviz/core)
+   ============================================================
+   The directive sets `data-sv-reveal="hidden"` / `"shown"` from JavaScript,
+   and only after confirming it may move content. Without these rules the
+   attribute is inert and content is simply visible. (The launch and
+   portfolio template blocks carry their own copies for their zips.)
+   ============================================================ */
+[data-sv-reveal] {
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-sv-reveal='hidden'] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-sv-reveal='shown'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sv-reveal] {
+    transition: none;
+  }
+
+  [data-sv-reveal='hidden'] {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* <<< kit-css: components */
+
+/* ============================================================
+   Get Started page — motion keyframes
+   Consumed via --animate-gs-* tokens (see @theme). All motion is
+   suppressed by the reduced-motion guard in prefers-reduced-motion.
+   ============================================================ */
+@keyframes gs-aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes gs-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes gs-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  60%,
+  100% {
+    transform: translateX(220%);
+  }
+}
+@keyframes gs-swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes gs-swap-right {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gs-aurora,
+  .animate-gs-float,
+  .animate-gs-float-slow,
+  .animate-gs-sheen,
+  .animate-gs-swap,
+  .animate-gs-swap-right {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   Admin — print regions
+   ------------------------------------------------------------
+   Sends ONLY the flagged region to the printer / "Save as PDF",
+   hiding the admin shell (sidebar, header) and the page-header
+   action buttons. Used by:
+     • the invoice-details page (#invoice-document) — Print button
+     • the sales report page (.sv-print-region)     — Download PDF
+   Both toggle `.sv-force-light` on the region while printing so it
+   prints as a clean white sheet even in dark mode.
+   ============================================================ */
+@media print {
+  /* Hide everything, then reveal just the printable region. */
+  body * {
+    visibility: hidden;
+  }
+
+  #invoice-document,
+  #invoice-document *,
+  .sv-print-region,
+  .sv-print-region * {
+    visibility: visible;
+  }
+
+  /* Float the region to the page origin and let its brand colours print. */
+  #invoice-document,
+  .sv-print-region {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border: none;
+    box-shadow: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    margin: 1cm;
+  }
+}

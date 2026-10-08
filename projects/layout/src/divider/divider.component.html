@@ -1,0 +1,29 @@
+<div [attr.role]="ariaRole()"
+     [attr.aria-orientation]="isDecorative() ? null : orientation()"
+     [attr.aria-label]="isDecorative() ? null : (label() || null)"
+     [attr.aria-hidden]="ariaHidden()"
+     [class]="wrapperClass()">
+
+  <!-- Start line (hidden when align=start AND there is content) -->
+  @if (!hasContent() || align() !== 'start') {
+    <div [class]="lineClass()" [style]="lineStyle()"></div>
+  }
+
+  <!-- Content (label / icon) -->
+  @if (hasContent()) {
+    <div [class]="contentSpacingClass() + ' flex shrink-0 items-center gap-1.5'">
+      @if (icon()) {
+        <sv-icon [name]="icon()" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+      }
+      @if (label()) {
+        <span class="select-none whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400"
+              [class]="labelClass()">{{ label() }}</span>
+      }
+    </div>
+
+    <!-- End line (hidden when align=end) -->
+    @if (align() !== 'end') {
+      <div [class]="lineClass()" [style]="lineStyle()"></div>
+    }
+  }
+</div>

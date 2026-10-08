@@ -1,0 +1,487 @@
+@if (error()) {
+  <!-- Rows stay put so the user can see what state the order is in. -->
+  <div class="mb-2" data-sv-state="error">
+    <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" />
+  </div>
+}
+
+@if (loading()) {
+  <div data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="4" ariaLabel="Loading list" />
+  </div>
+} @else if (isEmpty()) {
+  <sv-empty-shell reason="no-data" [title]="emptyText()" data-sv-state="empty" />
+} @else {
+
+<div class="w-full">
+  <!-- Screen-reader live region for reorder / remove / complete actions -->
+  <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ liveMessage() }}</div>
+
+  @if (label()) {
+    <h3 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ label() }}</h3>
+  }
+
+  <!-- ═══════════════════════════════════════════════
+       DEFAULT variant — rich task cards with priority,
+       assignee avatar, due date, and tags
+  ═══════════════════════════════════════════════════ -->
+  @if (variant() === 'default') {
+    <ul class="space-y-2" role="list" data-dnd-list tabindex="-1">
+      @for (item of renderItems(); track item.id; let i = $index) {
+        <li class="group relative rounded-xl border shadow-sm transition-all duration-200
+                   dark:border-gray-700/60"
+            [class]="cardSurface(item)"
+            [class.border-gray-200]="overIndex() !== i"
+            [class.border-primary-400]="overIndex() === i && dragIndex() !== i"
+            [class.ring-2]="overIndex() === i && dragIndex() !== i"
+            [class.ring-primary-400/30]="overIndex() === i && dragIndex() !== i"
+            [class.opacity-40]="dragIndex() === i"
+            [class.scale-105]="overIndex() === i && dragIndex() !== i"
+            [draggable]="canDrag(item)"
+            (dragstart)="onDragStart(i)"
+            (dragover)="onDragOver($event, i)"
+            (drop)="onDrop($event, i)"
+            (dragend)="onDragEnd()">
+
+          <!-- Priority accent bar -->
+          @if (item.priority) {
+            <div class="absolute left-0 top-3 bottom-3 w-1 rounded-full"
+                 [class]="priorityDot[item.priority]"
+                 style="left: 10px"></div>
+          }
+
+          <div class="flex items-start gap-3 px-4 py-3 pl-6">
+            <!-- Drag handle -->
+            @if (sortable()) {
+              <!--
+                ★★★ NATIVE HTML DRAG LARGELY DOES NOT WORK ON TOUCH, so the
+                    keyboard path is the PRIMARY path rather than the fallback —
+                    and an `aria-hidden` div cannot be one. The handle is a real
+                    button: space or enter lifts, arrows move, space drops,
+                    escape cancels and restores the original order.
+
+                ★ It exists alongside the Move up / Move down buttons because
+                  they are a different model — those commit each step
+                  immediately, so a five-place move is five writes the host must
+                  save and possibly roll back. Grab/drop commits once.
+              -->
+              <button type="button"
+                   data-dnd-handle
+                   class="mt-0.5 cursor-grab rounded text-gray-300 transition-colors hover:text-gray-500
+                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500
+                          active:cursor-grabbing dark:text-gray-600 dark:hover:text-gray-400"
+                   [class.text-primary-600]="isGrabbed(i)"
+                   [class.dark:text-primary-400]="isGrabbed(i)"
+                   [attr.aria-pressed]="isGrabbed(i)"
+                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   (mousedown)="armHandle()"
+                   (keydown)="onHandleKeydown($event, i)">
+                <sv-icon name="grip-vertical" cssClass="h-4 w-4" />
+              </button>
+            }
+
+            <!-- Content -->
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <p class="truncate text-sm font-semibold" [class]="labelTone(item)">
+                  {{ item.label }}
+                </p>
+                @if (item.badge) {
+                  <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    {{ item.badge }}
+                  </span>
+                }
+              </div>
+              @if (item.sublabel) {
+                <p class="mt-0.5 truncate text-[11px] text-gray-500 dark:text-gray-400">{{ item.sublabel }}</p>
+              }
+
+              <!-- Footer row -->
+              <div class="mt-2 flex flex-wrap items-center gap-2">
+                @if (item.priority) {
+                  <span class="rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                        [class]="priorityBadge[item.priority]">
+                    {{ item.priority }}
+                  </span>
+                }
+                @for (tag of (item.tags ?? []); track tag) {
+                  <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    {{ tag }}
+                  </span>
+                }
+                @if (item.dueDate) {
+                  <!--
+                    danger-600/400 and gray-500/400, not danger-500 and
+                    gray-400: an overdue date was 3.80:1 on white and 3.91:1 in
+                    dark, and the ordinary date was 2.60:1. Both arms needed a
+                    `dark:` half too — danger DARKENS as the step climbs, so the
+                    one class that fixes light makes dark worse (danger-600 on
+                    gray-800 is 3.12:1).
+                  -->
+                  <span class="flex items-center gap-1 text-[10px]"
+                        [class.text-danger-600]="isDue(item.dueDate) && !item.completed"
+                        [class.dark:text-danger-400]="isDue(item.dueDate) && !item.completed"
+                        [class.text-gray-500]="!isDue(item.dueDate) || item.completed"
+                        [class.dark:text-gray-400]="!isDue(item.dueDate) || item.completed">
+                    <sv-icon name="calendar" cssClass="h-3 w-3" [strokeWidth]="2" />
+                    {{ item.dueDate | date:'MMM d' }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Right actions -->
+            <div class="flex shrink-0 items-center gap-1.5">
+              <!-- Assignee avatar -->
+              @if (item.assignee) {
+                <div class="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                     [style.background]="item.assigneeColor || 'var(--color-gray-500)'"
+                     [title]="item.assignee">
+                  {{ item.assignee }}
+                </div>
+              }
+
+              <!-- Move buttons -->
+              <div class="flex flex-col gap-0">
+                <button type="button"
+                  class="rounded p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
+                  [disabled]="i === 0 || null"
+                  aria-label="Move up"
+                  (click)="moveUp(i)">
+                  <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+                <button type="button"
+                  class="rounded p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
+                  [disabled]="i === items().length - 1 || null"
+                  aria-label="Move down"
+                  (click)="moveDown(i)">
+                  <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+              </div>
+
+              <!-- Remove -->
+              <button type="button"
+                data-dnd-remove
+                class="rounded p-1 text-gray-300 transition-colors hover:text-danger-500 focus-visible:outline-none"
+                [attr.aria-label]="'Remove ' + item.label"
+                (click)="remove(item.id)">
+                <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+              </button>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- ═══════════════════════════════════════════════
+       CHECKLIST variant — checkbox-first with
+       progress bar and completion state
+  ═══════════════════════════════════════════════════ -->
+  @if (variant() === 'checklist') {
+    <!-- Progress -->
+    <div class="mb-4">
+      <div class="mb-1.5 flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Progress</span>
+        <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ completedCount() }}/{{ totalCount() }}</span>
+      </div>
+      <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+        <div class="h-full rounded-full bg-accent-500 transition-all duration-500"
+             [style.width]="progressPct() + '%'"></div>
+      </div>
+    </div>
+
+    <ul class="space-y-1" role="list" data-dnd-list tabindex="-1">
+      @for (item of renderItems(); track item.id; let i = $index) {
+        <li class="flex items-center gap-3 rounded-xl border border-gray-100 px-3 py-2.5 transition-all duration-200
+                   hover:border-gray-200 hover:bg-gray-50/50
+                   dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-800/30"
+            [draggable]="canDrag(item)"
+            (dragstart)="onDragStart(i)"
+            (dragover)="onDragOver($event, i)"
+            (drop)="onDrop($event, i)"
+            (dragend)="onDragEnd()">
+
+          <!-- Checkbox -->
+          <button type="button"
+            class="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/50"
+            [class.border-accent-500]="item.completed"
+            [class.bg-accent-500]="item.completed"
+            [class.border-gray-300]="!item.completed"
+            [class.dark:border-gray-600]="!item.completed"
+            [attr.aria-label]="item.completed ? 'Mark incomplete' : 'Mark complete'"
+            (click)="toggleComplete(item.id)">
+            @if (item.completed) {
+              <sv-icon name="check" cssClass="h-3 w-3 text-white" />
+            }
+          </button>
+
+          <!-- Label -->
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium transition-all" [class]="labelTone(item)">
+              {{ item.label }}
+            </p>
+            @if (item.sublabel && !item.completed) {
+              <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ item.sublabel }}</p>
+            }
+          </div>
+
+          <!-- Right meta -->
+          <div class="flex shrink-0 items-center gap-2">
+            @if (item.priority && !item.completed) {
+              <span class="h-2 w-2 rounded-full" [class]="priorityDot[item.priority]" [title]="item.priority"></span>
+            }
+            @if (item.assignee) {
+              <div class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                   [style.background]="item.assigneeColor || 'var(--color-gray-500)'">
+                {{ item.assignee }}
+              </div>
+            }
+            @if (item.dueDate && !item.completed) {
+              <span class="text-[10px]"
+                    [class.text-danger-600]="isDue(item.dueDate)"
+                    [class.dark:text-danger-400]="isDue(item.dueDate)"
+                    [class.text-gray-500]="!isDue(item.dueDate)"
+                    [class.dark:text-gray-400]="!isDue(item.dueDate)">
+                {{ item.dueDate | date:'MMM d' }}
+              </span>
+            }
+            <!-- Reorder: the same real handle (keyboard grab/drop) and
+                 Move up / Move down as the default variant — an aria-hidden
+                 grip left this variant mouse-only. -->
+            @if (sortable()) {
+              <div class="flex flex-col gap-0">
+                <button type="button"
+                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === 0 || null"
+                  aria-label="Move up"
+                  (click)="moveUp(i)">
+                  <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+                <button type="button"
+                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === items().length - 1 || null"
+                  aria-label="Move down"
+                  (click)="moveDown(i)">
+                  <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+              </div>
+              <button type="button"
+                   data-dnd-handle
+                   class="shrink-0 cursor-grab rounded text-gray-500 transition-colors hover:text-gray-700
+                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500
+                          active:cursor-grabbing dark:text-gray-400 dark:hover:text-gray-200"
+                   [class.text-primary-600]="isGrabbed(i)"
+                   [class.dark:text-primary-400]="isGrabbed(i)"
+                   [attr.aria-pressed]="isGrabbed(i)"
+                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   (mousedown)="armHandle()"
+                   (keydown)="onHandleKeydown($event, i)">
+                <sv-icon name="grip-vertical" cssClass="h-3.5 w-3.5" />
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- ═══════════════════════════════════════════════
+       KANBAN variant — 3-column board (To Do,
+       In Progress, Done) with draggable cards
+  ═══════════════════════════════════════════════════ -->
+  @if (variant() === 'kanban') {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      @for (col of kanbanCols; track col) {
+        <div class="flex flex-col gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-900/40">
+          <!-- Column header -->
+          <div class="flex items-center justify-between px-1">
+            <div class="flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full" [class]="colColors[col]"></span>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                {{ colLabels[col] }}
+              </span>
+            </div>
+            <span class="rounded-full bg-gray-200 px-1.5 text-[10px] font-bold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {{ kanbanItems(col).length }}
+            </span>
+          </div>
+
+          <!-- Cards -->
+          @for (item of kanbanItems(col); track item.id) {
+            <div class="group relative rounded-lg border border-gray-200 p-3 shadow-sm
+                        transition-all hover:border-primary-300 hover:shadow-md
+                        dark:border-gray-700"
+                 [class]="cardSurface(item)">
+
+              <!-- Priority bar -->
+              @if (item.priority) {
+                <div class="mb-2 flex items-center gap-1.5">
+                  <span class="h-1.5 w-1.5 rounded-full" [class]="priorityDot[item.priority]"></span>
+                  <span class="text-[9px] font-bold uppercase tracking-wide"
+                        [class]="priorityBadge[item.priority]"
+                        style="padding: 1px 5px; border-radius: 999px">
+                    {{ item.priority }}
+                  </span>
+                </div>
+              }
+
+              <p class="text-[12px] font-semibold leading-snug" [class]="labelTone(item)">
+                {{ item.label }}
+              </p>
+
+              @if (item.sublabel) {
+                <p class="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2">{{ item.sublabel }}</p>
+              }
+
+              <!-- Tags -->
+              @if (item.tags?.length) {
+                <div class="mt-2 flex flex-wrap gap-1">
+                  @for (tag of (item.tags ?? []); track tag) {
+                    <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      {{ tag }}
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Footer -->
+              <div class="mt-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  @if (item.assignee) {
+                    <div class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                         [style.background]="item.assigneeColor || 'var(--color-gray-500)'">
+                      {{ item.assignee }}
+                    </div>
+                  }
+                  @if (item.dueDate) {
+                    <span class="text-[10px]"
+                          [class.text-danger-600]="isDue(item.dueDate) && !item.completed"
+                          [class.dark:text-danger-400]="isDue(item.dueDate) && !item.completed"
+                          [class.text-gray-500]="!isDue(item.dueDate) || item.completed"
+                          [class.dark:text-gray-400]="!isDue(item.dueDate) || item.completed">
+                      {{ item.dueDate | date:'MMM d' }}
+                    </span>
+                  }
+                </div>
+
+                <!-- Move column buttons -->
+                <!-- Revealed on focus as well as hover: a keyboard user never hovers,
+                     and focus landing on an invisible control shows nothing. -->
+                <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100">
+                  @if (col !== 'todo') {
+                    <button type="button"
+                      class="rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary-500"
+                      title="Move left"
+                      [attr.aria-label]="'Move ' + item.label + ' left'"
+                      (click)="moveToCol(item.id, col === 'done' ? 'in-progress' : 'todo')">
+                      <sv-icon name="chevron-left" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                    </button>
+                  }
+                  @if (col !== 'done') {
+                    <button type="button"
+                      class="rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary-500"
+                      title="Move right"
+                      [attr.aria-label]="'Move ' + item.label + ' right'"
+                      (click)="moveToCol(item.id, col === 'todo' ? 'in-progress' : 'done')">
+                      <sv-icon name="chevron-right" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Empty column placeholder -->
+          @if (kanbanItems(col).length === 0) {
+            <div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 py-6 dark:border-gray-700">
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">No items</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ═══════════════════════════════════════════════
+       COMPACT variant — dense sortable list
+  ═══════════════════════════════════════════════════ -->
+  @if (variant() === 'compact') {
+    <ul class="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white dark:divide-gray-800 dark:border-gray-700 dark:bg-gray-800" role="list" data-dnd-list tabindex="-1">
+      @for (item of renderItems(); track item.id; let i = $index) {
+        <li class="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            [class.opacity-40]="dragIndex() === i"
+            [class.bg-primary-50]="overIndex() === i && dragIndex() !== i"
+            [class.dark:bg-primary-900/20]="overIndex() === i && dragIndex() !== i"
+            [draggable]="canDrag(item)"
+            (dragstart)="onDragStart(i)"
+            (dragover)="onDragOver($event, i)"
+            (drop)="onDrop($event, i)"
+            (dragend)="onDragEnd()">
+
+          @if (sortable()) {
+            <button type="button"
+                   data-dnd-handle
+                   class="shrink-0 cursor-grab rounded text-gray-500 transition-colors hover:text-gray-700
+                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500
+                          active:cursor-grabbing dark:text-gray-400 dark:hover:text-gray-200"
+                   [class.text-primary-600]="isGrabbed(i)"
+                   [class.dark:text-primary-400]="isGrabbed(i)"
+                   [attr.aria-pressed]="isGrabbed(i)"
+                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   (mousedown)="armHandle()"
+                   (keydown)="onHandleKeydown($event, i)">
+                <sv-icon name="grip-vertical" cssClass="h-3.5 w-3.5" />
+              </button>
+          }
+
+          @if (item.priority) {
+            <span class="h-2 w-2 shrink-0 rounded-full" [class]="priorityDot[item.priority]"></span>
+          }
+
+          <p class="min-w-0 flex-1 truncate text-[12px] font-medium text-gray-700 dark:text-gray-300">{{ item.label }}</p>
+
+          @if (item.assignee) {
+            <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                 [style.background]="item.assigneeColor || 'var(--color-gray-500)'">
+              {{ item.assignee }}
+            </div>
+          }
+
+          @if (item.badge) {
+            <span class="shrink-0 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ item.badge }}</span>
+          }
+
+          @if (sortable()) {
+            <div class="flex flex-col gap-0">
+                <button type="button"
+                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === 0 || null"
+                  aria-label="Move up"
+                  (click)="moveUp(i)">
+                  <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+                <button type="button"
+                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === items().length - 1 || null"
+                  aria-label="Move down"
+                  (click)="moveDown(i)">
+                  <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                </button>
+              </div>
+          }
+
+          <button type="button"
+            data-dnd-remove
+            class="shrink-0 rounded p-0.5 text-gray-500 hover:text-danger-600 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-danger-400"
+            [attr.aria-label]="'Remove ' + item.label"
+            (click)="remove(item.id)">
+            <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2" />
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+}<!-- /@else list -->

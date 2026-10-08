@@ -1,0 +1,39 @@
+{
+  "name": "@styloviz/scroll-area",
+  "version": "1.0.1",
+  "description": "A styled scrollbar drawn over a genuinely scrolling element — never in place of one. Minimum grabbable thumb with the track arithmetic corrected for it, click-to-page on the track, and edge fades that are the only affordance a hidden scrollbar leaves.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "scrollbar",
+    "scroll",
+    "overflow",
+    "custom-scrollbar",
+    "styloviz",
+    "area"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/scroll-area",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/scroll-area"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,309 @@
+<div [class]="'flex flex-col gap-3 ' + (resolvedDisabled() ? 'opacity-50 cursor-not-allowed' : '')">
+
+  <!-- Label row (single slider only) -->
+  @if (!range() && (label() || showValue())) {
+    <div class="flex items-center justify-between gap-4">
+      @if (label()) {
+        <label [attr.for]="resolvedId()" class="text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
+          {{ label() }}
+        </label>
+      }
+      @if (showValue()) {
+        <span class="min-w-[2.5rem] rounded-md bg-gray-100 px-2 py-0.5 text-center text-sm font-semibold tabular-nums text-gray-800 dark:bg-gray-700 dark:text-gray-100">
+          {{ displayValue() }}
+        </span>
+      }
+    </div>
+  }
+
+  @if (range()) {
+    <!-- ── Premium Range Slider ── -->
+    <div class="relative">
+
+      @if (label()) {
+        <label [for]="resolvedId()"
+               class="mb-4 block text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
+          {{ label() }}
+        </label>
+      }
+
+      <!--
+        Floating value bubbles above each handle.
+
+        Gated on `showValue()`, like the single slider's readout — see the input
+        for why they used to ignore it.
+      -->
+      @if (showValue()) {
+        <div class="relative mb-1 h-6">
+          <!--
+            The value bubbles follow the handles, so they take the same logical
+            inset. `-translate-x-1/2` stays physical on purpose: it centres the
+            bubble on its own anchor point, which is a geometric operation and
+            has no direction in it.
+
+            🔺 Re-verified 2026-09-26: that was wrong. In RTL the inline start is
+               the RIGHT edge, so the bubble's right edge sits on the anchor and
+               a -50% shift moves it a further half-width AWAY — the bubble
+               floated one full width left of its handle. `rtl:translate-x-1/2`
+               shifts it back towards the anchor.
+          -->
+          <span
+            class="absolute flex h-6 min-w-[2rem] -translate-x-1/2 rtl:translate-x-1/2 items-center justify-center rounded px-1.5 text-[11px] font-semibold shadow-sm transition-[inset-inline-start] duration-75"
+            [class]="bubbleColor()"
+            [style.inset-inline-start]="rangeFillLeft()"
+          >{{ displayStart() }}</span>
+
+          <span
+            class="absolute flex h-6 min-w-[2rem] -translate-x-1/2 rtl:translate-x-1/2 items-center justify-center rounded px-1.5 text-[11px] font-semibold shadow-sm transition-[inset-inline-start] duration-75"
+            [class]="bubbleColor()"
+            [style.inset-inline-start]="rangeFillRight()"
+          >{{ displayEnd() }}</span>
+        </div>
+      }
+
+      <!--
+        Track + handles wrapper. Height = thumb size so handles center on track.
+
+        ★ The pointer listeners are here rather than on the inputs: the inputs
+          are `pointer-events-none` except for their thumbs, so only this
+          wrapper sees the pointer crossing the track on its way to a handle —
+          which is exactly the moment the z-order has to be right.
+      -->
+      <div
+        [class]="'relative w-full ' + wrapHeight()"
+        (pointermove)="onTrackPointerMove($event)"
+        (pointerleave)="onTrackPointerLeave()"
+      >
+
+        <!-- Track background -->
+        <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 ' + trackHeight()"></div>
+
+        <!-- Active fill between handles -->
+        <div
+          [class]="'absolute top-1/2 -translate-y-1/2 rounded-full ' + trackHeight() + ' ' + fillColor()"
+          [style.inset-inline-start]="rangeFillLeft()"
+          [style.inset-inline-end]="rangeFillRightInset()"
+        ></div>
+
+        <!-- START handle — pointer-events only on the thumb; `startZIndex()`
+             decides which handle a click reaches. See `startOnTop`. -->
+        <input
+          type="range"
+          [min]="min()"
+          [max]="max()"
+          [step]="step()"
+          [value]="rangeStart()"
+          [disabled]="resolvedDisabled()"
+          (input)="onRangeStartChange($event)"
+          class="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent
+                 [&::-webkit-slider-runnable-track]:h-0
+                 [&::-webkit-slider-thumb]:pointer-events-auto
+                 [&::-webkit-slider-thumb]:appearance-none
+                 [&::-webkit-slider-thumb]:cursor-grab
+                 [&::-webkit-slider-thumb]:rounded-full
+                 [&::-webkit-slider-thumb]:border-[2.5px]
+                 [&::-webkit-slider-thumb]:border-white
+                 [&::-webkit-slider-thumb]:shadow-[0_1px_6px_rgba(0,0,0,0.25)]
+                 [&::-webkit-slider-thumb]:ring-[1.5px]
+                 [&::-webkit-slider-thumb]:transition-transform
+                 [&::-webkit-slider-thumb]:duration-100
+                 hover:[&::-webkit-slider-thumb]:scale-110
+                 active:[&::-webkit-slider-thumb]:scale-125
+                 active:[&::-webkit-slider-thumb]:cursor-grabbing
+                 [&::-moz-range-track]:h-0
+                 [&::-moz-range-thumb]:pointer-events-auto
+                 [&::-moz-range-thumb]:cursor-grab
+                 [&::-moz-range-thumb]:rounded-full
+                 [&::-moz-range-thumb]:border-2
+                 [&::-moz-range-thumb]:border-white
+                 focus-visible:outline-none"
+          [class]="rangeThumbClasses() + ' ' + startZIndex()"
+          [attr.aria-label]="startAriaLabel()"
+          [attr.aria-valuenow]="rangeStart()"
+          [attr.aria-valuemin]="min()"
+          [attr.aria-valuemax]="rangeEnd()"
+          [attr.aria-valuetext]="startText()"
+          [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+          [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
+        />
+
+        <!-- END handle -->
+        <input
+          type="range"
+          [min]="min()"
+          [max]="max()"
+          [step]="step()"
+          [value]="rangeEnd()"
+          [disabled]="resolvedDisabled()"
+          (input)="onRangeEndChange($event)"
+          class="pointer-events-none absolute inset-0 h-full w-full appearance-none bg-transparent
+                 [&::-webkit-slider-runnable-track]:h-0
+                 [&::-webkit-slider-thumb]:pointer-events-auto
+                 [&::-webkit-slider-thumb]:appearance-none
+                 [&::-webkit-slider-thumb]:cursor-grab
+                 [&::-webkit-slider-thumb]:rounded-full
+                 [&::-webkit-slider-thumb]:border-[2.5px]
+                 [&::-webkit-slider-thumb]:border-white
+                 [&::-webkit-slider-thumb]:shadow-[0_1px_6px_rgba(0,0,0,0.25)]
+                 [&::-webkit-slider-thumb]:ring-[1.5px]
+                 [&::-webkit-slider-thumb]:transition-transform
+                 [&::-webkit-slider-thumb]:duration-100
+                 hover:[&::-webkit-slider-thumb]:scale-110
+                 active:[&::-webkit-slider-thumb]:scale-125
+                 active:[&::-webkit-slider-thumb]:cursor-grabbing
+                 [&::-moz-range-track]:h-0
+                 [&::-moz-range-thumb]:pointer-events-auto
+                 [&::-moz-range-thumb]:cursor-grab
+                 [&::-moz-range-thumb]:rounded-full
+                 [&::-moz-range-thumb]:border-2
+                 [&::-moz-range-thumb]:border-white
+                 focus-visible:outline-none"
+          [class]="rangeThumbClasses() + ' ' + endZIndex()"
+          [attr.aria-label]="endAriaLabel()"
+          [attr.aria-valuenow]="rangeEnd()"
+          [attr.aria-valuemin]="rangeStart()"
+          [attr.aria-valuemax]="max()"
+          [attr.aria-valuetext]="endText()"
+          [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+          [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
+        />
+      </div>
+
+      <!-- Min / Max labels -->
+      <div class="mt-1.5 flex items-center justify-between text-[11px] font-medium text-gray-500 dark:text-gray-400">
+        <span class="tabular-nums">{{ displayMin() }}</span>
+        <span class="tabular-nums">{{ displayMax() }}</span>
+      </div>
+
+      <!--
+        Paired number fields. They write through the SAME clamping the handles
+        use, so `minGap` and the bounds hold however the number arrived.
+      -->
+      @if (showInputs()) {
+        <div class="mt-3 flex items-end gap-2">
+          <sv-number-input
+            class="flex-1"
+            size="sm"
+            [value]="rangeStart()"
+            [min]="min()"
+            [max]="max()"
+            [step]="step()"
+            [decimals]="inputDecimals()"
+            [disabled]="resolvedDisabled()"
+            [ariaLabel]="startAriaLabel()"
+            (changed)="setRangeStartFromInput($event)" />
+          <span class="pb-2 text-xs text-gray-500 dark:text-gray-400" aria-hidden="true">–</span>
+          <sv-number-input
+            class="flex-1"
+            size="sm"
+            [value]="rangeEnd()"
+            [min]="min()"
+            [max]="max()"
+            [step]="step()"
+            [decimals]="inputDecimals()"
+            [disabled]="resolvedDisabled()"
+            [ariaLabel]="endAriaLabel()"
+            (changed)="setRangeEndFromInput($event)" />
+        </div>
+      }
+    </div>
+
+  } @else {
+    <!-- ── Single Slider ── -->
+    <!-- Wrapper height = thumb size → thumb centers naturally in absolute inset-0 input -->
+    <div [class]="'relative w-full ' + wrapHeight()">
+
+      <!-- Track background — vertically centered in wrapper -->
+      <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 ' + trackHeight()"></div>
+
+      <!--
+        Active fill.
+
+        ★★★ `start-0`, NOT `left-0` (`FI-24-I2`). The thumb here is a native
+            `<input type="range">`, which the browser flips in an RTL context —
+            so a fill anchored to the PHYSICAL left grew left-to-right while the
+            thumb it is supposed to be following grew right-to-left. The two
+            pointed at each other, and the bar showed the complement of the
+            value. `inset-inline-start` is resolved by the browser from the same
+            `direction` the input reads, so the two cannot disagree.
+      -->
+      <div
+        [class]="'absolute top-1/2 start-0 -translate-y-1/2 rounded-full ' + trackHeight() + ' ' + fillColor()"
+        [style.width]="fillPercent()"
+      ></div>
+
+      <!-- Native input fills the full wrapper height → thumb is perfectly centered on track -->
+      <input
+        type="range"
+        [id]="resolvedId()"
+        [min]="min()"
+        [max]="max()"
+        [step]="step()"
+        [value]="value()"
+        [disabled]="resolvedDisabled()"
+        [attr.aria-label]="!label() ? (singleAriaLabel() || null) : null"
+        [attr.aria-valuetext]="valueText()"
+        [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+        [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
+        (input)="onSingleChange($event)"
+        (blur)="onSingleBlur()"
+        class="absolute inset-0 h-full w-full cursor-pointer appearance-none bg-transparent
+               [&::-webkit-slider-runnable-track]:h-0
+               [&::-webkit-slider-thumb]:appearance-none
+               [&::-webkit-slider-thumb]:cursor-grab
+               [&::-webkit-slider-thumb]:rounded-full
+               [&::-webkit-slider-thumb]:border-[2.5px]
+               [&::-webkit-slider-thumb]:border-white
+               [&::-webkit-slider-thumb]:shadow-[0_1px_6px_rgba(0,0,0,0.25)]
+               [&::-webkit-slider-thumb]:ring-[1.5px]
+               [&::-webkit-slider-thumb]:transition-transform
+               [&::-webkit-slider-thumb]:duration-100
+               hover:[&::-webkit-slider-thumb]:scale-110
+               active:[&::-webkit-slider-thumb]:scale-125
+               active:[&::-webkit-slider-thumb]:cursor-grabbing
+               [&::-moz-range-track]:h-0
+               [&::-moz-range-thumb]:cursor-grab
+               [&::-moz-range-thumb]:rounded-full
+               [&::-moz-range-thumb]:border-2
+               [&::-moz-range-thumb]:border-white
+               focus-visible:outline-none"
+        [class]="singleThumbClasses()"
+        [attr.aria-valuenow]="value()"
+        [attr.aria-valuemin]="min()"
+        [attr.aria-valuemax]="max()"
+      />
+    </div>
+
+    @if (showInputs()) {
+      <div class="mt-1">
+        <sv-number-input
+          size="sm"
+          [value]="value()"
+          [min]="min()"
+          [max]="max()"
+          [step]="step()"
+          [decimals]="inputDecimals()"
+          [disabled]="resolvedDisabled()"
+          [ariaLabel]="singleAriaLabel() || 'Value'"
+          (changed)="setValueFromInput($event)" />
+      </div>
+    }
+
+    <!-- Tick marks + labels -->
+    @if (showTicks()) {
+      <div class="relative flex justify-between px-0.5">
+        @for (tick of ticks(); track tick) {
+          <div class="flex flex-col items-center gap-0.5">
+            <span class="h-1 w-px bg-gray-300 dark:bg-gray-600"></span>
+            <span class="text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
+              {{ tickLabel(tick) }}
+            </span>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
+<!-- Validation error slot. the track is a native range input group; aria left to the existing markup -->
+<sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

@@ -1,0 +1,838 @@
+/* ============================================================
+   Styloviz — kit stylesheet
+   ============================================================
+   GENERATED from the showcase's src/styles.css by
+   scripts/generate-kit-stylesheet.mjs — do not edit this copy.
+
+   Import it AFTER Tailwind, and tell Tailwind to scan the
+   compiled Styloviz packages (it skips node_modules otherwise):
+
+     @import "tailwindcss";
+     @import "@styloviz/core/styles/styloviz.css";
+     @source "../node_modules/@styloviz";
+     @source "../node_modules/@styloviz-pro";   // Pro only
+
+   (The @source paths are relative to YOUR stylesheet.)
+
+   What it contains:
+     • the design tokens (primary, accent, brand, brandaccent,
+       warning, danger, info, radii) as a Tailwind @theme;
+     • the class-based dark variant — add class="dark" to <html>
+       (ThemeService from @styloviz/core does this for you);
+     • a gray default for bare `border`, layered as base;
+     • the component runtime CSS: modal, popout, toast, command
+       palette and chart animations, skeleton shimmer, reveal.
+
+   Rebrand by redeclaring any token in your own @theme block
+   after this import, e.g.  @theme { --color-primary-600: #0f766e; }
+   ============================================================ */
+
+@custom-variant dark (&:where(.dark, .dark *):not(:where(.sv-force-light, .sv-force-light *)));
+
+@theme {
+  /* ---- Primary — interactive ---- */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bedbff;
+  --color-primary-300: #8ec5ff;
+  --color-primary-400: #50a2ff;
+  --color-primary-500: #2b7fff;
+  --color-primary-600: #155dfc;
+  --color-primary-700: #1447e6;
+  --color-primary-800: #193cb8;
+  --color-primary-900: #1c398e;
+  --color-primary-950: #162556;
+
+  /* ---- Accent — success and positive deltas ---- */
+  /* ★★ ELEVEN STEPS, NOT THREE. accent/warning/danger used to declare only
+     50/500/600 — "the steps the kit uses" — while the kit was in fact reaching
+     for nine more: sv-stepper paints `bg-accent-400`, `bg-danger-300` and
+     `bg-warning-300`, and sv-accordion and sv-command-palette use the whole
+     `text-<family>-400` set for dark mode. Tailwind v4 emits a utility only for
+     a token declared here, so those nine rendered as NOTHING — the element kept
+     its inherited colour, no build warning, and the specs asserting on the
+     class strings passed the entire time. A partial ramp is a trap for buyers
+     too: `bg-danger-700` in their own markup would silently do nothing. */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d0fae5;
+  --color-accent-200: #a4f4cf;
+  --color-accent-300: #5ee9b5;
+  --color-accent-400: #00d492;
+  --color-accent-500: #00bc7d;
+  --color-accent-600: #009966;
+  --color-accent-700: #007a55;
+  --color-accent-800: #006045;
+  --color-accent-900: #004f3b;
+  --color-accent-950: #002c22;
+
+  /* ============================================================
+     Admin Template — Brand Accent
+     ============================================================
+     The admin template (src/app/templates/admin) uses these two
+     token families for ALL of its accent styling instead of a
+     hardcoded Tailwind colour. To rebrand the entire admin shell
+     to your own colour, change the values below — every button,
+     link, ring, gradient and highlight updates in one place.
+
+       brand        = primary accent (default: violet)
+       brandaccent  = gradient partner / secondary (default: indigo)
+
+     Set brandaccent to the same values as brand for a single-tone
+     accent instead of the default two-tone gradients.
+     ============================================================ */
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #ddd6ff;
+  --color-brand-300: #c4b4ff;
+  --color-brand-400: #a684ff;
+  --color-brand-500: #8e51ff;
+  --color-brand-600: #7f22fe;
+  --color-brand-700: #7008e7;
+  --color-brand-800: #5d0ec0;
+  --color-brand-900: #4d179a;
+  --color-brand-950: #2f0d68;
+
+  --color-brandaccent-50: #eef2ff;
+  --color-brandaccent-100: #e0e7ff;
+  --color-brandaccent-200: #c6d2ff;
+  --color-brandaccent-300: #a3b3ff;
+  --color-brandaccent-400: #7c86ff;
+  --color-brandaccent-500: #615fff;
+  --color-brandaccent-600: #4f39f6;
+  --color-brandaccent-700: #432dd7;
+  --color-brandaccent-800: #372aac;
+  --color-brandaccent-900: #312c85;
+  --color-brandaccent-950: #1e1a4d;
+
+  /* ---- Warning — caution, degraded, approaching a limit ---- */
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c6;
+  --color-warning-200: #fee685;
+  --color-warning-300: #ffd230;
+  --color-warning-400: #ffb900;
+  --color-warning-500: #fe9a00;
+  --color-warning-600: #e17100;
+  --color-warning-700: #bb4d00;
+  --color-warning-800: #973c00;
+  --color-warning-900: #7b3306;
+  --color-warning-950: #461901;
+
+  /* ---- Danger — destructive, failed, over a limit ---- */
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #ffe2e2;
+  --color-danger-200: #ffc9c9;
+  --color-danger-300: #ffa2a2;
+  --color-danger-400: #ff6467;
+  --color-danger-500: #fb2c36;
+  --color-danger-600: #e7000b;
+  --color-danger-700: #c10007;
+  --color-danger-800: #9f0712;
+  --color-danger-900: #82181a;
+  --color-danger-950: #460809;
+
+  /* ---- Info — neutral-informational, "in progress" ---- */
+  /* ★ The kit's components have always had an `info` variant; until now it was
+     painted with literal `sky-*`, so it was the one semantic role a buyer could
+     not rebrand at all. Declaring it here is what lets `bg-info-600` exist —
+     Tailwind v4 emits no rule for an undeclared token, silently. */
+  --color-info-50: #f0f9ff;
+  --color-info-100: #dff2fe;
+  --color-info-200: #b8e6fe;
+  --color-info-300: #74d4ff;
+  --color-info-400: #00bcff;
+  --color-info-500: #00a6f4;
+  --color-info-600: #0084d1;
+  --color-info-700: #0069a8;
+  --color-info-800: #00598a;
+  --color-info-900: #024a70;
+  --color-info-950: #052f4a;
+
+  /* ---- Border Radius ---- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+/* Tailwind v4 draws a bare `border` in `currentColor`; every component in the
+   kit was designed against this gray default instead. Layered as `base`, so any
+   `border-*` utility still wins. */
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+}
+
+/* ============================================================
+   Dark Mode — Native date/time input calendar icon
+   ============================================================
+   Browsers render the calendar picker indicator using the OS
+   theme, so in dark mode it appears as a dark icon on a dark
+   background. Inverting it makes it light and legible.
+   ============================================================ */
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.55);
+  cursor: pointer;
+}
+
+/* ============================================================
+   Toast Progress Bar Animation
+   ============================================================
+   Used by ToastHostComponent to animate the progress bar
+   that counts down to auto-dismiss. The animation is applied
+   via inline [style] bound to the toast duration.
+   ============================================================ */
+
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ★ Identical on purpose. A deduplicated toast refreshes in place without its
+   node being recreated, and a running CSS animation only restarts when its
+   `animation-name` changes — so repeats alternate between these two. Without
+   the second name the bar kept emptying from where the FIRST occurrence had
+   left it: a toast shown as about to disappear whose countdown had just
+   restarted. See `SvToastHostComponent.progressStyle`. */
+@keyframes toast-progress-alt {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ============================================================
+   Modal Animations
+   ============================================================
+   Applied inside ModalComponent:
+     .modal-backdrop      — fades the overlay in
+     .modal-panel         — default slide-down + fade (center/top)
+     .modal-panel--up     — slide-up variant for position="bottom"
+   Combines a subtle vertical slide with a fade for polish, and
+   respects prefers-reduced-motion for accessibility.
+   ============================================================ */
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop-in 0.18s ease-out forwards;
+}
+
+.modal-panel {
+  animation: modal-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.modal-panel--up {
+  animation: modal-in-up 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal-panel,
+  .modal-panel--up {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* ============================================================
+   Popout Panel — directional entrance / exit animations
+   ============================================================
+   SvPopoutComponent sets .sv-popout-enter-* / .sv-popout-exit-*
+   based on the panel's resolved side (after flip), so the panel
+   slides out of / back toward the trigger edge with a smooth,
+   spring-like ease. Suffix = the side the panel sits on.
+   ============================================================ */
+
+@keyframes sv-popout-in-below { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sv-popout-in-above { from { opacity: 0; transform: translateY(6px) scale(0.98);  } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sv-popout-in-right { from { opacity: 0; transform: translateX(-6px) scale(0.98); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes sv-popout-in-left  { from { opacity: 0; transform: translateX(6px) scale(0.98);  } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+@keyframes sv-popout-out-below { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+@keyframes sv-popout-out-above { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(4px) scale(0.98);  } }
+@keyframes sv-popout-out-right { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(-4px) scale(0.98); } }
+@keyframes sv-popout-out-left  { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(4px) scale(0.98);  } }
+
+.sv-popout-enter-bottom { animation: sv-popout-in-below 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-top    { animation: sv-popout-in-above 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-right  { animation: sv-popout-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.sv-popout-enter-left   { animation: sv-popout-in-left  0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.sv-popout-exit-bottom { animation: sv-popout-out-below 0.14s ease-in both; }
+.sv-popout-exit-top    { animation: sv-popout-out-above 0.14s ease-in both; }
+.sv-popout-exit-right  { animation: sv-popout-out-right 0.14s ease-in both; }
+.sv-popout-exit-left   { animation: sv-popout-out-left  0.14s ease-in both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-popout-enter-bottom, .sv-popout-enter-top, .sv-popout-enter-right, .sv-popout-enter-left,
+  .sv-popout-exit-bottom,  .sv-popout-exit-top,  .sv-popout-exit-right,  .sv-popout-exit-left {
+    animation-duration: 0.01ms;
+  }
+}
+
+/* ============================================================
+   Bar Chart — Premium SVG Bar Animations
+   ============================================================
+   All bar paths use CSS `transform-box: fill-box` so that
+   `transform-origin` is relative to the element's own bounding
+   box rather than the SVG viewport origin.
+
+   Classes applied per bar <path>:
+     .bc-bar-v   — vertical bar, grows upward from baseline
+     .bc-bar-h   — horizontal bar, grows rightward from axis
+     .bc-bar-hr  — horizontal bar, grows leftward (negative side)
+     .bc-range-v — floating range bar, scales from center
+     .bc-range-h — floating horizontal range bar
+
+   animation-delay is bound inline per bar to create a cascade.
+   ============================================================ */
+
+/* ── Keyframes ────────────────────────────────────────────── */
+
+@keyframes bc-grow-v {
+  0%   { transform: scaleY(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes bc-grow-h {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes bc-grow-hr {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes bc-scale-in {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* ── Vertical bar — grows bottom → top ───────────────────── */
+.bc-bar-v {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-v {
+  animation-play-state: running;
+}
+
+/* ── Horizontal bar — grows left → right ─────────────────── */
+.bc-bar-h {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: bc-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-h {
+  animation-play-state: running;
+}
+
+/* ── Horizontal bar (negative) — grows right → left ─────── */
+.bc-bar-hr {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: bc-grow-hr var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-hr {
+  animation-play-state: running;
+}
+
+/* ── Floating range bar — scales from center ─────────────── */
+.bc-range-v {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.55s) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-range-v {
+  animation-play-state: running;
+}
+
+/* ── Floating horizontal range bar ───────────────────────── */
+.bc-range-h {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.55s) cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-range-h {
+  animation-play-state: running;
+}
+
+/* ── Cylindrical cap ellipses ─────────────────────────────── */
+.bc-cap {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-scale-in var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-cap {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Line Chart — SVG Path Draw-On Animations
+   ============================================================
+   Two CSS animation classes work together with ChartAnimDirective
+   (which adds .bc-animate to the wrapper when it enters viewport):
+
+     .lc-line  — solid series: draws the stroke left→right via
+                 stroke-dashoffset 3500→0 (ANIM_DASH = 3500 covers
+                 any practical path length).
+     .lc-fade  — dashed / multi-color series: simple opacity fade-in
+                 (dashoffset conflicts with their own stroke-dasharray).
+
+   Both classes are paused by default and run only inside .bc-animate.
+   Per-series stagger uses inline [style.animation-delay].
+   ============================================================ */
+
+@keyframes lc-draw {
+  from { stroke-dashoffset: 3500; opacity: 0; }
+  40%  { opacity: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes lc-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Solid line — grows left → right */
+.lc-line {
+  stroke-dasharray: 3500;
+  animation: lc-draw var(--lc-anim-dur, 1.4s) cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation-play-state: paused;
+}
+
+/* Dashed / multi-colored line — fades in */
+.lc-fade {
+  opacity: 0;
+  animation: lc-fade var(--lc-anim-dur, 0.9s) ease-out both;
+  animation-play-state: paused;
+}
+
+/* Triggered once the chart scrolls into view */
+.bc-animate .lc-line,
+.bc-animate .lc-fade {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Skeleton Loader — Wave Shimmer Animation
+   ============================================================
+   Used by SkeletonLoaderComponent when animation === 'wave'.
+   The .skeleton-wave class is applied to each bone element;
+   the shimmer sweeps left-to-right to mimic content loading.
+   ============================================================ */
+
+@keyframes skeleton-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-200, #e5e7eb) 25%,
+    var(--color-gray-100, #f3f4f6) 50%,
+    var(--color-gray-200, #e5e7eb) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Dark-mode variant — Tailwind's dark class strategy */
+:where(.dark, .dark *) .skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    var(--color-gray-700, #374151) 25%,
+    var(--color-gray-600, #4b5563) 50%,
+    var(--color-gray-700, #374151) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   Other Chart Types — Bubble, Funnel, Pyramid, Performance,
+   DateTime Category, Multi-Axis, Axis Label Template,
+   Multi-Level Label
+   ============================================================
+   All new animation classes follow the same
+   bcChartAnim / .bc-animate play-state pattern used by bar
+   and line charts.
+   ============================================================ */
+
+/* ── Bubble — scale in from center ──────────────────────── */
+@keyframes bc-bubble-in {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.bc-bubble {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-bubble-in var(--bc-anim-dur, 0.6s) cubic-bezier(0.34, 1.5, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bubble {
+  animation-play-state: running;
+}
+
+/* ── Funnel / Pyramid segment — scaleX from center ──────── */
+@keyframes bc-seg-in {
+  0%   { transform: scaleX(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+.bc-funnel-seg,
+.bc-pyramid-seg {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: bc-seg-in var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-funnel-seg,
+.bc-animate .bc-pyramid-seg {
+  animation-play-state: running;
+}
+
+/* ── Generic fade-in — used by performance dots & area ──── */
+@keyframes bc-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.bc-fade-in {
+  animation: bc-fade var(--bc-anim-dur, 0.8s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-fade-in {
+  animation-play-state: running;
+}
+
+/* ── Multi-axis secondary bar — same as bc-bar-v ─────────── */
+.bc-bar-v2 {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-bar-v2 {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Pie Chart — SVG Slice Entrance Animations
+   ============================================================
+   .bc-pie-slice  — each individual slice, scales in from the
+                    SVG center. Stagger is applied per-slice via
+                    inline [style.animation-delay].
+   .bc-pie-label  — smart / external labels fade + shift in
+                    after the slices have rendered.
+   .bc-pie-connector — connector lines draw in via opacity.
+   ============================================================ */
+
+@keyframes bc-pie-slice-in {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes bc-pie-label-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bc-pie-connector-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Slice — scale from SVG centre point */
+.bc-pie-slice {
+  transform-box: view-box;
+  transform-origin: center center;
+  animation: bc-pie-slice-in var(--bc-anim-dur, 0.6s) cubic-bezier(0.34, 1.3, 0.64, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-slice {
+  animation-play-state: running;
+}
+
+/* External label */
+.bc-pie-label {
+  animation: bc-pie-label-in var(--bc-anim-dur, 0.5s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-label {
+  animation-play-state: running;
+}
+
+/* Connector lines */
+.bc-pie-connector {
+  animation: bc-pie-connector-in var(--bc-anim-dur, 0.5s) ease-out both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-pie-connector {
+  animation-play-state: running;
+}
+
+/* ============================================================
+   Waterfall Chart — Floating Bar Entrance Animations
+   ============================================================
+   Waterfall bars float at arbitrary Y (vertical) or X (horizontal)
+   positions. Each animation grows the bar from the edge that
+   corresponds to the "from" value (the previous running total):
+
+     .bc-wf-up    — positive vertical bar, grows bottom → top
+     .bc-wf-down  — negative vertical bar, grows top → bottom
+     .bc-wf-right — positive horizontal bar, grows left → right
+     .bc-wf-left  — negative horizontal bar, grows right → left
+
+   transform-box: fill-box ensures the transform-origin is
+   relative to the bar's own bounding box so floating bars
+   animate from the correct edge.
+   ============================================================ */
+
+@keyframes bc-wf-grow-v {
+  0%   { transform: scaleY(0); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes bc-wf-grow-h {
+  0%   { transform: scaleX(0); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: scaleX(1); }
+}
+
+/* Positive vertical bar — grows upward from the "from" baseline */
+.bc-wf-up {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: bc-wf-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-up {
+  animation-play-state: running;
+}
+
+/* Negative vertical bar — grows downward from the "from" baseline */
+.bc-wf-down {
+  transform-box: fill-box;
+  transform-origin: center top;
+  animation: bc-wf-grow-v var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-down {
+  animation-play-state: running;
+}
+
+/* Positive horizontal bar — grows rightward from the "from" baseline */
+.bc-wf-right {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: bc-wf-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-right {
+  animation-play-state: running;
+}
+
+/* Negative horizontal bar — grows leftward from the "from" baseline */
+.bc-wf-left {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: bc-wf-grow-h var(--bc-anim-dur, 0.65s) cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-play-state: paused;
+}
+.bc-animate .bc-wf-left {
+  animation-play-state: running;
+}
+/* ============================================================
+   .sv-animate — SvChartAnimDirective trigger alias
+   ============================================================
+   SvChartAnimDirective (selector [svChartAnim]) adds .sv-animate
+   to the chart root element once it enters the viewport.
+   All animation classes below are defined with
+   animation-play-state: paused and flipped to running here.
+   ============================================================ */
+
+/* Bar charts */
+.sv-animate .bc-bar-v   { animation-play-state: running; }
+.sv-animate .bc-bar-h   { animation-play-state: running; }
+.sv-animate .bc-bar-hr  { animation-play-state: running; }
+.sv-animate .bc-range-v { animation-play-state: running; }
+.sv-animate .bc-range-h { animation-play-state: running; }
+.sv-animate .bc-cap     { animation-play-state: running; }
+.sv-animate .bc-bar-v2  { animation-play-state: running; }
+
+/* Line charts */
+.sv-animate .lc-line,
+.sv-animate .lc-fade    { animation-play-state: running; }
+
+/* Bubble / funnel / pyramid / fade */
+.sv-animate .bc-bubble      { animation-play-state: running; }
+.sv-animate .bc-funnel-seg  { animation-play-state: running; }
+.sv-animate .bc-pyramid-seg { animation-play-state: running; }
+.sv-animate .bc-fade-in     { animation-play-state: running; }
+
+/* Pie charts */
+.sv-animate .bc-pie-slice     { animation-play-state: running; }
+.sv-animate .bc-pie-label     { animation-play-state: running; }
+.sv-animate .bc-pie-connector { animation-play-state: running; }
+
+/* Waterfall */
+.sv-animate .bc-wf-up    { animation-play-state: running; }
+.sv-animate .bc-wf-down  { animation-play-state: running; }
+.sv-animate .bc-wf-right { animation-play-state: running; }
+.sv-animate .bc-wf-left  { animation-play-state: running; }
+
+/* ============================================================
+   Command Palette — Panel Entrance Animation
+   ============================================================
+   .cp-panel is applied to the dialog panel element.
+   The component drives opacity/scale/translate via Tailwind
+   signal-bound classes; this keyframe adds a subtle spring
+   on top for a premium feel.
+
+   .cp-kbd used to be a shared keyboard key chip for the footer
+   legend, defined here so Tailwind's JIT scanner picked it up
+   without a dynamic class name. It was the design basis for
+   @styloviz/kbd's default `solid` variant; command-palette now
+   renders <sv-kbd> directly, so the class is retired.
+   ============================================================ */
+
+@keyframes cp-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cp-panel {
+  animation: cp-panel-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Kanban: thin scrollbar for the fixed-header card body
+   ───────────────────────────────────────────────────────────── */
+.kb-col-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.kb-col-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kb-col-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: #d1d5db; /* gray-300 */
+}
+.dark .kb-col-scroll::-webkit-scrollbar-thumb {
+  background-color: #4b5563; /* gray-600 */
+}
+.kb-col-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af; /* gray-400 */
+}
+.dark .kb-col-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280; /* gray-500 */
+}
+
+/* ============================================================
+   Speed Dial — action item entrance animation
+   ============================================================ */
+@keyframes speedDialIn {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.speed-dial-item {
+  animation: speedDialIn 0.22s ease both;
+}
+/* X-7 / LU-09-M2: this rule is unlayered, so it outranks the template's
+   layered `motion-reduce:[animation:none]` utility — the guard has to live here too. */
+@media (prefers-reduced-motion: reduce) {
+  .speed-dial-item {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Reveal transition — SvRevealDirective (@styloviz/core)
+   ============================================================
+   The directive sets `data-sv-reveal="hidden"` / `"shown"` from JavaScript,
+   and only after confirming it may move content. Without these rules the
+   attribute is inert and content is simply visible. (The launch and
+   portfolio template blocks carry their own copies for their zips.)
+   ============================================================ */
+[data-sv-reveal] {
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-sv-reveal='hidden'] {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-sv-reveal='shown'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sv-reveal] {
+    transition: none;
+  }
+
+  [data-sv-reveal='hidden'] {
+    opacity: 1;
+    transform: none;
+  }
+}

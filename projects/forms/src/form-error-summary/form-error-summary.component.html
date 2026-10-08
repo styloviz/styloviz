@@ -1,0 +1,105 @@
+@if (count() > 0) {
+  <!--
+    ★ tabindex="-1", not role="alert".
+
+    An alert interrupts, and this list changes on every submit — the reader
+    would get the whole thing re-announced over the top of the field they had
+    just reached. Focus lands here instead, once, and the region's own label
+    announces the heading and the count. `aria-labelledby` rather than
+    `aria-label` so the two can never drift apart.
+  -->
+  <section
+    #region
+    tabindex="-1"
+    [attr.aria-labelledby]="headingId"
+    data-sv-state="error"
+    [attr.aria-busy]="busy() ? 'true' : null"
+    [class]="'rounded-xl border border-danger-300 bg-danger-50 p-4 focus:outline-none ' +
+             'focus-visible:ring-2 focus-visible:ring-danger-500 focus-visible:ring-offset-2 ' +
+             'dark:border-danger-800 dark:bg-danger-950/40 dark:focus-visible:ring-offset-gray-900 ' +
+             customClass()"
+  >
+    <div class="flex items-start gap-2.5">
+      <sv-icon
+        name="alert-triangle"
+        aria-hidden="true"
+        cssClass="mt-0.5 h-5 w-5 shrink-0 text-danger-600 dark:text-danger-400"
+        [strokeWidth]="2" />
+
+      <div class="min-w-0 flex-1">
+        @switch (headingLevel()) {
+          @case (3) {
+            <h3 [attr.id]="headingId" class="text-sm font-semibold text-danger-800 dark:text-danger-200">{{ resolvedHeading() }}</h3>
+          }
+          @case (4) {
+            <h4 [attr.id]="headingId" class="text-sm font-semibold text-danger-800 dark:text-danger-200">{{ resolvedHeading() }}</h4>
+          }
+          @default {
+            <h2 [attr.id]="headingId" class="text-sm font-semibold text-danger-800 dark:text-danger-200">{{ resolvedHeading() }}</h2>
+          }
+        }
+
+        <ul class="mt-2 space-y-1.5">
+          @for (error of errors(); track (error.fieldId ?? error.label) + '|' + error.message) {
+            <li class="text-sm leading-snug">
+              <!--
+                ★ A button, not <a href="#id">.
+
+                An anchor can only reach an element that is in the DOM, and the
+                fields this component exists for are the ones that are NOT: a
+                collapsed accordion panel renders nothing, and neither does a
+                wizard step that is not current. The click emits first so the
+                host can open it, then focus is attempted a frame later.
+              -->
+              @if (error.fieldId) {
+                <button
+                  type="button"
+                  class="rounded text-left font-medium text-danger-700 underline decoration-danger-400
+                         underline-offset-2 hover:decoration-danger-700 focus:outline-none
+                         focus-visible:ring-2 focus-visible:ring-danger-500
+                         dark:text-danger-300 dark:decoration-danger-600 dark:hover:decoration-danger-300"
+                  (click)="activate(error)"
+                >{{ error.label }}</button>
+              } @else {
+                <!--
+                  ★★★ NOT A LINK, BECAUSE THERE IS NOWHERE TO GO (`N-3`).
+
+                  "Your session expired" and "that card was declined" are
+                  rejections of the SUBMISSION, not of a control. A link here
+                  would be a promise the component cannot keep: it would report
+                  "(could not jump to this field)" and tell the user the page is
+                  broken on top of the problem they already have. It still
+                  counts toward the heading — a problem the form is refusing to
+                  submit over is a problem whether or not it has a field.
+                -->
+                <span data-sv-state="form-level"
+                      class="font-medium text-danger-800 dark:text-danger-200">{{ error.label }}</span>
+              }
+              <span class="text-danger-700 dark:text-danger-300"> — {{ error.message }}</span>
+
+              @if (error.fieldId && unreachable().has(error.fieldId)) {
+                <!--
+                  Silence here would be the worst outcome: the user has been told
+                  where the problem is AND that they cannot go to it, with no way
+                  to tell a broken link from a field that is merely off-screen.
+                -->
+                <span class="ml-1 text-xs text-danger-600 dark:text-danger-400"
+                      data-sv-state="unreachable">(could not jump to this field)</span>
+              }
+            </li>
+          }
+        </ul>
+
+        @if (busy()) {
+          <!--
+            The list above is the LAST attempt's verdict while this is showing.
+            `aria-busy` on the region says so to a reader; this says so to
+            everyone else.
+          -->
+          <p data-sv-state="busy"
+             class="mt-2 text-xs font-medium text-danger-600 dark:text-danger-400">{{ busyMessage() }}</p>
+        }
+      </div>
+    </div>
+  </section>
+}

@@ -1,0 +1,119 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="error()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [height]="size()"
+  [notice]="scaleNote()"
+  (retry)="retry.emit()"
+>
+
+<div class="flex flex-col items-center gap-3" [class]="customClass()">
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <div class="relative">
+    <!-- `group`, not `img`: the shapes below are focusable, and `img` is
+         children-presentational — it would drop every one of them from the
+         accessibility tree while leaving them in the tab order. -->
+    <svg [attr.width]="size()" [attr.height]="size()"
+         [attr.viewBox]="'0 0 ' + size() + ' ' + size()"
+         class="h-auto max-w-full overflow-visible" role="group"
+         [attr.aria-label]="resolvedAriaLabel()">
+
+      <!-- Web grid polygons -->
+      @for (poly of webPolygons(); track $index) {
+        <polygon [attr.points]="poly"
+                 fill="none"
+                 stroke="var(--color-gray-200)"
+                 class="dark:stroke-gray-700"
+                 stroke-width="1"/>
+      }
+
+      <!-- Axis lines -->
+      @for (line of axisLines(); track $index) {
+        <line [attr.x1]="line.x1" [attr.y1]="line.y1"
+              [attr.x2]="line.x" [attr.y2]="line.y"
+              stroke="var(--color-gray-200)" class="dark:stroke-gray-700" stroke-width="1"/>
+      }
+
+      <!-- Series -->
+      @for (s of series(); track s.name) {
+        @if (filled()) {
+          <polygon [attr.points]="seriesPolygon(s)"
+                   [attr.fill]="s.color + '30'"
+                   [attr.stroke]="s.color"
+                   stroke-width="2"
+                   stroke-linejoin="round"/>
+        } @else {
+          <polyline [attr.points]="seriesPolygon(s) + ' ' + seriesPolygon(s).split(' ')[0]"
+                    fill="none"
+                    [attr.stroke]="s.color"
+                    stroke-width="2"
+                    stroke-linejoin="round"/>
+        }
+
+        @if (showDots()) {
+          @for (dot of seriesDots(s); track $index) {
+            <circle [attr.cx]="dot.x" [attr.cy]="dot.y"
+                    [attr.r]="isActive(s, dot.axis) ? 6 : 4"
+                    [attr.fill]="s.color" stroke="white" stroke-width="1.5"
+                    tabindex="0"
+                    role="button"
+                    [attr.aria-label]="pointAriaLabel(s, dot.axis, dot.value)"
+                    class="cursor-pointer outline-none transition-all duration-150 focus-visible:stroke-gray-900 dark:stroke-gray-900 dark:focus-visible:stroke-white"
+                    (mouseenter)="hoverPoint(s, dot.axis, dot.value)"
+                    (mouseleave)="clearHover()"
+                    (focus)="hoverPoint(s, dot.axis, dot.value)"
+                    (blur)="clearHover()"
+                    (click)="selectPoint(s, dot.axis, dot.value)"
+                    (keydown.enter)="selectPoint(s, dot.axis, dot.value); $event.preventDefault()"
+                    (keydown.space)="selectPoint(s, dot.axis, dot.value); $event.preventDefault()"/>
+          }
+        }
+      }
+
+      <!-- Axis labels -->
+      @for (lp of labelPoints(); track $index) {
+        <text [attr.x]="lp.x" [attr.y]="lp.y"
+              [attr.text-anchor]="textAnchor(lp.x)"
+              dominant-baseline="middle"
+              font-size="10" font-weight="600"
+              fill="var(--color-gray-500)"
+              class="dark:fill-gray-400">
+          {{ lp.label }}
+        </text>
+      }
+    </svg>
+
+    <!-- Tooltip -->
+    @if (hoveredPoint(); as hp) {
+      <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <p class="text-xs font-semibold text-gray-800 dark:text-white">{{ hp.series }}</p>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ hp.axis }}: {{ hp.value }}</p>
+      </div>
+    }
+  </div>
+
+  <!--
+    The accessible alternative to the SVG: one semantic table saying what the
+    picture says. Renders nothing when there are no rows, so it needs no guard.
+    The CSS trap this shared component exists to close is written up in
+    `core/src/lib/a11y/data-summary-table.component.css`.
+  -->
+  <sv-data-summary-table [summary]="a11ySummary()" />
+
+  <!-- Legend -->
+  <div class="flex flex-wrap items-center gap-4">
+    @for (s of series(); track s.name) {
+      <div class="flex items-center gap-1.5">
+        <span class="h-2.5 w-5 rounded-full" [style.background]="s.color"></span>
+        <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">{{ s.name }}</span>
+      </div>
+    }
+  </div>
+</div>
+
+</sv-chart-frame>

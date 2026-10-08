@@ -1,0 +1,200 @@
+<sv-account-async
+  [loading]="record.loading()"
+  [error]="record.error()"
+  skeleton="card"
+  [rows]="5"
+  loadingLabel="Loading billing"
+  errorTitle="Could not load billing"
+  (retry)="record.reload()">
+
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="min-w-0">
+      <h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Plan &amp; billing</h1>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        What you're on, what you've used, and what you've been charged.
+      </p>
+    </div>
+    @if (portalUrl) {
+      <sv-button variant="secondary" label="Billing portal" icon="external-link" [href]="portalUrl" target="_blank" />
+    }
+  </div>
+
+  @if (plan(); as p) {
+    <!-- ═══════════════ Plan ═══════════════ -->
+    <section class="mt-6 overflow-hidden rounded-3xl border border-gray-200/80 bg-white/80 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+      <div class="flex flex-wrap items-start justify-between gap-4 bg-gradient-to-br from-brand-50 to-brandaccent-50/50 p-6 dark:from-brand-500/10 dark:to-brandaccent-500/5">
+        <div class="min-w-0">
+          <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">
+            <sv-icon name="star" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+            Current plan
+          </p>
+          <p class="mt-2 flex flex-wrap items-baseline gap-2">
+            <span class="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ p.name }}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{{ p.priceLabel }} {{ p.interval }}</span>
+          </p>
+          <!--
+            ★★ IT SAYS WHICH IT IS. "Renews" and "ends" are opposite facts, and
+            a card that always says "renews on" over a cancelled subscription is
+            how somebody finds out it lapsed by losing access.
+          -->
+          <p class="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+            <sv-icon name="clock" cssClass="h-3.5 w-3.5" [strokeWidth]="1.8" />
+            @if (p.cancelAtPeriodEnd) {
+              Ends on {{ formatDate(p.renewsAt) }}
+            } @else {
+              Renews on {{ formatDate(p.renewsAt) }}
+            }
+          </p>
+        </div>
+
+        @if (portalUrl) {
+          <div class="flex flex-wrap gap-2">
+            <sv-button variant="neutral" label="Change plan" [href]="portalUrl" target="_blank" />
+            @if (!p.cancelAtPeriodEnd) {
+              <sv-button variant="ghost" label="Cancel plan" [href]="portalUrl" target="_blank" />
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ═══════════════ Usage ═══════════════ -->
+      <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
+        @for (q of quotas(); track q.key) {
+          <div>
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ q.label }}</span>
+              <span class="text-xs text-gray-500 tabular-nums dark:text-gray-400">{{ usageLabel(q) }}</span>
+            </div>
+            <!--
+              ★★★ UNLIMITED IS NOT A BAR. A rail is a promise there is a ceiling
+              to run into; drawing one at 0% for an uncapped quota invents a
+              limit, and drawing it at 100% invents a full one.
+            -->
+            @if (percent(q); as pct) {
+              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]"
+                   role="progressbar" [attr.aria-valuenow]="pct" aria-valuemin="0" aria-valuemax="100"
+                   [attr.aria-label]="q.label + ' usage'">
+                <div class="h-full rounded-full transition-[width] duration-500" [class]="barClass(q)" [style.width.%]="pct"></div>
+              </div>
+            } @else {
+              <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">Unlimited on this plan</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Seats -->
+      <div class="flex flex-wrap items-center gap-4 border-t border-gray-100 px-6 py-5 dark:border-white/[0.05]">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+          <sv-icon name="users" cssClass="h-5 w-5" [strokeWidth]="1.8" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-gray-900 dark:text-white">
+            {{ p.seatsUsed }} of {{ p.seats }} seats used
+          </p>
+          <div class="mt-1.5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]">
+            <div class="h-full rounded-full bg-brand-500" [style.width.%]="seatsPercent()"></div>
+          </div>
+        </div>
+        @if (portalUrl) {
+          <sv-button size="sm" variant="secondary" label="Add seats" icon="plus" [href]="portalUrl" target="_blank" />
+        }
+      </div>
+    </section>
+  }
+
+  <!-- ═══════════════ Payment method ═══════════════ -->
+  <section class="mt-6 rounded-2xl border border-gray-200/80 bg-white/80 p-6 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Payment method</h2>
+
+    @if (paymentMethod(); as pm) {
+      <div class="mt-4 flex flex-wrap items-center gap-4">
+        <span class="flex h-11 w-16 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-gray-300">
+          <sv-icon name="credit-card" cssClass="h-5 w-5" [strokeWidth]="1.8" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
+            {{ pm.brand }} ending {{ pm.last4 }}
+            @if (cardExpiringSoon()) {
+              <sv-badge size="sm" variant="warning" badgeStyle="soft" label="Expiring soon" />
+            }
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            {{ pm.name }} · expires {{ pm.expMonth }}/{{ pm.expYear }}
+          </p>
+        </div>
+        @if (portalUrl) {
+          <sv-button size="sm" variant="secondary" label="Update card" [href]="portalUrl" target="_blank" />
+        }
+      </div>
+    } @else {
+      <div class="mt-4">
+        <sv-empty-shell [compact]="true" reason="no-data" title="No payment method"
+          message="Add a card to keep the account active past the trial." />
+      </div>
+    }
+  </section>
+
+  <!-- ═══════════════ Invoices ═══════════════ -->
+  <section class="mt-6 overflow-hidden rounded-2xl border border-gray-200/80 bg-white/80 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 p-6 dark:border-white/[0.05]">
+      <h2 class="text-base font-semibold text-gray-900 dark:text-white">Invoices</h2>
+      @if (archiveUrl) {
+        <sv-button size="sm" variant="ghost" label="Download all" icon="download" [href]="archiveUrl" target="_blank" />
+      }
+    </div>
+
+    @if (invoices().length) {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[32rem]">
+          <thead>
+            <tr class="border-b border-gray-100 dark:border-white/[0.05]">
+              <th scope="col" class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Invoice</th>
+              <th scope="col" class="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Date</th>
+              <th scope="col" class="px-3 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Amount</th>
+              <th scope="col" class="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Status</th>
+              @if (hasPdfs()) {
+                <th scope="col" class="px-6 py-3 text-right"><span class="sr-only">Download</span></th>
+              }
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+            @for (inv of invoices(); track inv.id) {
+              <tr class="transition-colors hover:bg-gray-50/70 dark:hover:bg-white/[0.02]">
+                <th scope="row" class="px-6 py-3.5 text-left text-sm font-medium text-gray-900 dark:text-white">{{ inv.number }}</th>
+                <td class="px-3 py-3.5 text-sm text-gray-500 dark:text-gray-400">{{ formatDate(inv.date) }}</td>
+                <td class="px-3 py-3.5 text-right text-sm text-gray-700 tabular-nums dark:text-gray-200">{{ inv.amount }}</td>
+                <td class="px-3 py-3.5 text-center">
+                  <sv-badge size="sm" badgeStyle="soft" [variant]="invoiceVariant(inv.status)" [label]="inv.status" />
+                </td>
+                @if (hasPdfs()) {
+                  <td class="px-6 py-3.5 text-right">
+                    @if (pdfUrl(inv); as href) {
+                      <sv-button size="xs" variant="ghost" label="PDF" icon="download"
+                        [href]="href" target="_blank"
+                        [ariaLabel]="'Download ' + inv.number + ' as PDF'" />
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="p-8">
+        <sv-empty-shell reason="no-data" title="No invoices yet"
+          message="Invoices appear here after your first billing period." />
+      </div>
+    }
+  </section>
+
+  @if (record.writeError(); as writeError) {
+    <div role="alert" data-sv-state="write-error"
+      class="mt-4 flex items-start justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+      <span>Could not save that change — {{ writeError.message }}</span>
+      <sv-button variant="ghost" size="sm" label="Dismiss" (clicked)="record.clearWriteError()" />
+    </div>
+  }
+
+</sv-account-async>

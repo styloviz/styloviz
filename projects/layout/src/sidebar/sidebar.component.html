@@ -1,0 +1,174 @@
+<!-- ============================================================
+     Sidebar Navigation
+     ============================================================
+     Three states:
+     1. Desktop expanded  — full width with labels
+     2. Desktop collapsed — narrow with icons only
+     3. Mobile overlay    — slides in from left
+     ============================================================ -->
+
+<aside
+  class="fixed top-0 left-0 z-50 flex h-full flex-col border-r border-white/70 bg-white/78
+         shadow-[0_24px_60px_-36px_color-mix(in_oklab,var(--color-gray-900)_85%,transparent)] backdrop-blur-xl transition-all duration-300
+         dark:border-gray-700/45 dark:bg-gray-900/70 dark:shadow-[0_26px_64px_-38px_color-mix(in_oklab,var(--color-gray-950)_95%,transparent)]"
+  [class.w-64]="!collapsed()"
+  [class.w-20]="collapsed()"
+  [class.-translate-x-full]="!mobileOpen()"
+  [class.translate-x-0]="mobileOpen()"
+  [class.lg:translate-x-0]="true"
+  role="navigation"
+  aria-label="Main navigation">
+
+  <!-- ========== Logo Area (matches topbar height) ========== -->
+  <div class="flex h-16 shrink-0 items-center border-b border-gray-200/80 px-3 dark:border-gray-800/60"
+       [class.justify-center]="collapsed()">
+
+    @if (!collapsed()) {
+      <!-- Brand mark + wordmark -->
+      <a routerLink="/components" class="flex items-center gap-2.5" aria-label="styloviz home">
+        <img src="logo-icon-sm.svg" alt="styloviz logo" class="h-8 w-auto shrink-0" />
+        <span class="text-[22px] font-semibold lowercase leading-none tracking-tight text-gray-900 dark:text-gray-100">
+          styloviz
+        </span>
+      </a>
+    } @else {
+      <!-- Brand mark only when collapsed -->
+      <a routerLink="/components" aria-label="styloviz home" title="styloviz">
+        <img src="logo-icon-sm.svg" alt="styloviz logo" class="h-8 w-auto shrink-0" />
+      </a>
+    }
+  </div>
+
+  <!-- ========== Navigation Menu ========== -->
+  <nav class="flex-1 overflow-y-auto px-2.5 py-3">
+    @for (group of menuGroups(); track group.groupLabel) {
+      <!-- Group Label (hidden when collapsed) -->
+      @if (!collapsed()) {
+        <p class="mb-1 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500/80 dark:text-gray-400">
+          {{ group.groupLabel }}
+        </p>
+      } @else {
+        <!-- Divider between groups in collapsed mode -->
+        <div class="my-2.5 border-t border-gray-200/80 dark:border-gray-800/60"></div>
+      }
+
+      <!-- Menu Items -->
+      @for (item of group.items; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="bg-primary-50 text-primary-700 font-semibold dark:bg-primary-950/70 dark:text-primary-300"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="group mb-0.5 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium
+                 text-gray-600 transition-colors duration-100
+                 hover:bg-gray-100/80 hover:text-gray-900
+                 dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-gray-100"
+          [class.justify-center]="collapsed()"
+          [attr.title]="collapsed() ? item.label : null"
+          (click)="mobileClose.emit()">
+
+          <!-- Icon -->
+          <sv-icon [name]="item.icon" cssClass="h-[18px] w-[18px] shrink-0 opacity-80" [strokeWidth]="1.8" />
+
+          <!-- Label (hidden when collapsed) -->
+          @if (!collapsed()) {
+            <span class="flex-1 tracking-tight">{{ item.label }}</span>
+
+            <!-- Badge -->
+            @if (item.badge) {
+              <span class="rounded-full bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold text-primary-700
+                           dark:bg-primary-900/50 dark:text-primary-300">
+                {{ item.badge }}
+              </span>
+            }
+          }
+        </a>
+
+        <!-- ── Sub-navigation (shown when expanded and on this route) ── -->
+        @if (!collapsed() && item.childGroups && isOnRoute(item.route)) {
+          <div class="mb-1 ml-[1.125rem] border-l border-gray-200/70 pl-3 dark:border-gray-800/50">
+            @for (childGroup of item.childGroups; track childGroup.label) {
+              <!-- Sub-group label -->
+              <p class="mb-0.5 px-1 text-[9.5px] font-semibold uppercase tracking-widest
+                         text-gray-500/70 dark:text-gray-400"
+                 [class.mt-3]="!$first"
+                 [class.mt-1.5]="$first">
+                {{ childGroup.label }}
+              </p>
+              <!-- Sub-items -->
+              @for (child of childGroup.items; track child.id) {
+                <a
+                  [routerLink]="[item.route]"
+                  [queryParams]="{ c: child.id }"
+                  [attr.data-nav-item]="child.id"
+                  [class]="childItemClass(child.id)"
+                  [attr.aria-current]="activeChildId() === child.id ? 'page' : null"
+                  (click)="mobileClose.emit()">
+                  {{ child.label }}
+                </a>
+              }
+            }
+          </div>
+        }
+      }
+    }
+  </nav>
+
+  <!-- ========== Sidebar Footer (pinned) ========== -->
+  <div class="shrink-0 border-t border-gray-200/80 px-2.5 py-2.5 dark:border-gray-800/60">
+    @if (!collapsed()) {
+      @if (showFooterLinks()) {
+        <!-- Resources -->
+        <div class="flex items-center justify-between rounded-lg bg-gray-50/70 px-1.5 py-1.5 dark:bg-gray-800/40">
+          <div class="flex items-center gap-0.5">
+            <a [href]="docsUrl()" target="_blank" rel="noopener noreferrer" title="Documentation" aria-label="Documentation"
+               class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors
+                      hover:bg-white hover:text-primary-600 hover:shadow-sm
+                      dark:hover:bg-gray-700 dark:hover:text-primary-300">
+              <sv-icon name="book-open" cssClass="h-[15px] w-[15px]" />
+            </a>
+            <a [href]="githubUrl()" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub"
+               class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors
+                      hover:bg-white hover:text-primary-600 hover:shadow-sm
+                      dark:hover:bg-gray-700 dark:hover:text-primary-300">
+              <sv-icon name="github" cssClass="h-[15px] w-[15px]" />
+            </a>
+            <a [href]="npmUrl()" target="_blank" rel="noopener noreferrer" title="npm" aria-label="npm package"
+               class="inline-flex h-7 items-center justify-center rounded-md px-1.5 font-mono text-[10px] font-bold
+                      text-gray-500 dark:text-gray-400 transition-colors hover:bg-white hover:text-primary-600 hover:shadow-sm
+                      dark:hover:bg-gray-700 dark:hover:text-primary-300">
+              npm
+            </a>
+            <a [href]="communityUrl()" target="_blank" rel="noopener noreferrer" title="Community" aria-label="Community forum"
+               class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-gray-400 transition-colors
+                      hover:bg-white hover:text-primary-600 hover:shadow-sm
+                      dark:hover:bg-gray-700 dark:hover:text-primary-300">
+              <sv-icon name="message-circle" cssClass="h-[15px] w-[15px]" />
+            </a>
+          </div>
+          <span class="pr-1 text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ version() }}</span>
+        </div>
+      } @else {
+        <!-- Version only -->
+        <div class="flex items-center justify-between rounded-lg bg-gray-50/70 px-2.5 py-1.5 dark:bg-gray-800/40">
+          <span class="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Version</span>
+          <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ version() }}</span>
+        </div>
+      }
+    } @else {
+      @if (showFooterLinks()) {
+        <!-- Collapsed: GitHub quick link -->
+        <a [href]="githubUrl()" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub"
+          class="flex items-center justify-center rounded-lg p-2 text-gray-500 transition-colors
+                 hover:bg-gray-100/80 hover:text-primary-600
+                 dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-primary-300">
+          <sv-icon name="github" cssClass="h-[18px] w-[18px]" />
+        </a>
+      } @else {
+        <!-- Collapsed: version only -->
+        <div class="text-center text-[9px] font-semibold text-gray-500 dark:text-gray-400" [title]="'Version ' + version()">
+          {{ version() }}
+        </div>
+      }
+    }
+  </div>
+</aside>

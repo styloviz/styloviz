@@ -1,0 +1,197 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "declaration": false,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "bundler",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": [
+      "ES2022",
+      "dom",
+      "dom.iterable"
+    ],
+    "skipLibCheck": true,
+    "paths": {
+      "@testing/*": [
+        "./src/testing/*"
+      ],
+      "@styloviz/accordion": [
+        "./projects/accordion-free/src/public-api.ts"
+      ],
+      "@styloviz/affix": [
+        "./projects/affix/src/public-api.ts"
+      ],
+      "@styloviz/ai-insight-cards": [
+        "./projects/ai-insight-cards/src/public-api.ts"
+      ],
+      "@styloviz/alert-banner": [
+        "./projects/alert-banner/src/public-api.ts"
+      ],
+      "@styloviz/anchor": [
+        "./projects/anchor/src/public-api.ts"
+      ],
+      "@styloviz/avatar": [
+        "./projects/avatar-free/src/public-api.ts"
+      ],
+      "@styloviz/badge": [
+        "./projects/badge/src/public-api.ts"
+      ],
+      "@styloviz/barcode-1d": [
+        "./projects/barcode-1d/src/public-api.ts"
+      ],
+      "@styloviz/breadcrumb": [
+        "./projects/breadcrumb/src/public-api.ts"
+      ],
+      "@styloviz/button": [
+        "./projects/button/src/public-api.ts"
+      ],
+      "@styloviz/charts": [
+        "./projects/charts-free/src/public-api.ts"
+      ],
+      "@styloviz/citation-sources": [
+        "./projects/citation-sources/src/public-api.ts"
+      ],
+      "@styloviz/code-block": [
+        "./projects/code-block/src/public-api.ts"
+      ],
+      "@styloviz/commerce": [
+        "./projects/commerce/src/public-api.ts"
+      ],
+      "@styloviz/core": [
+        "./projects/core/src/public-api.ts"
+      ],
+      "@styloviz/data": [
+        "./projects/data/src/public-api.ts"
+      ],
+      "@styloviz/data-table": [
+        "./projects/data-table-free/src/public-api.ts"
+      ],
+      "@styloviz/display": [
+        "./projects/display/src/public-api.ts"
+      ],
+      "@styloviz/empty-state": [
+        "./projects/empty-state/src/public-api.ts"
+      ],
+      "@styloviz/file-upload": [
+        "./projects/file-upload-free/src/public-api.ts"
+      ],
+      "@styloviz/forms": [
+        "./projects/forms/src/public-api.ts"
+      ],
+      "@styloviz/icons": [
+        "./projects/icons-free/src/public-api.ts"
+      ],
+      "@styloviz/image-compare": [
+        "./projects/image-compare/src/public-api.ts"
+      ],
+      "@styloviz/input-field": [
+        "./projects/input-field-free/src/public-api.ts"
+      ],
+      "@styloviz/back-up": [
+        "./projects/back-up/src/public-api.ts"
+      ],
+      "@styloviz/sidebar-nav": [
+        "./projects/sidebar-nav/src/public-api.ts"
+      ],
+      "@styloviz/jump-menu": [
+        "./projects/jump-menu/src/public-api.ts"
+      ],
+      "@styloviz/kbd": [
+        "./projects/kbd/src/public-api.ts"
+      ],
+      "@styloviz/layout": [
+        "./projects/layout/src/public-api.ts"
+      ],
+      "@styloviz/list-view": [
+        "./projects/list-view-free/src/public-api.ts"
+      ],
+      "@styloviz/modal": [
+        "./projects/modal/src/public-api.ts"
+      ],
+      "@styloviz/notification-center": [
+        "./projects/notification-center-free/src/public-api.ts"
+      ],
+      "@styloviz/overlays": [
+        "./projects/overlays/src/public-api.ts"
+      ],
+      "@styloviz/pagination": [
+        "./projects/pagination/src/public-api.ts"
+      ],
+      "@styloviz/password-strength": [
+        "./projects/password-strength/src/public-api.ts"
+      ],
+      "@styloviz/phone-input": [
+        "./projects/phone-input/src/public-api.ts"
+      ],
+      "@styloviz/product-tour": [
+        "./projects/product-tour-free/src/public-api.ts"
+      ],
+      "@styloviz/scroll-area": [
+        "./projects/scroll-area/src/public-api.ts"
+      ],
+      "@styloviz/search-bar": [
+        "./projects/search-bar-free/src/public-api.ts"
+      ],
+      "@styloviz/select-dropdown": [
+        "./projects/select-dropdown-free/src/public-api.ts"
+      ],
+      "@styloviz/skeleton-loader": [
+        "./projects/skeleton-loader/src/public-api.ts"
+      ],
+      "@styloviz/sparkline": [
+        "./projects/sparkline/src/public-api.ts"
+      ],
+      "@styloviz/stat-card": [
+        "./projects/stat-card-free/src/public-api.ts"
+      ],
+      "@styloviz/stepper": [
+        "./projects/stepper-free/src/public-api.ts"
+      ],
+      "@styloviz/streaming-markdown": [
+        "./projects/streaming-markdown/src/public-api.ts"
+      ],
+      "@styloviz/tabs": [
+        "./projects/tabs/src/public-api.ts"
+      ],
+      "@styloviz/tag-input": [
+        "./projects/tag-input-free/src/public-api.ts"
+      ],
+      "@styloviz/timeline": [
+        "./projects/timeline-free/src/public-api.ts"
+      ],
+      "@styloviz/toast": [
+        "./projects/toast/src/public-api.ts"
+      ],
+      "@styloviz/toggle-switch": [
+        "./projects/toggle-switch/src/public-api.ts"
+      ],
+      "@styloviz/tree-view": [
+        "./projects/tree-view-free/src/public-api.ts"
+      ],
+      "@styloviz/watermark": [
+        "./projects/watermark/src/public-api.ts"
+      ]
+    }
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true,
+    "extendedDiagnostics": {
+      "checks": {
+        "interpolatedSignalNotInvoked": "error"
+      }
+    }
+  }
+}

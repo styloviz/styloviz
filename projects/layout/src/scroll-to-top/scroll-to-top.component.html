@@ -1,0 +1,39 @@
+<div #wrapper
+  [class]="positionClass()"
+  [style.bottom]="bottomInset()"
+  [style.left]="sideInset().left"
+  [style.right]="sideInset().right"
+  [attr.data-sv-floating]="bottomInset() ? position() : null">
+  <button #button type="button"
+    [class]="btnClass() + ' ' + visibilityClass()"
+    [attr.aria-label]="ariaLabel()"
+    [attr.aria-hidden]="visible() ? null : 'true'"
+    [attr.tabindex]="visible() ? null : -1"
+    [disabled]="!visible()"
+    (click)="scrollUp()">
+
+    <!-- Progress ring overlay (circle / rounded variants).
+         Strokes use currentColor so the ring stays visible on every appearance —
+         white on solid/gradient, the accent colour on glass/outline. -->
+    @if (showProgress() && variant() !== 'pill') {
+      <svg class="pointer-events-none absolute inset-0 h-full w-full -rotate-90 text-current" viewBox="0 0 48 48"
+           aria-hidden="true">
+        <circle cx="24" cy="24" [attr.r]="radius"
+                fill="none" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/>
+        <circle cx="24" cy="24" [attr.r]="radius"
+                fill="none" stroke="currentColor" stroke-width="3"
+                stroke-linecap="round"
+                [attr.stroke-dasharray]="circumference()"
+                [attr.stroke-dashoffset]="dashOffset()"
+                class="transition-[stroke-dashoffset] duration-[400ms] ease-out motion-reduce:transition-none"/>
+      </svg>
+    }
+
+    <!-- Up arrow -->
+    <sv-icon name="chevron-up" cssClass="relative h-5 w-5 shrink-0" [strokeWidth]="2.5" />
+
+    @if (variant() === 'pill') {
+      <span class="text-sm font-semibold">{{ label() || 'Top' }}</span>
+    }
+  </button>
+</div>

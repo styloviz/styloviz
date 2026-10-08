@@ -1,0 +1,93 @@
+<!-- ★ The swatch variant is ALWAYS a radiogroup and ignores `semantics`. It is a
+     product-option picker — a size or a colour that gets submitted — and a
+     "tablist" of colour swatches would claim to control panels that do not
+     exist. A silent ignore is right here because the combination is meaningless,
+     not merely unsupported. -->
+@if (variant() === 'swatch') {
+  <div role="radiogroup"
+       [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+       [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
+       [attr.aria-label]="ariaLabel() || null"
+       [class]="wrapperClass() + (resolvedDisabled() ? ' opacity-50' : '')">
+    @for (opt of options(); track opt.value) {
+      <button type="button" role="radio"
+        [attr.data-seg]="opt.value"
+        [class]="swatchClass(opt)"
+        [attr.aria-checked]="value() === opt.value"
+        [attr.aria-label]="opt.label + (isSoldOut(opt) ? ' (sold out)' : '')"
+        [attr.title]="opt.label"
+        [attr.tabindex]="segTabIndex(opt)"
+        [disabled]="opt.disabled || opt.soldOut || resolvedDisabled()"
+        (click)="select(opt)"
+        (keydown)="onKeydown($event, opt)"
+        (blur)="onBlur()">
+
+        @if (opt.color) {
+          <span class="h-full w-full rounded-full" [style.background-color]="opt.color"></span>
+        } @else {
+          <span>{{ opt.label }}</span>
+        }
+
+        <!-- Sold-out diagonal slash (colour swatches) -->
+        @if (isSoldOut(opt) && opt.color) {
+          <span aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden rounded-full">
+            <span class="h-[1.5px] w-[150%] rotate-45 rounded bg-white/90 shadow-[0_0_1.5px_rgba(0,0,0,0.7)]"></span>
+          </span>
+        }
+      </button>
+    }
+  </div>
+} @else {
+<div [attr.role]="isTablist() ? 'tablist' : 'radiogroup'"
+     [attr.aria-invalid]="!isTablist() && fieldError.showError() ? 'true' : null"
+     [attr.aria-describedby]="!isTablist() && fieldError.showError() ? errorId() : null"
+     [attr.aria-label]="ariaLabel() || null"
+     [class]="wrapperClass() + (fullWidth() ? ' w-full' : '') + (resolvedDisabled() ? ' opacity-50' : '')">
+  @for (opt of options(); track opt.value) {
+    <button type="button"
+      [attr.role]="isTablist() ? 'tab' : 'radio'"
+      [attr.id]="isTablist() ? tabIdFor(opt.value) : null"
+      [attr.data-seg]="opt.value"
+      [class]="buttonClass(opt) + (fullWidth() ? ' flex-1' : '')"
+      [attr.aria-checked]="isTablist() ? null : (value() === opt.value)"
+      [attr.aria-selected]="isTablist() ? (value() === opt.value) : null"
+      [attr.aria-controls]="isTablist() ? (opt.controls || null) : null"
+      [attr.tabindex]="segTabIndex(opt)"
+      [disabled]="opt.disabled || resolvedDisabled()"
+      (click)="select(opt)"
+      (keydown)="onKeydown($event, opt)"
+      (blur)="onBlur()">
+
+      <!-- Optional icon -->
+      @if (opt.icon) {
+        <sv-icon [name]="opt.icon!" [cssClass]="iconSize()" [strokeWidth]="2" />
+      }
+
+      <span>{{ opt.label }}</span>
+
+      <!-- Optional badge. Its active tint keys off the state attribute, and a
+           tab carries aria-selected where a radio carries aria-checked — both
+           selectors, or the badge on the selected tab stays grey. -->
+      @if (opt.badge !== undefined) {
+        <span class="min-w-[16px] rounded-full px-1 py-0.5 text-[9px] font-bold leading-none
+                     bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300
+                     [button[aria-checked=true]_&]:bg-primary-100 [button[aria-checked=true]_&]:text-primary-700
+                     dark:[button[aria-checked=true]_&]:bg-primary-900/40 dark:[button[aria-checked=true]_&]:text-primary-300
+                     [button[aria-selected=true]_&]:bg-primary-100 [button[aria-selected=true]_&]:text-primary-700
+                     dark:[button[aria-selected=true]_&]:bg-primary-900/40 dark:[button[aria-selected=true]_&]:text-primary-300">
+          {{ opt.badge }}
+        </span>
+      }
+    </button>
+  }
+</div>
+}
+<!-- Validation error slot.
+     ★ A tablist has no value to reject — it switches visible content — so the
+       error surface belongs to the radiogroup form of this control only.
+       Rendering it for a tablist would offer a slot nothing can legitimately
+       fill, and `aria-invalid` on a tablist says a widget is wrong when the
+       thing that is wrong lives inside a panel. -->
+@if (!isTablist()) {
+  <sv-field-error [id]="errorId()" [message]="fieldError.resolvedError()" class="mt-1.5 block" />
+}

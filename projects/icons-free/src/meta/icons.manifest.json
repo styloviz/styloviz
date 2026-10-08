@@ -1,0 +1,1650 @@
+{
+  "version": 1,
+  "count": 174,
+  "generatedBy": "scripts/generate-icons.mjs",
+  "icons": [
+    {
+      "name": "afterpay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvAfterpayIcon",
+      "selector": "sv-afterpay-icon",
+      "file": "src/icons/afterpay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "alert-circle",
+      "category": "shapes",
+      "aliases": [],
+      "component": "SvAlertCircleIcon",
+      "selector": "sv-alert-circle-icon",
+      "file": "src/icons/alert-circle.svg",
+      "nodes": 3
+    },
+    {
+      "name": "alert-triangle",
+      "category": "shapes",
+      "aliases": [
+        "warning",
+        "caution"
+      ],
+      "component": "SvAlertTriangleIcon",
+      "selector": "sv-alert-triangle-icon",
+      "file": "src/icons/alert-triangle.svg",
+      "nodes": 3
+    },
+    {
+      "name": "align-center",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvAlignCenterIcon",
+      "selector": "sv-align-center-icon",
+      "file": "src/icons/align-center.svg",
+      "nodes": 3
+    },
+    {
+      "name": "align-justify",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvAlignJustifyIcon",
+      "selector": "sv-align-justify-icon",
+      "file": "src/icons/align-justify.svg",
+      "nodes": 3
+    },
+    {
+      "name": "align-left",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvAlignLeftIcon",
+      "selector": "sv-align-left-icon",
+      "file": "src/icons/align-left.svg",
+      "nodes": 3
+    },
+    {
+      "name": "align-right",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvAlignRightIcon",
+      "selector": "sv-align-right-icon",
+      "file": "src/icons/align-right.svg",
+      "nodes": 3
+    },
+    {
+      "name": "alipay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvAlipayIcon",
+      "selector": "sv-alipay-icon",
+      "file": "src/icons/alipay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "amex",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvAmexIcon",
+      "selector": "sv-amex-icon",
+      "file": "src/icons/amex.svg",
+      "nodes": 1
+    },
+    {
+      "name": "android",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvAndroidIcon",
+      "selector": "sv-android-icon",
+      "file": "src/icons/android.svg",
+      "nodes": 1
+    },
+    {
+      "name": "apple-pay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvApplePayIcon",
+      "selector": "sv-apple-pay-icon",
+      "file": "src/icons/apple-pay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "arrow-down",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowDownIcon",
+      "selector": "sv-arrow-down-icon",
+      "file": "src/icons/arrow-down.svg",
+      "nodes": 2
+    },
+    {
+      "name": "arrow-down-left",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowDownLeftIcon",
+      "selector": "sv-arrow-down-left-icon",
+      "file": "src/icons/arrow-down-left.svg",
+      "nodes": 2
+    },
+    {
+      "name": "arrow-left",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowLeftIcon",
+      "selector": "sv-arrow-left-icon",
+      "file": "src/icons/arrow-left.svg",
+      "nodes": 2
+    },
+    {
+      "name": "arrow-right",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowRightIcon",
+      "selector": "sv-arrow-right-icon",
+      "file": "src/icons/arrow-right.svg",
+      "nodes": 2
+    },
+    {
+      "name": "arrow-up",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowUpIcon",
+      "selector": "sv-arrow-up-icon",
+      "file": "src/icons/arrow-up.svg",
+      "nodes": 2
+    },
+    {
+      "name": "arrow-up-right",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvArrowUpRightIcon",
+      "selector": "sv-arrow-up-right-icon",
+      "file": "src/icons/arrow-up-right.svg",
+      "nodes": 2
+    },
+    {
+      "name": "at-sign",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvAtSignIcon",
+      "selector": "sv-at-sign-icon",
+      "file": "src/icons/at-sign.svg",
+      "nodes": 2
+    },
+    {
+      "name": "banknote",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvBanknoteIcon",
+      "selector": "sv-banknote-icon",
+      "file": "src/icons/banknote.svg",
+      "nodes": 4
+    },
+    {
+      "name": "bar-chart",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvBarChartIcon",
+      "selector": "sv-bar-chart-icon",
+      "file": "src/icons/bar-chart.svg",
+      "nodes": 4
+    },
+    {
+      "name": "behance",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvBehanceIcon",
+      "selector": "sv-behance-icon",
+      "file": "src/icons/behance.svg",
+      "nodes": 1
+    },
+    {
+      "name": "bell",
+      "category": "communication",
+      "aliases": [
+        "notification",
+        "alarm"
+      ],
+      "component": "SvBellIcon",
+      "selector": "sv-bell-icon",
+      "file": "src/icons/bell.svg",
+      "nodes": 3
+    },
+    {
+      "name": "bird",
+      "category": "nature",
+      "aliases": [],
+      "component": "SvBirdIcon",
+      "selector": "sv-bird-icon",
+      "file": "src/icons/bird.svg",
+      "nodes": 6
+    },
+    {
+      "name": "bold",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvBoldIcon",
+      "selector": "sv-bold-icon",
+      "file": "src/icons/bold.svg",
+      "nodes": 2
+    },
+    {
+      "name": "bolt",
+      "category": "weather",
+      "aliases": [
+        "lightning",
+        "zap",
+        "fast"
+      ],
+      "component": "SvBoltIcon",
+      "selector": "sv-bolt-icon",
+      "file": "src/icons/bolt.svg",
+      "nodes": 1
+    },
+    {
+      "name": "book-open",
+      "category": "files",
+      "aliases": [],
+      "component": "SvBookOpenIcon",
+      "selector": "sv-book-open-icon",
+      "file": "src/icons/book-open.svg",
+      "nodes": 3
+    },
+    {
+      "name": "bookmark",
+      "category": "files",
+      "aliases": [],
+      "component": "SvBookmarkIcon",
+      "selector": "sv-bookmark-icon",
+      "file": "src/icons/bookmark.svg",
+      "nodes": 1
+    },
+    {
+      "name": "calendar",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvCalendarIcon",
+      "selector": "sv-calendar-icon",
+      "file": "src/icons/calendar.svg",
+      "nodes": 4
+    },
+    {
+      "name": "camera",
+      "category": "media",
+      "aliases": [],
+      "component": "SvCameraIcon",
+      "selector": "sv-camera-icon",
+      "file": "src/icons/camera.svg",
+      "nodes": 2
+    },
+    {
+      "name": "caravan",
+      "category": "transport",
+      "aliases": [],
+      "component": "SvCaravanIcon",
+      "selector": "sv-caravan-icon",
+      "file": "src/icons/caravan.svg",
+      "nodes": 6
+    },
+    {
+      "name": "cashapp",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvCashappIcon",
+      "selector": "sv-cashapp-icon",
+      "file": "src/icons/cashapp.svg",
+      "nodes": 1
+    },
+    {
+      "name": "check",
+      "category": "action",
+      "aliases": [
+        "tick",
+        "done"
+      ],
+      "component": "SvCheckIcon",
+      "selector": "sv-check-icon",
+      "file": "src/icons/check.svg",
+      "nodes": 1
+    },
+    {
+      "name": "check-circle",
+      "category": "shapes",
+      "aliases": [
+        "success",
+        "verified"
+      ],
+      "component": "SvCheckCircleIcon",
+      "selector": "sv-check-circle-icon",
+      "file": "src/icons/check-circle.svg",
+      "nodes": 2
+    },
+    {
+      "name": "chevron-down",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronDownIcon",
+      "selector": "sv-chevron-down-icon",
+      "file": "src/icons/chevron-down.svg",
+      "nodes": 1
+    },
+    {
+      "name": "chevron-left",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronLeftIcon",
+      "selector": "sv-chevron-left-icon",
+      "file": "src/icons/chevron-left.svg",
+      "nodes": 1
+    },
+    {
+      "name": "chevron-right",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronRightIcon",
+      "selector": "sv-chevron-right-icon",
+      "file": "src/icons/chevron-right.svg",
+      "nodes": 1
+    },
+    {
+      "name": "chevron-up",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronUpIcon",
+      "selector": "sv-chevron-up-icon",
+      "file": "src/icons/chevron-up.svg",
+      "nodes": 1
+    },
+    {
+      "name": "chevrons-left",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronsLeftIcon",
+      "selector": "sv-chevrons-left-icon",
+      "file": "src/icons/chevrons-left.svg",
+      "nodes": 2
+    },
+    {
+      "name": "chevrons-left-right",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronsLeftRightIcon",
+      "selector": "sv-chevrons-left-right-icon",
+      "file": "src/icons/chevrons-left-right.svg",
+      "nodes": 2
+    },
+    {
+      "name": "chevrons-right",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronsRightIcon",
+      "selector": "sv-chevrons-right-icon",
+      "file": "src/icons/chevrons-right.svg",
+      "nodes": 2
+    },
+    {
+      "name": "chevrons-up-down",
+      "category": "navigation",
+      "aliases": [],
+      "component": "SvChevronsUpDownIcon",
+      "selector": "sv-chevrons-up-down-icon",
+      "file": "src/icons/chevrons-up-down.svg",
+      "nodes": 2
+    },
+    {
+      "name": "chrome",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvChromeIcon",
+      "selector": "sv-chrome-icon",
+      "file": "src/icons/chrome.svg",
+      "nodes": 1
+    },
+    {
+      "name": "clap",
+      "category": "misc",
+      "aliases": [],
+      "component": "SvClapIcon",
+      "selector": "sv-clap-icon",
+      "file": "src/icons/clap.svg",
+      "nodes": 3
+    },
+    {
+      "name": "clipboard-check",
+      "category": "files",
+      "aliases": [],
+      "component": "SvClipboardCheckIcon",
+      "selector": "sv-clipboard-check-icon",
+      "file": "src/icons/clipboard-check.svg",
+      "nodes": 3
+    },
+    {
+      "name": "clipboard-list",
+      "category": "files",
+      "aliases": [],
+      "component": "SvClipboardListIcon",
+      "selector": "sv-clipboard-list-icon",
+      "file": "src/icons/clipboard-list.svg",
+      "nodes": 6
+    },
+    {
+      "name": "clock",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvClockIcon",
+      "selector": "sv-clock-icon",
+      "file": "src/icons/clock.svg",
+      "nodes": 2
+    },
+    {
+      "name": "close",
+      "category": "action",
+      "aliases": [
+        "x",
+        "cancel",
+        "dismiss"
+      ],
+      "component": "SvCloseIcon",
+      "selector": "sv-close-icon",
+      "file": "src/icons/close.svg",
+      "nodes": 2
+    },
+    {
+      "name": "cloud-download",
+      "category": "devices",
+      "aliases": [],
+      "component": "SvCloudDownloadIcon",
+      "selector": "sv-cloud-download-icon",
+      "file": "src/icons/cloud-download.svg",
+      "nodes": 3
+    },
+    {
+      "name": "cloud-upload",
+      "category": "devices",
+      "aliases": [],
+      "component": "SvCloudUploadIcon",
+      "selector": "sv-cloud-upload-icon",
+      "file": "src/icons/cloud-upload.svg",
+      "nodes": 3
+    },
+    {
+      "name": "columns",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvColumnsIcon",
+      "selector": "sv-columns-icon",
+      "file": "src/icons/columns.svg",
+      "nodes": 2
+    },
+    {
+      "name": "copy",
+      "category": "action",
+      "aliases": [],
+      "component": "SvCopyIcon",
+      "selector": "sv-copy-icon",
+      "file": "src/icons/copy.svg",
+      "nodes": 2
+    },
+    {
+      "name": "credit-card",
+      "category": "commerce",
+      "aliases": [
+        "payment",
+        "billing",
+        "card"
+      ],
+      "component": "SvCreditCardIcon",
+      "selector": "sv-credit-card-icon",
+      "file": "src/icons/credit-card.svg",
+      "nodes": 3
+    },
+    {
+      "name": "database",
+      "category": "files",
+      "aliases": [],
+      "component": "SvDatabaseIcon",
+      "selector": "sv-database-icon",
+      "file": "src/icons/database.svg",
+      "nodes": 3
+    },
+    {
+      "name": "diners-club",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDinersClubIcon",
+      "selector": "sv-diners-club-icon",
+      "file": "src/icons/diners-club.svg",
+      "nodes": 1
+    },
+    {
+      "name": "discord",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDiscordIcon",
+      "selector": "sv-discord-icon",
+      "file": "src/icons/discord.svg",
+      "nodes": 1
+    },
+    {
+      "name": "discover",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDiscoverIcon",
+      "selector": "sv-discover-icon",
+      "file": "src/icons/discover.svg",
+      "nodes": 1
+    },
+    {
+      "name": "docker",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDockerIcon",
+      "selector": "sv-docker-icon",
+      "file": "src/icons/docker.svg",
+      "nodes": 1
+    },
+    {
+      "name": "download",
+      "category": "action",
+      "aliases": [],
+      "component": "SvDownloadIcon",
+      "selector": "sv-download-icon",
+      "file": "src/icons/download.svg",
+      "nodes": 3
+    },
+    {
+      "name": "dribbble",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDribbbleIcon",
+      "selector": "sv-dribbble-icon",
+      "file": "src/icons/dribbble.svg",
+      "nodes": 1
+    },
+    {
+      "name": "dropbox",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvDropboxIcon",
+      "selector": "sv-dropbox-icon",
+      "file": "src/icons/dropbox.svg",
+      "nodes": 1
+    },
+    {
+      "name": "edit",
+      "category": "action",
+      "aliases": [
+        "pencil",
+        "write"
+      ],
+      "component": "SvEditIcon",
+      "selector": "sv-edit-icon",
+      "file": "src/icons/edit.svg",
+      "nodes": 2
+    },
+    {
+      "name": "equal",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvEqualIcon",
+      "selector": "sv-equal-icon",
+      "file": "src/icons/equal.svg",
+      "nodes": 2
+    },
+    {
+      "name": "external-link",
+      "category": "action",
+      "aliases": [],
+      "component": "SvExternalLinkIcon",
+      "selector": "sv-external-link-icon",
+      "file": "src/icons/external-link.svg",
+      "nodes": 3
+    },
+    {
+      "name": "eye",
+      "category": "action",
+      "aliases": [],
+      "component": "SvEyeIcon",
+      "selector": "sv-eye-icon",
+      "file": "src/icons/eye.svg",
+      "nodes": 2
+    },
+    {
+      "name": "eye-off",
+      "category": "action",
+      "aliases": [],
+      "component": "SvEyeOffIcon",
+      "selector": "sv-eye-off-icon",
+      "file": "src/icons/eye-off.svg",
+      "nodes": 3
+    },
+    {
+      "name": "facebook",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvFacebookIcon",
+      "selector": "sv-facebook-icon",
+      "file": "src/icons/facebook.svg",
+      "nodes": 2
+    },
+    {
+      "name": "figma",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvFigmaIcon",
+      "selector": "sv-figma-icon",
+      "file": "src/icons/figma.svg",
+      "nodes": 1
+    },
+    {
+      "name": "file",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileIcon",
+      "selector": "sv-file-icon",
+      "file": "src/icons/file.svg",
+      "nodes": 2
+    },
+    {
+      "name": "file-archive",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileArchiveIcon",
+      "selector": "sv-file-archive-icon",
+      "file": "src/icons/file-archive.svg",
+      "nodes": 5
+    },
+    {
+      "name": "file-audio",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileAudioIcon",
+      "selector": "sv-file-audio-icon",
+      "file": "src/icons/file-audio.svg",
+      "nodes": 5
+    },
+    {
+      "name": "file-spreadsheet",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileSpreadsheetIcon",
+      "selector": "sv-file-spreadsheet-icon",
+      "file": "src/icons/file-spreadsheet.svg",
+      "nodes": 5
+    },
+    {
+      "name": "file-text",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileTextIcon",
+      "selector": "sv-file-text-icon",
+      "file": "src/icons/file-text.svg",
+      "nodes": 4
+    },
+    {
+      "name": "file-video",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFileVideoIcon",
+      "selector": "sv-file-video-icon",
+      "file": "src/icons/file-video.svg",
+      "nodes": 3
+    },
+    {
+      "name": "files",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFilesIcon",
+      "selector": "sv-files-icon",
+      "file": "src/icons/files.svg",
+      "nodes": 3
+    },
+    {
+      "name": "filter",
+      "category": "action",
+      "aliases": [],
+      "component": "SvFilterIcon",
+      "selector": "sv-filter-icon",
+      "file": "src/icons/filter.svg",
+      "nodes": 1
+    },
+    {
+      "name": "flame",
+      "category": "weather",
+      "aliases": [
+        "fire",
+        "hot",
+        "trending"
+      ],
+      "component": "SvFlameIcon",
+      "selector": "sv-flame-icon",
+      "file": "src/icons/flame.svg",
+      "nodes": 1
+    },
+    {
+      "name": "folder",
+      "category": "files",
+      "aliases": [],
+      "component": "SvFolderIcon",
+      "selector": "sv-folder-icon",
+      "file": "src/icons/folder.svg",
+      "nodes": 1
+    },
+    {
+      "name": "github",
+      "category": "brands",
+      "aliases": [
+        "git",
+        "octocat",
+        "source-control",
+        "repository"
+      ],
+      "component": "SvGithubIcon",
+      "selector": "sv-github-icon",
+      "file": "src/icons/github.svg",
+      "nodes": 2
+    },
+    {
+      "name": "gitlab",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvGitlabIcon",
+      "selector": "sv-gitlab-icon",
+      "file": "src/icons/gitlab.svg",
+      "nodes": 1
+    },
+    {
+      "name": "google",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvGoogleIcon",
+      "selector": "sv-google-icon",
+      "file": "src/icons/google.svg",
+      "nodes": 1
+    },
+    {
+      "name": "google-pay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvGooglePayIcon",
+      "selector": "sv-google-pay-icon",
+      "file": "src/icons/google-pay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "graduation-cap",
+      "category": "design",
+      "aliases": [],
+      "component": "SvGraduationCapIcon",
+      "selector": "sv-graduation-cap-icon",
+      "file": "src/icons/graduation-cap.svg",
+      "nodes": 3
+    },
+    {
+      "name": "grid",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvGridIcon",
+      "selector": "sv-grid-icon",
+      "file": "src/icons/grid.svg",
+      "nodes": 4
+    },
+    {
+      "name": "grip-vertical",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvGripVerticalIcon",
+      "selector": "sv-grip-vertical-icon",
+      "file": "src/icons/grip-vertical.svg",
+      "nodes": 6
+    },
+    {
+      "name": "heart",
+      "category": "health",
+      "aliases": [],
+      "component": "SvHeartIcon",
+      "selector": "sv-heart-icon",
+      "file": "src/icons/heart.svg",
+      "nodes": 1
+    },
+    {
+      "name": "home",
+      "category": "navigation",
+      "aliases": [
+        "house"
+      ],
+      "component": "SvHomeIcon",
+      "selector": "sv-home-icon",
+      "file": "src/icons/home.svg",
+      "nodes": 3
+    },
+    {
+      "name": "image",
+      "category": "media",
+      "aliases": [],
+      "component": "SvImageIcon",
+      "selector": "sv-image-icon",
+      "file": "src/icons/image.svg",
+      "nodes": 3
+    },
+    {
+      "name": "inbox",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvInboxIcon",
+      "selector": "sv-inbox-icon",
+      "file": "src/icons/inbox.svg",
+      "nodes": 2
+    },
+    {
+      "name": "info",
+      "category": "shapes",
+      "aliases": [
+        "information",
+        "about"
+      ],
+      "component": "SvInfoIcon",
+      "selector": "sv-info-icon",
+      "file": "src/icons/info.svg",
+      "nodes": 3
+    },
+    {
+      "name": "instagram",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvInstagramIcon",
+      "selector": "sv-instagram-icon",
+      "file": "src/icons/instagram.svg",
+      "nodes": 3
+    },
+    {
+      "name": "italic",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvItalicIcon",
+      "selector": "sv-italic-icon",
+      "file": "src/icons/italic.svg",
+      "nodes": 3
+    },
+    {
+      "name": "jcb",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvJcbIcon",
+      "selector": "sv-jcb-icon",
+      "file": "src/icons/jcb.svg",
+      "nodes": 1
+    },
+    {
+      "name": "klarna",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvKlarnaIcon",
+      "selector": "sv-klarna-icon",
+      "file": "src/icons/klarna.svg",
+      "nodes": 1
+    },
+    {
+      "name": "kubernetes",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvKubernetesIcon",
+      "selector": "sv-kubernetes-icon",
+      "file": "src/icons/kubernetes.svg",
+      "nodes": 1
+    },
+    {
+      "name": "landmark",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvLandmarkIcon",
+      "selector": "sv-landmark-icon",
+      "file": "src/icons/landmark.svg",
+      "nodes": 6
+    },
+    {
+      "name": "link",
+      "category": "action",
+      "aliases": [],
+      "component": "SvLinkIcon",
+      "selector": "sv-link-icon",
+      "file": "src/icons/link.svg",
+      "nodes": 2
+    },
+    {
+      "name": "list",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvListIcon",
+      "selector": "sv-list-icon",
+      "file": "src/icons/list.svg",
+      "nodes": 6
+    },
+    {
+      "name": "loader",
+      "category": "action",
+      "aliases": [],
+      "component": "SvLoaderIcon",
+      "selector": "sv-loader-icon",
+      "file": "src/icons/loader.svg",
+      "nodes": 8
+    },
+    {
+      "name": "lock",
+      "category": "security",
+      "aliases": [
+        "secure",
+        "private"
+      ],
+      "component": "SvLockIcon",
+      "selector": "sv-lock-icon",
+      "file": "src/icons/lock.svg",
+      "nodes": 3
+    },
+    {
+      "name": "log-out",
+      "category": "action",
+      "aliases": [],
+      "component": "SvLogOutIcon",
+      "selector": "sv-log-out-icon",
+      "file": "src/icons/log-out.svg",
+      "nodes": 3
+    },
+    {
+      "name": "mail",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvMailIcon",
+      "selector": "sv-mail-icon",
+      "file": "src/icons/mail.svg",
+      "nodes": 2
+    },
+    {
+      "name": "map-pin",
+      "category": "places",
+      "aliases": [],
+      "component": "SvMapPinIcon",
+      "selector": "sv-map-pin-icon",
+      "file": "src/icons/map-pin.svg",
+      "nodes": 2
+    },
+    {
+      "name": "mastercard",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvMastercardIcon",
+      "selector": "sv-mastercard-icon",
+      "file": "src/icons/mastercard.svg",
+      "nodes": 1
+    },
+    {
+      "name": "mastodon",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvMastodonIcon",
+      "selector": "sv-mastodon-icon",
+      "file": "src/icons/mastodon.svg",
+      "nodes": 1
+    },
+    {
+      "name": "maximize",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvMaximizeIcon",
+      "selector": "sv-maximize-icon",
+      "file": "src/icons/maximize.svg",
+      "nodes": 4
+    },
+    {
+      "name": "medium",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvMediumIcon",
+      "selector": "sv-medium-icon",
+      "file": "src/icons/medium.svg",
+      "nodes": 1
+    },
+    {
+      "name": "menu",
+      "category": "navigation",
+      "aliases": [
+        "hamburger",
+        "bars"
+      ],
+      "component": "SvMenuIcon",
+      "selector": "sv-menu-icon",
+      "file": "src/icons/menu.svg",
+      "nodes": 3
+    },
+    {
+      "name": "message-circle",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvMessageCircleIcon",
+      "selector": "sv-message-circle-icon",
+      "file": "src/icons/message-circle.svg",
+      "nodes": 1
+    },
+    {
+      "name": "message-square",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvMessageSquareIcon",
+      "selector": "sv-message-square-icon",
+      "file": "src/icons/message-square.svg",
+      "nodes": 1
+    },
+    {
+      "name": "minimize",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvMinimizeIcon",
+      "selector": "sv-minimize-icon",
+      "file": "src/icons/minimize.svg",
+      "nodes": 4
+    },
+    {
+      "name": "minus",
+      "category": "action",
+      "aliases": [],
+      "component": "SvMinusIcon",
+      "selector": "sv-minus-icon",
+      "file": "src/icons/minus.svg",
+      "nodes": 1
+    },
+    {
+      "name": "moon",
+      "category": "weather",
+      "aliases": [],
+      "component": "SvMoonIcon",
+      "selector": "sv-moon-icon",
+      "file": "src/icons/moon.svg",
+      "nodes": 1
+    },
+    {
+      "name": "more-horizontal",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvMoreHorizontalIcon",
+      "selector": "sv-more-horizontal-icon",
+      "file": "src/icons/more-horizontal.svg",
+      "nodes": 3
+    },
+    {
+      "name": "more-vertical",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvMoreVerticalIcon",
+      "selector": "sv-more-vertical-icon",
+      "file": "src/icons/more-vertical.svg",
+      "nodes": 3
+    },
+    {
+      "name": "music",
+      "category": "media",
+      "aliases": [],
+      "component": "SvMusicIcon",
+      "selector": "sv-music-icon",
+      "file": "src/icons/music.svg",
+      "nodes": 3
+    },
+    {
+      "name": "notion",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvNotionIcon",
+      "selector": "sv-notion-icon",
+      "file": "src/icons/notion.svg",
+      "nodes": 1
+    },
+    {
+      "name": "npm",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvNpmIcon",
+      "selector": "sv-npm-icon",
+      "file": "src/icons/npm.svg",
+      "nodes": 1
+    },
+    {
+      "name": "package",
+      "category": "files",
+      "aliases": [],
+      "component": "SvPackageIcon",
+      "selector": "sv-package-icon",
+      "file": "src/icons/package.svg",
+      "nodes": 4
+    },
+    {
+      "name": "panel-left-close",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvPanelLeftCloseIcon",
+      "selector": "sv-panel-left-close-icon",
+      "file": "src/icons/panel-left-close.svg",
+      "nodes": 3
+    },
+    {
+      "name": "panel-left-open",
+      "category": "layout",
+      "aliases": [],
+      "component": "SvPanelLeftOpenIcon",
+      "selector": "sv-panel-left-open-icon",
+      "file": "src/icons/panel-left-open.svg",
+      "nodes": 3
+    },
+    {
+      "name": "pause",
+      "category": "media",
+      "aliases": [],
+      "component": "SvPauseIcon",
+      "selector": "sv-pause-icon",
+      "file": "src/icons/pause.svg",
+      "nodes": 2
+    },
+    {
+      "name": "paypal",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvPaypalIcon",
+      "selector": "sv-paypal-icon",
+      "file": "src/icons/paypal.svg",
+      "nodes": 1
+    },
+    {
+      "name": "phone",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvPhoneIcon",
+      "selector": "sv-phone-icon",
+      "file": "src/icons/phone.svg",
+      "nodes": 1
+    },
+    {
+      "name": "pinterest",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvPinterestIcon",
+      "selector": "sv-pinterest-icon",
+      "file": "src/icons/pinterest.svg",
+      "nodes": 1
+    },
+    {
+      "name": "play",
+      "category": "media",
+      "aliases": [],
+      "component": "SvPlayIcon",
+      "selector": "sv-play-icon",
+      "file": "src/icons/play.svg",
+      "nodes": 1
+    },
+    {
+      "name": "plus",
+      "category": "action",
+      "aliases": [],
+      "component": "SvPlusIcon",
+      "selector": "sv-plus-icon",
+      "file": "src/icons/plus.svg",
+      "nodes": 2
+    },
+    {
+      "name": "printer",
+      "category": "devices",
+      "aliases": [],
+      "component": "SvPrinterIcon",
+      "selector": "sv-printer-icon",
+      "file": "src/icons/printer.svg",
+      "nodes": 4
+    },
+    {
+      "name": "reddit",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvRedditIcon",
+      "selector": "sv-reddit-icon",
+      "file": "src/icons/reddit.svg",
+      "nodes": 1
+    },
+    {
+      "name": "refresh",
+      "category": "action",
+      "aliases": [
+        "reload",
+        "sync",
+        "rotate"
+      ],
+      "component": "SvRefreshIcon",
+      "selector": "sv-refresh-icon",
+      "file": "src/icons/refresh.svg",
+      "nodes": 2
+    },
+    {
+      "name": "refresh-cw",
+      "category": "action",
+      "aliases": [],
+      "component": "SvRefreshCwIcon",
+      "selector": "sv-refresh-cw-icon",
+      "file": "src/icons/refresh-cw.svg",
+      "nodes": 4
+    },
+    {
+      "name": "rocket",
+      "category": "transport",
+      "aliases": [],
+      "component": "SvRocketIcon",
+      "selector": "sv-rocket-icon",
+      "file": "src/icons/rocket.svg",
+      "nodes": 5
+    },
+    {
+      "name": "samsung-pay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvSamsungPayIcon",
+      "selector": "sv-samsung-pay-icon",
+      "file": "src/icons/samsung-pay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "save",
+      "category": "files",
+      "aliases": [],
+      "component": "SvSaveIcon",
+      "selector": "sv-save-icon",
+      "file": "src/icons/save.svg",
+      "nodes": 3
+    },
+    {
+      "name": "search",
+      "category": "action",
+      "aliases": [
+        "find",
+        "magnifier"
+      ],
+      "component": "SvSearchIcon",
+      "selector": "sv-search-icon",
+      "file": "src/icons/search.svg",
+      "nodes": 2
+    },
+    {
+      "name": "send",
+      "category": "communication",
+      "aliases": [],
+      "component": "SvSendIcon",
+      "selector": "sv-send-icon",
+      "file": "src/icons/send.svg",
+      "nodes": 2
+    },
+    {
+      "name": "settings",
+      "category": "action",
+      "aliases": [
+        "sliders",
+        "options",
+        "controls"
+      ],
+      "component": "SvSettingsIcon",
+      "selector": "sv-settings-icon",
+      "file": "src/icons/settings.svg",
+      "nodes": 6
+    },
+    {
+      "name": "share",
+      "category": "action",
+      "aliases": [],
+      "component": "SvShareIcon",
+      "selector": "sv-share-icon",
+      "file": "src/icons/share.svg",
+      "nodes": 5
+    },
+    {
+      "name": "shield-check",
+      "category": "security",
+      "aliases": [
+        "verified",
+        "secure",
+        "protected"
+      ],
+      "component": "SvShieldCheckIcon",
+      "selector": "sv-shield-check-icon",
+      "file": "src/icons/shield-check.svg",
+      "nodes": 2
+    },
+    {
+      "name": "shopping-cart",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvShoppingCartIcon",
+      "selector": "sv-shopping-cart-icon",
+      "file": "src/icons/shopping-cart.svg",
+      "nodes": 3
+    },
+    {
+      "name": "smile",
+      "category": "people",
+      "aliases": [],
+      "component": "SvSmileIcon",
+      "selector": "sv-smile-icon",
+      "file": "src/icons/smile.svg",
+      "nodes": 4
+    },
+    {
+      "name": "snapchat",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvSnapchatIcon",
+      "selector": "sv-snapchat-icon",
+      "file": "src/icons/snapchat.svg",
+      "nodes": 1
+    },
+    {
+      "name": "sparkles",
+      "category": "sports",
+      "aliases": [
+        "magic",
+        "ai",
+        "shine"
+      ],
+      "component": "SvSparklesIcon",
+      "selector": "sv-sparkles-icon",
+      "file": "src/icons/sparkles.svg",
+      "nodes": 2
+    },
+    {
+      "name": "spotify",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvSpotifyIcon",
+      "selector": "sv-spotify-icon",
+      "file": "src/icons/spotify.svg",
+      "nodes": 1
+    },
+    {
+      "name": "stackoverflow",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvStackoverflowIcon",
+      "selector": "sv-stackoverflow-icon",
+      "file": "src/icons/stackoverflow.svg",
+      "nodes": 1
+    },
+    {
+      "name": "star",
+      "category": "shapes",
+      "aliases": [],
+      "component": "SvStarIcon",
+      "selector": "sv-star-icon",
+      "file": "src/icons/star.svg",
+      "nodes": 1
+    },
+    {
+      "name": "stripe",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvStripeIcon",
+      "selector": "sv-stripe-icon",
+      "file": "src/icons/stripe.svg",
+      "nodes": 1
+    },
+    {
+      "name": "sun",
+      "category": "weather",
+      "aliases": [],
+      "component": "SvSunIcon",
+      "selector": "sv-sun-icon",
+      "file": "src/icons/sun.svg",
+      "nodes": 9
+    },
+    {
+      "name": "table",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvTableIcon",
+      "selector": "sv-table-icon",
+      "file": "src/icons/table.svg",
+      "nodes": 4
+    },
+    {
+      "name": "tag",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvTagIcon",
+      "selector": "sv-tag-icon",
+      "file": "src/icons/tag.svg",
+      "nodes": 2
+    },
+    {
+      "name": "telegram",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvTelegramIcon",
+      "selector": "sv-telegram-icon",
+      "file": "src/icons/telegram.svg",
+      "nodes": 1
+    },
+    {
+      "name": "threads",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvThreadsIcon",
+      "selector": "sv-threads-icon",
+      "file": "src/icons/threads.svg",
+      "nodes": 1
+    },
+    {
+      "name": "thumbs-up",
+      "category": "people",
+      "aliases": [],
+      "component": "SvThumbsUpIcon",
+      "selector": "sv-thumbs-up-icon",
+      "file": "src/icons/thumbs-up.svg",
+      "nodes": 2
+    },
+    {
+      "name": "tiktok",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvTiktokIcon",
+      "selector": "sv-tiktok-icon",
+      "file": "src/icons/tiktok.svg",
+      "nodes": 1
+    },
+    {
+      "name": "trash",
+      "category": "action",
+      "aliases": [
+        "delete",
+        "remove",
+        "bin"
+      ],
+      "component": "SvTrashIcon",
+      "selector": "sv-trash-icon",
+      "file": "src/icons/trash.svg",
+      "nodes": 5
+    },
+    {
+      "name": "trending-down",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvTrendingDownIcon",
+      "selector": "sv-trending-down-icon",
+      "file": "src/icons/trending-down.svg",
+      "nodes": 2
+    },
+    {
+      "name": "trending-up",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvTrendingUpIcon",
+      "selector": "sv-trending-up-icon",
+      "file": "src/icons/trending-up.svg",
+      "nodes": 2
+    },
+    {
+      "name": "truck",
+      "category": "commerce",
+      "aliases": [],
+      "component": "SvTruckIcon",
+      "selector": "sv-truck-icon",
+      "file": "src/icons/truck.svg",
+      "nodes": 4
+    },
+    {
+      "name": "twitch",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvTwitchIcon",
+      "selector": "sv-twitch-icon",
+      "file": "src/icons/twitch.svg",
+      "nodes": 1
+    },
+    {
+      "name": "typescript",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvTypescriptIcon",
+      "selector": "sv-typescript-icon",
+      "file": "src/icons/typescript.svg",
+      "nodes": 1
+    },
+    {
+      "name": "underline",
+      "category": "text-format",
+      "aliases": [],
+      "component": "SvUnderlineIcon",
+      "selector": "sv-underline-icon",
+      "file": "src/icons/underline.svg",
+      "nodes": 2
+    },
+    {
+      "name": "undo",
+      "category": "action",
+      "aliases": [],
+      "component": "SvUndoIcon",
+      "selector": "sv-undo-icon",
+      "file": "src/icons/undo.svg",
+      "nodes": 2
+    },
+    {
+      "name": "upload",
+      "category": "action",
+      "aliases": [],
+      "component": "SvUploadIcon",
+      "selector": "sv-upload-icon",
+      "file": "src/icons/upload.svg",
+      "nodes": 3
+    },
+    {
+      "name": "usb",
+      "category": "devices",
+      "aliases": [],
+      "component": "SvUsbIcon",
+      "selector": "sv-usb-icon",
+      "file": "src/icons/usb.svg",
+      "nodes": 7
+    },
+    {
+      "name": "user",
+      "category": "communication",
+      "aliases": [
+        "person",
+        "profile",
+        "account"
+      ],
+      "component": "SvUserIcon",
+      "selector": "sv-user-icon",
+      "file": "src/icons/user.svg",
+      "nodes": 2
+    },
+    {
+      "name": "user-plus",
+      "category": "people",
+      "aliases": [],
+      "component": "SvUserPlusIcon",
+      "selector": "sv-user-plus-icon",
+      "file": "src/icons/user-plus.svg",
+      "nodes": 4
+    },
+    {
+      "name": "users",
+      "category": "people",
+      "aliases": [],
+      "component": "SvUsersIcon",
+      "selector": "sv-users-icon",
+      "file": "src/icons/users.svg",
+      "nodes": 4
+    },
+    {
+      "name": "venmo",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvVenmoIcon",
+      "selector": "sv-venmo-icon",
+      "file": "src/icons/venmo.svg",
+      "nodes": 1
+    },
+    {
+      "name": "video",
+      "category": "media",
+      "aliases": [],
+      "component": "SvVideoIcon",
+      "selector": "sv-video-icon",
+      "file": "src/icons/video.svg",
+      "nodes": 2
+    },
+    {
+      "name": "visa",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvVisaIcon",
+      "selector": "sv-visa-icon",
+      "file": "src/icons/visa.svg",
+      "nodes": 1
+    },
+    {
+      "name": "wechat-pay",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvWechatPayIcon",
+      "selector": "sv-wechat-pay-icon",
+      "file": "src/icons/wechat-pay.svg",
+      "nodes": 1
+    },
+    {
+      "name": "whatsapp",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvWhatsappIcon",
+      "selector": "sv-whatsapp-icon",
+      "file": "src/icons/whatsapp.svg",
+      "nodes": 1
+    },
+    {
+      "name": "x-circle",
+      "category": "shapes",
+      "aliases": [
+        "error",
+        "cancel-circle"
+      ],
+      "component": "SvXCircleIcon",
+      "selector": "sv-x-circle-icon",
+      "file": "src/icons/x-circle.svg",
+      "nodes": 3
+    },
+    {
+      "name": "x-twitter",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvXTwitterIcon",
+      "selector": "sv-x-twitter-icon",
+      "file": "src/icons/x-twitter.svg",
+      "nodes": 2
+    },
+    {
+      "name": "youtube",
+      "category": "brands",
+      "aliases": [],
+      "component": "SvYoutubeIcon",
+      "selector": "sv-youtube-icon",
+      "file": "src/icons/youtube.svg",
+      "nodes": 1
+    }
+  ]
+}

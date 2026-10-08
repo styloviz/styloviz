@@ -1,0 +1,105 @@
+<!--
+  The single projection slot. A second <ng-content> anywhere in this file would
+  not get a copy of the content — Angular resolves the slot once, at compile
+  time, and only one of them receives it. Stamping this template is how each
+  variant puts the host content where it needs it.
+-->
+<ng-template #projected><ng-content /></ng-template>
+
+<!-- ── Inline variant ────────────────────────────────────────────────────── -->
+@if (variant() === 'inline') {
+  <span class="inline-flex items-center gap-1.5">
+    @if (label()) {
+      <span [ngClass]="textSize()" class="text-gray-700 dark:text-gray-300 font-mono select-all"
+            [attr.data-sv-masked]="masked() ? 'true' : null">{{ displayLabel() }}</span>
+    }
+    <ng-container [ngTemplateOutlet]="projected" />
+    <ng-container [ngTemplateOutlet]="revealToggle" />
+    <button
+      type="button"
+      [ngClass]="buttonClass()"
+      [attr.aria-label]="buttonAriaLabel()"
+      [attr.aria-busy]="busy() ? 'true' : null"
+      data-sv-copy-button
+      (click)="copy()"
+    >
+      @if (isCopied()) {
+        <sv-icon name="check" [cssClass]="iconSize()" [strokeWidth]="2.5" />
+      } @else {
+        <sv-icon name="copy" [cssClass]="iconSize()" [strokeWidth]="2" />
+      }
+    </button>
+  </span>
+}
+
+<!--
+  The reveal toggle for a `sensitive` label with `sensitiveReveal="revealable"`.
+  Not rendered for icon-only (there is no label to reveal) or while the session
+  is declared private (`provideSvSensitivePrivacy`).
+-->
+<ng-template #revealToggle>
+  @if (showRevealToggle()) {
+    <button
+      type="button"
+      [ngClass]="buttonClass()"
+      [attr.aria-label]="shown() ? 'Hide value' : 'Show value'"
+      [attr.aria-pressed]="shown()"
+      data-sv-copy-reveal
+      (click)="toggleShown()"
+    >
+      <sv-icon [name]="shown() ? 'eye-off' : 'eye'" [cssClass]="iconSize()" [strokeWidth]="2" />
+    </button>
+  }
+</ng-template>
+
+<!-- ── Block variant ─────────────────────────────────────────────────────── -->
+@if (variant() === 'block') {
+  <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800/60">
+    <span [ngClass]="textSize()" class="flex-1 truncate font-mono text-gray-700 select-all dark:text-gray-300">
+      @if (label()) { <span [attr.data-sv-masked]="masked() ? 'true' : null">{{ displayLabel() }}</span> }
+      <ng-container [ngTemplateOutlet]="projected" />
+    </span>
+    <ng-container [ngTemplateOutlet]="revealToggle" />
+    <button
+      type="button"
+      [ngClass]="buttonClass()"
+      [attr.aria-label]="buttonAriaLabel()"
+      [attr.aria-busy]="busy() ? 'true' : null"
+      data-sv-copy-button
+      (click)="copy()"
+    >
+      @if (isCopied()) {
+        <sv-icon name="check" [cssClass]="iconSize()" [strokeWidth]="2.5" />
+      } @else {
+        <sv-icon name="copy" [cssClass]="iconSize()" [strokeWidth]="2" />
+      }
+    </button>
+  </div>
+  @if (sensitive() && isCopied()) {
+    <p class="mt-1.5 flex items-center gap-1.5 text-xs text-warning-700 dark:text-warning-400" data-sv-copy-warning>
+      <sv-icon name="alert-triangle" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      {{ sensitiveWarning() }}
+    </p>
+  }
+}
+
+<!-- ── Icon-only variant ─────────────────────────────────────────────────── -->
+@if (variant() === 'icon-only') {
+  <button
+    type="button"
+    [ngClass]="buttonClass()"
+    [attr.aria-label]="buttonAriaLabel()"
+    [attr.aria-busy]="busy() ? 'true' : null"
+    data-sv-copy-button
+    (click)="copy()"
+  >
+    @if (isCopied()) {
+      <sv-icon name="check" [cssClass]="iconSize()" [strokeWidth]="2.5" />
+    } @else {
+      <sv-icon name="copy" [cssClass]="iconSize()" [strokeWidth]="2" />
+    }
+  </button>
+}
+
+<!-- Polite live region announces copy success/failure to screen readers -->
+<span class="sr-only" role="status" aria-live="polite">{{ srStatus() }}</span>

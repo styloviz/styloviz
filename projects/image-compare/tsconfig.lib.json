@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out-tsc/lib",
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": true,
+    "types": [],
+    "paths": {
+      "@styloviz/core": ["../../dist/@styloviz/core/types/styloviz-core.d.ts"],
+      "@styloviz/icons": [
+        "../../dist/@styloviz/icons/types/styloviz-icons.d.ts"
+      ],
+      "@styloviz-pro/icons": [
+        "../../dist/@styloviz-pro/icons/types/styloviz-pro-icons.d.ts"
+      ],
+      "@styloviz/core": [
+        "../../dist/@styloviz/core/types/styloviz-core.d.ts"
+      ]
+    }
+  },
+  "exclude": [
+    "**/*.spec.ts"
+  ],
+  "angularCompilerOptions": {
+    "extendedDiagnostics": {
+      "checks": {
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
+      }
+    }
+  }
+}

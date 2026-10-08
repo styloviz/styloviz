@@ -1,0 +1,134 @@
+<div
+  #root
+  class="flex flex-col items-center text-center focus-visible:outline-none"
+  [ngClass]="containerPadding()"
+  [attr.role]="role()"
+  [attr.tabindex]="rootFocusable() ? -1 : null"
+>
+  <!-- Icon -->
+  <div [ngClass]="iconContainerClass()" class="mb-6 shrink-0">
+    <sv-icon [name]="resolvedIconName()"
+             [cssClass]="iconClass()"
+             [strokeWidth]="1.5" />
+  </div>
+
+  <!--
+    Title.
+
+    ★ `tabindex="-1"` only when `focusHeading` is on: a heading is not
+      focusable by default, so focusing it would be a silent no-op — and `-1`
+      rather than `0` keeps it out of the tab order afterwards, so the user does
+      not have to pass it on every subsequent Tab.
+  -->
+  @if (title()) {
+    <h2
+      #heading
+      [ngClass]="titleClass()"
+      class="mb-3 focus-visible:outline-none"
+      [attr.tabindex]="focusHeading() ? -1 : null"
+    >{{ title() }}</h2>
+  }
+
+  <!-- Description -->
+  @if (description()) {
+    <p [ngClass]="descriptionClass()" class="mb-8">{{ description() }}</p>
+  }
+
+  <!-- Extra content slot — between description and actions -->
+  <ng-content select="[svResultExtra]" />
+
+  <!-- Actions slot -->
+  <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+    <!--
+      ★★ THE RETRY IS FIRST-CLASS AND THE REST ARE SLOTTED, and that split is
+         the fix (`OF-16-I2`). Every other action here — go home, contact
+         support — is a link that cannot fail. The retry is the one that can,
+         repeatedly, which is why it needs a pending state that a slotted
+         `<button>` never had.
+    -->
+    @if (retryOffered()) {
+      <button
+        data-sv-retry
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold
+               text-white transition-colors hover:bg-primary-700 focus-visible:outline-none
+               focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+               disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-gray-900"
+        [disabled]="retrying()"
+        [attr.aria-busy]="retrying() ? 'true' : null"
+        (click)="requestRetry()"
+      >
+        @if (retrying()) {
+          <sv-spinner-arc cssClass="h-4 w-4" />
+        }
+        {{ retryButtonLabel() }}
+      </button>
+    }
+    <ng-content select="[svResultActions]" />
+  </div>
+
+  <!--
+    A retry that failed again. Inside the page's own `role`, which already
+    exists — see the spinner and skeleton for the same rule stated twice.
+  -->
+  @if (retryError(); as err) {
+    <p data-sv-retry-error class="mt-4 text-sm text-danger-700 dark:text-danger-300">{{ err.message }}</p>
+  }
+
+  <!--
+    ★★★ THE REFERENCE IS WHAT MAKES THIS PAGE SUPPORTABLE (`OF-16-M2`). "It
+        said something went wrong" is an unanswerable ticket; the same sentence
+        with a correlation id is one log query. Rendered whenever the error
+        carries one — no opt-in, because there is no surface where hiding it
+        helps.
+
+    ★ `font-mono` and `select-all`: it is read out over the phone and pasted
+      into forms, so it has to be unambiguous to read and one click to select
+      even where the clipboard API is unavailable.
+  -->
+  @if (reference(); as ref) {
+    <p data-sv-reference class="mt-6 flex items-center justify-center gap-2 text-xs
+                                text-gray-500 dark:text-gray-400">
+      <span>Reference</span>
+      <code class="select-all rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.6875rem]
+                   text-gray-700 dark:bg-gray-800 dark:text-gray-200">{{ ref }}</code>
+      @if (copyLabel()) {
+        <button
+          data-sv-copy-reference
+          type="button"
+          class="rounded px-1.5 py-0.5 font-medium text-primary-600 transition-colors
+                 hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2
+                 focus-visible:ring-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+          (click)="copyReference()"
+        >{{ copyButtonLabel() }}</button>
+        <!-- ★ The confirmation is announced as well as shown — through
+             SvLiveAnnouncer in copyReference() (X-9), not a private live
+             region: a screen-reader user still hears it. -->
+      }
+    </p>
+  }
+
+  <!--
+    The status/code block (`OF-16-M3`). Collapsed, opt-in, and deliberately
+    NOT carrying `cause`: a raw thrown value is a stack trace or a response
+    body, sometimes with a token in a URL, and an error page is a screen people
+    photograph and paste into chat.
+  -->
+  @if (detailsOffered()) {
+    <details data-sv-details class="mt-4 text-left text-xs text-gray-500 dark:text-gray-400">
+      <summary class="cursor-pointer select-none text-center focus-visible:outline-none
+                      focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
+        {{ detailsLabel() }}
+      </summary>
+      <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        @for (row of detailRows(); track row.label) {
+          <dt class="font-medium text-gray-600 dark:text-gray-300">{{ row.label }}</dt>
+          <dd class="font-mono">{{ row.value }}</dd>
+        }
+      </dl>
+    </details>
+  }
+
+  <!-- Default content if no slot used -->
+  <ng-content />
+</div>

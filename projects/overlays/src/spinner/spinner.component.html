@@ -1,0 +1,139 @@
+<!--
+  Overlay mode (OF-18-I6 / OF-18-M4).
+
+  ★★ In a browser the backdrop is NOT rendered here: the component portals
+     `overlayTpl` into `<body>` and registers it on the shared stack as a
+     blocking surface, which makes the rest of the page `inert`. A backdrop
+     rendered in place cannot do that — it lives inside the page it is trying
+     to switch off. The server has no stack and no `<body>` to portal into, so
+     it renders the backdrop in place and the client takes over on hydration.
+-->
+@if (overlay()) {
+  @if (!isBrowser || !portal()) {
+    <ng-container [ngTemplateOutlet]="overlayTpl"></ng-container>
+  }
+} @else {
+  <!-- Inline spinner -->
+  <div class="inline-flex flex-col items-center gap-2" [class]="customClass()">
+    <ng-container [ngTemplateOutlet]="spinnerTpl"
+                  [ngTemplateOutletContext]="{ onDark: false }"></ng-container>
+    @if (labelVisible()) {
+      <span [class]="labelSize() + ' text-gray-600 dark:text-gray-400'">{{ label() }}</span>
+    }
+  </div>
+}
+
+<!-- ── Fullscreen surface (portalled to <body> while overlaying) ── -->
+<ng-template #overlayTpl>
+  <div class="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm outline-none"
+       [class]="customClass()"
+       [style.zIndex]="backdropZ()"
+       data-sv-spinner-overlay
+       role="dialog"
+       aria-modal="true"
+       [attr.aria-label]="resolvedLabel()"
+       tabindex="-1"
+       (keydown.escape)="onOverlayEscape($event)">
+    <div class="flex flex-col items-center gap-3">
+      <ng-container [ngTemplateOutlet]="spinnerTpl"
+                    [ngTemplateOutletContext]="{ onDark: true }"></ng-container>
+      @if (labelVisible()) {
+        <span [class]="labelSize() + ' font-medium text-white'">{{ label() }}</span>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<!-- ── Spinner template ── -->
+<ng-template #spinnerTpl let-onDark="onDark">
+  <div role="status" [attr.aria-label]="resolvedLabel()">
+
+    @if (spinnerStyle() === 'border') {
+      <!-- Rotating border ring -->
+      <div [class]="'rounded-full animate-spin ' + spinnerSize() + ' ' + borderWidth() + ' ' + trackColor() + ' ' + fillColor()">
+      </div>
+
+    } @else if (spinnerStyle() === 'dots') {
+      <!-- Three bouncing dots -->
+      <div [class]="'flex items-center gap-1 ' + spinnerSize()">
+        <div [class]="'rounded-full animate-bounce [animation-delay:-0.3s] ' + dotSize() + ' ' + dotColor()"></div>
+        <div [class]="'rounded-full animate-bounce [animation-delay:-0.15s] ' + dotSize() + ' ' + dotColor()"></div>
+        <div [class]="'rounded-full animate-bounce ' + dotSize() + ' ' + dotColor()"></div>
+      </div>
+
+    } @else if (spinnerStyle() === 'pulse') {
+      <!-- Pulsing circle -->
+      <div class="relative" [class]="spinnerSize()">
+        <div [class]="'absolute inset-0 rounded-full animate-ping opacity-50 ' + dotColor()"></div>
+        <div [class]="'rounded-full ' + spinnerSize() + ' ' + dotColor()"></div>
+      </div>
+
+    } @else if (spinnerStyle() === 'bars') {
+      <!-- Equalizer bars -->
+      <div class="flex items-end gap-0.5" [class]="spinnerSize()">
+        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.4s] ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite] ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] ' + barHeight() + ' ' + dotColor()"></div>
+      </div>
+    }
+
+    <!--
+      ★ No `sr-only` copy of the label here any more: the label is the
+        region's accessible name and is SPOKEN once through the shared
+        announcer when the spinner appears. Repeating it as content would give
+        a screen reader a second voice for the same wait.
+    -->
+
+    <!--
+      ── Escalation (OF-18-I5) ──────────────────────────────────────────────
+
+      ★★★ INSIDE THIS REGION, NOT BESIDE IT. The `role="status"` above already
+          exists before the message appears, which is exactly what a live
+          region needs; a second region for the same wait would be a second
+          voice, and the kit has one rule for that (`X-9`, and `OF-17-I1` for
+          the skeleton, whose own tests caught the first version of this).
+
+      ★ The spinner's `aria-label` never changes, so the escalation is the only
+        thing here a reader will be told about — which is right: "still
+        loading" is not news, "this seems to be stuck" is.
+    -->
+    <div class="flex flex-col items-center gap-1.5 empty:hidden">
+      <!--
+        ── The stated expectation (OF-18-I8) ────────────────────────────────
+
+        ★★ `aria-hidden`, and that is not an oversight: the expectation is
+           already in this region's accessible name, because a live region
+           announces what changes in it and NOT the content it was born with.
+           Announced copy in the name, visible copy here, one voice.
+
+        ★ It disappears the moment the wait escalates — see `expectationShown`.
+      -->
+      @if (expectationShown()) {
+        <span
+          data-sv-state="expectation"
+          aria-hidden="true"
+          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/80' : 'text-gray-500 dark:text-gray-400')"
+        >{{ expectationText() }}</span>
+      }
+      @if (waitMessage(); as message) {
+        <span
+          data-sv-state="escalation"
+          [attr.data-sv-stage]="waitStage()"
+          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/80' : 'text-gray-500 dark:text-gray-400')"
+        >{{ message }}</span>
+      }
+      @if (cancelOffered()) {
+        <button
+          data-sv-cancel
+          type="button"
+          [class]="'rounded px-2 py-1 text-xs font-semibold underline underline-offset-2 '
+                 + 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 '
+                 + (onDark ? 'text-white hover:no-underline' : 'text-primary-700 hover:no-underline dark:text-primary-300')"
+          (click)="requestCancel()"
+        >{{ cancelLabel() }}</button>
+      }
+    </div>
+  </div>
+</ng-template>
+

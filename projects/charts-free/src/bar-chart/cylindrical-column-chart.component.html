@@ -1,0 +1,148 @@
+<sv-chart-frame
+  [loading]="loading()"
+  [error]="resolvedError()"
+  [isEmpty]="chartIsEmpty()"
+  [filtered]="filtered()"
+  [emptyMessage]="emptyMessage()"
+  [notice]="plotted().notice"
+  [height]="height()"
+  (retry)="retry.emit()"
+>
+
+<div svChartAnim [ngClass]="['flex flex-col gap-3', customClass()]" [style.--bc-anim-dur]="animDuration()">
+
+  @if (title()) {
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
+  }
+
+  <div class="w-full overflow-hidden">
+    <svg
+      [attr.viewBox]="'0 0 ' + SVG_WIDTH + ' ' + svgHeight()"
+      [attr.height]="svgHeight()"
+      class="w-full"
+      role="img"
+      [attr.aria-label]="resolvedAriaLabel()"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <g [attr.transform]="'translate(' + PADDING.left + ',' + PADDING.top + ')'">
+
+        <!-- Grid lines -->
+        @if (showGrid()) {
+          @for (val of gridValues(); track val) {
+            <line
+              x1="0" [attr.y1]="gridLineY(val)" [attr.x2]="plotW()" [attr.y2]="gridLineY(val)"
+              stroke="currentColor" class="text-gray-200 dark:text-gray-700" stroke-width="1"
+            />
+          }
+        }
+
+        <!-- Y-axis labels -->
+        @if (showLabels()) {
+          @for (val of gridValues(); track val) {
+            <text
+              x="-8" [attr.y]="gridLineY(val) + 4" text-anchor="end"
+              class="fill-gray-400 dark:fill-gray-500" style="font-size:10px;font-family:inherit;"
+            >{{ formatValue(val) }}</text>
+          }
+        }
+
+        <!-- X-axis baseline -->
+        <line
+          x1="0" [attr.y1]="plotH()" [attr.x2]="plotW()" [attr.y2]="plotH()"
+          stroke="currentColor" class="text-gray-300 dark:text-gray-600" stroke-width="1"
+        />
+
+        <!-- Cylindrical bars: bottom ellipse → body rect → top ellipse (layered order) -->
+        @for (bar of cylindricalBars(); track $index) {
+          <g
+            class="cursor-pointer"
+            [attr.data-sv-clamped]="bar.clamped ? '' : null"
+            [style.animation-delay]="$index * 50 + 'ms'"
+            (mouseenter)="showTooltip($event, bar.cat, bar.series, bar.value, bar.color)"
+            (mouseleave)="hideTooltip()"
+          >
+            <!-- Bottom ellipse (base shadow) -->
+            <ellipse
+              [attr.cx]="bar.cx" [attr.cy]="bar.y + bar.barH"
+              [attr.rx]="bar.rx" [attr.ry]="bar.capRy"
+              [attr.fill]="bar.baseColor"
+              class="bc-bar-v" [style.animation-delay]="$index * 50 + 'ms'"
+              opacity="0.6"
+            />
+
+            <!-- Body rectangle (covers center, bottom ellipse peeking out) -->
+            <rect
+              [attr.x]="bar.x" [attr.y]="bar.y + bar.capRy / 2"
+              [attr.width]="bar.barW" [attr.height]="bar.barH"
+              [attr.fill]="bar.color"
+              class="bc-bar-v transition-opacity duration-150 hover:opacity-80"
+              [style.animation-delay]="$index * 50 + 'ms'"
+            />
+
+            <!-- Top ellipse (cap face) -->
+            <ellipse
+              [attr.cx]="bar.cx" [attr.cy]="bar.y + bar.capRy / 2"
+              [attr.rx]="bar.rx" [attr.ry]="bar.capRy"
+              [attr.fill]="bar.capColor"
+              class="bc-cap" [style.animation-delay]="$index * 50 + 'ms'"
+            />
+          </g>
+
+          @if (showValues()) {
+            <text
+              [attr.x]="bar.cx" [attr.y]="bar.y - 6"
+              text-anchor="middle" class="fill-gray-600 dark:fill-gray-400"
+              style="font-size:10px;font-weight:600;font-family:inherit;pointer-events:none;"
+            >{{ formatValue(bar.value) }}</text>
+          }
+        }
+
+        <!-- X-axis category labels -->
+        @if (showLabels()) {
+          @for (cat of categories(); track cat; let ci = $index) {
+            <text
+              [attr.x]="ci * (plotW() / categories().length) + (plotW() / categories().length) / 2"
+              [attr.y]="plotH() + 20"
+              text-anchor="middle" class="fill-gray-500 dark:fill-gray-400"
+              style="font-size:11px;font-family:inherit;"
+            >{{ cat }}</text>
+          }
+        }
+
+        <!-- Tooltip -->
+        @if (tooltip().visible) {
+          <g [attr.transform]="'translate(' + tooltip().x + ',' + tooltip().y + ')'">
+            <rect x="0" y="0" rx="6" width="130" height="52"
+              fill="white" style="filter:drop-shadow(0 4px 10px rgba(0,0,0,0.14));"
+            />
+            <text x="10" y="18"
+              style="font-size:11px;font-weight:600;font-family:inherit;fill:var(--color-gray-700);"
+            >{{ tooltip().label }}</text>
+            @for (item of tooltip().items; track item.series) {
+              <circle cx="10" cy="34" r="4" [attr.fill]="item.color" />
+              <text x="20" y="38"
+                style="font-size:11px;font-family:inherit;fill:var(--color-gray-500);"
+              >{{ item.series }}: <tspan style="font-weight:600;fill:var(--color-gray-900);">{{ formatValue(item.value) }}</tspan></text>
+            }
+          </g>
+        }
+
+      </g>
+    </svg>
+  </div>
+
+  @if (showLegend() && datasets().length > 1) {
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center">
+      @for (ds of datasets(); track ds.label; let i = $index) {
+        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                [style.background-color]="seriesColors()[i]"></span>
+          {{ ds.label }}
+        </span>
+      }
+    </div>
+  }
+
+</div>
+
+</sv-chart-frame>

@@ -1,0 +1,48 @@
+{
+  "name": "styloviz-account-template",
+  "version": "1.0.1",
+  "description": "Profile, security, notifications and team — packaged as its own drop-in template instead of a fourth bespoke build. Teal/cyan shell.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+  },
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@styloviz/avatar": "^1.0.1",
+    "@styloviz/badge": "^1.0.1",
+    "@styloviz/button": "^1.0.1",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/data": "^1.0.1",
+    "@styloviz/forms": "^1.0.1",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/input-field": "^1.0.1",
+    "@styloviz/layout": "^1.0.1",
+    "@styloviz/modal": "^1.0.1",
+    "@styloviz/password-strength": "^1.0.1",
+    "@styloviz/tabs": "^1.0.1",
+    "@styloviz/toast": "^1.0.1",
+    "@styloviz/toggle-switch": "^1.0.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.0",
+    "@angular/cli": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~6.0.3"
+  }
+}

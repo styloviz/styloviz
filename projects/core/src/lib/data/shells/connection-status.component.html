@@ -1,0 +1,24 @@
+@if (visible()) {
+  <span
+    class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+    [class]="wrapperClass() + ' ' + customClass()"
+    [attr.role]="announce() ? 'status' : null"
+    [attr.aria-live]="announce() ? 'polite' : null"
+    data-sv-connection
+    [attr.data-sv-connection-state]="state()"
+  >
+    <span class="h-1.5 w-1.5 shrink-0 rounded-full" [class]="dotClass()" aria-hidden="true"></span>
+    {{ resolvedLabel() }}
+    @if (reconnectable() && state() !== 'open') {
+      <button
+        type="button"
+        (click)="reconnect.emit()"
+        class="ml-0.5 rounded underline underline-offset-2 focus:outline-none
+               focus-visible:ring-2 focus-visible:ring-current"
+        data-sv-reconnect
+      >
+        Reconnect
+      </button>
+    }
+  </span>
+}

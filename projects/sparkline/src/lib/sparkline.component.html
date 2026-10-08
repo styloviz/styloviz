@@ -1,0 +1,120 @@
+<!--
+  One <svg>, painted entirely with currentColor so the series inherits the
+  surrounding text colour and dark mode needs no second code path.
+-->
+@if (loading()) {
+  <!--
+    Same box, shimmering. A KPI tile with no skeleton is the most visible
+    "this is a demo" tell on a real dashboard.
+  -->
+  <span
+    class="animate-pulse rounded bg-gray-200 dark:bg-gray-700"
+    [class]="fluid() ? 'block w-full' : 'inline-block'"
+    [style.width.px]="fluid() ? null : width()"
+    [style.height.px]="height()"
+    role="status"
+    aria-busy="true"
+    data-sv-state="loading"
+    [attr.aria-label]="ariaHidden() ? null : 'Loading'"></span>
+} @else if (error()) {
+  <!--
+    A dash, not a flat line: a zeroed sparkline is indistinguishable from a
+    real series that did not move, so it reports a failure as a fact.
+  -->
+  <!--
+    A button, not a span. The component declares a `retry` output, and at
+    120×36 there is no room for a "Try again" control beside the dash — so the
+    dash IS the control. Without this the output was unreachable and a host
+    binding `(retry)` would have waited forever.
+  -->
+  <button
+    type="button"
+    [class]="(fluid() ? 'flex w-full ' : 'inline-flex ') + 'items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded'"
+    [style.width.px]="fluid() ? null : width()"
+    [style.height.px]="height()"
+    data-sv-state="error"
+    (click)="retry.emit()"
+    [attr.aria-label]="ariaHidden() ? null : 'Could not load — retry'"
+    title="Could not load — click to retry">–</button>
+} @else if (isEmpty()) {
+  <!-- Reserve the same box so a row does not reflow when data arrives. -->
+  <span
+    [class]="fluid() ? 'block w-full' : 'inline-block'"
+    [style.width.px]="fluid() ? null : width()"
+    [style.height.px]="height()"
+    aria-hidden="true"></span>
+} @else {
+  <svg
+    [attr.width]="fluid() ? null : width()"
+    [attr.height]="height()"
+    [attr.viewBox]="'0 0 ' + width() + ' ' + height()"
+    [class]="(fluid() ? 'w-full overflow-visible ' : 'overflow-visible ') + toneClass()"
+    preserveAspectRatio="none"
+    [attr.role]="ariaHidden() ? null : 'img'"
+    [attr.aria-label]="ariaHidden() ? null : label()"
+    [attr.aria-hidden]="ariaHidden() ? 'true' : null"
+    [attr.focusable]="false">
+
+    @if (baselineY() !== null) {
+      <line
+        x1="0"
+        [attr.y1]="baselineY()"
+        [attr.x2]="width()"
+        [attr.y2]="baselineY()"
+        stroke="currentColor"
+        stroke-width="1"
+        stroke-dasharray="2 2"
+        stroke-opacity="0.35" />
+    }
+
+    @if (isBars()) {
+      @for (bar of bars(); track bar.i) {
+        <rect
+          [attr.x]="bar.x"
+          [attr.y]="bar.y"
+          [attr.width]="bar.width"
+          [attr.height]="bar.height"
+          [attr.rx]="bar.width > 3 ? 1 : 0"
+          fill="currentColor"
+          [attr.fill-opacity]="bar.positive ? 0.9 : 0.35" />
+      }
+    } @else {
+      @if (variant() === 'area') {
+        <path [attr.d]="areaPath()" fill="currentColor" fill-opacity="0.12" stroke="none" />
+      }
+
+      <path
+        [attr.d]="linePath()"
+        fill="none"
+        stroke="currentColor"
+        [attr.stroke-width]="strokeWidth()"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+
+      @if (showExtremes() && minPoint() !== null && maxPoint() !== null) {
+        <circle
+          [attr.cx]="minPoint()!.x"
+          [attr.cy]="minPoint()!.y"
+          [attr.r]="strokeWidth() + 0.5"
+          fill="currentColor"
+          fill-opacity="0.45" />
+        <circle
+          [attr.cx]="maxPoint()!.x"
+          [attr.cy]="maxPoint()!.y"
+          [attr.r]="strokeWidth() + 0.5"
+          fill="currentColor" />
+      }
+
+      @if (showLast() && lastPoint() !== null) {
+        <circle
+          [attr.cx]="lastPoint()!.x"
+          [attr.cy]="lastPoint()!.y"
+          [attr.r]="strokeWidth() + 1"
+          fill="currentColor"
+          stroke="white"
+          stroke-width="1"
+          class="dark:[stroke:theme(colors.gray.900)]" />
+      }
+    }
+  </svg>
+}

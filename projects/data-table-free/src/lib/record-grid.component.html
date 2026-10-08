@@ -1,0 +1,176 @@
+@if (loading()) {
+  <div class="p-2" data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="4" ariaLabel="Loading records" />
+  </div>
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
+} @else if (isEmpty()) {
+  <sv-empty-shell reason="no-data" [title]="emptyMessage()" data-sv-state="empty" />
+} @else if (!cardsMode()) {
+
+  <!--
+    The wide view, supplied as a template rather than projected content — so it
+    is never built while the card list is on screen. Projected content is
+    instantiated by the host whatever this template does with it, which would
+    put two copies of every record in the accessibility tree.
+  -->
+  @if (tableTemplate(); as tpl) {
+    <ng-container [ngTemplateOutlet]="tpl" data-sv-view="table" />
+  }
+
+} @else {
+
+<div data-sv-view="cards">
+
+  <!--
+    ★★★ A CARD LIST HAS NOWHERE TO PUT A SORT. The table's affordance is the
+         header cell; the card view has no headers, so a table that becomes
+         cards loses sorting entirely unless the control is rebuilt somewhere
+         else. That is the half of "responsive" everyone forgets — which is why
+         this is a real labelled `<select>` and a real button rather than an
+         icon nobody can name.
+  -->
+  @if (sortableColumns().length) {
+    <div class="mb-3 flex items-center gap-2">
+      <label class="text-xs font-medium text-gray-600 dark:text-gray-400"
+             [attr.for]="gridId('sort')">Sort by</label>
+      <select
+        [id]="gridId('sort')"
+        class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400
+               dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+        [value]="sortKey()"
+        (change)="onSortKeyChange($any($event.target).value)"
+        data-sv-sort-key>
+        <option value="">Unsorted</option>
+        @for (column of sortableColumns(); track column.key) {
+          <option [value]="column.key">{{ column.label }}</option>
+        }
+      </select>
+      @if (sortKey()) {
+        <button
+          type="button"
+          class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700
+                 transition-colors hover:bg-gray-50 focus-visible:outline-none
+                 focus-visible:ring-2 focus-visible:ring-primary-400
+                 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+          [attr.aria-label]="'Sort direction: ' + sortDirectionLabel() + '. Activate to reverse.'"
+          (click)="toggleSortDirection()"
+          data-sv-sort-direction>{{ sortDirectionLabel() }}</button>
+      }
+    </div>
+  }
+
+  <!--
+    ★★★ THE MARKUP STOPS CLAIMING TO BE A TABLE. The usual responsive technique
+         sets `display: block` on the table elements, which drops their table
+         roles in every browser — a screen reader is then handed a pile of
+         anonymous blocks — and pipes the header text in through `::before`,
+         which is generated content nobody can select, search or copy. This is a
+         list of records instead, each a real `<dl>`, which is the structure
+         HTML already has for a set of label/value pairs.
+  -->
+  <ul role="list" class="flex flex-col gap-3" data-sv-records>
+    @for (row of rows(); track rowId(row)) {
+      <li>
+        <article
+          class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900"
+          [attr.aria-labelledby]="gridId('title-' + rowId(row))"
+          data-sv-record>
+
+          <div class="flex items-start gap-2">
+            @if (selectable()) {
+              <input
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600
+                       focus-visible:ring-2 focus-visible:ring-primary-400 dark:border-gray-600"
+                [checked]="isSelected(row)"
+                [attr.aria-label]="'Select ' + cardTitle(row)"
+                (change)="toggleSelect(row)"
+                data-sv-record-select />
+            }
+            <!--
+              ★ A card needs a heading and a `<dl>` cannot supply one — every
+                pair in it is equally a term. Promoting one field out of the
+                list is what makes a stack of cards scannable rather than forty
+                identical blocks.
+            -->
+            <h3 [id]="gridId('title-' + rowId(row))"
+                class="min-w-0 flex-1 break-words text-sm font-semibold text-gray-900 dark:text-white">
+              {{ cardTitle(row) }}
+            </h3>
+          </div>
+
+          <dl class="mt-2 flex flex-col gap-1">
+            @for (column of primaryFields(); track column.key) {
+              <div class="flex items-baseline gap-3">
+                <dt class="w-2/5 shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                  {{ column.label }}
+                </dt>
+                <dd class="min-w-0 break-words text-xs text-gray-900 dark:text-gray-100">
+                  {{ cellText(row, column) }}
+                </dd>
+              </div>
+            }
+
+            <!--
+              ★★★ NOTHING IS DROPPED. The other common answer to a table that
+                   does not fit is to hide the columns that do not — which makes
+                   it a different table, with nobody told which one they are
+                   reading. A `secondary` field moves in here and the control
+                   says how many are in it.
+            -->
+            @if (secondaryFields().length && isExpanded(row)) {
+              @for (column of secondaryFields(); track column.key) {
+                <div class="flex items-baseline gap-3">
+                  <dt class="w-2/5 shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                    {{ column.label }}
+                  </dt>
+                  <dd class="min-w-0 break-words text-xs text-gray-900 dark:text-gray-100">
+                    {{ cellText(row, column) }}
+                  </dd>
+                </div>
+              }
+            }
+          </dl>
+
+          @if (secondaryFields().length) {
+            <button
+              type="button"
+              class="mt-2 text-[11px] font-semibold text-primary-600 underline-offset-2 hover:underline
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400
+                     dark:text-primary-400"
+              [attr.aria-expanded]="isExpanded(row)"
+              [attr.aria-label]="(isExpanded(row) ? 'Hide' : 'Show') + ' ' + secondaryFields().length
+                                 + ' more field' + (secondaryFields().length === 1 ? '' : 's') + ' for ' + cardTitle(row)"
+              (click)="toggleExpanded(row)"
+              data-sv-record-more>
+              {{ isExpanded(row) ? 'Fewer fields' : secondaryFields().length + ' more field' + (secondaryFields().length === 1 ? '' : 's') }}
+            </button>
+          }
+
+          @if (rowActions().length) {
+            <div class="mt-3 flex flex-wrap gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+              @for (action of rowActions(); track action.label) {
+                @if (!action.hidden || !action.hidden(row)) {
+                  <button
+                    type="button"
+                    class="rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors
+                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                    [class]="action.danger
+                      ? 'border-danger-200 text-danger-700 hover:bg-danger-50 dark:border-danger-900 dark:text-danger-300 dark:hover:bg-danger-950/40'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'"
+                    [attr.aria-label]="action.label + ' ' + cardTitle(row)"
+                    (click)="onAction(action, row)"
+                    data-sv-record-action>{{ action.label }}</button>
+                }
+              }
+            </div>
+          }
+        </article>
+      </li>
+    }
+  </ul>
+</div>
+
+}

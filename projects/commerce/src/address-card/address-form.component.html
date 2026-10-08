@@ -1,0 +1,192 @@
+<!--
+  ★ THE FIELD LIST IS DATA, NOT MARKUP.
+
+  This template used to hardcode ten inputs, "State / Province" and "Postal
+  code" among them, both required. That is a United States form, and it is
+  unsubmittable for a UK address (no county), a German one (no state field at
+  all) or a Hong Kong one (no postal code) without inventing data to get past
+  the validation. So the loop renders whatever the country's schema declares, in
+  the order it declares it, with its own labels.
+
+  The country selector sits FIRST, because it is what chooses everything below
+  it — putting it last, as the old form did, means filling in fields that may be
+  about to disappear.
+-->
+<form
+  class="rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+  (submit)="onSubmit($event)"
+  novalidate
+>
+  @if (title()) {
+    <h3 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{{ title() }}</h3>
+  }
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <!-- Country -->
+    <div class="sm:col-span-2">
+      <label
+        [attr.for]="fieldId('country')"
+        class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+      >{{ countryLabel() }}</label>
+      <select
+        [id]="fieldId('country')"
+        autocomplete="country-name"
+        [value]="country()"
+        (change)="onCountryChange($any($event.target).value)"
+        [attr.aria-invalid]="errorFor('country') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('country') ? errorId('country') : null"
+        class="w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:ring-2 dark:bg-white/[0.04] dark:text-white"
+        [ngClass]="errClass('country')"
+      >
+        <option value="" disabled>Select a country</option>
+        @for (name of countryOptions(); track name) {
+          <option [value]="name">{{ name }}</option>
+        }
+      </select>
+      @if (errorFor('country')) {
+        <p
+          [id]="errorId('country')"
+          role="alert"
+          class="mt-1 text-xs text-danger-600 dark:text-danger-400"
+        >{{ errorFor('country') }}</p>
+      }
+    </div>
+
+    <!--
+      `track field.name` and not `$index`: switching country reorders and removes
+      fields, and tracking the index would reuse a county input as a postcode
+      input, carrying the typed value across with it.
+    -->
+    @for (field of fields(); track field.name) {
+      <div [class.sm:col-span-2]="field.width !== 'half'">
+        <label
+          [attr.for]="fieldId(field.name)"
+          class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+        >{{ field.label }}
+          @if (!field.required) {
+            <!-- Said in words. "Required" marked with an asterisk and nothing
+                 else leaves the reader to guess which convention is in play. -->
+            <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+          }
+        </label>
+
+        @if (field.options) {
+          <select
+            [id]="fieldId(field.name)"
+            [attr.autocomplete]="field.autocomplete"
+            [value]="fieldValue(field.name)"
+            (change)="setFieldValue(field.name, $any($event.target).value)"
+            [attr.aria-invalid]="errorFor(field.name) ? 'true' : null"
+            [attr.aria-describedby]="errorFor(field.name) ? errorId(field.name) : null"
+            class="w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:ring-2 dark:bg-white/[0.04] dark:text-white"
+            [ngClass]="errClass(field.name)"
+          >
+            <option value="" [disabled]="field.required">Select {{ field.label }}</option>
+            @for (option of field.options; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        } @else {
+          <input
+            [id]="fieldId(field.name)"
+            type="text"
+            [attr.autocomplete]="field.autocomplete"
+            [attr.inputmode]="field.inputMode ?? null"
+            [attr.placeholder]="field.placeholder ?? null"
+            [value]="fieldValue(field.name)"
+            (input)="setFieldValue(field.name, $any($event.target).value)"
+            [attr.aria-invalid]="errorFor(field.name) ? 'true' : null"
+            [attr.aria-describedby]="errorFor(field.name) ? errorId(field.name) : null"
+            class="w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-500 focus:ring-2 dark:bg-white/[0.04] dark:text-white dark:placeholder:text-gray-400"
+            [ngClass]="errClass(field.name)"
+          />
+        }
+
+        @if (errorFor(field.name)) {
+          <p
+            [id]="errorId(field.name)"
+            role="alert"
+            class="mt-1 text-xs text-danger-600 dark:text-danger-400"
+          >{{ errorFor(field.name) }}</p>
+        }
+      </div>
+    }
+
+    @if (showDefaultToggle()) {
+      <label class="flex cursor-pointer items-center gap-2.5 sm:col-span-2">
+        <input
+          type="checkbox"
+          [checked]="isDefault()"
+          (change)="isDefault.set($any($event.target).checked)"
+          class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500/40 dark:border-white/20 dark:bg-white/[0.04]"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default address</span>
+      </label>
+    }
+  </div>
+
+  <!--
+    ★ ADVISORY, NOT A GATE. Nothing here disables the submit button — not
+    `failed`, and above all not `unavailable`. A verifier is a third party, and a
+    form that treats "we could not reach it" as "the address is wrong" stops
+    taking good addresses the moment somebody else has an outage.
+
+    `aria-live="polite"` rather than an alert: the verdict arrives while the
+    person is still working, and an assertive region interrupts them mid-field.
+
+    ★ THE LIVE REGION IS ALWAYS IN THE DOM; ONLY ITS CONTENT IS CONDITIONAL.
+    Screen readers watch a region they already know about. One inserted together
+    with its first message is usually not announced at all, so the verdict that
+    arrives first — the one that matters — went unspoken.
+  -->
+  <div
+    aria-live="polite"
+    data-sv-verification-region
+    [attr.aria-busy]="(showVerification() && verificationStatus() === 'verifying') || null"
+  >
+  @if (showVerification()) {
+    <div
+      class="mt-4 rounded-xl px-3 py-2.5 text-xs ring-1 ring-inset"
+      [ngClass]="verificationClass()"
+      [attr.aria-busy]="verificationStatus() === 'verifying' || null"
+      [attr.data-sv-verification]="verificationStatus()"
+    >
+      <p class="font-semibold">{{ verificationMessage() }}</p>
+
+      @if (suggestionLines().length > 0) {
+        <address class="mt-2 not-italic leading-relaxed">
+          @for (line of suggestionLines(); track $index) {
+            <span class="block">{{ line }}</span>
+          }
+        </address>
+        <button
+          type="button"
+          (click)="applySuggestion()"
+          class="mt-2 rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 dark:bg-white dark:text-gray-900 dark:hover:bg-primary-500 dark:hover:text-white"
+        >Use this address</button>
+      }
+    </div>
+  }
+  </div>
+
+  <div class="mt-6 flex items-center gap-3">
+    <button
+      type="submit"
+      [disabled]="saving()"
+      [attr.aria-busy]="saving() || null"
+      class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600 hover:shadow-md active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900 dark:hover:bg-primary-500 dark:hover:text-white dark:focus-visible:ring-offset-gray-900"
+    >
+      {{ submitLabel() }}
+    </button>
+    @if (showCancel()) {
+      <button
+        type="button"
+        (click)="onCancel()"
+        [disabled]="saving()"
+        class="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-60 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white"
+      >
+        {{ cancelLabel() }}
+      </button>
+    }
+  </div>
+</form>

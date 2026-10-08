@@ -1,0 +1,194 @@
+<!-- ╔═══════════════════════════════════════════════════════════════════════╗
+     ║  AccordionComponent — Accessible expand/collapse panel set             ║
+     ║  Variants: default · flush · separated · filled                        ║
+     ╚═══════════════════════════════════════════════════════════════════════╝ -->
+
+<div [ngClass]="rootClasses()" role="list">
+  @for (item of items(); track item.id; let idx = $index) {
+
+    <!-- ── Panel wrapper (separated variant gets its own card) ─────────── -->
+    <div [ngClass]="itemWrapperClass(item)" role="listitem">
+
+      <!-- ── Header / trigger, inside a real heading ────────────────────── -->
+      <!-- ★ `NV-01-I2` / `NV-01-M6`: the trigger is wrapped in an `<h1>`–`<h6>`
+           chosen by the host, which is what the WAI-ARIA accordion pattern asks
+           for and what makes a long FAQ navigable by heading. The heading is a
+           bare `m-0` wrapper — every visual decision stays on the button, so no
+           level changes how anything looks. One `<ng-template>` rather than six
+           copies of a fifty-line button: a copy would be the branch that misses
+           the next fix. -->
+      @switch (resolvedHeadingLevel()) {
+        @case (1) {
+          <h1 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h1>
+        }
+        @case (2) {
+          <h2 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h2>
+        }
+        @case (4) {
+          <h4 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h4>
+        }
+        @case (5) {
+          <h5 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h5>
+        }
+        @case (6) {
+          <h6 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h6>
+        }
+        @default {
+          <h3 class="m-0">
+            <ng-container [ngTemplateOutlet]="headerTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item, idx: idx }" />
+          </h3>
+        }
+      }
+
+      <!-- ── Panel body — CSS grid animation ───────────────────────────── -->
+      <div
+        [id]="panelDomId(item.id)"
+        role="region"
+        [attr.aria-labelledby]="headerDomId(item.id)"
+        class="grid transition-[grid-template-rows] duration-[250ms] ease-in-out"
+        [style.grid-template-rows]="isOpen(item.id) ? '1fr' : '0fr'"
+      >
+        <!-- Inner wrapper MUST have overflow:hidden for the grid trick.
+             ★ `NV-01-I8`: a collapsed panel carries EXACTLY ONE of two
+             attributes, never both. `hidden="until-found"` (where the browser
+             supports it) skips the subtree — not rendered, not focusable, not in
+             the a11y tree — with find-in-page as the single carved-out
+             exception, and the UA then fires `beforematch`. `inert` is the
+             fallback, and it is the reason this content used to be unfindable:
+             inert subtrees are skipped by find-in-page too, so keeping it
+             alongside `until-found` would close the door being opened. Neither
+             is optional: a `0fr` grid row hides the panel only VISUALLY, and
+             without one of the two a screen reader reads the body of every
+             collapsed section.
+             `content-visibility` is transitioned with `allow-discrete` so the
+             collapse animation still runs to its end before the subtree is
+             skipped; browsers without it simply snap. -->
+        <div
+          class="overflow-hidden transition-[content-visibility] duration-[250ms]
+                 [transition-behavior:allow-discrete]"
+          [attr.hidden]="panelHidden(item)"
+          [attr.inert]="panelInert(item)"
+          (beforematch)="onBeforeMatch(item)"
+        >
+          <div [ngClass]="contentClasses()">
+            <ng-container [ngTemplateOutlet]="markedTpl"
+                          [ngTemplateOutletContext]="{ $implicit: item.content }" />
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /panel wrapper -->
+
+  }
+</div>
+
+<!-- ── The header button, rendered inside whichever heading level applies ──── -->
+<ng-template #headerTpl let-item let-idx="idx">
+  <button
+    [id]="headerDomId(item.id)"
+    type="button"
+    [attr.aria-expanded]="isOpen(item.id)"
+    [attr.aria-controls]="panelDomId(item.id)"
+    [attr.aria-disabled]="item.disabled || null"
+    [attr.tabindex]="item.disabled ? '-1' : '0'"
+    [ngClass]="headerClasses(item)"
+    (click)="toggle(item)"
+    (keydown)="onKeydown($event, item, idx)"
+  >
+    <!-- ── Left chevron (when iconPosition = 'left') ─────────────── -->
+    @if (iconPosition() === 'left') {
+      <span aria-hidden="true">
+        @if (customIcon()) {
+          <sv-icon [name]="customIconOpen() && isOpen(item.id) ? customIconOpen() : customIcon()"
+                   [cssClass]="customIconClasses(item)"
+                   [strokeWidth]="2" />
+        } @else {
+          <sv-icon name="chevron-down" [cssClass]="chevronClasses(item)" [strokeWidth]="2" />
+        }
+      </span>
+    }
+
+    <!-- ── Leading item icon ─────────────────────────────────────── -->
+    @if (item.icon) {
+      <span class="shrink-0" aria-hidden="true">
+        <sv-icon [name]="item.icon" [cssClass]="leadingIconClasses(item)" [strokeWidth]="2" />
+      </span>
+    }
+
+    <!-- ── Title + subtitle ───────────────────────────────────────── -->
+    <span class="min-w-0 flex-1">
+      <span [ngClass]="titleClasses(item)" class="block truncate">
+        <ng-container [ngTemplateOutlet]="markedTpl"
+                      [ngTemplateOutletContext]="{ $implicit: item.title }" />
+      </span>
+      @if (item.subtitle) {
+        <span [ngClass]="subtitleClasses()" class="block">
+          <ng-container [ngTemplateOutlet]="markedTpl"
+                        [ngTemplateOutletContext]="{ $implicit: item.subtitle }" />
+        </span>
+      }
+    </span>
+
+    <!-- ── Badge ─────────────────────────────────────────────────── -->
+    @if (item.badge) {
+      <span [ngClass]="badgeClass(item.badgeColor ?? 'neutral')">
+        {{ item.badge }}
+      </span>
+    }
+
+    <!-- ── Right chevron (when iconPosition = 'right', default) ──── -->
+    @if (iconPosition() === 'right') {
+      <span class="ml-auto shrink-0" aria-hidden="true">
+        @if (customIcon()) {
+          <sv-icon [name]="customIconOpen() && isOpen(item.id) ? customIconOpen() : customIcon()"
+                   [cssClass]="customIconClasses(item)"
+                   [strokeWidth]="2" />
+        } @else {
+          <sv-icon name="chevron-down" [cssClass]="chevronClasses(item)" [strokeWidth]="2" />
+        }
+      </span>
+    }
+  </button>
+</ng-template>
+
+<!-- ── Text with the search query marked — `NV-01-M5` ──────────────────────── -->
+<!-- ★ NO `innerHTML`, and that is the entire point: `svHighlightSegments` hands
+     back runs of TEXT and this template writes the `<mark>` itself, so the
+     string never meets the HTML parser. Building `<mark>` from a query with
+     `replace()` is the four-line version that shipped as `FI-01-I3`. Segments
+     are tracked by `$index` because a run has no identity — "a" appears twice in
+     `aXa` — and positional reuse of a text node moves nothing a user owns.
+     Interpolations sit tight against their tags: a newline there becomes a real
+     space inside the highlighted word. -->
+<ng-template #markedTpl let-text>
+  @if (searching()) {
+    @for (seg of highlight(text); track $index) {
+      @if (seg.match) {
+        <mark
+          class="rounded-sm bg-primary-100 font-semibold text-primary-700
+                 not-italic dark:bg-primary-900/60 dark:text-primary-300"
+        >{{ seg.text }}</mark>
+      } @else {
+        <span>{{ seg.text }}</span>
+      }
+    }
+  } @else {
+    {{ text }}
+  }
+</ng-template>

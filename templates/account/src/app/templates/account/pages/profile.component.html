@@ -1,0 +1,453 @@
+<sv-account-async
+  [loading]="record.loading()"
+  [error]="record.error()"
+  skeleton="card"
+  [rows]="6"
+  loadingLabel="Loading your account"
+  errorTitle="Could not load your account"
+  (retry)="record.reload()">
+
+  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+    Profile &amp; Settings
+  </p>
+
+  <!-- ═══════════════ Identity header ═══════════════ -->
+  <section class="relative overflow-hidden rounded-3xl border border-gray-200/80 bg-white shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+    <div class="h-24 bg-gradient-to-r from-brand-500 via-brandaccent-500 to-brand-600" aria-hidden="true"></div>
+
+    <div class="flex flex-wrap items-end gap-4 px-6 pb-6">
+      <div class="-mt-10 shrink-0 rounded-full ring-4 ring-white dark:ring-gray-950">
+        <sv-avatar
+          [src]="profile()?.avatar ?? ''"
+          [name]="(profile()?.firstName ?? '') + ' ' + (profile()?.lastName ?? '')"
+          size="2xl" />
+      </div>
+
+      <div class="min-w-0 flex-1 pt-2">
+        <h1 class="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
+          {{ profile()?.firstName }} {{ profile()?.lastName }}
+          @if (emailVerified()) {
+            <sv-badge size="sm" variant="success" badgeStyle="soft" label="Verified" icon="check" />
+          } @else {
+            <sv-badge size="sm" variant="warning" badgeStyle="soft" label="Unverified email" />
+          }
+        </h1>
+        <p class="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+          {{ profile()?.jobTitle || 'Add a job title' }}
+          @if (profile()?.location) { <span class="text-gray-300 dark:text-gray-600">·</span> {{ profile()?.location }} }
+        </p>
+      </div>
+
+      <!--
+        ★★ THE METER AND THE CHECKLIST BELOW READ ONE FUNCTION. A percentage
+        computed one way beside a list written another is a card that says
+        "80% complete" over four ticked rows, with no way to tell which lies.
+      -->
+      <div class="w-full max-w-xs pt-2 sm:w-64">
+        <div class="flex items-baseline justify-between gap-2">
+          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Profile strength</span>
+          <span class="text-sm font-semibold text-gray-900 tabular-nums dark:text-white">{{ completeness() }}%</span>
+        </div>
+        <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.08]" role="progressbar"
+             [attr.aria-valuenow]="completeness()" aria-valuemin="0" aria-valuemax="100" aria-label="Profile completeness">
+          <div class="h-full rounded-full bg-gradient-to-r from-brand-500 to-brandaccent-500 transition-[width] duration-500"
+               [style.width.%]="completeness()"></div>
+        </div>
+        @if (nextStep(); as step) {
+          <p class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <sv-icon name="arrow-right" cssClass="h-3 w-3" [strokeWidth]="2" />
+            Next: {{ step.label }}
+          </p>
+        } @else {
+          <p class="mt-1.5 flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400">
+            <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+            All set
+          </p>
+        }
+      </div>
+    </div>
+  </section>
+
+  <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-4">
+    <nav class="lg:col-span-1">
+      <sv-tabs [tabs]="tabItems" [activeId]="tab()" (activeIdChange)="setTab($event)" tabsStyle="pills" layout="vertical" />
+
+      <!--
+        The checklist behind the meter, so the number is auditable — and only
+        while something is outstanding. At 100% it is six struck-through lines
+        saying what the meter already said in one word.
+      -->
+      @if (nextStep()) {
+      <ul class="mt-5 hidden space-y-2 lg:block" aria-label="Profile checklist">
+        @for (check of checks(); track check.id) {
+          <li class="flex items-center gap-2 text-xs"
+              [class]="check.done ? 'text-gray-500 line-through dark:text-gray-400' : 'text-gray-600 dark:text-gray-300'">
+            <span class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
+                  [class]="check.done ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-gray-100 dark:bg-white/[0.08]'"
+                  aria-hidden="true">
+              @if (check.done) { <sv-icon name="check" cssClass="h-2.5 w-2.5" [strokeWidth]="3.5" /> }
+            </span>
+            {{ check.label }}
+            <span class="sr-only">{{ check.done ? '— done' : '— not done' }}</span>
+          </li>
+        }
+      </ul>
+      }
+    </nav>
+
+    <div class="lg:col-span-3">
+      @switch (tab()) {
+
+        <!-- ═══════════════ Profile ═══════════════ -->
+        @case ('profile') {
+          <section class="rounded-2xl border border-gray-200/80 bg-white/80 p-6 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white">Profile</h2>
+            <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">This is what teammates see.</p>
+
+            <!--
+              ★★ THE FIELDS COME FIRST IN THE DOM.
+              The avatar's `<input type="file">` lives at the bottom of this
+              section and is triggered by a button — a hidden input placed above
+              the form would be the first `<input>` on the page, which is what a
+              screen reader, an autofill pass and this template's own spec all
+              reach for expecting the member's first name.
+            -->
+            <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <sv-input-field
+                label="First name"
+                [required]="true"
+                [value]="form().firstName"
+                [errorMessage]="nameError()"
+                (valueChange)="patch('firstName', $event)" />
+              <sv-input-field
+                label="Last name"
+                [value]="form().lastName"
+                (valueChange)="patch('lastName', $event)" />
+              <sv-input-field
+                label="Email"
+                type="email"
+                [required]="true"
+                [value]="form().email"
+                [errorMessage]="emailError()"
+                (valueChange)="patch('email', $event)" />
+              <sv-input-field
+                label="Phone"
+                type="tel"
+                [value]="form().phone"
+                (valueChange)="patch('phone', $event)" />
+              <sv-input-field
+                label="Job title"
+                [value]="form().jobTitle"
+                (valueChange)="patch('jobTitle', $event)" />
+              <sv-input-field
+                label="Location"
+                [value]="form().location"
+                (valueChange)="patch('location', $event)" />
+              <div class="sm:col-span-2">
+                <sv-input-field
+                  label="Bio"
+                  [multiline]="true"
+                  hint="A sentence or two. Shown on your profile card."
+                  [value]="form().bio"
+                  (valueChange)="patch('bio', $event)" />
+              </div>
+            </div>
+
+            <!-- Photo -->
+            <div class="mt-6 flex flex-wrap items-center gap-4 border-t border-gray-100 pt-5 dark:border-white/[0.05]">
+              <sv-avatar
+                [src]="profile()?.avatar ?? ''"
+                [name]="(profile()?.firstName ?? '') + ' ' + (profile()?.lastName ?? '')"
+                size="lg" />
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Photo</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">PNG or JPG, at least 200×200.</p>
+              </div>
+              <div class="flex gap-2">
+                <!--
+                  ★ "Upload photo", not "Upload". The files template's Upload
+                  sends documents to a drive and wears `cloud-upload`; this one
+                  replaces an avatar. Two actions that share a label but not a
+                  glyph is the drift `check:ui` flags — and the honest fix is
+                  the label, because they really are different actions.
+                -->
+                <sv-button variant="secondary" size="sm" label="Upload photo" icon="upload"
+                  [loading]="isPending('avatar')" (clicked)="pickAvatar()" />
+                <sv-button variant="ghost" size="sm" label="Remove"
+                  [disabled]="!profile()?.avatar" (clicked)="removeAvatar()" />
+              </div>
+              <input #avatarInput type="file" accept="image/png,image/jpeg,image/webp"
+                class="sr-only" tabindex="-1" aria-hidden="true" (change)="onAvatarPicked($event)" />
+            </div>
+
+            <!--
+              ★★★ SAVE IS DISABLED UNTIL SOMETHING CHANGED. The old page had a
+              Save button wired to nothing — it looked identical whether or not
+              pressing it would do anything.
+            -->
+            <div class="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-white/[0.05]">
+              @if (showSaved()) {
+                <span class="mr-auto flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400" role="status">
+                  <sv-icon name="check" cssClass="h-4 w-4" [strokeWidth]="2.5" />
+                  Saved
+                </span>
+              } @else if (dirty()) {
+                <span class="mr-auto text-sm text-gray-500 dark:text-gray-400">Unsaved changes</span>
+              }
+              <sv-button variant="ghost" label="Cancel" [disabled]="!dirty()" (clicked)="cancelEdits()" />
+              <sv-button variant="neutral" label="Save Changes"
+                [disabled]="!dirty() || !formValid()"
+                [loading]="isPending('profile')"
+                (clicked)="saveProfile()" />
+            </div>
+          </section>
+        }
+
+        <!-- ═══════════════ Security ═══════════════ -->
+        @case ('security') {
+          <div class="flex flex-col gap-6">
+
+            <section class="rounded-2xl border border-gray-200/80 bg-white/80 p-6 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+              <h2 class="text-base font-semibold text-gray-900 dark:text-white">Password</h2>
+              <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                Changing it signs out every other device.
+              </p>
+              <div class="mt-5 flex flex-col gap-4 sm:max-w-md">
+                <sv-input-field label="Current password" type="password" placeholder="••••••••"
+                  autocomplete="current-password"
+                  [value]="currentPassword()" (valueChange)="currentPassword.set($event)" />
+                <div>
+                  <sv-input-field label="New password" type="password" placeholder="••••••••"
+                    autocomplete="new-password"
+                    [value]="newPassword()" (valueChange)="newPassword.set($event)" />
+                  @if (newPassword().length > 0) {
+                    <div class="mt-3">
+                      <sv-password-strength [value]="newPassword()" [minLength]="minPassword" size="sm" />
+                    </div>
+                  }
+                </div>
+                <sv-input-field label="Confirm new password" type="password" placeholder="••••••••"
+                  autocomplete="new-password"
+                  [errorMessage]="confirmError()"
+                  [value]="confirmPassword()" (valueChange)="confirmPassword.set($event)" />
+              </div>
+              <div class="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-4 dark:border-white/[0.05]">
+                @if (passwordStatus() === 'saved') {
+                  <span class="mr-auto flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-400" role="status">
+                    <sv-icon name="check" cssClass="h-4 w-4" [strokeWidth]="2.5" />
+                    Password updated
+                  </span>
+                } @else if (passwordStatus() === 'failed') {
+                  <span class="mr-auto text-sm text-rose-700 dark:text-rose-300" role="alert">
+                    Could not update the password — check the current one and try again.
+                  </span>
+                }
+                <sv-button variant="neutral" label="Update Password"
+                  [disabled]="!canUpdatePassword()"
+                  [loading]="passwordSaving()"
+                  (clicked)="updatePassword()" />
+              </div>
+            </section>
+
+            <!-- Two-factor -->
+            <section class="rounded-2xl border border-gray-200/80 bg-white/80 p-6 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+              <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex min-w-0 gap-3">
+                  <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                        [class]="twoFactorEnabled() ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'">
+                    <sv-icon name="shield-check" cssClass="h-5 w-5" [strokeWidth]="1.8" />
+                  </span>
+                  <div class="min-w-0">
+                    <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+                      Two-factor authentication
+                      <sv-badge size="sm" [variant]="twoFactorEnabled() ? 'success' : 'neutral'"
+                        [label]="twoFactorEnabled() ? 'Enabled' : 'Off'" />
+                    </h2>
+                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                      Ask for a one-time code as well as a password when signing in.
+                    </p>
+                  </div>
+                </div>
+                <sv-toggle-switch
+                  [checked]="twoFactorEnabled()"
+                  [disabled]="isPending('twoFactor')"
+                  (toggled)="toggleTwoFactor()"
+                  ariaLabel="Toggle two-factor authentication" />
+              </div>
+
+              @if (twoFactorEnabled()) {
+                <div class="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                  <sv-icon name="lock" cssClass="h-4 w-4 shrink-0 text-gray-400" [strokeWidth]="1.8" />
+                  <p class="min-w-0 flex-1 text-sm text-gray-600 dark:text-gray-300">
+                    <span class="font-medium text-gray-900 tabular-nums dark:text-white">{{ recoveryCodesLeft() }}</span>
+                    recovery codes left
+                  </p>
+                  <sv-button size="sm" variant="secondary" label="Regenerate" icon="refresh-cw"
+                    [loading]="regenerating()" (clicked)="regenerateOpen.set(true)" />
+                </div>
+                @if (regenerateError()) {
+                  <p role="alert" class="mt-3 text-sm text-rose-700 dark:text-rose-300">{{ regenerateError() }}</p>
+                }
+                @if (newCodes().length) {
+                  <!-- Shown once. Nothing on this page can show them again. -->
+                  <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/10" role="status">
+                    <p class="text-sm font-medium text-amber-900 dark:text-amber-200">
+                      Save these somewhere safe — they will not be shown again.
+                    </p>
+                    <ul class="mt-3 grid grid-cols-2 gap-2 font-mono text-sm text-gray-900 sm:grid-cols-5 dark:text-gray-100" aria-label="New recovery codes">
+                      @for (code of newCodes(); track code) {
+                        <li class="rounded-lg bg-white px-2 py-1 text-center dark:bg-white/[0.06]">{{ code }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              }
+            </section>
+
+            <!--
+              ★★★ ACTIVE SESSIONS ARE THE ONLY WAY TO ANSWER "IS SOMEONE ELSE
+              IN MY ACCOUNT?" — the question that brings people to this page.
+            -->
+            <section class="rounded-2xl border border-gray-200/80 bg-white/80 p-6 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-base font-semibold text-gray-900 dark:text-white">Where you're signed in</h2>
+                  <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                    Anything you don't recognise, sign it out.
+                  </p>
+                </div>
+                @if (otherSessionCount() > 0) {
+                  <!-- ★ "Others" — never this one. Revoking the session you are
+                       standing on signs you out mid-task with no warning. -->
+                  <sv-button size="sm" variant="secondary" icon="log-out"
+                    [label]="'Sign out ' + otherSessionCount() + ' other' + (otherSessionCount() === 1 ? '' : 's')"
+                    [loading]="isPending('sessions')"
+                    (clicked)="revokeOtherSessions()" />
+                }
+              </div>
+
+              <ul class="mt-4 divide-y divide-gray-100 dark:divide-white/[0.05]">
+                @for (session of sessions(); track session.id) {
+                  <li class="flex flex-wrap items-center gap-3 py-3">
+                    <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400">
+                      <sv-icon [name]="session.kind === 'phone' ? 'phone' : 'chrome'" cssClass="h-4 w-4" [strokeWidth]="1.8" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">
+                        {{ session.device }}
+                        @if (session.current) {
+                          <sv-badge size="sm" variant="success" badgeStyle="soft" label="This device" />
+                        }
+                      </p>
+                      <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                        {{ session.browser }} · {{ session.location }} · {{ sessionAge(session) }}
+                      </p>
+                    </div>
+                    @if (!session.current) {
+                      <sv-button size="sm" variant="ghost" label="Sign out"
+                        [loading]="isPending('session:' + session.id)"
+                        (clicked)="revokeSession(session.id)" />
+                    }
+                  </li>
+                } @empty {
+                  <li class="py-6">
+                    <sv-empty-shell [compact]="true" reason="no-data" title="No other sessions"
+                      message="You are only signed in on this device." />
+                  </li>
+                }
+              </ul>
+            </section>
+          </div>
+        }
+
+        <!-- ═══════════════ Notifications ═══════════════ -->
+        @case ('notifications') {
+          <section class="rounded-2xl border border-gray-200/80 bg-white/80 shadow-sm dark:border-white/[0.06] dark:bg-white/[0.03]">
+            <div class="border-b border-gray-100 p-6 dark:border-white/[0.05]">
+              <h2 class="text-base font-semibold text-gray-900 dark:text-white">Notifications</h2>
+              <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                Choose how each thing reaches you. Changes save as you make them.
+              </p>
+            </div>
+
+            <!--
+              ★★ A MATRIX, NOT A LIST. The old page had one column and called it
+              "Email Notifications", so the only answer it could give was
+              all-or-nothing per event. People want the mention on their phone
+              and the weekly digest in their inbox, and a single switch cannot
+              say that.
+            -->
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[34rem]">
+                <thead>
+                  <tr class="border-b border-gray-100 dark:border-white/[0.05]">
+                    <th scope="col" class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Event
+                    </th>
+                    @for (channel of channels; track channel.key) {
+                      <th scope="col" class="w-24 px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        <span class="inline-flex items-center gap-1.5">
+                          <sv-icon [name]="channel.icon" cssClass="h-3.5 w-3.5" [strokeWidth]="1.8" />
+                          {{ channel.label }}
+                        </span>
+                      </th>
+                    }
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                  @for (n of notifications(); track n.key) {
+                    <tr>
+                      <th scope="row" class="px-6 py-4 text-left font-normal">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ n.label }}</p>
+                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ n.desc }}</p>
+                      </th>
+                      @for (channel of channels; track channel.key) {
+                        <td class="px-3 py-4 text-center">
+                          <span class="inline-flex">
+                            <sv-toggle-switch
+                              [checked]="channelOn(n, channel.key)"
+                              [disabled]="isPending(n.key + ':' + channel.key)"
+                              (toggled)="toggleChannel(n.key, channel.key)"
+                              [ariaLabel]="channel.label + ' notifications for ' + n.label" />
+                          </span>
+                        </td>
+                      }
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td [attr.colspan]="channels.length + 1" class="px-6 py-8">
+                        <sv-empty-shell [compact]="true" reason="no-data" title="No notification settings"
+                          message="There is nothing to configure on this account yet." />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+      }
+    </div>
+  </div>
+
+  @if (record.writeError(); as writeError) {
+    <div role="alert" data-sv-state="write-error"
+      class="mt-4 flex items-start justify-between gap-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+      <span>Could not save that change — {{ writeError.message }}</span>
+      <sv-button variant="ghost" size="sm" label="Dismiss" (clicked)="record.clearWriteError()" />
+    </div>
+  }
+
+  <sv-modal
+    [(isOpen)]="regenerateOpen"
+    variant="warning"
+    size="sm"
+    title="Create new recovery codes?"
+    subtitle="Every code you saved before stops working as soon as the new ones exist.">
+    <div slot="footer" class="flex items-center justify-end gap-2">
+      <sv-button variant="ghost" label="Keep current codes" (clicked)="regenerateOpen.set(false)" />
+      <sv-button variant="warning" label="Create new codes" (clicked)="regenerateCodes()" />
+    </div>
+  </sv-modal>
+
+</sv-account-async>

@@ -1,0 +1,226 @@
+@if (loading()) {
+  <div class="p-4" data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="3" ariaLabel="Loading" />
+  </div>
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
+<!-- ★★ THE SHELL IS FOR HAVING NO ANSWER, NOT FOR HAVING NO CITATIONS. An answer
+     with nothing attributed is not an empty state — it is the most important
+     thing this component has to say, and putting it behind "nothing to show" is
+     how an unsourced answer passes for a missing one. -->
+} @else if (isEmpty()) {
+  <sv-empty-shell
+    title="No answer yet"
+    message="Citations appear alongside an answer once one has been generated." />
+} @else {
+
+<div class="rounded-2xl border border-gray-100 bg-white shadow-sm
+            dark:border-gray-700/60 dark:bg-gray-900 overflow-hidden"
+     data-sv-citations>
+
+  <!-- ★★★ AN ANSWER WHOSE CITATIONS MOVED IS WORSE THAN AN UNCITED ONE, because
+       it looks checked. Any markdown pass, trim or prepended greeting after the
+       citations were computed shifts every offset by the same amount; the chips
+       slide off the claims they belong to and nothing fails. Said out loud here,
+       in the surface, rather than clipped away in silence. -->
+  @if (placementLabel(); as notice) {
+  <p class="border-b border-warning-200 bg-warning-50 px-5 py-2 text-[11px] leading-relaxed
+            text-warning-900
+            dark:border-warning-900/60 dark:bg-warning-950/30 dark:text-warning-100"
+     role="status"
+     data-sv-placement-notice>
+    {{ notice }}
+  </p>
+  }
+
+  <!-- ── The answer, with chips ──────────────────────────────────────────────
+       ★★★ EVERY CHARACTER APPEARS EXACTLY ONCE. The segments are cut on citation
+       BOUNDARIES rather than emitted per citation, so overlapping citations —
+       which are ordinary, because chunks overlap — cannot render the same clause
+       twice and hand the reader an answer the model never wrote.
+  -->
+  @if (variant() === 'inline' || variant() === 'cards') {
+  <p class="px-5 py-4 text-[13px] leading-relaxed text-gray-800 dark:text-gray-200"
+     data-sv-answer>
+    @for (seg of segments(); track seg.start) {
+      @if (seg.refs.length > 0) {
+      <span class="rounded bg-primary-50/70 dark:bg-primary-900/20" data-sv-cited>{{ seg.text }}</span><!--
+   ★★ THE CHIP IS A BUTTON, NOT A SUPERSCRIPT. Its whole purpose is to take the
+      reader to the passage; a `<sup>` that does nothing when clicked is the
+      commonest form this component takes and the least useful.
+   --><button type="button"
+              class="ml-0.5 align-super rounded px-1 text-[10px] font-semibold
+                     text-primary-700 hover:bg-primary-100 focus-visible:outline-none
+                     focus-visible:ring-2 focus-visible:ring-primary-500
+                     dark:text-primary-300 dark:hover:bg-primary-900/40"
+              [attr.aria-label]="chipAriaLabel(seg.refs)"
+              [attr.data-sv-chip]="refLabel(seg.refs)"
+              (click)="numberedFor(seg.refs[0]) && toggleSource(numberedFor(seg.refs[0])!.source)">{{ refLabel(seg.refs) }}</button>
+      } @else {
+      <span data-sv-uncited>{{ seg.text }}</span>
+      }
+    }
+  </p>
+  }
+
+  <!-- ── Coverage ────────────────────────────────────────────────────────────
+       ★★★ THE UNCITED SENTENCE IN A CITED ANSWER IS THE DANGEROUS ONE. An answer
+       carrying six chips looks thoroughly grounded, and the paragraph between the
+       third and fourth — the one that generalises, or invents a figure — carries
+       no chip and is the only part that needed one.
+  -->
+  @if (showCoverage()) {
+  @if (coverage(); as cov) {
+  <div class="border-t border-gray-100 px-5 py-3 dark:border-gray-800"
+       data-sv-coverage>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <span class="text-[11px] text-gray-600 dark:text-gray-300" data-sv-coverage-label>
+        {{ coverageLabel() }}
+      </span>
+      <span class="text-[12px] font-bold text-gray-900 dark:text-white" data-sv-coverage-pct>
+        {{ cov.citedPct.toFixed(0) }}%
+      </span>
+    </div>
+    <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800"
+         role="progressbar"
+         [attr.aria-valuenow]="cov.citedPct.toFixed(0)"
+         [attr.aria-valuemin]="0"
+         [attr.aria-valuemax]="100"
+         [attr.aria-label]="coverageLabel()">
+      <!-- ★★ Coloured by how much is NOT attributed: a green bar at 60 % reads as
+           a pass mark, and the reader's question is whether the missing 40 %
+           matters. -->
+      <div class="h-full rounded-full transition-all"
+           [ngClass]="coverageClass(cov.citedPct)"
+           [style.width.%]="cov.citedPct"
+           data-sv-coverage-bar></div>
+    </div>
+
+    @if (cov.uncited.length > 0) {
+    <ul class="mt-2 space-y-1" data-sv-uncited-list>
+      @for (run of cov.uncited; track run.start) {
+      <li class="flex items-start gap-1.5 text-[11px] text-warning-700 dark:text-warning-400">
+        <sv-icon name="alert-triangle" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+        <span class="italic">“{{ run.text.trim() }}”</span>
+      </li>
+      }
+    </ul>
+    }
+  </div>
+  }
+  }
+
+  <!-- ── The sources ─────────────────────────────────────────────────────────
+       ★★★ ONE SOURCE, ONE NUMBER, HOWEVER OFTEN IT IS CITED. Numbering per
+       occurrence turns one page quoted five times into five entries, and a
+       reader sees five sources agreeing where there is one.
+  -->
+  @if (numbered().length > 0) {
+  <div class="border-t border-gray-100 dark:border-gray-800">
+    <p class="px-5 pt-3 text-[10px] font-semibold uppercase tracking-wide
+              text-gray-500 dark:text-gray-400">
+      {{ numbered().length }} source{{ numbered().length === 1 ? '' : 's' }}
+    </p>
+    <ul class="px-3 py-2 space-y-1">
+      @for (entry of numbered(); track entry.source.id) {
+      <li [attr.data-sv-source]="entry.source.id">
+        <button type="button"
+                class="flex w-full items-start gap-2 rounded-xl px-2 py-2 text-left
+                       hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-primary-500 dark:hover:bg-gray-800/60"
+                [attr.aria-expanded]="isOpen(entry.source.id)"
+                [attr.aria-controls]="citeId('src-' + entry.source.id)"
+                [attr.aria-label]="sourceAriaLabel(entry)"
+                (click)="toggleSource(entry.source)">
+          <span class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md
+                       bg-primary-100 text-[10px] font-bold text-primary-700
+                       dark:bg-primary-900/40 dark:text-primary-300"
+                data-sv-source-number>
+            {{ entry.number }}
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="flex flex-wrap items-center gap-1.5">
+              <sv-icon [name]="kindIcon(entry.source.kind)"
+                       cssClass="h-3.5 w-3.5 text-gray-500 dark:text-gray-400"
+                       [strokeWidth]="2" />
+              <!-- ★★ THE LOCATOR IS PART OF THE CITATION. "Refunds policy" sends
+                   the reader to a document; "Refunds policy · p.4" sends them to
+                   the paragraph, which is the only version they can check. -->
+              <span class="text-[12px] font-semibold text-gray-900 dark:text-white truncate"
+                    data-sv-source-label>
+                {{ sourceLabel(entry.source) }}
+              </span>
+              @if (entry.spanCount > 1) {
+              <span class="rounded-full bg-gray-100 px-1.5 py-px text-[9px] font-medium
+                           text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    title="How many separate passages of the answer rest on this one source. It is one source, whatever that number says."
+                    data-sv-source-spans>
+                ×{{ entry.spanCount }}
+              </span>
+              }
+            </span>
+          </span>
+          <sv-icon name="chevron-down"
+                   cssClass="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500 transition-transform"
+                   [ngClass]="isOpen(entry.source.id) ? 'rotate-180' : ''"
+                   [strokeWidth]="2" />
+        </button>
+
+        <!-- ★★★ A CITATION THAT POINTS AT A DOCUMENT IS NOT A CITATION. This is
+             the passage — the words the claim actually rests on. Without it the
+             reader is sent to a forty-page PDF to find one sentence. -->
+        @if (isOpen(entry.source.id)) {
+        <div class="mx-2 mb-2 rounded-xl bg-gray-50 px-3 py-2 dark:bg-gray-800/60"
+             [attr.id]="citeId('src-' + entry.source.id)"
+             data-sv-source-passage>
+          @for (c of entry.citations; track c.id) {
+          <blockquote class="border-l-2 border-primary-300 pl-2 text-[11px] leading-relaxed
+                             text-gray-600 dark:border-primary-700 dark:text-gray-300
+                             [&:not(:first-child)]:mt-2"
+                      [attr.data-sv-placement]="placementOf(c)"
+                      [attr.data-sv-claim]="c.claimId || null"
+                      data-sv-quote>
+            “{{ c.quote }}”
+          </blockquote>
+          }
+          <!-- ★★★ A SOURCE URL IS MODEL OUTPUT, WHICH IS UNTRUSTED INPUT. A
+               refused scheme is shown as TEXT rather than hidden: that the
+               answer cited something unreachable is evidence about the answer,
+               and a dead `unsafe:` link teaches the reader nothing. -->
+          @if (linkFor(entry.source); as link) {
+            @if (link.href) {
+            <a class="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary-700
+                      hover:underline dark:text-primary-300"
+               [href]="link.href"
+               target="_blank"
+               rel="noopener noreferrer"
+               data-sv-source-link>
+              <sv-icon name="external-link" cssClass="h-3 w-3" [strokeWidth]="2" />
+              Open the source
+            </a>
+            } @else if (link.reason) {
+            <p class="mt-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400"
+               [attr.data-sv-link-refused]="link.protocol || 'unparseable'">
+              {{ link.reason }}
+              <span class="break-all font-mono text-[10px] text-gray-500 dark:text-gray-400">{{ entry.source.url }}</span>
+            </p>
+            }
+          }
+        </div>
+        }
+      </li>
+      }
+    </ul>
+  </div>
+  } @else {
+  <!-- ★★★ AN ANSWER WITH NO SOURCES IS THE HEADLINE, NOT AN EMPTY STATE. -->
+  <p class="flex items-start gap-1.5 border-t border-gray-100 px-5 py-3 text-[11px]
+            text-danger-700 dark:border-gray-800 dark:text-danger-400"
+     data-sv-unsourced>
+    <sv-icon name="alert-triangle" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+    <span>Nothing in this answer is attributed to a source.</span>
+  </p>
+  }
+</div>
+
+}

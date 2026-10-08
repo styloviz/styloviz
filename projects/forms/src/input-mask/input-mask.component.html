@@ -1,0 +1,92 @@
+<div class="flex flex-col gap-1">
+  @if (activeLabel()) {
+    <label [attr.for]="inputId" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ activeLabel() }}</label>
+  }
+
+  <div class="relative">
+    @if (icon()) {
+      <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+        <sv-icon [name]="icon()" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="1.8" />
+      </div>
+    }
+
+    <!--
+      ★★★ SESSION-REPLAY OPT-OUT — the leak nobody plans for (`FI-13-I1`).
+
+      FullStory, Hotjar, Datadog RUM, Microsoft Clarity, Smartlook and
+      LogRocket record the DOM and ship it to a third party. A "masked" card
+      field is masked to the EYE and completely legible to a recorder, so
+      without these the PAN leaves the page to a vendor who appears in
+      nobody's scope document.
+
+      ★★ ONE ATTRIBUTE PER VENDOR, because there is no standard and each tool
+      reads only its own. They are cheap, inert when the tool is absent, and
+      the alternative is every integrator discovering the list the hard way.
+      `fs-mask fs-exclude` are CLASSES rather than attributes — that is
+      FullStory's API — which is why they are appended to `[class]` above.
+
+      ⚠️ This is a best effort against the recorders that honour an opt-out.
+      It is not a guarantee about a script the host chose to load, and it is
+      not a substitute for not putting the PAN on the page at all — see
+      `InputMaskSensitivity` on SAQ-A vs SAQ-A-EP.
+    -->
+    <input type="text"
+      [id]="inputId"
+      [value]="value()"
+      [placeholder]="activePlaceholder()"
+      [disabled]="resolvedDisabled()"
+      [attr.inputmode]="inputMode()"
+      [attr.aria-invalid]="error() || fieldError.showError() ? 'true' : null"
+      [attr.aria-describedby]="describedBy()"
+      [class]="inputClass() + (icon() ? ' pl-9' : '') + (isSensitive() ? ' fs-mask fs-exclude' : '')"
+      [attr.autocomplete]="autocompleteToken()"
+      spellcheck="false"
+      [attr.data-private]="isSensitive() ? 'lipsum' : null"
+      [attr.data-dd-privacy]="isSensitive() ? 'mask' : null"
+      [attr.data-hj-suppress]="isSensitive() ? '' : null"
+      [attr.data-clarity-mask]="isSensitive() ? 'true' : null"
+      [attr.data-sl]="isSensitive() ? 'mask' : null"
+      [attr.data-recording-sensitive]="isSensitive() ? 'true' : null"
+      (input)="onInput($event)"
+      (paste)="onPaste($event)"
+      (keydown)="onKeydown($event)"
+      (focus)="focused.set(true)"
+      (blur)="onBlur()" />
+
+    <!-- Clear button -->
+    @if (value()) {
+      <button type="button"
+        class="absolute inset-y-0 right-2 flex items-center p-1 text-gray-500 dark:text-gray-400
+               hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none"
+        aria-label="Clear"
+        [disabled]="resolvedDisabled()"
+        (click)="clear()">
+        <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      </button>
+    }
+  </div>
+
+  <!--
+    Characters the mask could not hold. NOT an error — the host decides whether
+    a partial fit is a problem — but the user has to be told, because the field
+    is showing a complete and plausible value that is not what they entered.
+    `status`, not `alert`: it reports a consequence of what they just typed.
+  -->
+  @if (hasRejected()) {
+    <p [id]="rejectedId" role="status"
+       class="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-400">
+      <sv-icon name="alert-circle" cssClass="h-3 w-3" />
+      {{ rejectedMessage() }}
+    </p>
+  }
+
+  @if (error()) {
+    <p [id]="errorId" role="alert" class="flex items-center gap-1 text-[11px] text-danger-500">
+      <sv-icon name="alert-circle" cssClass="h-3 w-3" />
+      {{ error() }}
+    </p>
+  }
+</div>
+
+<!-- Form validation error (distinct from the lookup error inside the panel). -->
+<sv-field-error [id]="validationErrorId" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

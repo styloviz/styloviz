@@ -1,0 +1,36 @@
+{
+  "name": "@styloviz/skeleton-loader",
+  "version": "1.0.1",
+  "description": "Loading placeholders with wave/pulse animations and preset layouts.",
+  "keywords": [
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "styloviz",
+    "skeleton",
+    "loader"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs/skeleton-loader",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "directory": "projects/skeleton-loader"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "peerDependencies": {
+    "@angular/common": ">=21.0.0 <23.0.0",
+    "@angular/core": ">=21.0.0 <23.0.0",
+    "@styloviz/core": "^1.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+  },
+  "sideEffects": false
+}

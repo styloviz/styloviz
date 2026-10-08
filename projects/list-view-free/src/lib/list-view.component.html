@@ -1,0 +1,525 @@
+@if (loading()) {
+
+  <!-- First page. A row-shaped placeholder so the list does not jump. -->
+  <div class="p-3" data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="6" ariaLabel="Loading list" />
+  </div>
+
+} @else if (error()) {
+
+  <sv-error-shell
+    [error]="error()"
+    title="Could not load this list"
+    (retry)="retry.emit()"
+    data-sv-state="error"
+  />
+
+} @else {
+<div
+  [ngClass]="rootClasses()"
+  class="focus-within:ring-2 focus-within:ring-primary-500/30"
+  role="region"
+  [attr.aria-label]="ariaLabel()"
+  [attr.tabindex]="regionTabIndex()"
+  (keydown)="onRootKeydown($event)"
+>
+  <p class="sr-only" aria-live="polite" aria-atomic="true">{{ liveAnnouncement() }}</p>
+
+  <!--
+    ★★★ ONE ROW, EVERY BRANCH.
+
+    There used to be three row markups: the flat one (avatar, badge, amount,
+    quick actions), a stripped-down windowed one and a stripped-down grouped one.
+    Turning on `virtualized` silently dropped the avatar, the badge, the trailing
+    amount and every quick action; `grouped` dropped those AND the checkbox, so a
+    checkable grouped list had no way to check a row. Both were invisible to a
+    host — the input was bound, the feature was gone.
+
+    `aria-posinset` / `aria-setsize` come in as context because they are the only
+    thing that differs between the branches: the window numbers rows against the
+    whole list, a section numbers them against the section.
+  -->
+  <ng-template #rowTpl let-item="item" let-index="index" let-setsize="setsize">
+    <div
+      role="listitem"
+      [attr.aria-posinset]="index + 1"
+      [attr.aria-setsize]="setsize"
+      [ngClass]="[
+        rowPadding(),
+        'flex flex-wrap items-start gap-3',
+        item.unread ? 'bg-primary-50/45 dark:bg-primary-950/25' : '',
+        isSelected(item) ? 'bg-primary-100/60 dark:bg-primary-900/25' : '',
+        item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/55'
+      ]"
+      [style.height.px]="isVirtualized() && !isNested() && !isGrouped() ? rowHeightOf(item) : null"
+    >
+      @if (isCheckable()) {
+        <input
+          type="checkbox"
+          [checked]="isChecked(item)"
+          (change)="toggleCheck(item, ($any($event.target)).checked)"
+          [attr.aria-label]="'Check ' + item.title"
+          [disabled]="item.disabled"
+          class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+        />
+      }
+
+      @if (!isCheckable() && isSelectable()) {
+        <input
+          [type]="selectionMode() === 'single' ? 'radio' : 'checkbox'"
+          name="list-view-select"
+          [checked]="isSelected(item)"
+          (change)="toggleSelected(item, ($any($event.target)).checked)"
+          [attr.aria-label]="'Select ' + item.title"
+          [disabled]="item.disabled"
+          class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+        />
+      }
+
+      @if (isCallHistoryMode()) {
+        <span [ngClass]="['mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800', callTypeClass(item.callType)]">
+          <sv-icon [name]="callTypeIcon(item.callType)"
+                   cssClass="h-4 w-4"
+                   [strokeWidth]="2" />
+          <span class="sr-only">{{ callTypeLabel(item.callType) }}</span>
+        </span>
+      } @else if (item.avatarUrl) {
+        <img [src]="item.avatarUrl" [alt]="item.title" class="h-9 w-9 shrink-0 rounded-xl object-cover" loading="lazy" />
+      } @else {
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+          {{ initials(item) }}
+        </span>
+      }
+
+      <!--
+        `data-lv-id` is what makes the keyboard cursor work over a windowed list:
+        the cursor is an item id, and this is how it finds the button again once
+        the window has scrolled to it. `tabindex` is the roving tab stop — one
+        stop for the whole list, arrows to move inside it.
+      -->
+      <button
+        type="button"
+        class="min-w-0 flex-1 text-left"
+        data-lv-row-btn="1"
+        [attr.data-lv-id]="item.id"
+        [attr.tabindex]="rowTabIndex(item)"
+        [disabled]="item.disabled"
+        (click)="onItemActivate(item)"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ item.title }}</p>
+          @if (item.meta || item.timestamp) {
+            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ item.meta || item.timestamp }}</span>
+          }
+        </div>
+
+        @if (isTemplateMode()) {
+          @if (item.description) {
+            <p class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{{ item.description }}</p>
+          }
+          @if (item.tags?.length) {
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              @for (tag of item.tags; track tag) {
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  {{ tag }}
+                </span>
+              }
+            </div>
+          }
+        } @else {
+          @if (item.subtitle || item.description) {
+            <p class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">{{ item.subtitle || item.description }}</p>
+          }
+        }
+      </button>
+
+      @if (item.badge || item.duration || item.amount) {
+        <div class="flex shrink-0 flex-col items-end gap-1.5">
+          @if (item.badge) {
+            <span class="rounded-full bg-primary-100 px-2 py-0.5 text-[11px] font-semibold text-primary-700 dark:bg-primary-900/35 dark:text-primary-300">
+              {{ item.badge }}
+            </span>
+          }
+          @if (item.duration || item.amount) {
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ item.duration || item.amount }}</span>
+          }
+        </div>
+      }
+
+      @if (hasQuickActions()) {
+        <div class="hidden shrink-0 items-center gap-1 sm:flex">
+          @for (action of quickActions(); track action.id) {
+            <button
+              type="button"
+              (click)="onQuickAction(item, action); $event.stopPropagation()"
+              [ngClass]="[
+                'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors',
+                actionToneClass(action.tone)
+              ]"
+              [attr.aria-label]="action.label"
+            >
+              @if (action.icon) {
+                <sv-icon [name]="action.icon"
+                         cssClass="h-3.5 w-3.5"
+                         [strokeWidth]="2" />
+              }
+              {{ action.label }}
+            </button>
+          }
+        </div>
+
+        <!--
+          The narrow-screen action bar, and it is INSIDE the row now. As a sibling
+          of the row it was a list child of its own: `divide-y` drew a rule between
+          a row and its own buttons, so they read as belonging to the row below,
+          and `role="list"` would have counted them as an item. `w-full` on a
+          wrapping flex row is what puts them on their own line.
+        -->
+        <div class="mt-2 flex w-full flex-wrap gap-1 sm:hidden">
+          @for (action of quickActions(); track action.id) {
+            <button
+              type="button"
+              (click)="onQuickAction(item, action); $event.stopPropagation()"
+              [ngClass]="[
+                'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-colors',
+                actionToneClass(action.tone)
+              ]"
+              [attr.aria-label]="action.label"
+            >
+              @if (action.icon) {
+                <sv-icon [name]="action.icon"
+                         cssClass="h-3.5 w-3.5"
+                         [strokeWidth]="2" />
+              }
+              {{ action.label }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </ng-template>
+
+  <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200/80 px-4 py-3 dark:border-gray-700/70">
+    @if (searchable() || mode() === 'scrolling' || mode() === 'virtualization') {
+      <div class="relative min-w-[220px] flex-1">
+        <sv-icon name="search" cssClass="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+
+        <input
+          type="search"
+          [value]="query()"
+          (input)="onSearchInput(($any($event.target)).value)"
+          [placeholder]="searchPlaceholder()"
+          [attr.aria-label]="searchPlaceholder()"
+          class="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-700 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+        />
+      </div>
+    }
+
+    @if (isCheckable()) {
+      <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-gray-300">
+        <input
+          type="checkbox"
+          [checked]="allChecked()"
+          (change)="toggleAllChecks(($any($event.target)).checked)"
+          class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+        />
+        Select all
+      </label>
+    }
+
+    <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+      {{ visibleItemCount() }} items
+    </span>
+
+    @if (isSelectable()) {
+      <span class="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-semibold text-primary-700 dark:bg-primary-900/35 dark:text-primary-300">
+        {{ selectedCount() }} selected
+      </span>
+    }
+  </div>
+
+  @if (bulkActions().length > 0 && bulkSelectedCount() > 0) {
+    <div class="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-primary-200/80 bg-primary-50/90 px-4 py-2 backdrop-blur dark:border-primary-900/40 dark:bg-primary-950/70">
+      <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">{{ bulkSelectedCount() }} selected</span>
+      @for (action of bulkActions(); track action.id) {
+        <button
+          type="button"
+          (click)="onBulkAction(action)"
+          [ngClass]="[
+            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors',
+            actionToneClass(action.tone)
+          ]"
+        >
+          @if (action.icon) {
+            <sv-icon [name]="action.icon"
+                     cssClass="h-3.5 w-3.5"
+                     [strokeWidth]="2" />
+          }
+          {{ action.label }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (isNested()) {
+    <div
+      class="max-h-[420px] overflow-auto"
+      data-lv-viewport
+      tabindex="-1"
+      [style.height.px]="isVirtualized() ? viewportHeight() : null"
+      (scroll)="onContainerScroll($event)"
+    >
+      @if (flattenedNestedItems().length === 0) {
+        <sv-empty-shell
+          [reason]="isFiltered() ? 'no-results' : 'no-data'"
+          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
+          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
+          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          (action)="query.set('')"
+          data-sv-state="empty"
+        />
+      } @else {
+        <!--
+          The hierarchy has to be spoken, not just indented: `padding-left` is
+          the only thing that carried depth here, so every branch read as one
+          flat pile of rows. `listitem` supports aria-level / posinset / setsize,
+          which is exactly the flattened-nested-list pattern.
+        -->
+        <div role="list" class="pt-2 divide-y divide-gray-100 dark:divide-gray-800">
+          @for (node of flattenedNestedItems(); track trackByNested($index, node)) {
+            <div
+              role="listitem"
+              [attr.aria-level]="node.depth + 1"
+              [attr.aria-posinset]="node.posinset"
+              [attr.aria-setsize]="node.setsize"
+              class="flex items-start gap-2"
+              [ngClass]="[
+                rowPadding(),
+                node.item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/60',
+                isSelected(node.item) ? 'bg-primary-50/80 dark:bg-primary-950/35' : ''
+              ]"
+              [style.padding-left]="nestedIndent(node.depth)"
+            >
+              @if (node.hasChildren) {
+                <button
+                  type="button"
+                  class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  (click)="toggleExpand(node.item)"
+                  [attr.aria-expanded]="isExpanded(node.item)"
+                  [attr.aria-label]="(isExpanded(node.item) ? 'Collapse ' : 'Expand ') + node.item.title"
+                >
+                  <!-- The glyph must agree with the aria-label above it: a
+                       collapsed node offers to open, not to close. -->
+                  <sv-icon [name]="isExpanded(node.item) ? 'minus' : 'plus'" cssClass="h-3.5 w-3.5" [strokeWidth]="2.2" />
+                </button>
+              } @else {
+                <span class="mt-1 h-6 w-6"></span>
+              }
+
+              @if (isCheckable()) {
+                <input
+                  type="checkbox"
+                  [checked]="isChecked(node.item)"
+                  (change)="toggleCheck(node.item, ($any($event.target)).checked)"
+                  [attr.aria-label]="'Check ' + node.item.title"
+                  [disabled]="node.item.disabled"
+                  class="mt-1.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                />
+              }
+
+              @if (!isCheckable() && isSelectable()) {
+                <input
+                  [type]="selectionMode() === 'single' ? 'radio' : 'checkbox'"
+                  name="list-view-select-nested"
+                  [checked]="isSelected(node.item)"
+                  (change)="toggleSelected(node.item, ($any($event.target)).checked)"
+                  [attr.aria-label]="'Select ' + node.item.title"
+                  [disabled]="node.item.disabled"
+                  class="mt-1.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                />
+              }
+
+              <button
+                type="button"
+                class="min-w-0 flex-1 text-left"
+                data-lv-row-btn="1"
+                [attr.data-lv-id]="node.item.id"
+                [attr.tabindex]="rowTabIndex(node.item)"
+                [disabled]="node.item.disabled"
+                (click)="onItemActivate(node.item)"
+              >
+                <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ node.item.title }}</p>
+                @if (node.item.subtitle || node.item.description) {
+                  <p class="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                    {{ node.item.subtitle || node.item.description }}
+                  </p>
+                }
+              </button>
+
+              @if (node.item.badge) {
+                <span class="rounded-full bg-primary-100 px-2 py-0.5 text-[11px] font-semibold text-primary-700 dark:bg-primary-900/35 dark:text-primary-300">
+                  {{ node.item.badge }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @else if (isGrouped()) {
+    <div
+      class="max-h-[420px] overflow-auto"
+      data-lv-viewport
+      tabindex="-1"
+      (scroll)="onContainerScroll($event)"
+    >
+      @if (groupedItems().length === 0) {
+        <sv-empty-shell
+          [reason]="isFiltered() ? 'no-results' : 'no-data'"
+          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
+          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
+          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          (action)="query.set('')"
+          data-sv-state="empty"
+        />
+      } @else {
+        <div>
+          @for (group of groupedItems(); track group.label) {
+            <section>
+              <header
+                [ngClass]="stickyGroupHeaders() ? 'sticky top-0 z-10 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur' : 'bg-gray-50 dark:bg-gray-950/70'"
+                class="flex items-center gap-2 border-y border-gray-200/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:border-gray-700/80 dark:text-gray-400"
+              >
+                <!--
+                  Checking a section is the thing a grouped list is for, and it
+                  was the one place with no control at all. `indeterminate` is
+                  set rather than drawn: a native checkbox in that state is
+                  announced as "mixed", which no dash in a box can be.
+                -->
+                @if (isCheckable()) {
+                  <input
+                    type="checkbox"
+                    [checked]="isGroupChecked(group.label)"
+                    [indeterminate]="isGroupIndeterminate(group.label)"
+                    (change)="toggleGroupChecks(group.label, ($any($event.target)).checked)"
+                    [attr.aria-label]="'Check all items in ' + group.label"
+                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                  />
+                }
+                {{ group.label }}
+              </header>
+
+              <div role="list" class="divide-y divide-gray-100/80 dark:divide-gray-800">
+                @for (item of group.items; track trackById($index, item)) {
+                  <ng-container
+                    [ngTemplateOutlet]="rowTpl"
+                    [ngTemplateOutletContext]="{ item: item, index: $index, setsize: group.items.length }"
+                  />
+                }
+              </div>
+            </section>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div
+      class="overflow-auto"
+      data-lv-viewport
+      tabindex="-1"
+      [style.height.px]="(isVirtualized() || isScrollingMode()) ? viewportHeight() : null"
+      [style.max-height.px]="!isVirtualized() && !isScrollingMode() ? viewportHeight() : null"
+      (scroll)="onContainerScroll($event)"
+    >
+      @if (renderItems().length === 0) {
+        <sv-empty-shell
+          [reason]="isFiltered() ? 'no-results' : 'no-data'"
+          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
+          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
+          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          (action)="query.set('')"
+          data-sv-state="empty"
+        />
+      } @else {
+        @if (isVirtualized()) {
+          <!--
+            The two spacer <div>s that used to stand in for the missing rows are
+            padding now. They were children of the list, so `role="list"` would
+            have counted two empty boxes as list items and thrown the
+            aria-setsize count out by two. `box-sizing: border-box` is what keeps
+            the arithmetic identical: padding + rows still add up to the declared
+            height, which is what the scrollbar measures.
+          -->
+          <div
+            role="list"
+            class="relative divide-y divide-gray-100/80 dark:divide-gray-800"
+            [style.height.px]="totalVirtualHeight()"
+            [style.padding-top.px]="topSpacerHeight()"
+            [style.padding-bottom.px]="bottomSpacerHeight()"
+          >
+            @for (item of renderItems(); track trackById($index, item)) {
+              <ng-container
+                [ngTemplateOutlet]="rowTpl"
+                [ngTemplateOutletContext]="{
+                  item: item,
+                  index: virtualRange().start + $index,
+                  setsize: flatItems().length
+                }"
+              />
+            }
+          </div>
+        } @else {
+          <div role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
+            @for (item of renderItems(); track trackById($index, item)) {
+              <ng-container
+                [ngTemplateOutlet]="rowTpl"
+                [ngTemplateOutletContext]="{ item: item, index: $index, setsize: flatItems().length }"
+              />
+            }
+          </div>
+        }
+      }
+
+      <!--
+        A paged list used to render this footer only while there was more to
+        fetch, so the last page ended on a row with no marker at all — the one
+        state a user needs to be sure of. `_announcePaging` speaks the same
+        transition into the live region above.
+      -->
+      @if ((isScrollingMode() || infiniteScroll()) && (loadingMore() || hasMore() || visibleItemCount() > 0)) {
+        <div class="border-t border-gray-200/70 px-4 py-3 text-center dark:border-gray-700/80">
+          @if (loadingMore()) {
+            <span class="inline-flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+              <!--
+                A spinner is not a glyph, so it does not come from the icon
+                library — it comes from the same CSS the kit's own `sv-spinner`
+                uses for `spinnerStyle="border"`: a rotating ring with one
+                coloured edge. That replaces a hand-rolled two-node <svg> (a
+                0.2-opacity circle under a quarter-arc path) which the icon rule
+                counted as a glyph and which no icon could have reproduced.
+                Both colours inherit, so it still tracks the label's text tone.
+              -->
+              <span class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current/25 border-t-current"
+                    aria-hidden="true"></span>
+              Loading more items...
+            </span>
+          } @else if (hasMore()) {
+            <span class="text-xs text-gray-500 dark:text-gray-400">Scroll to load more</span>
+          } @else {
+            <span class="text-xs text-gray-500 dark:text-gray-400" data-sv-state="end-of-list">
+              End of list · all {{ visibleItemCount() }} items loaded
+            </span>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (isCheckable()) {
+    <div class="border-t border-gray-200/80 px-4 py-2 text-xs text-gray-500 dark:border-gray-700/70 dark:text-gray-400">
+      {{ checkedCount() }} checked
+    </div>
+  }
+</div>
+
+}<!-- /@else list content -->

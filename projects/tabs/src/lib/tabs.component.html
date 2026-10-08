@@ -1,0 +1,122 @@
+<div [ngClass]="rootClasses()">
+
+  <!-- ── Tab list ──────────────────────────────────────────────────────── -->
+  <div
+    role="tablist"
+    [ngClass]="listClasses()"
+    [attr.aria-orientation]="layout() === 'vertical' ? 'vertical' : 'horizontal'"
+    (focusout)="onListFocusOut($event)"
+  >
+    @for (tab of tabs(); track tab.id) {
+      <!--
+        `tabindex` follows FOCUS (`rovingId`) while `aria-selected` follows
+        SELECTION. The same tab under automatic activation; two different tabs
+        under manual, which is the whole point of that pattern.
+
+        Wrapper carries the visual treatment (padding, color, background, border) so a
+        `closable` tab's × button can sit as a real sibling <button> instead of being
+        nested inside the tab's own <button> — nesting interactive controls inside a
+        <button> is invalid HTML and gets silently mis-parsed by browsers.
+      -->
+      <span
+        [attr.data-active]="tab.id === resolvedActiveId() ? '' : null"
+        [attr.data-disabled]="tab.disabled ? '' : null"
+        [ngClass]="tabClasses(tab)"
+      >
+        <button
+          [id]="tabDomId(tab.id)"
+          type="button"
+          role="tab"
+          [attr.aria-selected]="tab.id === resolvedActiveId()"
+          [attr.aria-controls]="panelDomId(tab.id)"
+          [attr.aria-disabled]="tab.disabled || null"
+          [attr.aria-keyshortcuts]="tab.closable ? 'Delete' : null"
+          [attr.aria-describedby]="tab.closable ? closeHintId : null"
+          [attr.tabindex]="tab.id === rovingId() ? 0 : -1"
+          class="inline-flex items-center gap-2 rounded-[inherit] bg-transparent
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                 focus-visible:ring-offset-1"
+          (click)="selectTab(tab)"
+          (focus)="onTabFocus(tab)"
+          (keydown)="onTabKeydown($event, tab)"
+        >
+          <!-- Icon -->
+          @if (tab.icon) {
+            <sv-icon [name]="tab.icon"
+                     [cssClass]="iconClass()"
+                     [strokeWidth]="2" />
+          }
+
+          {{ tab.label }}
+
+          <!-- Unread/status dot -->
+          @if (tab.dot) {
+            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-danger-500" aria-hidden="true"></span>
+            <span class="sr-only">(unread)</span>
+          }
+
+          <!-- Badge -->
+          @if (tab.badge) {
+            <span
+              class="inline-flex items-center justify-center rounded-full
+                     bg-gray-200 px-1.5 py-0.5 text-[10px] font-semibold
+                     leading-none text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+              [class.bg-white]="tab.id === resolvedActiveId() && tabsStyle() === 'pills'"
+              [class.text-primary-600]="tab.id === resolvedActiveId() && tabsStyle() === 'pills'"
+            >
+              {{ tab.badge }}
+            </span>
+          }
+        </button>
+
+        <!--
+          Pointer-only close affordance: `aria-hidden` and not focusable, so the
+          tablist owns nothing but its tabs. The keyboard and AT path lives on
+          the tab button itself (Delete / Backspace) — see `closeTab`
+          for why ARIA leaves no valid placement for a real close button here.
+
+          native-element-rule: allow — pointer-only by design. The keyboard and
+          AT path is Delete / Backspace on the tab button, announced by the
+          sr-only hint below; a focusable child inside a `role="tab"` is not a
+          shape the tablist pattern permits.
+        -->
+        @if (tab.closable) {
+          <span
+            aria-hidden="true"
+            data-close-tab
+            class="-mr-1 ml-0.5 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center
+                   rounded text-current/60 transition-colors hover:bg-black/10 hover:text-current
+                   dark:hover:bg-white/10"
+            (click)="onCloseTab($event, tab)"
+          >
+            <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+          </span>
+        }
+      </span>
+    }
+  </div>
+
+  @if (hasClosableTab()) {
+    <p [id]="closeHintId" class="sr-only">Press Delete or Backspace to close this tab.</p>
+  }
+
+  <!-- ── Tab panels ─────────────────────────────────────────────────────── -->
+  <div class="flex-1 min-w-0" [ngClass]="tabsStyle() === 'border-card' ? 'p-4' : ''">
+    @for (tab of tabs(); track tab.id) {
+      @if (isPanelMounted(tab)) {
+        <div
+          [id]="panelDomId(tab.id)"
+          role="tabpanel"
+          [attr.aria-labelledby]="tabDomId(tab.id)"
+          [attr.tabindex]="isPanelVisible(tab) ? 0 : null"
+          [ngClass]="isPanelVisible(tab) ? 'block focus:outline-none' : 'hidden'"
+        >
+          @if (panelFor(tab.id); as tpl) {
+            <ng-container [ngTemplateOutlet]="tpl" />
+          }
+        </div>
+      }
+    }
+  </div>
+
+</div>

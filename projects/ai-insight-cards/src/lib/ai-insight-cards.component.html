@@ -1,0 +1,1002 @@
+@if (loading()) {
+  <div class="p-4" data-sv-state="loading">
+    <sv-skeleton-shell variant="list" [rows]="4" ariaLabel="Loading" />
+  </div>
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
+} @else {
+
+<!-- ★★★ A CARD RENDERING BELIEVABLE INSIGHTS WITH NO DATA WIRED IS
+     INDISTINGUISHABLE FROM ONE RENDERING REAL ONES. The sample data carries its
+     own flag, so this survives a copy-paste into a host's fixture — which is
+     the path `DEMO_INSIGHTS` actually travels on its way to a board somebody
+     trusts. -->
+@if (sampleLabel(); as sample) {
+<p class="mb-3 rounded-xl border border-warning-200 bg-warning-50 px-4 py-2 text-[11px]
+          leading-relaxed text-warning-900
+          dark:border-warning-900/40 dark:bg-warning-950/20 dark:text-warning-100"
+   data-sv-sample-notice>
+  {{ sample }}
+</p>
+}
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     AI Insight Cards — 4 premium variants
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ─── Shared skeleton block ──────────────────────────────────────────────── -->
+<ng-template #skeletonCard>
+  <div class="animate-pulse overflow-hidden rounded-2xl border border-gray-100 bg-white
+              dark:border-gray-700/60 dark:bg-gray-900">
+    <div class="h-1.5 w-full bg-gray-200 dark:bg-gray-700"></div>
+    <div class="p-5 space-y-3">
+      <div class="flex items-center gap-2">
+        <div class="h-5 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-5 w-12 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+      </div>
+      <div class="h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+      <div class="h-3 w-full rounded bg-gray-100 dark:bg-gray-800"></div>
+      <div class="h-3 w-5/6 rounded bg-gray-100 dark:bg-gray-800"></div>
+      <div class="flex gap-2 pt-1">
+        <div class="h-7 w-20 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-7 w-20 rounded-lg bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- ━━ 1. FEED — priority-ordered vertical list ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+@if (variant() === 'feed') {
+<div class="flex flex-col gap-4">
+
+  <!-- Toolbar -->
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <!-- AI sparkle badge -->
+      <div class="flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-1
+                  dark:border-primary-800/50 dark:bg-primary-900/20">
+        <sv-icon name="sparkles" cssClass="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" [strokeWidth]="1.8" />
+        <span class="text-[11px] font-bold text-primary-700 dark:text-primary-300">AI Insights</span>
+      </div>
+      <span class="text-[12px] text-gray-500 dark:text-gray-400">
+        {{ counts().total }} active
+      </span>
+    </div>
+
+    <div class="flex items-center gap-1.5">
+      <!-- Priority filter chips -->
+      @for (f of filterChips(); track f.key) {
+      <button type="button"
+              (click)="setFilter(f.key)"
+              [attr.aria-pressed]="priorityFilter() === f.key"
+              [ngClass]="priorityFilter() === f.key
+                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-800'"
+              class="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors">
+        {{ f.label }}
+        @if (f.count > 0) {
+        <span [ngClass]="priorityFilter() === f.key
+                ? 'bg-white/20 text-white dark:bg-black/20 dark:text-gray-900'
+                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'"
+              class="rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+          {{ f.count }}
+        </span>
+        }
+      </button>
+      }
+
+      <!-- Refresh -->
+      <button type="button" (click)="refreshInsights()"
+              [disabled]="isLoading()"
+              class="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5
+                     text-[11px] font-semibold text-gray-500 transition-colors
+                     hover:bg-gray-50 disabled:cursor-wait disabled:opacity-50
+                     dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800">
+        <sv-icon
+          name="refresh-cw"
+          [cssClass]="isLoading() ? 'h-3 w-3 animate-spin' : 'h-3 w-3'"
+          [strokeWidth]="2" />
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Skeleton loading state -->
+  @if (isLoading()) {
+  <div class="space-y-3">
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+  </div>
+  } @else if (insights().length === 0) {
+  <!--
+    Two empties, two messages. The hand-rolled block this replaces said "No
+    active insights for this filter" unconditionally, so a host whose first
+    response was genuinely empty was told it had mis-set a filter — and it drew
+    its own inline SVG, which the icon rule forbids.
+  -->
+  <sv-empty-shell
+    title="No insights yet"
+    message="Insights appear here as they are detected." />
+  } @else if (visibleInsights().length === 0) {
+  <sv-empty-shell
+    reason="no-results"
+    title="All caught up"
+    message="No insights match the current filter." />
+  } @else {
+  <!-- Insight cards -->
+  <div class="space-y-3">
+    @for (insight of visibleInsights(); track insight.id) {
+    <div [ngClass]="[priorityBorderClass(insight.priority)]"
+         class="group relative overflow-hidden rounded-2xl border border-gray-100 border-l-4 bg-white
+                shadow-sm transition-all duration-200
+                hover:shadow-md hover:-translate-y-px
+                dark:border-gray-700/60 dark:bg-gray-900">
+
+      <!-- Priority accent top-bar -->
+      <div [ngClass]="['bg-gradient-to-r', priorityAccentClass(insight.priority)]"
+           class="h-[2px] w-full opacity-60"></div>
+
+      <div class="p-5">
+        <!-- Header row -->
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Category icon badge -->
+            <div [ngClass]="categoryIconBg(insight.category)"
+                 class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+              <sv-icon
+                [name]="categoryIconName(insight.category)"
+                [cssClass]="'h-3.5 w-3.5 ' + categoryIconColor(insight.category)"
+                [strokeWidth]="1.8" />
+            </div>
+            <!-- Category label -->
+            <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+              {{ categoryLabel(insight.category) }}
+            </span>
+            <!-- Priority badge -->
+            <span [ngClass]="priorityBadgeClass(insight.priority)"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
+                         ring-1 ring-inset uppercase tracking-wide">
+              <span [ngClass]="priorityDotClass(insight.priority)"
+                    class="h-1.5 w-1.5 rounded-full"></span>
+              {{ priorityLabel(insight.priority) }}
+            </span>
+          </div>
+
+          <!-- Confidence ring + dismiss -->
+          <div class="flex shrink-0 items-center gap-2">
+            <!-- Mini confidence ring -->
+            <div class="relative flex h-10 w-10 items-center justify-center" title="AI confidence score">
+              <svg viewBox="0 0 42 42" class="h-10 w-10 -rotate-90" aria-hidden="true">
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--color-gray-200)" stroke-width="3.5"
+                        class="dark:stroke-gray-700" />
+                <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="3.5"
+                        [attr.stroke]="confidenceRingStroke(insight.confidence)"
+                        [attr.stroke-dasharray]="ringDash(insight.confidence)"
+                        stroke-linecap="round"
+                        class="transition-all duration-700" />
+              </svg>
+              <span [ngClass]="confidenceTextClass(insight.confidence)"
+                    class="absolute text-[10px] font-black tabular-nums">
+                {{ insight.confidence }}%
+              </span>
+            </div>
+            <!-- Dismiss -->
+            <button type="button"
+                    (click)="dismiss(insight.id)"
+                    class="flex h-7 w-7 items-center justify-center rounded-full text-gray-300
+                           opacity-0 transition-all group-hover:opacity-100
+                           hover:bg-gray-100 hover:text-gray-500
+                           dark:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-400"
+                    aria-label="Dismiss insight">
+              <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Title + description -->
+        <div class="mt-3">
+          <h3 class="text-[13px] font-bold leading-snug text-gray-900 dark:text-white">
+            {{ insight.title }}
+          </h3>
+          <p class="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-gray-500 dark:text-gray-400">
+            {{ insight.description }}
+          </p>
+        </div>
+
+        <!-- Data point chips -->
+        @if (insight.dataPoints.length > 0) {
+        <div class="mt-3 flex flex-wrap gap-2">
+          @for (dp of insight.dataPoints; track dp.label) {
+          <div class="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/70
+                      px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-800/50">
+            <sv-icon [name]="trendIconName(dp.trend)" [cssClass]="'h-3 w-3 shrink-0 ' + trendClass(dp.trend)" [strokeWidth]="2.5" />
+            <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
+            <span class="text-[11px] font-bold tabular-nums" [ngClass]="trendClass(dp.trend)">
+              {{ dp.value }}
+            </span>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- Actions + meta -->
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <button type="button"
+                    (click)="accept(insight.id)"
+                    class="flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5
+                           text-[11px] font-semibold text-white transition-all
+                           hover:bg-gray-700
+                           dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+              <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+              Accept
+            </button>
+            <button type="button"
+                    (click)="dismiss(insight.id)"
+                    class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white
+                           px-3 py-1.5 text-[11px] font-semibold text-gray-600 transition-all
+                           hover:bg-gray-50
+                           dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+              Dismiss
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+            <sv-icon name="clock" cssClass="h-3 w-3" [strokeWidth]="2" />
+            {{ relativeTime(insight.detectedAt) }} · {{ insight.source }}
+            <span class="w-full" [attr.title]="confidenceLabel(insight)"
+                  data-sv-confidence-basis>{{ confidenceLabel(insight) }}</span>
+            <!-- ★★★ AN INSIGHT WITHOUT A SOURCE IS AN ASSERTION, and the card
+                 says which of the two it is holding. A dead link would teach the
+                 reader that evidence links do not work rather than that this one
+                 is wrong, so a bad scheme is refused rather than rendered. -->
+            @if (evidence(insight); as ev) {
+              @if (ev.href) {
+              <a class="w-full font-medium text-primary-700 hover:underline dark:text-primary-300"
+                 [href]="ev.href" target="_blank" rel="noopener noreferrer"
+                 data-sv-evidence-link>{{ ev.label }}</a>
+              } @else {
+              <span class="w-full text-warning-800 dark:text-warning-200"
+                    data-sv-no-evidence>{{ ev.label }}</span>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+  }
+</div>
+}
+
+<!-- ━━ 2. GRID — 3-column confidence-ring cards ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+@if (variant() === 'grid') {
+<div class="flex flex-col gap-4">
+
+  <!-- Grid header -->
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <sv-icon name="sparkles" cssClass="h-4 w-4 text-primary-600 dark:text-primary-400" [strokeWidth]="1.8" />
+      <h2 class="text-sm font-bold text-gray-900 dark:text-white">AI-Generated Insights</h2>
+      <span class="rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-bold text-primary-700
+                   dark:bg-primary-900/30 dark:text-primary-300">
+        {{ counts().total }} new
+      </span>
+    </div>
+    <button type="button" (click)="refreshInsights()"
+            [disabled]="isLoading()"
+            class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-600
+                   disabled:cursor-wait dark:hover:text-gray-300">
+      <sv-icon
+          name="refresh-cw"
+          [cssClass]="isLoading() ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'"
+          [strokeWidth]="2" />
+      Refresh
+    </button>
+  </div>
+
+  <!-- Skeleton grid -->
+  @if (isLoading()) {
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+    <ng-container *ngTemplateOutlet="skeletonCard" />
+  </div>
+  } @else {
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    @for (insight of visibleInsights(); track insight.id) {
+    <div class="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white
+                shadow-sm transition-all duration-200
+                hover:-translate-y-0.5 hover:shadow-md
+                dark:border-gray-700/60 dark:bg-gray-900">
+
+      <!-- Gradient category header -->
+      <div [ngClass]="['bg-gradient-to-r', categoryHeaderGradient(insight.category)]"
+           class="relative px-4 pt-4 pb-5">
+        <div class="flex items-start justify-between">
+          <!-- Category icon -->
+          <div [ngClass]="categoryIconBg(insight.category)"
+               class="flex h-9 w-9 items-center justify-center rounded-xl
+                      shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10">
+            <sv-icon
+              [name]="categoryIconName(insight.category)"
+              [cssClass]="'h-[18px] w-[18px] ' + categoryIconColor(insight.category)"
+              [strokeWidth]="1.8" />
+          </div>
+          <!-- Priority badge -->
+          <span [ngClass]="priorityBadgeClass(insight.priority)"
+                class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
+                       ring-1 ring-inset uppercase tracking-wide">
+            <span [ngClass]="priorityDotClass(insight.priority)" class="h-1.5 w-1.5 rounded-full"></span>
+            {{ priorityLabel(insight.priority) }}
+          </span>
+        </div>
+
+        <!-- Large confidence ring centred in the header -->
+        <div class="mt-2 flex justify-center" role="img" aria-label="AI confidence: {{ insight.confidence }}%">
+          <div class="relative flex h-20 w-20 items-center justify-center">
+            <svg viewBox="0 0 42 42" class="h-20 w-20 -rotate-90" aria-hidden="true">
+              <circle cx="21" cy="21" r="15.9" fill="none"
+                      stroke="rgba(0,0,0,0.08)" stroke-width="3" class="dark:stroke-white/10" />
+              <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="3"
+                      [attr.stroke]="confidenceRingStroke(insight.confidence)"
+                      [attr.stroke-dasharray]="ringDash(insight.confidence)"
+                      stroke-linecap="round"
+                      class="transition-all duration-700" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <p [ngClass]="confidenceTextClass(insight.confidence)"
+                 class="text-base font-black leading-none tabular-nums">
+                {{ insight.confidence }}%
+              </p>
+              <p class="mt-0.5 text-[7.5px] font-semibold uppercase tracking-tight text-gray-500 dark:text-gray-400">
+                confidence
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card body -->
+      <div class="flex flex-1 flex-col p-4">
+        <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+          {{ categoryLabel(insight.category) }}
+        </p>
+        <h3 class="mt-1 text-[13px] font-bold leading-snug text-gray-900 dark:text-white line-clamp-2">
+          {{ insight.title }}
+        </h3>
+        <p class="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 flex-1">
+          {{ insight.description }}
+        </p>
+
+        <!-- Data chips -->
+        @if (insight.dataPoints.length > 0) {
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          @for (dp of insight.dataPoints.slice(0, 2); track dp.label) {
+          <span class="flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-2 py-1
+                       text-[10px] dark:border-gray-800 dark:bg-gray-800/60">
+            <span [ngClass]="trendClass(dp.trend)" class="font-bold tabular-nums">{{ dp.value }}</span>
+            <span class="text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
+          </span>
+          }
+        </div>
+        }
+
+        <!-- Actions -->
+        <div class="mt-4 flex items-center gap-2">
+          <button type="button"
+                  (click)="accept(insight.id)"
+                  class="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gray-900
+                         py-2 text-[11px] font-semibold text-white
+                         hover:bg-gray-700
+                         dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+            <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+            Accept
+          </button>
+          <button type="button"
+                  (click)="dismiss(insight.id)"
+                  class="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200
+                         text-gray-500 dark:text-gray-400 hover:bg-gray-50 hover:text-gray-600
+                         dark:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                  aria-label="Dismiss">
+            <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer meta + provenance (AI-03-M1: every variant, not only feed) -->
+      <div class="border-t border-gray-50 px-4 py-2.5 dark:border-gray-800">
+        <p class="text-[10px] text-gray-500 dark:text-gray-400">
+          {{ relativeTime(insight.detectedAt) }} · {{ insight.source }}
+        </p>
+        <div class="mt-1 flex flex-col gap-0.5 text-[10px] leading-snug text-gray-500 dark:text-gray-400">
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: insight }" />
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+  }
+</div>
+}
+
+<!-- ━━ 3. INLINE — single featured insight card ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+@if (variant() === 'inline') {
+@if (isLoading()) {
+<div class="animate-pulse overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-700/60 dark:bg-gray-900">
+  <div class="flex items-stretch gap-0">
+    <div class="w-1.5 shrink-0 rounded-l-2xl bg-gray-200 dark:bg-gray-700"></div>
+    <div class="flex flex-1 items-center gap-5 p-5">
+      <div class="h-14 w-14 rounded-2xl bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+      <div class="flex-1 space-y-2">
+        <div class="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-3 w-3/4 rounded bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <div class="h-8 w-20 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-8 w-16 rounded-lg bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+    </div>
+  </div>
+</div>
+} @else if (activeInsight()) {
+@let ins = activeInsight()!;
+<div class="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm
+            dark:border-gray-700/60 dark:bg-gray-900">
+  <div class="flex items-stretch">
+
+    <!-- Priority accent bar (left side) -->
+    <div [ngClass]="['bg-gradient-to-b', priorityAccentClass(ins.priority)]"
+         class="w-1.5 shrink-0"></div>
+
+    <div class="flex flex-1 flex-wrap items-center gap-5 p-5">
+
+      <!-- Left: icon + confidence ring -->
+      <div class="relative shrink-0" role="img" aria-label="AI confidence: {{ ins.confidence }}%">
+        <div [ngClass]="categoryIconBg(ins.category)"
+             class="flex h-14 w-14 items-center justify-center rounded-2xl">
+          <sv-icon
+            [name]="categoryIconName(ins.category)"
+            [cssClass]="'h-7 w-7 ' + categoryIconColor(ins.category)"
+            [strokeWidth]="1.6" />
+        </div>
+        <!-- Confidence ring overlaid -->
+        <div class="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full
+                    border-2 border-white bg-white shadow-sm dark:border-gray-900 dark:bg-gray-900">
+          <svg viewBox="0 0 42 42" class="h-8 w-8 -rotate-90" aria-hidden="true">
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--color-gray-200)" stroke-width="4"
+                    class="dark:stroke-gray-700" />
+            <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="4"
+                    [attr.stroke]="confidenceRingStroke(ins.confidence)"
+                    [attr.stroke-dasharray]="ringDash(ins.confidence)"
+                    stroke-linecap="round" />
+          </svg>
+          <span [ngClass]="confidenceTextClass(ins.confidence)"
+                class="absolute text-[8px] font-black tabular-nums">
+            {{ ins.confidence }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Middle: content -->
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            {{ categoryLabel(ins.category) }}
+          </span>
+          <span [ngClass]="priorityBadgeClass(ins.priority)"
+                class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
+                       ring-1 ring-inset uppercase tracking-wide">
+            <span [ngClass]="priorityDotClass(ins.priority)" class="h-1.5 w-1.5 rounded-full"></span>
+            {{ priorityLabel(ins.priority) }}
+          </span>
+          <span class="flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5
+                       text-[10px] font-semibold text-primary-600
+                       dark:bg-primary-900/30 dark:text-primary-300">
+            <sv-icon name="sparkles" cssClass="h-2.5 w-2.5" [strokeWidth]="2" />
+            AI Suggested
+          </span>
+        </div>
+        <h3 class="mt-1.5 text-sm font-bold text-gray-900 dark:text-white">{{ ins.title }}</h3>
+        <p class="mt-1 line-clamp-1 text-[12px] text-gray-500 dark:text-gray-400">{{ ins.description }}</p>
+
+        <!-- Data points inline -->
+        @if (ins.dataPoints.length > 0) {
+        <div class="mt-2 flex flex-wrap items-center gap-3">
+          @for (dp of ins.dataPoints; track dp.label) {
+          <div class="flex items-center gap-1 text-[11px]">
+            <span [ngClass]="trendClass(dp.trend)" class="font-bold tabular-nums">{{ dp.value }}</span>
+            <span class="text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
+          </div>
+          }
+          <span class="text-[10px] text-gray-300 dark:text-gray-700">·</span>
+          <span class="text-[10px] text-gray-500 dark:text-gray-400">
+            {{ relativeTime(ins.detectedAt) }} via {{ ins.source }}
+          </span>
+        </div>
+        }
+        <!-- Provenance (AI-03-M1): the number's basis and where to check it. -->
+        <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] leading-snug
+                    text-gray-500 dark:text-gray-400">
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: ins }" />
+        </div>
+      </div>
+
+      <!-- Right: navigation + actions -->
+      <div class="flex shrink-0 flex-col items-end gap-2">
+        <!-- Prev / Next -->
+        @if (visibleInsights().length > 1) {
+        <div class="flex items-center gap-1">
+          <button type="button" (click)="prevInsight()"
+                  [disabled]="activeIndex() === 0"
+                  class="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200
+                         text-gray-500 dark:text-gray-400 hover:bg-gray-50 disabled:opacity-30
+                         dark:border-gray-700 dark:hover:bg-gray-800"
+                  aria-label="Previous insight">
+            <sv-icon name="chevron-left" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+          </button>
+          <span class="text-[10px] text-gray-500 dark:text-gray-400 tabular-nums">
+            {{ activeIndex() + 1 }}/{{ visibleInsights().length }}
+          </span>
+          <button type="button" (click)="nextInsight()"
+                  [disabled]="activeIndex() === visibleInsights().length - 1"
+                  class="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200
+                         text-gray-500 dark:text-gray-400 hover:bg-gray-50 disabled:opacity-30
+                         dark:border-gray-700 dark:hover:bg-gray-800"
+                  aria-label="Next insight">
+            <sv-icon name="chevron-right" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+          </button>
+        </div>
+        }
+        <!-- Actions -->
+        <div class="flex items-center gap-2">
+          <button type="button"
+                  (click)="accept(ins.id)"
+                  class="flex items-center gap-1.5 rounded-xl bg-gray-900 px-3.5 py-2
+                         text-[11px] font-semibold text-white hover:bg-gray-700
+                         dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+            <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+            Accept
+          </button>
+          <button type="button"
+                  (click)="dismiss(ins.id)"
+                  class="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2
+                         text-[11px] font-semibold text-gray-500 hover:bg-gray-50
+                         dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+} @else {
+<div class="flex items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-200
+            py-8 dark:border-gray-700">
+  <sv-icon name="check-circle" cssClass="h-5 w-5 text-gray-300 dark:text-gray-600" [strokeWidth]="1.6" />
+  <p class="text-sm text-gray-500 dark:text-gray-400">All insights resolved</p>
+  <button type="button" (click)="refreshInsights()"
+          class="text-[11px] font-semibold text-primary-600 hover:text-primary-700 dark:text-primary-400">
+    Refresh →
+  </button>
+</div>
+}
+}
+
+<!-- ━━ 4. PANEL — detailed insight panel with evidence ━━━━━━━━━━━━━━━━━━━━━━ -->
+@if (variant() === 'panel') {
+<div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm
+            dark:border-gray-700/60 dark:bg-gray-900">
+
+  @if (isLoading()) {
+  <div class="animate-pulse p-6 space-y-5">
+    <div class="flex items-center gap-3">
+      <div class="h-10 w-10 rounded-xl bg-gray-200 dark:bg-gray-700"></div>
+      <div class="flex-1 space-y-2">
+        <div class="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-700"></div>
+        <div class="h-3 w-1/3 rounded bg-gray-100 dark:bg-gray-800"></div>
+      </div>
+      <div class="h-20 w-20 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+    </div>
+    <div class="h-3 w-full rounded bg-gray-100 dark:bg-gray-800"></div>
+    <div class="h-3 w-5/6 rounded bg-gray-100 dark:bg-gray-800"></div>
+    <div class="grid grid-cols-3 gap-3">
+      @for (_ of [1,2,3]; track $index) {
+      <div class="h-16 rounded-xl bg-gray-100 dark:bg-gray-800"></div>
+      }
+    </div>
+  </div>
+  } @else if (activeInsight()) {
+  @let ins = activeInsight()!;
+
+  <!-- Panel header with gradient -->
+  <div [ngClass]="['bg-gradient-to-br', categoryHeaderGradient(ins.category)]"
+       class="relative overflow-hidden px-6 pt-6 pb-8">
+
+    <!-- Navigation bar -->
+    <div class="mb-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <!-- Chevron-only buttons: `sv-icon` is aria-hidden, so without these
+             labels both arrows announced as bare "button". -->
+        <button type="button" (click)="prevInsight()"
+                aria-label="Previous insight"
+                [disabled]="activeIndex() === 0"
+                class="flex h-7 w-7 items-center justify-center rounded-lg
+                       bg-white/60 text-gray-600 hover:bg-white/90 disabled:opacity-30
+                       dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800/90">
+          <sv-icon name="chevron-left" cssClass="h-3.5 w-3.5" [strokeWidth]="2.5" />
+        </button>
+        <span class="text-[12px] font-semibold text-gray-600 dark:text-gray-400 tabular-nums">
+          {{ activeIndex() + 1 }} of {{ visibleInsights().length }}
+        </span>
+        <button type="button" (click)="nextInsight()"
+                aria-label="Next insight"
+                [disabled]="activeIndex() === visibleInsights().length - 1"
+                class="flex h-7 w-7 items-center justify-center rounded-lg
+                       bg-white/60 text-gray-600 hover:bg-white/90 disabled:opacity-30
+                       dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800/90">
+          <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2.5" />
+        </button>
+      </div>
+      <button type="button" (click)="refreshInsights()"
+              [disabled]="isLoading()"
+              class="flex items-center gap-1.5 rounded-full bg-white/60 px-3 py-1.5
+                     text-[11px] font-semibold text-gray-600 hover:bg-white/90 disabled:cursor-wait
+                     dark:bg-gray-800/60 dark:text-gray-300 dark:hover:bg-gray-800/90">
+        <sv-icon
+          name="refresh-cw"
+          [cssClass]="isLoading() ? 'h-3 w-3 animate-spin' : 'h-3 w-3'"
+          [strokeWidth]="2" />
+        Refresh
+      </button>
+    </div>
+
+    <!-- Main header content -->
+    <div class="flex items-start justify-between gap-6">
+      <div class="flex items-start gap-4">
+        <!-- Category icon -->
+        <div [ngClass]="categoryIconBg(ins.category)"
+             class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl
+                    shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10">
+          <sv-icon
+            [name]="categoryIconName(ins.category)"
+            [cssClass]="'h-6 w-6 ' + categoryIconColor(ins.category)"
+            [strokeWidth]="1.6" />
+        </div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-[11px] font-bold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
+              {{ categoryLabel(ins.category) }}
+            </span>
+            <span [ngClass]="priorityBadgeClass(ins.priority)"
+                  class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
+                         ring-1 ring-inset uppercase tracking-wide">
+              <span [ngClass]="priorityDotClass(ins.priority)" class="h-1.5 w-1.5 rounded-full"></span>
+              {{ priorityLabel(ins.priority) }}
+            </span>
+            <span class="flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5
+                         text-[10px] font-semibold text-primary-600
+                         dark:bg-primary-900/30 dark:text-primary-300">
+              <sv-icon name="sparkles" cssClass="h-2.5 w-2.5" [strokeWidth]="2" />
+              AI Generated
+            </span>
+          </div>
+          <h2 class="mt-2 text-lg font-black leading-snug text-gray-900 dark:text-white">
+            {{ ins.title }}
+          </h2>
+          <p class="mt-1 text-[12px] text-gray-500 dark:text-gray-400">
+            {{ relativeTime(ins.detectedAt) }} · {{ ins.source }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Large confidence ring -->
+      <div class="relative shrink-0 flex h-24 w-24 items-center justify-center"
+           role="img"
+           [attr.aria-label]="'AI confidence: ' + ins.confidence + '%'">
+        <svg viewBox="0 0 42 42" class="h-24 w-24 -rotate-90" aria-hidden="true">
+          <circle cx="21" cy="21" r="15.9" fill="none"
+                  stroke="rgba(0,0,0,0.08)" stroke-width="3.5" class="dark:stroke-white/10" />
+          <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="3.5"
+                  [attr.stroke]="confidenceRingStroke(ins.confidence)"
+                  [attr.stroke-dasharray]="ringDash(ins.confidence)"
+                  stroke-linecap="round"
+                  class="transition-all duration-700 ease-out" />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <p [ngClass]="confidenceTextClass(ins.confidence)"
+             class="text-2xl font-black leading-none tabular-nums">
+            {{ ins.confidence }}%
+          </p>
+          <p class="mt-0.5 text-[8px] font-bold uppercase tracking-tight text-gray-500 dark:text-gray-400">
+            confidence
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="px-6 py-5">
+    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ ins.description }}</p>
+    <!-- Provenance (AI-03-M1): the panel is where a reader decides to act, so
+         it carries the basis of the number and the link to check it. -->
+    <div class="mt-3 flex flex-col gap-1 text-[12px] leading-snug text-gray-500 dark:text-gray-400">
+      <ng-container *ngTemplateOutlet="provenance; context: { $implicit: ins }" />
+    </div>
+  </div>
+
+  <!-- Evidence: data point cards -->
+  @if (ins.dataPoints.length > 0) {
+  <div class="border-t border-gray-100 px-6 py-5 dark:border-gray-800">
+    <p class="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-gray-400">
+      Supporting evidence
+    </p>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      @for (dp of ins.dataPoints; track dp.label) {
+      <div class="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3
+                  dark:border-gray-800 dark:bg-gray-800/40">
+        <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ dp.label }}</p>
+        <div class="mt-1 flex items-center gap-1.5">
+          <sv-icon [name]="trendIconName(dp.trend)" [cssClass]="'h-3.5 w-3.5 shrink-0 ' + trendClass(dp.trend)" [strokeWidth]="2.5" />
+          <p class="text-xl font-black tabular-nums" [ngClass]="trendClass(dp.trend)">{{ dp.value }}</p>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+  }
+
+  <!-- Other insights quick list.
+       ★★ PROVENANCE TRAVELS WITH THE PERCENTAGE (AI-03-M1). A confidence figure
+          here with its basis only in a hover tooltip is the bare-number problem
+          again, so each row carries a compact run of the shared `#provenance`
+          template. It sits BESIDE the row's button, never inside it: the
+          evidence link is interactive and must not nest in another control. -->
+  @if (visibleInsights().length > 1) {
+  <div class="border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+    <p class="mb-3 text-[11px] font-bold uppercase tracking-[0.1em] text-gray-500 dark:text-gray-400">
+      Other insights
+    </p>
+    <ul class="space-y-1.5">
+      @for (other of visibleInsights(); let i = $index; track other.id) {
+      @if (other.id !== ins.id) {
+      <li class="rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800" [attr.data-sv-other-insight]="other.id">
+        <button type="button"
+                (click)="activeIndex.set(i)"
+                class="flex w-full items-center gap-3 rounded-xl px-3 pt-2 pb-1 text-left
+                       focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+          <span [ngClass]="priorityDotClass(other.priority)" class="h-2 w-2 shrink-0 rounded-full"></span>
+          <span class="flex-1 truncate text-[12px] font-medium text-gray-700 dark:text-gray-300">
+            {{ other.title }}
+          </span>
+          <span [ngClass]="confidenceTextClass(other.confidence)"
+                class="shrink-0 text-[11px] font-bold tabular-nums">
+            {{ other.confidence }}%
+          </span>
+          <sv-icon name="chevron-right" cssClass="h-3 w-3 shrink-0 text-gray-300 dark:text-gray-600" [strokeWidth]="2.5" />
+        </button>
+        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pb-2 pl-8 pr-3
+                    text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: other }" />
+        </div>
+      </li>
+      }
+      }
+    </ul>
+  </div>
+  }
+
+  <!-- Action bar -->
+  <div class="flex items-center justify-between gap-3 border-t border-gray-100
+              bg-gray-50/60 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/60">
+    <div class="flex items-center gap-2">
+      <button type="button"
+              (click)="accept(ins.id)"
+              class="flex items-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5
+                     text-[12px] font-semibold text-white hover:bg-gray-700
+                     dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200">
+        <sv-icon name="check" cssClass="h-3.5 w-3.5" [strokeWidth]="2.5" />
+        Accept & Act
+      </button>
+      <button type="button"
+              (click)="dismiss(ins.id)"
+              class="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5
+                     text-[12px] font-semibold text-gray-600 hover:bg-gray-50
+                     dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+        Dismiss
+      </button>
+    </div>
+    <p class="text-[11px] text-gray-500 dark:text-gray-400">
+      {{ visibleInsights().length }} insight{{ visibleInsights().length !== 1 ? 's' : '' }} remaining
+    </p>
+  </div>
+
+  } @else {
+  <div class="flex flex-col items-center gap-3 py-14">
+    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-accent-50 dark:bg-accent-900/30">
+      <sv-icon name="check-circle" cssClass="h-7 w-7 text-accent-500" [strokeWidth]="1.8" />
+    </div>
+    <p class="text-sm font-bold text-gray-800 dark:text-white">All insights resolved</p>
+    <p class="text-[12px] text-gray-500 dark:text-gray-400">You're fully caught up</p>
+    <button type="button" (click)="refreshInsights()"
+            class="mt-1 flex items-center gap-1.5 rounded-full border border-gray-200 bg-white
+                   px-4 py-2 text-[11px] font-semibold text-gray-600 hover:bg-gray-50 shadow-sm
+                   dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+      <sv-icon name="refresh-cw" cssClass="h-3 w-3" [strokeWidth]="2" />
+      Load new insights
+    </button>
+  </div>
+  }
+</div>
+}
+
+
+<!-- ─── ANOMALY variant ───────────────────────────────────────────────────────
+
+     ★★★ AN INSIGHT FEED WITHOUT A BASELINE IS A LIST OF OPINIONS. The other
+     four variants present insights something else decided were insights: a card
+     says "Checkout errors are up" at 87 % confidence, and nothing says up FROM
+     WHAT, by how much against the ordinary swing of that metric, or whether
+     there is enough history to support the claim. This variant shows the
+     arithmetic.
+-->
+@if (variant() === 'anomaly') {
+<div class="rounded-2xl border border-gray-100 bg-white shadow-sm
+            dark:border-gray-700/60 dark:bg-gray-900 overflow-hidden"
+     data-sv-anomaly>
+
+  <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4
+              border-b border-gray-100 dark:border-gray-800">
+    <div class="flex items-center gap-2">
+      <sv-icon name="bar-chart" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+      <div>
+        <h3 class="text-sm font-bold text-gray-900 dark:text-white">Against baseline</h3>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400">
+          How far from normal, and whether normal is known.
+        </p>
+      </div>
+    </div>
+    @if (anomalyFindings().length > 0) {
+    <span class="inline-flex items-center gap-1.5 rounded-full bg-danger-100 px-2.5 py-1
+                 text-[11px] font-semibold text-danger-700
+                 dark:bg-danger-900/30 dark:text-danger-400"
+          data-sv-anomaly-count>
+      <sv-icon name="alert-triangle" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      {{ anomalyFindings().length }} off baseline
+    </span>
+    }
+  </div>
+
+  @if (anomalyRows().length === 0) {
+  <div class="px-5 py-10 text-center" data-sv-anomaly-empty>
+    <sv-icon name="bar-chart" cssClass="mx-auto h-8 w-8 text-gray-300 dark:text-gray-600" [strokeWidth]="1.5" />
+    <p class="mt-3 text-[13px] font-semibold text-gray-700 dark:text-gray-300">No baselines to judge against</p>
+    <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+      Bind <code class="rounded bg-gray-100 px-1 py-px text-gray-700 dark:bg-gray-800 dark:text-gray-300">baselines</code>
+      with each metric's recent history.
+    </p>
+  </div>
+  } @else {
+
+  <ul class="divide-y divide-gray-50 dark:divide-gray-800/60">
+    @for (row of anomalyRows(); track row.baseline.metric) {
+    <li class="px-5 py-3"
+        [attr.aria-label]="anomalyAriaLabel(row)"
+        [attr.data-sv-anomaly-row]="row.baseline.metric"
+        [attr.data-sv-anomaly-severity]="row.anomaly.severity">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          @if (row.anomaly.direction !== 'flat') {
+          <sv-icon [name]="row.anomaly.direction === 'above' ? 'trending-up' : 'trending-down'"
+                   cssClass="h-4 w-4 shrink-0"
+                   [ngClass]="row.anomaly.direction === 'above'
+                                ? 'text-danger-500'
+                                : 'text-accent-500'"
+                   [strokeWidth]="2" />
+          }
+          <div class="min-w-0">
+            <p class="text-[12px] font-semibold text-gray-900 dark:text-white truncate"
+               data-sv-anomaly-metric>
+              {{ row.baseline.metric }}
+            </p>
+            <!-- ★★ THE BASELINE IS SAID OUT LOUD. "3.4σ above normal" is
+                 meaningless without what normal was and how long it was measured
+                 over, and those two facts are what decide whether to believe the
+                 card. -->
+            <p class="text-[10px] text-gray-500 dark:text-gray-400" data-sv-anomaly-baseline>
+              now {{ row.baseline.current }}{{ row.baseline.unit ?? '' }} ·
+              typically {{ row.anomaly.median }}{{ row.baseline.unit ?? '' }} over
+              {{ row.anomaly.samples }} obs
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+          @if (anomalySpark(row.baseline.series); as points) {
+          <svg viewBox="0 0 96 24" class="h-6 w-24 text-gray-300 dark:text-gray-600"
+               aria-hidden="true" data-sv-anomaly-spark>
+            <polyline [attr.points]="points" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          }
+          <span class="text-[12px] font-bold tabular-nums"
+                [ngClass]="row.anomaly.severity === 'none'
+                             ? 'text-gray-500 dark:text-gray-400'
+                             : row.anomaly.direction === 'above'
+                               ? 'text-danger-600 dark:text-danger-400'
+                               : 'text-accent-700 dark:text-accent-400'"
+                [title]="anomalyTitle(row.anomaly)"
+                data-sv-anomaly-sigma>
+            {{ fmtSigma(row.anomaly.sigma) }}
+          </span>
+          <span class="rounded-full px-2 py-px text-[9px] font-semibold"
+                [ngClass]="severityClass(row.anomaly.severity)"
+                data-sv-anomaly-badge>
+            {{ row.anomaly.severity === 'none' ? 'normal' : row.anomaly.severity }}
+          </span>
+        </div>
+      </div>
+
+      <!-- ★★★ THREE DATA POINTS CANNOT ESTABLISH WHAT NORMAL IS. The arithmetic
+           always returns something — a confident 6.2σ off a four-day-old metric
+           is a coincidence with a decimal point, and nothing about the number
+           says so. -->
+      @if (!row.anomaly.sufficientHistory) {
+      <p class="mt-1.5 rounded-lg bg-gray-50 px-2 py-1 text-[10px] text-gray-500
+                dark:bg-gray-800/60 dark:text-gray-400"
+         data-sv-anomaly-short-history>
+        Only {{ row.anomaly.samples }} observations — under {{ anomalyThresholds().minSamples }} there is no
+        baseline to judge this against, so no severity is claimed.
+      </p>
+      }
+
+      @if (row.insight; as insight) {
+      <p class="mt-1.5 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400"
+         data-sv-anomaly-insight>
+        {{ insight.description }}
+      </p>
+      }
+    </li>
+    }
+  </ul>
+
+  <!-- ★★★ THE NAIVE FIGURE IS SHOWN ONLY TO BE CONTRADICTED. A mean-and-sigma
+       detector is blinded by the very event it exists to catch: an outage lands
+       several bad readings in the window, which drag the mean up and inflate σ
+       until today's reading scores as unremarkable. -->
+  @if (anomalyMasked().length > 0) {
+  <p class="border-t border-gray-100 px-5 py-2.5 text-[11px] text-gray-500
+            dark:border-gray-800 dark:text-gray-400"
+     data-sv-anomaly-masked>
+    {{ anomalyMasked().length }} of these would score under {{ anomalyThresholds().notable }}σ on a mean-and-standard-deviation
+    detector — the readings that make up the incident have already been absorbed into what such a
+    detector calls normal.
+  </p>
+  }
+
+  }
+</div>
+}
+
+}<!-- /@else content -->
+
+<!--
+  ★★★ PROVENANCE, SHARED BY GRID, INLINE AND PANEL (AI-03-M1). It used to render
+      only in `feed`, so the three other variants showed a bare confidence ring —
+      an assertion with a percentage beside it. Each host variant wraps this in
+      its own sizing; the runs below inherit it.
+-->
+<ng-template #provenance let-insight>
+  <span [attr.title]="confidenceLabel(insight)" data-sv-confidence-basis>{{ confidenceLabel(insight) }}</span>
+  @if (evidence(insight); as ev) {
+    @if (ev.href) {
+    <a class="font-medium text-primary-700 hover:underline focus:outline-none focus-visible:underline
+              focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm dark:text-primary-300"
+       [href]="ev.href" target="_blank" rel="noopener noreferrer"
+       data-sv-evidence-link>{{ ev.label }}</a>
+    } @else {
+    <span class="text-warning-800 dark:text-warning-200" data-sv-no-evidence>{{ ev.label }}</span>
+    }
+  }
+</ng-template>

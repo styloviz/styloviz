@@ -1,0 +1,133 @@
+<!-- Fixed toast stack — positioned via positionClass() computed from `position` input -->
+<div
+  #region
+  [ngClass]="['fixed flex gap-3 pointer-events-none', positionClass()]"
+  [style.zIndex]="stackZ"
+  role="region"
+  aria-label="Notifications"
+  (mouseleave)="onPointerLeave()"
+>
+  <!-- Container-level mouseleave as well as the per-toast one: a toast removed
+       from under the pointer (its own Dismiss clicked) never gets a
+       mouseleave, and the stack stayed "hovered" — holding every later toast
+       open. The container still receives it when the pointer leaves the stack. -->
+
+  <!-- Overflow line (OF-19-M2): the cap hides the OLDEST toasts, and the stack
+       says how many rather than silently showing fewer than there are. It sits
+       before the loop, where the hidden older toasts would be. -->
+  @if (hiddenCount() > 0) {
+    <p
+      class="pointer-events-auto rounded-full border border-gray-200 bg-white/95 px-2.5 py-0.5
+             text-xs font-medium tabular-nums text-gray-600 shadow-sm
+             dark:border-gray-700 dark:bg-gray-800/95 dark:text-gray-300"
+      data-sv-toast-overflow
+    >
+      {{ overflowLabel(hiddenCount()) }}
+    </p>
+  }
+
+  @for (toast of toasts(); track trackById($index, toast)) {
+    <div
+      [attr.id]="toast.id"
+      (mouseenter)="onPointerEnter()"
+      (mouseleave)="onPointerLeave()"
+      (focusin)="onFocusIn()"
+      (focusout)="onFocusOut()"
+      [ngClass]="[
+        'pointer-events-auto w-max min-w-[18rem] max-w-[min(42rem,calc(100vw_-_2rem))] rounded-xl shadow-lg border',
+        'bg-white dark:bg-gray-800',
+        'border-gray-200 dark:border-gray-700',
+        'flex flex-col overflow-hidden'
+      ]"
+    >
+
+      <!-- ── Main row: icon + content + dismiss ─────────────────────── -->
+      <div class="flex items-start gap-3 p-4">
+
+        <!-- Variant icon -->
+        <span [ngClass]="['mt-0.5 shrink-0', iconClass(toast)]">
+          <sv-icon [name]="iconName(toast)"
+                   cssClass="h-5 w-5"
+                   [strokeWidth]="2" />
+        </span>
+
+        <!-- Title + message -->
+        <div class="min-w-0 flex-1">
+          @if (toast.title) {
+            <p class="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+              {{ toast.title }}
+            </p>
+          }
+          <p [ngClass]="[
+            'text-sm text-gray-600 dark:text-gray-300 leading-snug',
+            toast.title ? 'mt-0.5' : ''
+          ]">
+            {{ toast.message }}
+            <!-- Repeat count — a deduplicated repeat is counted, not hidden.
+                 One failed save and a retry loop failing eleven times are
+                 different situations, and the count is the only thing that
+                 tells them apart once the duplicates are gone. -->
+            @if (toast.count > 1) {
+              <!-- ★ The count is spelled out for assistive technology and the
+                   glyph is hidden from it. `aria-label` on a bare <span> is
+                   PROHIBITED — a span has no role, so screen readers ignore
+                   the label and axe reports it as serious — and "times two"
+                   read from "×2" is not something to leave to chance. -->
+              <span
+                class="ml-1 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700
+                       px-1.5 text-[0.6875rem] font-semibold tabular-nums align-middle
+                       text-gray-600 dark:text-gray-300"
+                data-sv-toast-count
+              ><span class="sr-only">{{ repeatLabel(toast) }}</span><span
+                 aria-hidden="true">&times;{{ toast.count }}</span></span>
+            }
+          </p>
+
+          <!-- Action button -->
+          @if (toast.action) {
+            <button
+              type="button"
+              (click)="onActionClick(toast)"
+              class="mt-2 text-xs font-medium text-primary-600 dark:text-primary-400
+                     hover:text-primary-700 dark:hover:text-primary-300
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+            >
+              {{ toast.action.label }}
+            </button>
+          }
+        </div>
+
+        <!-- Dismiss button -->
+        @if (toast.dismissible) {
+          <button
+            type="button"
+            (click)="dismiss(toast)"
+            aria-label="Dismiss notification"
+            class="shrink-0 -mt-0.5 -mr-1 inline-flex h-6 w-6 items-center justify-center
+                   rounded-md text-gray-500 dark:text-gray-400
+                   hover:bg-gray-100 dark:hover:bg-gray-700
+                   hover:text-gray-600 dark:hover:text-gray-300
+                   focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                   transition-colors duration-100"
+          >
+            <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
+          </button>
+        }
+
+      </div>
+
+      <!-- ── Progress bar (auto-dismiss indicator) ──────────────────── -->
+      @if (toast.duration > 0) {
+        <div class="h-0.5 w-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+          <div
+            [ngClass]="['h-full', progressClass(toast)]"
+            [style]="progressStyle(toast)"
+            [style.animation-play-state]="paused() ? 'paused' : 'running'"
+          ></div>
+        </div>
+      }
+
+    </div>
+  }
+
+</div>

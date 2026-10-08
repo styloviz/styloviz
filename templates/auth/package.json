@@ -1,0 +1,43 @@
+{
+  "name": "styloviz-auth-template",
+  "version": "1.0.1",
+  "description": "The complete set of pre-session screens — sign in with providers, register with a live policy checklist, two-step verification with recovery codes, single sign-on discovered from the email domain, a lock screen that knows who it locked, and the forgot / reset-password pair. Indigo/sky shell, mock-or-live data switch.",
+  "private": true,
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development"
+  },
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+  },
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/forms": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@styloviz/alert-banner": "^1.0.1",
+    "@styloviz/button": "^1.0.1",
+    "@styloviz/core": "^1.0.1",
+    "@styloviz/forms": "^1.0.1",
+    "@styloviz/icons": "^1.0.1",
+    "@styloviz/input-field": "^1.0.1",
+    "@styloviz/layout": "^1.0.1",
+    "@styloviz/password-strength": "^1.0.1",
+    "@styloviz/toast": "^1.0.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.6.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.2.0",
+    "@angular/cli": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~6.0.3"
+  }
+}
