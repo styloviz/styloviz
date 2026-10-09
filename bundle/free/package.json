@@ -11,6 +11,15 @@
     "free"
   ],
   "license": "MIT",
+  "homepage": "https://styloviz.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/styloviz/styloviz.git",
+    "directory": "bundle/free"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",

@@ -14,7 +14,7 @@
   "homepage": "https://styloviz.dev/docs/breadcrumb",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "url": "git+https://github.com/styloviz/styloviz.git",
     "directory": "projects/breadcrumb"
   },
   "bugs": {

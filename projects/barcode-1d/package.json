@@ -18,7 +18,7 @@
   "homepage": "https://styloviz.dev/docs/barcode-1d",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rhossain/angular-tailwind-dashboard-components.git",
+    "url": "git+https://github.com/styloviz/styloviz.git",
     "directory": "projects/barcode-1d"
   },
   "bugs": {

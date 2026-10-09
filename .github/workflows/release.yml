@@ -1,7 +1,7 @@
-# Publishes the free packages to npm with provenance, from this public repo.
-# Inactive until npm's trusted publisher for each @styloviz/* package points
-# here (Package → Settings → Trusted Publisher → GitHub Actions: styloviz /
-# styloviz / release.yml). @styloviz/pro is published from the private repo.
+# Publishes @styloviz/core, every free package and the @styloviz/all bundle to
+# npm on a v* tag, over trusted publishing (OIDC, no token) and with provenance.
+# Each package's npm trusted publisher names styloviz / styloviz / release.yml.
+# @styloviz/pro is published from the private repo. See scripts/publish.mjs.
 name: Release
 on:
   push:
@@ -18,11 +18,9 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm >= 11.5.1.
       - run: npm install -g npm@^11.10
       - run: npm ci --no-audit --no-fund
       - run: npm run build
       - run: npm test
-      - name: Publish every package, then the bundle
-        run: |
-          for d in dist/@styloviz/*/; do (cd "$d" && npm publish --access public); done
-          (cd bundle/free && npm publish --access public)
+      - run: node scripts/publish.mjs
