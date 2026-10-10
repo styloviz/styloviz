@@ -5,7 +5,7 @@
   "version": "1.0.1",
   "route": "templates/errors",
   "requiresPro": false,
-  "generatedAt": "2026-10-07T18:50:10.492Z",
+  "generatedAt": "2026-10-10T07:12:54.344Z",
   "dependencies": [
     {
       "pkg": "@styloviz/button",

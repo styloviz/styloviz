@@ -5,7 +5,7 @@
   "version": "1.0.1",
   "route": "templates/auth",
   "requiresPro": false,
-  "generatedAt": "2026-10-07T18:50:10.341Z",
+  "generatedAt": "2026-10-10T07:12:54.179Z",
   "dependencies": [
     {
       "pkg": "@styloviz/alert-banner",
