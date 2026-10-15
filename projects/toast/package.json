@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/toast",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Imperative toast stack with 4 variants, 6 anchor positions, action callbacks and an auto-dismiss timer.",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^1.0.1",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/icons": "^1.0.2",
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

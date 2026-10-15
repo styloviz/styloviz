@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/password-strength",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A dependency-free password guidance meter that pairs alongside any text input — a segmented bar, a strength band, and up to three suggestions. Length carries three of the four points and character variety adds the fourth, so a passphrase outranks a short password stuffed with symbols.",
   "keywords": [
     "angular",

@@ -30,6 +30,22 @@ const qa = (f: { nativeElement: HTMLElement }, sel: string) => [
   ...f.nativeElement.querySelectorAll<HTMLElement>(sel),
 ];
 
+/**
+ * An ISO timestamp for a LOCAL wall-clock time, carrying the runner's own UTC
+ * offset (`2026-06-25T11:00:00-09:30` in the suite zone).
+ */
+function localIso(year: number, month: number, day: number, hour: number): string {
+  const d = new Date(year, month, day, hour, 0, 0);
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const abs = Math.abs(off);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:00:00` +
+    `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
+  );
+}
+
 const dragEvent = (type: string) => {
   const e = new Event(type, { bubbles: true, cancelable: true });
   return e as unknown as DragEvent;
@@ -492,8 +508,10 @@ describe('SvDndListComponent — due dates across the date line', () => {
   it('still honours a full timestamp to the minute', async () => {
     vi.setSystemTime(new Date(2026, 5, 25, 12, 0, 0));
     const f = await setup();
-    expect(f.componentInstance.isDue('2026-06-25T11:00:00-09:30')).toBe(true);
-    expect(f.componentInstance.isDue('2026-06-25T13:00:00-09:30')).toBe(false);
+    // An hour either side of local noon, written with the runner's own offset
+    // (−09:30 in the suite zone) so the case means the same thing in any zone.
+    expect(f.componentInstance.isDue(localIso(2026, 5, 25, 11))).toBe(true);
+    expect(f.componentInstance.isDue(localIso(2026, 5, 25, 13))).toBe(false);
   });
 
   it('treats a missing due date as never due', async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/breadcrumb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "4 visual variants, 5 separator styles, a sibling-page dropdown switcher, badges, disabled crumbs, collapsible middle crumbs, a loading skeleton, and full keyboard support.",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

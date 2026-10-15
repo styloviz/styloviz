@@ -58,7 +58,7 @@ export class DemoComponent {}
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `steps` | `TourStep[]` | `[]` | Step definitions. |
-| `variant` | `TourVariant` | `'modal'` | Visual variant. Free tier supports `'modal'` only. |
+| `variant` | `TourVariant` | `'modal'` | Deprecated, and has no effect: the free tour renders the `modal` variant only, so this input has a single value. |
 | `active` | `boolean (two-way)` | `false` | Two-way: controls tour visibility. Set to `true` to launch the tour. |
 | `stepIndex` | `number (two-way)` | `0` | Two-way: current step index. |
 | `nextLabel` | `string` | `'Next'` | Text of the button that advances to the next step; the last step shows `doneLabel` instead. |

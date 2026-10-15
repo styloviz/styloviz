@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/data",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A premium, accessible Data component for building SaaS dashboards, admin panels and internal tools.",
   "keywords": [
     "angular",
@@ -23,7 +23,7 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

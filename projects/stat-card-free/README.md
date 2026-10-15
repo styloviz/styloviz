@@ -69,7 +69,7 @@ export class DemoComponent {}
 | `updatedAt` | `string` | `''` | When this figure was last refreshed, as `YYYY-MM-DD` or an ISO timestamp. A CACHED KPI LOOKS IDENTICAL TO A LIVE ONE. A number is a number, and nothing about a stale one announces itself — so the reader assumes the dashboard is current, which is exactly the assumption a broken pipeline exploits. This is in the FREE tier deliberately. Telling a reader their figure may be out of date is an honesty feature, not a premium one, and a free card that hides staleness is the defect rather than a smaller version of it. |
 | `staleAfterMinutes` | `number` | `60` | How many minutes before the figure is called out as possibly stale. |
 | `source` | `string` | `''` | Where the figure came from — a warehouse, a job, a service. |
-| `variant` | `StatCardVariant` | `'default'` | Color variant — drives icon background, accent line and trend colors. |
+| `variant` | `StatCardVariant` | `'default'` | Deprecated, and has no effect: the free card has one colour treatment. |
 | `layout` | `StatCardLayout` | `'default'` | Card layout mode. |
 | `icon` | `string` | `''` | Name of an icon in `@styloviz/icons`, e.g. `'trending-up'`. This was `iconPath` — a raw `<path d="…">` — with a companion `iconViewBox` because a pasted path might be 20-box or 24-box. Both are gone: a library name is always 24-box, and the viewBox binding is what hid these glyphs from `check:ui` in the first place (a bound `viewBox` does not match a literal `viewBox="…"` test). |
 | `sparkline` | `SparkPoint[]` | `[]` | Array of data points for the inline sparkline. Values should be on a consistent numeric scale; the component normalises them internally. Empty array hides the sparkline. |
@@ -82,7 +82,7 @@ export class DemoComponent {}
 
 | Output | Type | Description |
 | --- | --- | --- |
-| `cardClick` | `void` | Emitted when the card body is clicked (the full card is interactive). |
+| `cardClick` | `void` | Deprecated, and never emitted: the free card is not interactive. |
 | `linkClick` | `void` | Emitted when the "view more" link is clicked. |
 | `retry` | `void` | The host should re-run the failed load. |
 

@@ -6,7 +6,6 @@ import {
   model,
   output,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
 import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
@@ -241,7 +240,6 @@ export interface TimelineLoadMoreEvent {
   selector: 'sv-timeline',
   standalone: true,
   imports: [
-    NgClass,
     SvIconComponent,
     SvSkeletonShellComponent,
     SvErrorShellComponent,

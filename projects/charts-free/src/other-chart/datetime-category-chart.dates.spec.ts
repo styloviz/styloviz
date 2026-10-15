@@ -20,15 +20,21 @@ import { SvDateTimeCategoryChartComponent } from './datetime-category-chart.comp
  * beyond a label that was simply wrong — the kind of thing a customer reports
  * as "the chart is off by one" months later.
  *
- * ★ These tests skip under a UTC runner rather than pass vacuously: at UTC the
- * broken and the fixed implementation return the identical string and no
- * assertion can separate them. The suite runs at Pacific/Marquesas (−09:30) —
- * see `vitest.config.ts` — so they run here. `describe.skipIf` does not exist
- * in Vitest 4.1.10, hence the ternary.
+ * ★ These tests skip EAST of UTC (and at UTC) rather than pass vacuously or fail
+ * for the wrong reason. A date-only string is UTC midnight, which read locally
+ * is still the same day anywhere east of Greenwich — so there the broken and the
+ * fixed implementation return the identical label and no assertion can separate
+ * them. Only a zone WEST of UTC exposes the bug. The suite runs at
+ * Pacific/Marquesas (−09:30, `vitest.config.ts`), so they run in every normal
+ * run; a deliberate `SV_TEST_TZ=Asia/Dhaka` run skips them instead of reporting
+ * a regression that is not there (DA-15: the old guard was "offset ≠ 0", which
+ * is also true at +06:00). `describe.skipIf` does not exist in Vitest 4.1.10,
+ * hence the ternary.
  */
 
-const OFFSET_DIFFERS = new Date().getTimezoneOffset() !== 0;
-const describeLocal = OFFSET_DIFFERS ? describe : describe.skip;
+/** `getTimezoneOffset()` is minutes BEHIND UTC: positive west, negative east. */
+const WEST_OF_UTC = new Date('2026-03-15').getTimezoneOffset() > 0;
+const describeLocal = WEST_OF_UTC ? describe : describe.skip;
 
 async function mount(inputs: Record<string, unknown>) {
   TestBed.resetTestingModule();
@@ -90,7 +96,7 @@ describeLocal('★★★ the frame, proved rather than assumed', () => {
     });
     const c = await mount({ categories: ['2026-03-15'], series: SERIES, options: { zoom: 'day' } });
 
-    expect(utcLabel).not.toBe('Mar 15');       // the runner really is off-meridian
+    expect(utcLabel).not.toBe('Mar 15');       // the runner really is west of UTC
     expect(c.xLabels()[0]).toBe('Mar 15');     // and the component ignores that
   });
 });

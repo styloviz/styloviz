@@ -1,6 +1,6 @@
 # Adding the Styloviz Account Template to an existing app
 
-Version: **1.0.1**
+Version: **1.0.2**
 
 > **Just want to run it?** You don't need this file. This download is a complete
 > Angular project — see **README.md** (`npm install && npm start`).

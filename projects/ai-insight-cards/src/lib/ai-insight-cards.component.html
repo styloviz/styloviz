@@ -126,15 +126,16 @@
   } @else {
   <!-- Insight cards -->
   <div class="space-y-3">
-    @for (insight of visibleInsights(); track insight.id) {
-    <div [ngClass]="[priorityBorderClass(insight.priority)]"
+    @for (card of insightCards(); track card.insight.id) {
+    @let insight = card.insight;
+    <div [ngClass]="[card.borderClass]"
          class="group relative overflow-hidden rounded-2xl border border-gray-100 border-l-4 bg-white
                 shadow-sm transition-all duration-200
                 hover:shadow-md hover:-translate-y-px
                 dark:border-gray-700/60 dark:bg-gray-900">
 
       <!-- Priority accent top-bar -->
-      <div [ngClass]="['bg-gradient-to-r', priorityAccentClass(insight.priority)]"
+      <div [ngClass]="['bg-gradient-to-r', card.accentClass]"
            class="h-[2px] w-full opacity-60"></div>
 
       <div class="p-5">
@@ -142,24 +143,24 @@
         <div class="flex items-start justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">
             <!-- Category icon badge -->
-            <div [ngClass]="categoryIconBg(insight.category)"
+            <div [ngClass]="card.iconBg"
                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
               <sv-icon
-                [name]="categoryIconName(insight.category)"
-                [cssClass]="'h-3.5 w-3.5 ' + categoryIconColor(insight.category)"
+                [name]="card.iconName"
+                [cssClass]="'h-3.5 w-3.5 ' + card.iconInk"
                 [strokeWidth]="1.8" />
             </div>
             <!-- Category label -->
             <span class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-              {{ categoryLabel(insight.category) }}
+              {{ card.categoryText }}
             </span>
             <!-- Priority badge -->
-            <span [ngClass]="priorityBadgeClass(insight.priority)"
+            <span [ngClass]="card.badgeClass"
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
                          ring-1 ring-inset uppercase tracking-wide">
-              <span [ngClass]="priorityDotClass(insight.priority)"
+              <span [ngClass]="card.dotClass"
                     class="h-1.5 w-1.5 rounded-full"></span>
-              {{ priorityLabel(insight.priority) }}
+              {{ card.priorityText }}
             </span>
           </div>
 
@@ -171,12 +172,12 @@
                 <circle cx="21" cy="21" r="15.9" fill="none" stroke="var(--color-gray-200)" stroke-width="3.5"
                         class="dark:stroke-gray-700" />
                 <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="3.5"
-                        [attr.stroke]="confidenceRingStroke(insight.confidence)"
-                        [attr.stroke-dasharray]="ringDash(insight.confidence)"
+                        [attr.stroke]="card.ringStroke"
+                        [attr.stroke-dasharray]="card.ringDashArray"
                         stroke-linecap="round"
                         class="transition-all duration-700" />
               </svg>
-              <span [ngClass]="confidenceTextClass(insight.confidence)"
+              <span [ngClass]="card.confidenceInk"
                     class="absolute text-[10px] font-black tabular-nums">
                 {{ insight.confidence }}%
               </span>
@@ -207,12 +208,13 @@
         <!-- Data point chips -->
         @if (insight.dataPoints.length > 0) {
         <div class="mt-3 flex flex-wrap gap-2">
-          @for (dp of insight.dataPoints; track dp.label) {
+          @for (pt of card.points; track pt.dp.label) {
+          @let dp = pt.dp;
           <div class="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/70
                       px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-800/50">
-            <sv-icon [name]="trendIconName(dp.trend)" [cssClass]="'h-3 w-3 shrink-0 ' + trendClass(dp.trend)" [strokeWidth]="2.5" />
+            <sv-icon [name]="pt.icon" [cssClass]="'h-3 w-3 shrink-0 ' + pt.ink" [strokeWidth]="2.5" />
             <span class="text-[10px] text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
-            <span class="text-[11px] font-bold tabular-nums" [ngClass]="trendClass(dp.trend)">
+            <span class="text-[11px] font-bold tabular-nums" [ngClass]="pt.ink">
               {{ dp.value }}
             </span>
           </div>
@@ -243,14 +245,14 @@
           </div>
           <div class="flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
             <sv-icon name="clock" cssClass="h-3 w-3" [strokeWidth]="2" />
-            {{ relativeTime(insight.detectedAt) }} · {{ insight.source }}
-            <span class="w-full" [attr.title]="confidenceLabel(insight)"
-                  data-sv-confidence-basis>{{ confidenceLabel(insight) }}</span>
+            {{ card.relativeText }} · {{ insight.source }}
+            <span class="w-full" [attr.title]="card.confidenceText"
+                  data-sv-confidence-basis>{{ card.confidenceText }}</span>
             <!-- ★★★ AN INSIGHT WITHOUT A SOURCE IS AN ASSERTION, and the card
                  says which of the two it is holding. A dead link would teach the
                  reader that evidence links do not work rather than that this one
                  is wrong, so a bad scheme is refused rather than rendered. -->
-            @if (evidence(insight); as ev) {
+            @if (card.evidence; as ev) {
               @if (ev.href) {
               <a class="w-full font-medium text-primary-700 hover:underline dark:text-primary-300"
                  [href]="ev.href" target="_blank" rel="noopener noreferrer"
@@ -305,31 +307,32 @@
   </div>
   } @else {
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    @for (insight of visibleInsights(); track insight.id) {
+    @for (card of insightCards(); track card.insight.id) {
+    @let insight = card.insight;
     <div class="group flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white
                 shadow-sm transition-all duration-200
                 hover:-translate-y-0.5 hover:shadow-md
                 dark:border-gray-700/60 dark:bg-gray-900">
 
       <!-- Gradient category header -->
-      <div [ngClass]="['bg-gradient-to-r', categoryHeaderGradient(insight.category)]"
+      <div [ngClass]="['bg-gradient-to-r', card.headerGradient]"
            class="relative px-4 pt-4 pb-5">
         <div class="flex items-start justify-between">
           <!-- Category icon -->
-          <div [ngClass]="categoryIconBg(insight.category)"
+          <div [ngClass]="card.iconBg"
                class="flex h-9 w-9 items-center justify-center rounded-xl
                       shadow-sm ring-1 ring-inset ring-black/5 dark:ring-white/10">
             <sv-icon
-              [name]="categoryIconName(insight.category)"
-              [cssClass]="'h-[18px] w-[18px] ' + categoryIconColor(insight.category)"
+              [name]="card.iconName"
+              [cssClass]="'h-[18px] w-[18px] ' + card.iconInk"
               [strokeWidth]="1.8" />
           </div>
           <!-- Priority badge -->
-          <span [ngClass]="priorityBadgeClass(insight.priority)"
+          <span [ngClass]="card.badgeClass"
                 class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
                        ring-1 ring-inset uppercase tracking-wide">
-            <span [ngClass]="priorityDotClass(insight.priority)" class="h-1.5 w-1.5 rounded-full"></span>
-            {{ priorityLabel(insight.priority) }}
+            <span [ngClass]="card.dotClass" class="h-1.5 w-1.5 rounded-full"></span>
+            {{ card.priorityText }}
           </span>
         </div>
 
@@ -340,13 +343,13 @@
               <circle cx="21" cy="21" r="15.9" fill="none"
                       stroke="rgba(0,0,0,0.08)" stroke-width="3" class="dark:stroke-white/10" />
               <circle cx="21" cy="21" r="15.9" fill="none" stroke-width="3"
-                      [attr.stroke]="confidenceRingStroke(insight.confidence)"
-                      [attr.stroke-dasharray]="ringDash(insight.confidence)"
+                      [attr.stroke]="card.ringStroke"
+                      [attr.stroke-dasharray]="card.ringDashArray"
                       stroke-linecap="round"
                       class="transition-all duration-700" />
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <p [ngClass]="confidenceTextClass(insight.confidence)"
+              <p [ngClass]="card.confidenceInk"
                  class="text-base font-black leading-none tabular-nums">
                 {{ insight.confidence }}%
               </p>
@@ -361,7 +364,7 @@
       <!-- Card body -->
       <div class="flex flex-1 flex-col p-4">
         <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
-          {{ categoryLabel(insight.category) }}
+          {{ card.categoryText }}
         </p>
         <h3 class="mt-1 text-[13px] font-bold leading-snug text-gray-900 dark:text-white line-clamp-2">
           {{ insight.title }}
@@ -373,10 +376,11 @@
         <!-- Data chips -->
         @if (insight.dataPoints.length > 0) {
         <div class="mt-3 flex flex-wrap gap-1.5">
-          @for (dp of insight.dataPoints.slice(0, 2); track dp.label) {
+          @for (pt of card.topPoints; track pt.dp.label) {
+          @let dp = pt.dp;
           <span class="flex items-center gap-1 rounded-lg border border-gray-100 bg-gray-50/80 px-2 py-1
                        text-[10px] dark:border-gray-800 dark:bg-gray-800/60">
-            <span [ngClass]="trendClass(dp.trend)" class="font-bold tabular-nums">{{ dp.value }}</span>
+            <span [ngClass]="pt.ink" class="font-bold tabular-nums">{{ dp.value }}</span>
             <span class="text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
           </span>
           }
@@ -408,10 +412,10 @@
       <!-- Footer meta + provenance (AI-03-M1: every variant, not only feed) -->
       <div class="border-t border-gray-50 px-4 py-2.5 dark:border-gray-800">
         <p class="text-[10px] text-gray-500 dark:text-gray-400">
-          {{ relativeTime(insight.detectedAt) }} · {{ insight.source }}
+          {{ card.relativeText }} · {{ insight.source }}
         </p>
         <div class="mt-1 flex flex-col gap-0.5 text-[10px] leading-snug text-gray-500 dark:text-gray-400">
-          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: insight }" />
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: card }" />
         </div>
       </div>
     </div>
@@ -442,6 +446,7 @@
 </div>
 } @else if (activeInsight()) {
 @let ins = activeInsight()!;
+@let insView = activeView()!;
 <div class="group overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm
             dark:border-gray-700/60 dark:bg-gray-900">
   <div class="flex items-stretch">
@@ -504,9 +509,10 @@
         <!-- Data points inline -->
         @if (ins.dataPoints.length > 0) {
         <div class="mt-2 flex flex-wrap items-center gap-3">
-          @for (dp of ins.dataPoints; track dp.label) {
+          @for (pt of insView.points; track pt.dp.label) {
+          @let dp = pt.dp;
           <div class="flex items-center gap-1 text-[11px]">
-            <span [ngClass]="trendClass(dp.trend)" class="font-bold tabular-nums">{{ dp.value }}</span>
+            <span [ngClass]="pt.ink" class="font-bold tabular-nums">{{ dp.value }}</span>
             <span class="text-gray-500 dark:text-gray-400">{{ dp.label }}</span>
           </div>
           }
@@ -519,7 +525,7 @@
         <!-- Provenance (AI-03-M1): the number's basis and where to check it. -->
         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] leading-snug
                     text-gray-500 dark:text-gray-400">
-          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: ins }" />
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: insView }" />
         </div>
       </div>
 
@@ -609,6 +615,7 @@
   </div>
   } @else if (activeInsight()) {
   @let ins = activeInsight()!;
+  @let insView = activeView()!;
 
   <!-- Panel header with gradient -->
   <div [ngClass]="['bg-gradient-to-br', categoryHeaderGradient(ins.category)]"
@@ -723,7 +730,7 @@
     <!-- Provenance (AI-03-M1): the panel is where a reader decides to act, so
          it carries the basis of the number and the link to check it. -->
     <div class="mt-3 flex flex-col gap-1 text-[12px] leading-snug text-gray-500 dark:text-gray-400">
-      <ng-container *ngTemplateOutlet="provenance; context: { $implicit: ins }" />
+      <ng-container *ngTemplateOutlet="provenance; context: { $implicit: insView }" />
     </div>
   </div>
 
@@ -734,13 +741,14 @@
       Supporting evidence
     </p>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      @for (dp of ins.dataPoints; track dp.label) {
+      @for (pt of insView.points; track pt.dp.label) {
+      @let dp = pt.dp;
       <div class="rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3
                   dark:border-gray-800 dark:bg-gray-800/40">
         <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ dp.label }}</p>
         <div class="mt-1 flex items-center gap-1.5">
-          <sv-icon [name]="trendIconName(dp.trend)" [cssClass]="'h-3.5 w-3.5 shrink-0 ' + trendClass(dp.trend)" [strokeWidth]="2.5" />
-          <p class="text-xl font-black tabular-nums" [ngClass]="trendClass(dp.trend)">{{ dp.value }}</p>
+          <sv-icon [name]="pt.icon" [cssClass]="'h-3.5 w-3.5 shrink-0 ' + pt.ink" [strokeWidth]="2.5" />
+          <p class="text-xl font-black tabular-nums" [ngClass]="pt.ink">{{ dp.value }}</p>
         </div>
       </div>
       }
@@ -760,18 +768,19 @@
       Other insights
     </p>
     <ul class="space-y-1.5">
-      @for (other of visibleInsights(); let i = $index; track other.id) {
+      @for (oc of insightCards(); let i = $index; track oc.insight.id) {
+      @let other = oc.insight;
       @if (other.id !== ins.id) {
       <li class="rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800" [attr.data-sv-other-insight]="other.id">
         <button type="button"
                 (click)="activeIndex.set(i)"
                 class="flex w-full items-center gap-3 rounded-xl px-3 pt-2 pb-1 text-left
                        focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-          <span [ngClass]="priorityDotClass(other.priority)" class="h-2 w-2 shrink-0 rounded-full"></span>
+          <span [ngClass]="oc.dotClass" class="h-2 w-2 shrink-0 rounded-full"></span>
           <span class="flex-1 truncate text-[12px] font-medium text-gray-700 dark:text-gray-300">
             {{ other.title }}
           </span>
-          <span [ngClass]="confidenceTextClass(other.confidence)"
+          <span [ngClass]="oc.confidenceInk"
                 class="shrink-0 text-[11px] font-bold tabular-nums">
             {{ other.confidence }}%
           </span>
@@ -779,7 +788,7 @@
         </button>
         <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pb-2 pl-8 pr-3
                     text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: other }" />
+          <ng-container *ngTemplateOutlet="provenance; context: { $implicit: oc }" />
         </div>
       </li>
       }
@@ -881,9 +890,10 @@
   } @else {
 
   <ul class="divide-y divide-gray-50 dark:divide-gray-800/60">
-    @for (row of anomalyRows(); track row.baseline.metric) {
+    @for (vm of anomalyRowVms(); track vm.row.baseline.metric) {
+    @let row = vm.row;
     <li class="px-5 py-3"
-        [attr.aria-label]="anomalyAriaLabel(row)"
+        [attr.aria-label]="vm.ariaLabel"
         [attr.data-sv-anomaly-row]="row.baseline.metric"
         [attr.data-sv-anomaly-severity]="row.anomaly.severity">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -914,7 +924,7 @@
         </div>
 
         <div class="flex items-center gap-3 shrink-0">
-          @if (anomalySpark(row.baseline.series); as points) {
+          @if (vm.spark; as points) {
           <svg viewBox="0 0 96 24" class="h-6 w-24 text-gray-300 dark:text-gray-600"
                aria-hidden="true" data-sv-anomaly-spark>
             <polyline [attr.points]="points" fill="none" stroke="currentColor" stroke-width="1.5" />
@@ -926,12 +936,12 @@
                              : row.anomaly.direction === 'above'
                                ? 'text-danger-600 dark:text-danger-400'
                                : 'text-accent-700 dark:text-accent-400'"
-                [title]="anomalyTitle(row.anomaly)"
+                [title]="vm.title"
                 data-sv-anomaly-sigma>
-            {{ fmtSigma(row.anomaly.sigma) }}
+            {{ vm.sigmaText }}
           </span>
           <span class="rounded-full px-2 py-px text-[9px] font-semibold"
-                [ngClass]="severityClass(row.anomaly.severity)"
+                [ngClass]="vm.severityClass"
                 data-sv-anomaly-badge>
             {{ row.anomaly.severity === 'none' ? 'normal' : row.anomaly.severity }}
           </span>
@@ -987,9 +997,9 @@
       an assertion with a percentage beside it. Each host variant wraps this in
       its own sizing; the runs below inherit it.
 -->
-<ng-template #provenance let-insight>
-  <span [attr.title]="confidenceLabel(insight)" data-sv-confidence-basis>{{ confidenceLabel(insight) }}</span>
-  @if (evidence(insight); as ev) {
+<ng-template #provenance let-card>
+  <span [attr.title]="card.confidenceText" data-sv-confidence-basis>{{ card.confidenceText }}</span>
+  @if (card.evidence; as ev) {
     @if (ev.href) {
     <a class="font-medium text-primary-700 hover:underline focus:outline-none focus-visible:underline
               focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm dark:text-primary-300"

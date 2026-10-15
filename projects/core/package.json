@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Styloviz UI Kit — core utilities, services, directives and design tokens shared by every component.",
   "keywords": [
     "angular",
@@ -24,7 +24,7 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

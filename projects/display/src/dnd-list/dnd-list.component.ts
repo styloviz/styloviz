@@ -19,7 +19,7 @@ import {
   warnOnDuplicateItemKeys,
   type SvDataError,
 } from '@styloviz/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 
 export type DndListVariant = 'default' | 'kanban' | 'checklist' | 'compact';
@@ -120,7 +120,7 @@ export interface DndItemChangeEvent {
   selector: 'sv-dnd-list',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe,
+  imports: [DatePipe, NgTemplateOutlet,
     SvEmptyShellComponent,
     SvErrorShellComponent,
     SvSkeletonShellComponent, SvIconComponent],
@@ -207,7 +207,18 @@ export class SvDndListComponent {
    */
   itemChanged = output<DndItemChangeEvent>();
 
-  /** Emitted with the clicked item. */
+  /**
+   * Render each item's label as a button that emits `itemClick` — for a list
+   * whose items open something (a detail panel, a task). @default false
+   *
+   * ★ DA-04 — `itemClick` used to be declared and documented with nothing that
+   *   emitted it. It is opt-in rather than always-on because a label button
+   *   that nobody listens to is a focusable control that does nothing: four
+   *   extra dead tab stops per row for every list that only reorders.
+   */
+  clickable = input<boolean>(false);
+
+  /** Emitted with the item whose label was activated (click, Enter or Space). Needs `clickable`. */
   itemClick = output<DndItem>();
 
   readonly dragIndex  = signal<number>(-1);

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/affix",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pin an element while the page scrolls, with the placeholder that stops the jump. Optional container boundary so a pinned sidebar parks at the end of its section instead of floating over the footer.",
   "keywords": [
     "angular",
@@ -26,7 +26,7 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/kbd",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A native `<kbd>` wrapper for rendering keyboard shortcuts and hint keys, with three visual variants and two sizes so every shortcut hint in the kit shares one styled source instead of one-off utility classes.",
   "keywords": [
     "angular",

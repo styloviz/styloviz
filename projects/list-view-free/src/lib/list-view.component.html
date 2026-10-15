@@ -265,7 +265,8 @@
     <div
       class="max-h-[420px] overflow-auto"
       data-lv-viewport
-      tabindex="-1"
+      [attr.tabindex]="viewportTabIndex()"
+      (focus)="onViewportFocus($event)"
       [style.height.px]="isVirtualized() ? viewportHeight() : null"
       (scroll)="onContainerScroll($event)"
     >
@@ -370,7 +371,8 @@
     <div
       class="max-h-[420px] overflow-auto"
       data-lv-viewport
-      tabindex="-1"
+      [attr.tabindex]="viewportTabIndex()"
+      (focus)="onViewportFocus($event)"
       (scroll)="onContainerScroll($event)"
     >
       @if (groupedItems().length === 0) {
@@ -426,7 +428,8 @@
     <div
       class="overflow-auto"
       data-lv-viewport
-      tabindex="-1"
+      [attr.tabindex]="viewportTabIndex()"
+      (focus)="onViewportFocus($event)"
       [style.height.px]="(isVirtualized() || isScrollingMode()) ? viewportHeight() : null"
       [style.max-height.px]="!isVirtualized() && !isScrollingMode() ? viewportHeight() : null"
       (scroll)="onContainerScroll($event)"

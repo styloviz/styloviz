@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/select-dropdown",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Single, multi-select, grouped and searchable dropdown with rich option rendering.",
   "keywords": [
     "angular",
@@ -25,8 +25,8 @@
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
     "@angular/forms": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

@@ -45,7 +45,7 @@
 <!-- ══════════════════════════════════════════════════════════════════════════
      Root wrapper
      ══════════════════════════════════════════════════════════════════════════ -->
-<div [ngClass]="['relative', customClass()]">
+<div class="relative" [class]="customClass()">
 
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -71,15 +71,15 @@
             <div class="h-28 flex flex-col justify-end pb-3 text-center px-3 w-full">
               @if (showTopContent(i)) {
                 @if (item.timestamp) {
-                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums block mb-1', timeClass()]">
+                  <time class="text-gray-500 dark:text-gray-400 tabular-nums block mb-1" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
-                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                   {{ item.title }}
                 </p>
                 @if (item.description) {
-                  <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+                  <p class="mt-0.5 text-gray-500 dark:text-gray-400" [class]="descClass()">
                     {{ item.description }}
                   </p>
                 }
@@ -90,14 +90,11 @@
             <div class="flex items-center w-full">
               <!-- Left half-line (invisible for first item) -->
               <div class="flex-1 h-0.5"
-                   [ngClass]="isFirst(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
+                   [class]="isFirst(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
               </div>
 
               <!-- Dot -->
-              <div [ngClass]="[
-                     'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
-                     dotClass(item), dotSize()
-                   ]"
+              <div class="relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4" [class]="dotClass(item) + ' ' + dotSize()"
                    [attr.role]="variantLabel(item) ? 'img' : null"
                    [attr.aria-label]="variantLabel(item)">
                 @if (dotIcon(item); as glyph) {
@@ -109,7 +106,7 @@
 
               <!-- Right half-line (invisible for last item) -->
               <div class="flex-1 h-0.5"
-                   [ngClass]="isLast(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
+                   [class]="isLast(i) ? 'invisible' : 'bg-gray-200 dark:bg-gray-700'">
               </div>
             </div>
 
@@ -117,15 +114,15 @@
             <div class="h-28 flex flex-col justify-start pt-3 text-center px-3 w-full">
               @if (showBottomContent(i)) {
                 @if (item.timestamp) {
-                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums block mb-1', timeClass()]">
+                  <time class="text-gray-500 dark:text-gray-400 tabular-nums block mb-1" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
-                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                   {{ item.title }}
                 </p>
                 @if (item.description) {
-                  <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+                  <p class="mt-0.5 text-gray-500 dark:text-gray-400" [class]="descClass()">
                     {{ item.description }}
                   </p>
                 }
@@ -174,17 +171,17 @@
                         </span>
                       }
                       @if (item.timestamp) {
-                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
                     </div>
                   }
-                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                     {{ item.title }}
                   </p>
                   @if (item.description) {
-                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                    <p class="mt-1 text-gray-500 dark:text-gray-400 leading-relaxed" [class]="descClass()">
                       {{ item.description }}
                     </p>
                   }
@@ -194,10 +191,7 @@
 
             <!-- ── CENTER dot (always visible) ── -->
             <div class="flex flex-col items-center shrink-0 sm:w-10 sm:relative sm:z-10">
-              <div [ngClass]="[
-                     'flex shrink-0 items-center justify-center rounded-full ring-4',
-                     dotClass(item), dotSize()
-                   ]"
+              <div class="flex shrink-0 items-center justify-center rounded-full ring-4" [class]="dotClass(item) + ' ' + dotSize()"
                    [attr.role]="variantLabel(item) ? 'img' : null"
                    [attr.aria-label]="variantLabel(item)">
                 @if (dotIcon(item); as glyph) {
@@ -213,13 +207,13 @@
             </div>
 
             <!-- ── RIGHT half (content for odd, empty for even — desktop; all items on mobile) ── -->
-            <div [ngClass]="i % 2 !== 0 ? 'sm:w-[calc(50%-1.25rem)] sm:pl-8 flex-1 min-w-0' : 'hidden sm:block sm:w-[calc(50%-1.25rem)] sm:pl-8'">
+            <div [class]="i % 2 !== 0 ? 'sm:w-[calc(50%-1.25rem)] sm:pl-8 flex-1 min-w-0' : 'hidden sm:block sm:w-[calc(50%-1.25rem)] sm:pl-8'">
               @if (i % 2 !== 0) {
                 <div class="pb-8 sm:max-w-xs">
                   @if (item.timestamp || item.badge) {
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                       @if (item.timestamp) {
-                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
@@ -231,11 +225,11 @@
                       }
                     </div>
                   }
-                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                     {{ item.title }}
                   </p>
                   @if (item.description) {
-                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                    <p class="mt-1 text-gray-500 dark:text-gray-400 leading-relaxed" [class]="descClass()">
                       {{ item.description }}
                     </p>
                   }
@@ -247,7 +241,7 @@
                   @if (item.timestamp || item.badge) {
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                       @if (item.timestamp) {
-                        <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
@@ -259,11 +253,11 @@
                       }
                     </div>
                   }
-                  <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                  <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                     {{ item.title }}
                   </p>
                   @if (item.description) {
-                    <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                    <p class="mt-1 text-gray-500 dark:text-gray-400 leading-relaxed" [class]="descClass()">
                       {{ item.description }}
                     </p>
                   }
@@ -295,7 +289,7 @@
                 <img [src]="item.avatarUrl" [alt]="item.actorName ?? item.title"
                      class="h-full w-full object-cover" loading="lazy" />
               } @else {
-                <div [ngClass]="['h-full w-full flex items-center justify-center text-white text-xs font-bold', avatarBg(item.actorName)]">
+                <div class="h-full w-full flex items-center justify-center text-white text-xs font-bold" [class]="avatarBg(item.actorName)">
                   {{ avatarInitials(item.actorName) }}
                 </div>
               }
@@ -318,13 +312,13 @@
                 }
               </p>
               @if (item.timestamp) {
-                <time [ngClass]="['shrink-0 text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                <time class="shrink-0 text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                   {{ item.timestamp }}
                 </time>
               }
             </div>
             @if (item.description) {
-              <p [ngClass]="[descClass(), 'mt-0.5 text-gray-500 dark:text-gray-400']">
+              <p class="mt-0.5 text-gray-500 dark:text-gray-400" [class]="descClass()">
                 {{ item.description }}
               </p>
             }
@@ -366,17 +360,17 @@
 
               @if (status === 'active') {
                 <!-- Pulsing ring for active step -->
-                <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40', pulseClass(item)]"></span>
+                <span class="absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40" [class]="pulseClass(item)"></span>
               }
 
               @if (status === 'complete') {
                 <!-- Complete: filled with checkmark -->
-                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40', dotSize()]">
+                <div class="relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40" [class]="dotSize()">
                   <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
                 </div>
               } @else if (status === 'active') {
                 <!-- Active: filled primary with dot icon -->
-                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60', dotSize()]">
+                <div class="relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60" [class]="dotSize()">
                   @if (item.icon) {
                     <sv-icon [name]="item.icon"
                              [cssClass]="'text-white ' + iconSize()"
@@ -387,7 +381,7 @@
                 </div>
               } @else {
                 <!-- Pending: hollow dot -->
-                <div [ngClass]="['relative flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600', dotSize()]">
+                <div class="relative flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600" [class]="dotSize()">
                   <span class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
                 </div>
               }
@@ -396,7 +390,7 @@
 
             <!-- Connector -->
             @if (showConnector() && !isLast(i)) {
-              <div [ngClass]="['w-0.5 flex-1 mt-1 mb-1 min-h-6', stepConnectorClass(status)]"></div>
+              <div class="w-0.5 flex-1 mt-1 mb-1 min-h-6" [class]="stepConnectorClass(status)"></div>
             }
 
           </div>
@@ -406,7 +400,7 @@
             @if (item.timestamp || item.badge) {
               <div class="flex flex-wrap items-center gap-2 mb-1">
                 @if (item.timestamp) {
-                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                  <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
@@ -418,23 +412,11 @@
                 }
               </div>
             }
-            <p [ngClass]="[
-                 titleClass(),
-                 status === 'pending'
-                   ? 'text-gray-500 dark:text-gray-400'
-                   : 'text-gray-900 dark:text-white',
-                 'leading-snug'
-               ]">
+            <p class="leading-snug" [class]="titleClass() + ' ' + (status === 'pending' ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white')">
               {{ item.title }}
             </p>
             @if (item.description) {
-              <p [ngClass]="[
-                   descClass(),
-                   status === 'pending'
-                     ? 'text-gray-300 dark:text-gray-600'
-                     : 'text-gray-500 dark:text-gray-400',
-                   'mt-1 leading-relaxed'
-                 ]">
+              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + (status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400')">
                 {{ item.description }}
               </p>
             }
@@ -455,17 +437,11 @@
     <ol class="space-y-0" [attr.aria-label]="listLabel(intentLabel())">
       @for (item of visibleItems(); track trackById($index, item); let i = $index) {
 
-        <li [ngClass]="[
-              'flex gap-x-4',
-              layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
-            ]">
+        <li class="flex gap-x-4" [class]="layout() === 'right' ? 'flex-row-reverse' : 'flex-row'">
 
           <!-- Dot column -->
           <div class="flex flex-col items-center">
-            <div [ngClass]="[
-                   'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
-                   dotClass(item), dotSize()
-                 ]"
+            <div class="relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4" [class]="dotClass(item) + ' ' + dotSize()"
                  [attr.role]="variantLabel(item) ? 'img' : null"
                  [attr.aria-label]="variantLabel(item)">
               @if (dotIcon(item); as glyph) {
@@ -480,7 +456,7 @@
           </div>
 
           <!-- Rich card content -->
-          <div [ngClass]="['flex-1 min-w-0 pb-6', layout() === 'right' ? 'flex justify-end' : '']">
+          <div class="flex-1 min-w-0 pb-6" [class]="layout() === 'right' ? 'flex justify-end' : ''">
             <div class="w-full max-w-sm rounded-2xl border border-gray-200 dark:border-gray-700
                         bg-white dark:bg-gray-900 shadow-sm overflow-hidden
                         transition-shadow hover:shadow-md">
@@ -496,7 +472,7 @@
                 @if (item.timestamp || item.badge) {
                   <div class="flex flex-wrap items-center gap-2 mb-2">
                     @if (item.timestamp) {
-                      <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                      <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                         {{ item.timestamp }}
                       </time>
                     }
@@ -510,13 +486,13 @@
                 }
 
                 <!-- Title -->
-                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                   {{ item.title }}
                 </p>
 
                 <!-- Description -->
                 @if (item.description) {
-                  <p [ngClass]="[descClass(), 'mt-1.5 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                  <p class="mt-1.5 text-gray-500 dark:text-gray-400 leading-relaxed" [class]="descClass()">
                     {{ item.description }}
                   </p>
                 }
@@ -525,7 +501,7 @@
                 @if (item.tags && item.tags.length > 0) {
                   <div class="flex flex-wrap gap-1.5 mt-3">
                     @for (tag of item.tags; track tag) {
-                      <span [ngClass]="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', tagColor(tag)]">
+                      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" [class]="tagColor(tag)">
                         {{ tag }}
                       </span>
                     }
@@ -562,7 +538,7 @@
       @for (group of groupedItems(); track trackByDate($index, group); let gi = $index) {
 
         <!-- Date header separator -->
-        <div class="flex items-center gap-3 mb-4" [ngClass]="gi > 0 ? 'mt-8' : ''">
+        <div class="flex items-center gap-3 mb-4" [class]="gi > 0 ? 'mt-8' : ''">
           <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
           <span class="shrink-0 text-xs font-semibold uppercase tracking-wider
                        text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-950 px-2">
@@ -575,17 +551,11 @@
         <ol [attr.aria-label]="groupListLabel(group.date)">
           @for (item of group.items; track item.id; let ii = $index) {
 
-            <li [ngClass]="[
-                  'flex gap-x-4',
-                  layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
-                ]">
+            <li class="flex gap-x-4" [class]="layout() === 'right' ? 'flex-row-reverse' : 'flex-row'">
 
               <!-- Dot column -->
               <div class="flex flex-col items-center">
-                <div [ngClass]="[
-                       'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
-                       dotClass(item), dotSize()
-                     ]"
+                <div class="relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4" [class]="dotClass(item) + ' ' + dotSize()"
                      [attr.role]="variantLabel(item) ? 'img' : null"
                      [attr.aria-label]="variantLabel(item)">
                   @if (dotIcon(item); as glyph) {
@@ -604,7 +574,7 @@
                 @if (item.timestamp || item.badge) {
                   <div class="flex flex-wrap items-center gap-2 mb-1">
                     @if (item.timestamp) {
-                      <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                      <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                         {{ item.timestamp }}
                       </time>
                     }
@@ -616,11 +586,11 @@
                     }
                   </div>
                 }
-                <p [ngClass]="[titleClass(), 'text-gray-900 dark:text-white leading-snug']">
+                <p class="text-gray-900 dark:text-white leading-snug" [class]="titleClass()">
                   {{ item.title }}
                 </p>
                 @if (item.description) {
-                  <p [ngClass]="[descClass(), 'mt-1 text-gray-500 dark:text-gray-400 leading-relaxed']">
+                  <p class="mt-1 text-gray-500 dark:text-gray-400 leading-relaxed" [class]="descClass()">
                     {{ item.description }}
                   </p>
                 }
@@ -658,10 +628,7 @@
                announced as nothing at all. `intent` decides it now, and
                `dotStyle` is back to being a picture.
         -->
-        <li [ngClass]="[
-              'flex gap-x-4',
-              layout() === 'right' ? 'flex-row-reverse' : 'flex-row'
-            ]"
+        <li class="flex gap-x-4" [class]="layout() === 'right' ? 'flex-row-reverse' : 'flex-row'"
             [attr.aria-current]="currentValue(status === 'active')">
 
           <!-- Screen-reader step status (stepper dot styles only) -->
@@ -675,28 +642,19 @@
             <!-- ─ dotStyle: NUMBER ─ -->
             @if (dotStyle() === 'number') {
               @if (status === 'complete') {
-                <div [ngClass]="[
-                       'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40',
-                       dotSize()
-                     ]">
+                <div class="relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40" [class]="dotSize()">
                   <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
                 </div>
               } @else if (status === 'active') {
                 <div class="relative flex shrink-0 items-center justify-center">
-                  <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40', pulseClass(item)]"></span>
-                  <div [ngClass]="[
-                         'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60',
-                         dotSize()
-                       ]">
-                    <span [ngClass]="['text-white', numberSize()]">{{ i + 1 }}</span>
+                  <span class="absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40" [class]="pulseClass(item)"></span>
+                  <div class="relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60" [class]="dotSize()">
+                    <span class="text-white" [class]="numberSize()">{{ i + 1 }}</span>
                   </div>
                 </div>
               } @else {
-                <div [ngClass]="[
-                       'flex shrink-0 items-center justify-center rounded-full ring-2 bg-gray-100 dark:bg-gray-800 ring-gray-300 dark:ring-gray-600',
-                       dotSize()
-                     ]">
-                  <span [ngClass]="['text-gray-500 dark:text-gray-400', numberSize()]">{{ i + 1 }}</span>
+                <div class="flex shrink-0 items-center justify-center rounded-full ring-2 bg-gray-100 dark:bg-gray-800 ring-gray-300 dark:ring-gray-600" [class]="dotSize()">
+                  <span class="text-gray-600 dark:text-gray-400" [class]="numberSize()">{{ i + 1 }}</span>
                 </div>
               }
             }
@@ -704,19 +662,13 @@
             <!-- ─ dotStyle: CHECK ─ -->
             @else if (dotStyle() === 'check') {
               @if (status === 'complete') {
-                <div [ngClass]="[
-                       'flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40',
-                       dotSize()
-                     ]">
+                <div class="flex shrink-0 items-center justify-center rounded-full ring-4 bg-accent-500 ring-accent-100 dark:ring-accent-900/40" [class]="dotSize()">
                   <sv-icon name="check" [cssClass]="['text-white', iconSize()].join(' ')" [strokeWidth]="2.5" />
                 </div>
               } @else if (status === 'active') {
                 <div class="relative flex shrink-0 items-center justify-center">
-                  <span [ngClass]="['absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40 bg-brandaccent-400']"></span>
-                  <div [ngClass]="[
-                         'relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60',
-                         dotSize()
-                       ]">
+                  <span class="absolute inset-0 rounded-full animate-ping motion-reduce:animate-none opacity-40 bg-brandaccent-400"></span>
+                  <div class="relative flex shrink-0 items-center justify-center rounded-full ring-4 bg-brandaccent-600 ring-brandaccent-200 dark:ring-brandaccent-900/60" [class]="dotSize()">
                     @if (item.icon) {
                       <sv-icon [name]="item.icon"
                                [cssClass]="'text-white ' + iconSize()"
@@ -727,10 +679,7 @@
                   </div>
                 </div>
               } @else {
-                <div [ngClass]="[
-                       'flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600',
-                       dotSize()
-                     ]">
+                <div class="flex shrink-0 items-center justify-center rounded-full ring-2 bg-white dark:bg-gray-900 ring-gray-300 dark:ring-gray-600" [class]="dotSize()">
                   <span class="h-2 w-2 rounded-full bg-gray-300 dark:bg-gray-600"></span>
                 </div>
               }
@@ -738,10 +687,7 @@
 
             <!-- ─ dotStyle: DOT (default) ─ -->
             @else {
-              <div [ngClass]="[
-                     'relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4',
-                     dotClass(item), dotSize()
-                   ]"
+              <div class="relative z-10 flex shrink-0 items-center justify-center rounded-full ring-4" [class]="dotClass(item) + ' ' + dotSize()"
                    [attr.role]="variantLabel(item) ? 'img' : null"
                    [attr.aria-label]="variantLabel(item)">
                 @if (dotIcon(item); as glyph) {
@@ -755,7 +701,7 @@
             <!-- Connector line -->
             @if (showConnector() && !isLast(i)) {
               @if (dotStyle() === 'check' || dotStyle() === 'number') {
-                <div [ngClass]="['w-0.5 flex-1 mt-1 mb-1 min-h-6', stepConnectorClass(status)]"></div>
+                <div class="w-0.5 flex-1 mt-1 mb-1 min-h-6" [class]="stepConnectorClass(status)"></div>
               } @else {
                 <div class="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mt-1 mb-1 min-h-6"></div>
               }
@@ -764,16 +710,7 @@
           </div>
 
           <!-- ── Content column ──────────────────────────────────────── -->
-          <div [ngClass]="[
-                 'flex-1 min-w-0 pb-6',
-                 layout() === 'right' ? 'text-right' : '',
-                 displayMode() === 'interactive'
-                   ? 'cursor-pointer rounded-lg -mx-2 px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brandaccent-400 ' +
-                     (isSelected(item)
-                       ? 'bg-brandaccent-50 dark:bg-brandaccent-900/25'
-                       : 'hover:bg-gray-50 dark:hover:bg-gray-800/50')
-                   : ''
-               ]"
+          <div class="flex-1 min-w-0 pb-6" [class]="(layout() === 'right' ? 'text-right' : '') + ' ' + (displayMode() === 'interactive' ? 'cursor-pointer rounded-lg -mx-2 px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brandaccent-400 ' + (isSelected(item) ? 'bg-brandaccent-50 dark:bg-brandaccent-900/25' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50') : '')"
                [attr.role]="displayMode() === 'interactive' ? 'button' : null"
                [attr.tabindex]="displayMode() === 'interactive' ? 0 : null"
                [attr.aria-pressed]="displayMode() === 'interactive' ? isSelected(item) : null"
@@ -782,12 +719,9 @@
 
             <!-- Timestamp + badge row -->
             @if (item.timestamp || item.badge) {
-              <div [ngClass]="[
-                     'flex flex-wrap items-center gap-2 mb-1',
-                     layout() === 'right' ? 'justify-end' : ''
-                   ]">
+              <div class="flex flex-wrap items-center gap-2 mb-1" [class]="layout() === 'right' ? 'justify-end' : ''">
                 @if (item.timestamp) {
-                  <time [ngClass]="['text-gray-500 dark:text-gray-400 tabular-nums', timeClass()]">
+                  <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
@@ -801,25 +735,13 @@
             }
 
             <!-- Title -->
-            <p [ngClass]="[
-                 titleClass(),
-                 (dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending'
-                   ? 'text-gray-500 dark:text-gray-400'
-                   : 'text-gray-900 dark:text-white',
-                 'leading-snug'
-               ]">
+            <p class="leading-snug" [class]="titleClass() + ' ' + ((dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending' ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white')">
               {{ item.title }}
             </p>
 
             <!-- Description -->
             @if (item.description) {
-              <p [ngClass]="[
-                   descClass(),
-                   (dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending'
-                     ? 'text-gray-300 dark:text-gray-600'
-                     : 'text-gray-500 dark:text-gray-400',
-                   'mt-1 leading-relaxed'
-                 ]">
+              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + ((dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400')">
                 {{ item.description }}
               </p>
             }

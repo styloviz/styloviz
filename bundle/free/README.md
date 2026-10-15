@@ -21,10 +21,10 @@ Prefer to install only what you use? Every component is also available individua
 
 ## Reproducible installs
 
-The bundle pins each dependency to an **exact** version, so `@styloviz/all@1.0.1` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
+The bundle pins each dependency to an **exact** version, so `@styloviz/all@1.0.2` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
 
 ```bash
-npm install @styloviz/all@1.0.1
+npm install @styloviz/all@1.0.2
 ```
 
 ## Upgrading to Pro

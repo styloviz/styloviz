@@ -8,6 +8,9 @@
  * | Variant | Description                                                 |
  * |---------|-------------------------------------------------------------|
  * | modal   | Centered lightbox dialog — image, rich text, dot pagination |
+ *
+ * @deprecated A single-value type that selects nothing. Kept so 1.x code
+ * compiles; removed in 2.0 together with the free `variant` input.
  */
 export type TourVariant = 'modal';
 

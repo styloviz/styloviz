@@ -87,7 +87,7 @@
           [attr.stroke]="bar.flagged ? FLAGGED_STROKE : null"
           [attr.stroke-width]="bar.flagged ? 1.5 : null"
           [attr.stroke-dasharray]="bar.flagged ? '4 3' : null"
-          [ngClass]="[bar.animClass, 'cursor-pointer outline-none transition-[fill-opacity] duration-150 hover:fill-opacity-100 focus-visible:fill-opacity-100']"
+          [ngClass]="[bar.animClass, 'cursor-pointer outline-none transition-[fill-opacity] duration-150 hover:[fill-opacity:1] focus-visible:[fill-opacity:1] focus-visible:stroke-2 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white']"
           [style.animation-delay]="bar.delay + 'ms'"
           tabindex="0"
           role="button"

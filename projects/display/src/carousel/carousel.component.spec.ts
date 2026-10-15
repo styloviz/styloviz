@@ -22,7 +22,8 @@ async function setup(inputs: Record<string, unknown> = {}, on: Record<string, un
   const { fixture } = await render(SvCarouselComponent, {
     inputs: { slides: SLIDES, ...inputs },
     on,
-    providers: [provideRouter([])],
+    // A catch-all route, so a CTA link a spec clicks navigates instead of logging NG04002.
+    providers: [provideRouter([{ path: '**', children: [] }])],
   });
   return fixture;
 }
@@ -518,5 +519,72 @@ describe('SvCarouselComponent — image priority', () => {
     const f = await setup({ slides: PHOTOS, priority: true });
     expect(imgs(f).map((i) => i.getAttribute('loading'))).toEqual(['eager', 'lazy']);
     expect(imgs(f).map((i) => i.getAttribute('fetchpriority'))).toEqual(['high', null]);
+  });
+});
+
+describe('SvCarouselComponent — call to action (DA-07)', () => {
+  /** The image-less layout used to render a type-less <button>: inside a form, a submit. */
+  it('declares type="button" on every button it renders, in both slide layouts', async () => {
+    const f = await setup({
+      slides: [
+        { id: 'plain', title: 'No image', cta: 'Plain' },
+        { id: 'pic', title: 'Image', image: '/p.png', cta: 'Pictured' },
+      ],
+    });
+    const buttons = qa(f, 'button');
+    expect(buttons.length).toBeGreaterThan(2);
+    expect(buttons.filter((b) => b.getAttribute('type') !== 'button').map((b) => b.outerHTML)).toEqual([]);
+  });
+
+  it('does not submit a form it sits in when the CTA is pressed', async () => {
+    const f = await setup({ slides: [{ id: 'plain', title: 'No image', cta: 'Plain' }] });
+    const form = document.createElement('form');
+    let submits = 0;
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submits++;
+    });
+    host(f).parentElement!.insertBefore(form, host(f));
+    form.appendChild(host(f));
+    const cta = qa(f, 'button').find((b) => b.textContent?.trim() === 'Plain')!;
+    cta.click();
+    expect(submits).toBe(0);
+    form.remove();
+  });
+
+  /** The image-less layout used to ignore `ctaLink` and render a dead button. */
+  it('renders the link for a routed CTA in the image-less layout too', async () => {
+    const f = await setup({ slides: [{ id: 'plain', title: 'No image', cta: 'Open', ctaLink: '/somewhere' }] });
+    const link = q(f, 'a[href]');
+    expect(link?.textContent).toContain('Open');
+    expect(link?.getAttribute('href')).toBe('/somewhere');
+  });
+
+  it.each([
+    ['image-less button', { id: 'plain', title: 'No image', cta: 'Go' }, 'button'],
+    ['image-less link', { id: 'plain', title: 'No image', cta: 'Go', ctaLink: '/x' }, 'a'],
+    ['image button', { id: 'pic', image: '/p.png', cta: 'Go' }, 'button'],
+    ['image link', { id: 'pic', image: '/p.png', cta: 'Go', ctaLink: '/x' }, 'a'],
+  ] as const)('emits ctaClick with the slide from the %s', async (_name, slide, tag) => {
+    const clicked: CarouselSlide[] = [];
+    const f = await setup({ slides: [slide] }, { ctaClick: (s: CarouselSlide) => clicked.push(s) });
+    const cta = qa(f, tag).find((el) => el.textContent?.trim().startsWith('Go'))!;
+    expect(cta).toBeTruthy();
+    cta.click();
+    expect(clicked).toEqual([slide]);
+  });
+
+  it('activates a button CTA from the keyboard', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const clicked: string[] = [];
+    const f = await setup(
+      { slides: [{ id: 'plain', title: 'No image', cta: 'Go' }] },
+      { ctaClick: (s: CarouselSlide) => clicked.push(s.id) },
+    );
+    const cta = qa(f, 'button').find((b) => b.textContent?.trim() === 'Go')!;
+    cta.focus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(clicked).toEqual(['plain', 'plain']);
   });
 });

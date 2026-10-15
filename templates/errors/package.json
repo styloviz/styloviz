@@ -1,6 +1,6 @@
 {
   "name": "styloviz-errors-template",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "404, 500, 503, maintenance and coming-soon pages, composed from sv-empty-state and sv-result. Slate/amber shell.",
   "private": true,
   "scripts": {
@@ -19,12 +19,12 @@
     "@angular/forms": "^22.2.0",
     "@angular/platform-browser": "^22.2.0",
     "@angular/router": "^22.2.0",
-    "@styloviz/button": "^1.0.1",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1",
-    "@styloviz/input-field": "^1.0.1",
-    "@styloviz/layout": "^1.0.1",
-    "@styloviz/toast": "^1.0.1",
+    "@styloviz/button": "^1.0.2",
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2",
+    "@styloviz/input-field": "^1.0.2",
+    "@styloviz/layout": "^1.0.2",
+    "@styloviz/toast": "^1.0.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.6.0"
   },

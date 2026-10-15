@@ -93,19 +93,7 @@
               }
               @if (slide.cta) {
                 <div class="mt-5">
-                  @if (slide.ctaLink) {
-                    <a [routerLink]="slide.ctaLink"
-                       [attr.tabindex]="current() === i ? null : -1"
-                       class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
-                      {{ slide.cta }}
-                      <sv-icon name="arrow-right" cssClass="h-4 w-4" [strokeWidth]="2.2" />
-                    </a>
-                  } @else {
-                    <button type="button"
-                            class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
-                      {{ slide.cta }}
-                    </button>
-                  }
+                  <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
                 </div>
               }
             </div>
@@ -126,10 +114,9 @@
             <p class="mt-2 text-sm text-white/80 md:text-base">{{ slide.subtitle }}</p>
           }
           @if (slide.cta) {
-            <button class="mt-4 rounded-full bg-white/20 px-5 py-2 text-sm font-semibold
-                           backdrop-blur-sm hover:bg-white/30 transition-colors">
-              {{ slide.cta }}
-            </button>
+            <div class="mt-4">
+              <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
+            </div>
           }
         </div>
       }
@@ -219,3 +206,26 @@
 </div>
 
 }<!-- /@else content -->
+
+<!-- One call-to-action for both slide layouts (DA-07). The image-less layout
+     used to render a bare <button> with no type — inside a host <form> it
+     submitted the form — that also ignored `ctaLink` and did nothing on click.
+     Both now render the link when the slide has a route, else a type="button"
+     button, and both report activation through `ctaClick`. -->
+<ng-template #ctaTpl let-slide let-i="index">
+  @if (slide.ctaLink) {
+    <a [routerLink]="slide.ctaLink"
+       [attr.tabindex]="current() === i ? null : -1"
+       class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+       (click)="ctaClick.emit(slide)">
+      {{ slide.cta }}
+      <sv-icon name="arrow-right" cssClass="h-4 w-4" [strokeWidth]="2.2" />
+    </a>
+  } @else {
+    <button type="button"
+            class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            (click)="ctaClick.emit(slide)">
+      {{ slide.cta }}
+    </button>
+  }
+</ng-template>

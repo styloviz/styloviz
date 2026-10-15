@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/anchor",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "An \"on this page\" navigation list that tracks scroll position with an IntersectionObserver and smooth-scrolls to a section on click. Vertical (side-rail) and horizontal (pill-row) layouts.",
   "keywords": [
     "angular",
@@ -25,7 +25,7 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

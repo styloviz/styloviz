@@ -142,3 +142,31 @@ describe('SvDndListComponent — kanban move controls are visible on focus', () 
     expect(right.getAttribute('aria-label')).toBe('Move Alpha right');
   });
 });
+
+/**
+ * ★ DA-04 — `itemClick` was declared and documented ("Sortable with item
+ *   click" in /docs) and nothing emitted it. It is opt-in through `clickable`:
+ *   a label button nobody listens to would be a focusable control that does
+ *   nothing, so without `clickable` the label stays text.
+ */
+const ALL_VARIANTS: DndListVariant[] = ['default', 'checklist', 'kanban', 'compact'];
+
+describe('SvDndListComponent — item activation (clickable / itemClick)', () => {
+  it.each(ALL_VARIANTS)('%s: a label is text, not a control, unless the list is clickable', async (variant) => {
+    const f = await setup(variant);
+    expect(qa(f, 'button[data-dnd-item-label]')).toHaveLength(0);
+    expect(qa(f, 'p[data-dnd-item-label]').map(p => p.textContent?.trim())).toEqual(['Alpha', 'Beta', 'Gamma']);
+  });
+
+  it.each(ALL_VARIANTS)('%s: a clickable label is a native button that emits its item', async (variant) => {
+    const clicked: DndItem[] = [];
+    const f = await setup(variant, { clickable: true }, { itemClick: (item: DndItem) => clicked.push(item) });
+    const buttons = qa(f, 'button[data-dnd-item-label]');
+    expect(buttons.map(b => b.textContent?.trim())).toEqual(['Alpha', 'Beta', 'Gamma']);
+    expect(buttons.every(b => b.getAttribute('type') === 'button')).toBe(true);
+
+    buttons[1].click();
+    expect(clicked.map(i => i.id)).toEqual(['b']);
+  });
+});
+

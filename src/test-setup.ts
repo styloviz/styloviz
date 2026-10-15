@@ -3,13 +3,22 @@
  * for every spec. Referenced by `vitest.config.ts` → `test.setupFiles`.
  */
 import '@analogjs/vite-plugin-angular/setup-vitest';
-import { getTestBed } from '@angular/core/testing';
+import { getTestBed, ɵgetCleanupHook as getCleanupHook } from '@angular/core/testing';
 import {
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting,
 } from '@angular/platform-browser-dynamic/testing';
 import { installAngularWarningGuard } from './testing/angular-warning-guard';
 import { installStaleFixtureGuard } from './testing/stale-fixture-guard';
+import { assertSuiteTimeZone } from './testing/suite-zone';
+import { installCrossFileHygiene } from './testing/cross-file-hygiene';
+
+/**
+ * The suite's time zone, checked in every worker before a spec runs — a run in
+ * the wrong zone fails here with a message naming the config, not later as a
+ * date assertion that looks like a component bug. See `testing/suite-zone.ts`.
+ */
+assertSuiteTimeZone();
 
 /**
  * ★★★ RESET FIRST, AND THAT ONE LINE IS WHAT LETS A SPEC FILE SHARE A PROCESS.
@@ -38,6 +47,28 @@ testBed.initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting(),
 );
+
+/**
+ * ★★★ ANGULAR'S PER-TEST TEARDOWN, RE-REGISTERED FOR EVERY FILE.
+ *
+ *     `@angular/core/testing` registers its TestBed teardown with
+ *     `globalThis.afterEach(getCleanupHook(true))` (and the `beforeEach` twin)
+ *     AT MODULE EVALUATION — and Vitest externalises node_modules, so a forked
+ *     worker evaluates that module once and caches it. Only the FIRST spec file
+ *     a worker runs gets the hooks. Every later file in the same process runs
+ *     with no TestBed reset between its tests, so the second `render()` throws
+ *     "Cannot configure the test module when the test module has already been
+ *     instantiated" — and which files fail depends on which file happened to
+ *     run first in that worker. Found sharding the suite for CI (DA-13): the
+ *     showcase API-reference spec failed after `data/controller.spec.ts` and
+ *     passed after any spec that rendered a component first.
+ *
+ *     This file runs once per spec file, so registering the same hooks here
+ *     gives every file Angular's teardown. In a worker's first file they run
+ *     twice; resetting an already-reset TestBed is a no-op.
+ */
+beforeEach(getCleanupHook(false));
+afterEach(getCleanupHook(true));
 
 /**
  * Turn an Angular `NG####` warning into a test failure, for the packages listed
@@ -171,3 +202,16 @@ installStaleFixtureGuard();
     Object.defineProperty(c, 'subtle', { value: webcrypto.subtle, configurable: true });
   }
 }
+
+/**
+ * Hand every spec file the environment the first one got. The `unit` pool
+ * shares one jsdom between the files a worker runs, so a node left in `<body>`
+ * or a `matchMedia` stub decided OTHER files' results — 97 failures in one
+ * directory run, none in isolation. See `src/testing/cross-file-hygiene.ts`.
+ *
+ * ★ LAST IN THIS FILE, after every polyfill above. The first call records the
+ *   pristine environment, and the restore after each file puts back exactly
+ *   that — recorded before the `scrollIntoView` stub, it deleted the stub, and
+ *   a kanban timer that fired after its file ended threw from jsdom.
+ */
+installCrossFileHygiene();

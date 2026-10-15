@@ -622,6 +622,53 @@ export class SvListViewComponent {
     this.enableRovingFocus() && this.focusableIds().length > 0 ? -1 : 0,
   );
 
+  /**
+   * Whether the row that owns the roving tab stop is in the DOM right now.
+   *
+   * ★★★ DA-45 — ONLY A FLAT WINDOWED LIST CAN STRAND IT. A host that restores
+   *     a saved cursor (`activeItemId`) far down a virtualized list while the
+   *     window is at the top rendered no row with `tabindex="0"` — and because
+   *     the rows own the stop, the region was `-1` as well. Tab skipped the
+   *     whole list (axe: `scrollable-region-focusable` on the viewport).
+   *     Nested and grouped lists render every focusable row (a collapsed
+   *     branch's children are not focusable), so they cannot strand it.
+   */
+  readonly tabStopRendered = computed(() => {
+    const id = this.tabStopId();
+    if (id === null || !this.isVirtualized() || this.isNested() || this.isGrouped()) return true;
+    return this.renderItems().some(item => item.id === id);
+  });
+
+  /**
+   * The scrolling viewport stands in for the tab stop while the row that owns
+   * it is outside the window, and hands focus to that row when a keyboard
+   * arrives (`onViewportFocus`). Otherwise `-1`: focusable by script only,
+   * which is how `rescueFocus` parks focus when a scroll unmounts the row.
+   */
+  readonly viewportTabIndex = computed<0 | -1>(() =>
+    this.enableRovingFocus() && !this.tabStopRendered() ? 0 : -1,
+  );
+
+  /** True while `rescueFocus` parks focus on the viewport, so it is not handed back. */
+  private parkingFocus = false;
+
+  /**
+   * Focus arrived on the viewport itself. When it is standing in for the tab
+   * stop and the focus came from the keyboard, bring the cursor row into the
+   * window and move focus onto it — Tab lands where the user left off.
+   *
+   * ★ Keyboard only. `:focus-visible` is how the platform tells a Tab from a
+   *   pointer: a press on the viewport's scrollbar must not throw the reader
+   *   back to the cursor row they have just scrolled away from.
+   */
+  onViewportFocus(event: FocusEvent): void {
+    if (this.parkingFocus || this.viewportTabIndex() !== 0) return;
+    const el = event.currentTarget as HTMLElement | null;
+    if (!el || event.target !== el || !isKeyboardFocus(el)) return;
+    const id = this.tabStopId();
+    if (id !== null) this.focusRow(id);
+  }
+
   /** `X-10` typeahead over row titles — type "ma" to reach "Marketing". */
   private readonly typeahead = createTypeahead<ListViewItem>({ labelOf: item => item.title });
 
@@ -682,7 +729,12 @@ export class SvListViewComponent {
     const id = row.dataset['lvId'];
     if (id !== undefined && this.renderItems().some(item => String(item.id) === id)) return;
 
-    this.viewportEl()?.focus({ preventScroll: true });
+    this.parkingFocus = true;
+    try {
+      this.viewportEl()?.focus({ preventScroll: true });
+    } finally {
+      this.parkingFocus = false;
+    }
   }
 
   /** The scrolling element — where the offset is read from and written to. */
@@ -1325,5 +1377,19 @@ export class SvListViewComponent {
       }
     }
     return total;
+  }
+}
+
+/**
+ * Whether `el`'s focus came from the keyboard. `:focus-visible` is the
+ * platform's own heuristic; an engine that does not know the selector throws,
+ * and then the keyboard reading is the safe one — a stranded tab stop is the
+ * worse failure.
+ */
+function isKeyboardFocus(el: HTMLElement): boolean {
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return true;
   }
 }

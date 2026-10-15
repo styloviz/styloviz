@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { NgClass, isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser } from '@angular/common';
 /*
  * ⚠️ THIS IMPORT IS WHY `tsconfig.lib.json` CARRIES A `paths` OVERRIDE, and the
  *    package did not build at all without it.
@@ -103,7 +103,6 @@ export type SkeletonPreset =
 @Component({
   selector: 'sv-skeleton-loader',
   standalone: true,
-  imports: [NgClass],
   templateUrl: './skeleton-loader.component.html',
   styleUrl: './skeleton-loader.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

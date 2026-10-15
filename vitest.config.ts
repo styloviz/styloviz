@@ -6,8 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 // A suite at UTC cannot catch a local-vs-UTC date bug, and a positive offset
 // hides the commonest one; the date specs assert against this zone. Set here,
-// before any worker starts, or Date never sees it. `TZ=UTC npm test` overrides.
-process.env.TZ ??= 'Pacific/Marquesas';
+// before any worker starts, or Date never sees it — forced, so a TZ the shell
+// already exports cannot quietly switch it off. `SV_TEST_TZ=UTC npm test` overrides.
+process.env.TZ = process.env.SV_TEST_TZ?.trim() || 'Pacific/Marquesas';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const tsconfig = JSON.parse(readFileSync(resolve(root, 'tsconfig.json'), 'utf8'));

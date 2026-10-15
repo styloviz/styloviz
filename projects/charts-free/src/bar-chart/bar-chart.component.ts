@@ -33,6 +33,7 @@ import {
   roundedRightRectPath,
   roundedTopRectPath,
 } from './bar-chart.utils';
+import { axisLabelRoom } from './bar-chart.layout';
 
 // Re-export public API so consumers only need to import from this file
 export type { BarChartDataset, BarChartOptions, BarChartOrientation } from './bar-chart.types';
@@ -237,11 +238,23 @@ export class SvBarChartComponent {
   // ── SVG geometry constants ────────────────────────────────────────────────
 
   readonly SVG_WIDTH  = 600;
+  /** The base margins. `left` grows for horizontal bars to fit their labels — read `padding()`. */
   readonly PADDING    = { top: 24, right: 24, bottom: 56, left: 56 };
 
+  /**
+   * The margins actually used. Horizontal bars put the category labels in the
+   * left margin, so it is sized from them rather than fixed — a fixed 56 cut
+   * "Product A" off by 2.4 px where the font measured slightly wider.
+   */
+  readonly padding = computed(() =>
+    this.orientation() === 'horizontal' && this.showLabels()
+      ? { ...this.PADDING, left: axisLabelRoom(this.categories(), 11, this.PADDING.left) }
+      : this.PADDING,
+  );
+
   svgHeight = computed(() => this.height());
-  plotW     = computed(() => this.SVG_WIDTH - this.PADDING.left - this.PADDING.right);
-  plotH     = computed(() => this.svgHeight() - this.PADDING.top - this.PADDING.bottom);
+  plotW     = computed(() => this.SVG_WIDTH - this.padding().left - this.padding().right);
+  plotH     = computed(() => this.svgHeight() - this.padding().top - this.padding().bottom);
 
   // ── Resolved options ──────────────────────────────────────────────────────
 

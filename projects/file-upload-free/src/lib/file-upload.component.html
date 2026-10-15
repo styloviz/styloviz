@@ -108,10 +108,10 @@
               </span>
             </div>
             <div class="mt-0.5 flex items-center gap-2">
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatSize(file.size) }}</span>
+              <span class="text-xs text-gray-600 dark:text-gray-400">{{ formatSize(file.size) }}</span>
 
               @if (file.status === 'uploading') {
-                <span class="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{{ file.progress }}%</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400 tabular-nums">{{ file.progress }}%</span>
               } @else if (file.scan === 'flagged') {
                 <!--
                   ★★★ CHECKED BEFORE `success`, AND IT HAS TO BE. The upload
@@ -122,7 +122,7 @@
                   with no reason is a dead end for someone holding a file they
                   believe is fine.
                 -->
-                <span class="flex items-center gap-1 text-xs font-medium text-danger-600 dark:text-danger-400">
+                <span class="flex items-center gap-1 text-xs font-medium text-danger-700 dark:text-danger-400">
                   <sv-icon name="alert-triangle" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                   {{ file.scanReason ?? 'Blocked by a security scan' }}
                 </span>
@@ -143,14 +143,14 @@
                   Uploaded
                 </span>
               } @else if (file.status === 'error') {
-                <span class="flex items-center gap-1 text-xs font-medium text-danger-600 dark:text-danger-400">
+                <span class="flex items-center gap-1 text-xs font-medium text-danger-700 dark:text-danger-400">
                   <sv-icon name="alert-circle"
                            cssClass="h-3 w-3"
                            [strokeWidth]="2.5" />
                   {{ file.errorMsg ?? 'Upload failed' }}
                 </span>
               } @else {
-                <span class="text-xs text-gray-500 dark:text-gray-400">Pending</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400">Pending</span>
               }
             </div>
 

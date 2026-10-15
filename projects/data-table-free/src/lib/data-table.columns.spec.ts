@@ -1,5 +1,8 @@
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import {
+  DtAutoFocusDirective,
   SvDataTableComponent,
   type EditCompleteEvent,
   type TableColumn,
@@ -401,6 +404,15 @@ describe('SvDataTableComponent — inline editing', () => {
     expect(c.getCellClass(EDITABLE[1])).not.toContain('cursor-pointer');
   });
 
+  it('moves focus into the editor once it renders', async () => {
+    const { el, fixture } = await setup({ columns: EDITABLE });
+    el.querySelector<HTMLTableCellElement>('tbody td')!
+      .dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(el.querySelector('input[aria-label="Edit cell value"]'));
+  });
+
   it('opens an input seeded with the current value on double-click', async () => {
     const { el, c, fixture } = await setup({ columns: EDITABLE });
     el.querySelector<HTMLTableCellElement>('tbody td')!
@@ -706,5 +718,41 @@ describe('SvDataTableComponent — scroll container', () => {
   it('drops the scroll hint entirely when it is turned off', async () => {
     const { el } = await setup({ showScrollHint: false });
     expect(el.querySelector('[aria-hidden="true"].pointer-events-none')).toBeNull();
+  });
+});
+
+
+/**
+ * DA-07 — `svDtAutoFocus` is a signal input now, focusing after the first
+ * render. It was `@Input() enabled = true` with a 0 ms timer, under which a
+ * bare `svDtAutoFocus` attribute bound `''` and quietly switched focusing off.
+ */
+describe('DtAutoFocusDirective', () => {
+  @Component({
+    imports: [DtAutoFocusDirective],
+    template: `<input aria-label="bare" svDtAutoFocus />`,
+  })
+  class BareHost {}
+
+  @Component({
+    imports: [DtAutoFocusDirective],
+    template: `<input aria-label="off" [svDtAutoFocus]="false" />`,
+  })
+  class OffHost {}
+
+  afterEach(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  it('focuses its host after the first render when the attribute is bare', async () => {
+    const f = TestBed.createComponent(BareHost);
+    f.detectChanges();
+    await f.whenStable();
+    expect(document.activeElement).toBe(f.nativeElement.querySelector('input'));
+  });
+
+  it('leaves focus alone when bound to false', async () => {
+    const f = TestBed.createComponent(OffHost);
+    f.detectChanges();
+    await f.whenStable();
+    expect(document.activeElement).not.toBe(f.nativeElement.querySelector('input'));
   });
 });

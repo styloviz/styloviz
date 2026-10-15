@@ -12,6 +12,11 @@ import { SvSparklineComponent } from '@styloviz/sparkline';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+/**
+ * @deprecated The free card has one colour treatment, so this type has one
+ * value and changes nothing. Kept so 1.x code compiles; removed in 2.0. The six
+ * semantic colour variants are Pro: `sv-stat-card-pro [variant]`.
+ */
 export type StatCardVariant = 'default';
 export type StatCardTrend   = 'up' | 'down' | 'neutral';
 export type StatCardLayout  = 'default' | 'compact' | 'horizontal' | 'minimal';
@@ -24,7 +29,7 @@ export interface SparkPoint {
 
 /**
  * All data needed to render a StatCard.
- * Pass these individually via @Input() or compose them into a stats object.
+ * Pass these individually as inputs or compose them into a stats object.
  */
 export interface StatCardData {
   title:        string;
@@ -38,6 +43,7 @@ export interface StatCardData {
   trendLabel?:  string;        // e.g. "vs last month"
   /** Name of an icon in `@styloviz/icons` (was a raw SVG path + viewBox). */
   icon?:        string;
+  /** @deprecated Has no effect on the free card; removed in 2.0. See {@link StatCardVariant}. */
   variant?:     StatCardVariant;
   sparkline?:   SparkPoint[];
   loading?:     boolean;
@@ -52,7 +58,7 @@ export interface StatCardData {
  *
  * Features:
  * - 4 layout modes: default · compact · horizontal · minimal
- * - 6 semantic color variants with icon tinting
+ * - Neutral colour treatment (the six semantic colour variants are Pro: `sv-stat-card-pro [variant]`)
  * - Trend indicator (up / down / neutral) with % and absolute delta
  * - Inline SVG sparkline chart (no external lib)
  * - Skeleton loading state
@@ -121,7 +127,13 @@ export class SvStatCardComponent {
 
   // ── Appearance ────────────────────────────────────────────────────────────
 
-  /** Color variant — drives icon background, accent line and trend colors. @default 'default' */
+  /**
+   * Deprecated, and has no effect: the free card has one colour treatment.
+   *
+   * @deprecated Kept so 1.x templates compile; removed in 2.0. For the six
+   * semantic colour variants use `sv-stat-card-pro [variant]`.
+   * @default 'default'
+   */
   variant = input<StatCardVariant>('default');
 
   /** Card layout mode. @default 'default' */
@@ -173,7 +185,13 @@ export class SvStatCardComponent {
 
   // ── Outputs ───────────────────────────────────────────────────────────────
 
-  /** Emitted when the card body is clicked (the full card is interactive). */
+  /**
+   * Deprecated, and never emitted: the free card is not interactive.
+   *
+   * @deprecated Kept so 1.x templates compile; removed in 2.0. For a card that
+   * activates on click, Enter or Space use `sv-stat-card-pro [clickable]`
+   * with its `(cardClick)`.
+   */
   cardClick  = output<void>();
 
   /** Emitted when the "view more" link is clicked. */

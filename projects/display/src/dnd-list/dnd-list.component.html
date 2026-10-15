@@ -13,6 +13,22 @@
   <sv-empty-shell reason="no-data" [title]="emptyText()" data-sv-state="empty" />
 } @else {
 
+<!-- ★ DA-04 — ONE label for all four layouts, so they cannot drift. With
+     `clickable` it is a native button (Enter and Space for free, and a sibling
+     of the row's other controls rather than a wrapper around them); without it,
+     plain text. -->
+<ng-template #itemLabel let-item let-cls="cls">
+  @if (clickable()) {
+    <button type="button"
+            data-dnd-item-label
+            class="rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            [class]="cls"
+            (click)="itemClick.emit(item)">{{ item.label }}</button>
+  } @else {
+    <p data-dnd-item-label [class]="cls">{{ item.label }}</p>
+  }
+</ng-template>
+
 <div class="w-full">
   <!-- Screen-reader live region for reorder / remove / complete actions -->
   <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ liveMessage() }}</div>
@@ -83,9 +99,8 @@
             <!-- Content -->
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <p class="truncate text-sm font-semibold" [class]="labelTone(item)">
-                  {{ item.label }}
-                </p>
+                <ng-container [ngTemplateOutlet]="itemLabel"
+                              [ngTemplateOutletContext]="{ $implicit: item, cls: 'min-w-0 truncate text-sm font-semibold ' + labelTone(item) }" />
                 @if (item.badge) {
                   <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                     {{ item.badge }}
@@ -218,9 +233,8 @@
 
           <!-- Label -->
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium transition-all" [class]="labelTone(item)">
-              {{ item.label }}
-            </p>
+            <ng-container [ngTemplateOutlet]="itemLabel"
+                          [ngTemplateOutletContext]="{ $implicit: item, cls: 'text-sm font-medium transition-all ' + labelTone(item) }" />
             @if (item.sublabel && !item.completed) {
               <p class="text-[11px] text-gray-500 dark:text-gray-400 truncate">{{ item.sublabel }}</p>
             }
@@ -326,9 +340,8 @@
                 </div>
               }
 
-              <p class="text-[12px] font-semibold leading-snug" [class]="labelTone(item)">
-                {{ item.label }}
-              </p>
+              <ng-container [ngTemplateOutlet]="itemLabel"
+                            [ngTemplateOutletContext]="{ $implicit: item, cls: 'text-[12px] font-semibold leading-snug ' + labelTone(item) }" />
 
               @if (item.sublabel) {
                 <p class="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2">{{ item.sublabel }}</p>
@@ -439,7 +452,8 @@
             <span class="h-2 w-2 shrink-0 rounded-full" [class]="priorityDot[item.priority]"></span>
           }
 
-          <p class="min-w-0 flex-1 truncate text-[12px] font-medium text-gray-700 dark:text-gray-300">{{ item.label }}</p>
+          <ng-container [ngTemplateOutlet]="itemLabel"
+                        [ngTemplateOutletContext]="{ $implicit: item, cls: 'min-w-0 flex-1 truncate text-[12px] font-medium text-gray-700 dark:text-gray-300' }" />
 
           @if (item.assignee) {
             <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"

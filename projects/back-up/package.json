@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/back-up",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Back and Up as two different controls, because they are two different promises: back is history and may leave the site, up is hierarchy and is always defined. A back control with nothing behind it goes up rather than dead-ending, and says which it did.",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

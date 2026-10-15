@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/timeline",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "9 premium variations: horizontal, alternate zigzag, numbered stepper, check stepper, activity feed, status tracker, rich card, date-grouped and interactive (clickable rows).",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

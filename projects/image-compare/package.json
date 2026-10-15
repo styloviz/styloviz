@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/image-compare",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A before/after wipe that admits when it is not one: it measures both images' intrinsic sizes and says so when their aspect ratios disagree, because then part of what the reader sees as \"the change\" is the crop.",
   "keywords": [
     "angular",
@@ -28,8 +28,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^1.0.1",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/icons": "^1.0.2",
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/sparkline",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Micro-chart small enough to live in a table cell, list row or stat card. Four encodings — line, area, bar and win/loss — with optional smoothing, last-point and extreme markers, a dashed reference baseline and a pinnable domain. Pure SVG, zero dependencies.",
   "keywords": [
     "angular",
@@ -23,7 +23,7 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

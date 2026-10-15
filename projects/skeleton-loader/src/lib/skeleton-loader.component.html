@@ -27,7 +27,7 @@
      the button — and still no live region of its own.
 -->
 <div
-  [ngClass]="['w-full', customClass()]"
+  class="w-full" [class]="customClass()"
   [attr.role]="announce() ? 'status' : null"
   [attr.aria-label]="announce() ? ariaLabel() : null"
   [attr.aria-hidden]="announce() || retryOffered() ? null : 'true'"
@@ -36,13 +36,13 @@
   <!-- ════════════════════ PRESET: text-block ════════════════════════════ -->
   @if (preset() === 'text-block') {
     <div class="space-y-2.5">
-      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+      <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
            [style.height]="lineH()"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+      <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
            [style.height]="lineH()"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+      <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
            [style.height]="lineH()"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'w-[65%] rounded-md']"
+      <div class="w-[65%] rounded-md" [class]="boneBase() + ' ' + waveClass()"
            [style.height]="lineH()"></div>
     </div>
   }
@@ -51,18 +51,18 @@
   @if (preset() === 'paragraph') {
     <div class="flex gap-3">
       <div
-        [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+        class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
         [style.width]="avatarSz()"
         [style.height]="avatarSz()"
       ></div>
       <div class="flex-1 space-y-2.5 pt-1">
-        <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+        <div class="w-3/5 rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+        <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+        <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'w-[55%] rounded-md']"
+        <div class="w-[55%] rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
       </div>
     </div>
@@ -72,19 +72,19 @@
   @if (preset() === 'card') {
     <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-800">
       <!-- Image area -->
-      <div [ngClass]="[boneBase(), waveClass(), 'h-40 w-full rounded-none']"></div>
+      <div class="h-40 w-full rounded-none" [class]="boneBase() + ' ' + waveClass()"></div>
       <div class="space-y-3 p-4">
         <!-- Title -->
-        <div [ngClass]="[boneBase(), waveClass(), 'h-4 w-3/4 rounded-md']"></div>
+        <div class="h-4 w-3/4 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
         <!-- Body lines -->
-        <div [ngClass]="[boneBase(), waveClass(), 'w-full rounded-md']"
+        <div class="w-full rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'w-[70%] rounded-md']"
+        <div class="w-[70%] rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
         <!-- Footer -->
         <div class="flex items-center justify-between pt-1">
-          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-20 rounded-full']"></div>
-          <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-24 rounded-lg']"></div>
+          <div class="h-6 w-20 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+          <div class="h-8 w-24 rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
         </div>
       </div>
     </div>
@@ -111,16 +111,16 @@
       -->
       <!-- Icon + label -->
       <div class="flex items-center justify-between">
-        <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-20 rounded-full']"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-8 rounded-xl']"
+        <div class="h-3 w-20 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+        <div class="h-8 w-8 rounded-xl" [class]="boneBase() + ' ' + waveClass()"
              [style.width]="statIconSz()" [style.height]="statIconSz()"></div>
       </div>
       <!-- Big number -->
-      <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-28 rounded-md']"></div>
+      <div class="h-7 w-28 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
       <!-- Trend chip + label -->
       <div class="flex items-center gap-2">
-        <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-12 rounded-full']"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-16 rounded-full']"></div>
+        <div class="h-5 w-12 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+        <div class="h-3 w-16 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
       </div>
     </div>
   }
@@ -128,13 +128,13 @@
   <!-- ════════════════════ PRESET: table-row ═════════════════════════════ -->
   @if (preset() === 'table-row') {
     <div class="flex items-center gap-4 px-4 py-3">
-      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+      <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
            [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 flex-1 rounded-md']"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-24 rounded-md hidden sm:block']"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-16 rounded-full hidden md:block']"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-20 rounded-md hidden lg:block']"></div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-7 rounded-md']"></div>
+      <div class="h-3.5 flex-1 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
+      <div class="h-3.5 w-24 rounded-md hidden sm:block" [class]="boneBase() + ' ' + waveClass()"></div>
+      <div class="h-5 w-16 rounded-full hidden md:block" [class]="boneBase() + ' ' + waveClass()"></div>
+      <div class="h-3.5 w-20 rounded-md hidden lg:block" [class]="boneBase() + ' ' + waveClass()"></div>
+      <div class="h-7 w-7 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
     </div>
   }
 
@@ -144,24 +144,24 @@
       <!-- Header -->
       <div class="flex items-center gap-4 border-b border-gray-200 bg-gray-50 px-4 py-3
                   dark:border-gray-800 dark:bg-gray-800/50">
-        <div [ngClass]="[boneBase(), 'h-3 w-4 rounded opacity-50']"></div>
-        <div [ngClass]="[boneBase(), 'h-3 flex-1 rounded opacity-50']"></div>
-        <div [ngClass]="[boneBase(), 'h-3 w-24 rounded hidden sm:block opacity-50']"></div>
-        <div [ngClass]="[boneBase(), 'h-3 w-16 rounded hidden md:block opacity-50']"></div>
-        <div [ngClass]="[boneBase(), 'h-3 w-20 rounded hidden lg:block opacity-50']"></div>
-        <div [ngClass]="[boneBase(), 'h-3 w-7 rounded opacity-50']"></div>
+        <div class="h-3 w-4 rounded opacity-50" [class]="boneBase()"></div>
+        <div class="h-3 flex-1 rounded opacity-50" [class]="boneBase()"></div>
+        <div class="h-3 w-24 rounded hidden sm:block opacity-50" [class]="boneBase()"></div>
+        <div class="h-3 w-16 rounded hidden md:block opacity-50" [class]="boneBase()"></div>
+        <div class="h-3 w-20 rounded hidden lg:block opacity-50" [class]="boneBase()"></div>
+        <div class="h-3 w-7 rounded opacity-50" [class]="boneBase()"></div>
       </div>
       <!-- Rows -->
       <div class="divide-y divide-gray-100 dark:divide-gray-800">
         @for (_ of [0,1,2,3,4]; track $index) {
           <div class="flex items-center gap-4 px-4 py-3">
-            <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+            <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
                  [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 flex-1 rounded-md']"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-24 rounded-md hidden sm:block']"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-16 rounded-full hidden md:block']"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-3.5 w-20 rounded-md hidden lg:block']"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-7 rounded-md']"></div>
+            <div class="h-3.5 flex-1 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
+            <div class="h-3.5 w-24 rounded-md hidden sm:block" [class]="boneBase() + ' ' + waveClass()"></div>
+            <div class="h-5 w-16 rounded-full hidden md:block" [class]="boneBase() + ' ' + waveClass()"></div>
+            <div class="h-3.5 w-20 rounded-md hidden lg:block" [class]="boneBase() + ' ' + waveClass()"></div>
+            <div class="h-7 w-7 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
           </div>
         }
       </div>
@@ -171,15 +171,15 @@
   <!-- ════════════════════ PRESET: list-item ═════════════════════════════ -->
   @if (preset() === 'list-item') {
     <div class="flex items-center gap-3">
-      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+      <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
            [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
       <div class="flex flex-1 flex-col gap-2 min-w-0">
-        <div [ngClass]="[boneBase(), waveClass(), 'w-2/5 rounded-md']"
+        <div class="w-2/5 rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+        <div class="w-3/5 rounded-md" [class]="boneBase() + ' ' + waveClass()"
              [style.height]="lineH()"></div>
       </div>
-      <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-14 shrink-0 rounded-full']"></div>
+      <div class="h-5 w-14 shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
     </div>
   }
 
@@ -188,15 +188,15 @@
     <div class="divide-y divide-gray-100 dark:divide-gray-800">
       @for (_ of [0,1,2,3,4]; track $index) {
         <div class="flex items-center gap-3 py-3">
-          <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+          <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
                [style.width]="avatarSz()" [style.height]="avatarSz()"></div>
           <div class="flex flex-1 flex-col gap-2 min-w-0">
-            <div [ngClass]="[boneBase(), waveClass(), 'w-2/5 rounded-md']"
+            <div class="w-2/5 rounded-md" [class]="boneBase() + ' ' + waveClass()"
                  [style.height]="lineH()"></div>
-            <div [ngClass]="[boneBase(), waveClass(), 'w-3/5 rounded-md']"
+            <div class="w-3/5 rounded-md" [class]="boneBase() + ' ' + waveClass()"
                  [style.height]="lineH()"></div>
           </div>
-          <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-14 shrink-0 rounded-full']"></div>
+          <div class="h-5 w-14 shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
         </div>
       }
     </div>
@@ -206,24 +206,24 @@
   @if (preset() === 'profile-header') {
     <div class="flex flex-col items-center gap-4 py-6 sm:flex-row sm:items-start sm:gap-6">
       <!-- Large avatar -->
-      <div [ngClass]="[boneBase(), waveClass(), 'shrink-0 rounded-full']"
+      <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
            style="width: 5rem; height: 5rem;"></div>
       <div class="flex-1 space-y-2.5 text-center sm:text-left">
         <!-- Name -->
-        <div [ngClass]="[boneBase(), waveClass(), 'mx-auto h-5 w-48 rounded-md sm:mx-0']"></div>
+        <div class="mx-auto h-5 w-48 rounded-md sm:mx-0" [class]="boneBase() + ' ' + waveClass()"></div>
         <!-- Role -->
-        <div [ngClass]="[boneBase(), waveClass(), 'mx-auto h-3.5 w-32 rounded-full sm:mx-0']"></div>
+        <div class="mx-auto h-3.5 w-32 rounded-full sm:mx-0" [class]="boneBase() + ' ' + waveClass()"></div>
         <!-- Meta chips -->
         <div class="flex justify-center gap-2 pt-1 sm:justify-start">
-          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-20 rounded-full']"></div>
-          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-24 rounded-full']"></div>
-          <div [ngClass]="[boneBase(), waveClass(), 'h-6 w-16 rounded-full']"></div>
+          <div class="h-6 w-20 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+          <div class="h-6 w-24 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+          <div class="h-6 w-16 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
         </div>
       </div>
       <!-- Action buttons -->
       <div class="flex gap-2 shrink-0">
-        <div [ngClass]="[boneBase(), waveClass(), 'h-9 w-24 rounded-lg']"></div>
-        <div [ngClass]="[boneBase(), waveClass(), 'h-9 w-9 rounded-lg']"></div>
+        <div class="h-9 w-24 rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
+        <div class="h-9 w-9 rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
       </div>
     </div>
   }
@@ -234,14 +234,14 @@
       @for (_ of [0,1,2]; track $index) {
         <div class="space-y-1.5">
           <!-- Label -->
-          <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-24 rounded-full']"></div>
+          <div class="h-3 w-24 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
           <!-- Input field -->
-          <div [ngClass]="[boneBase(), waveClass(), 'h-10 w-full rounded-lg']"></div>
+          <div class="h-10 w-full rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
         </div>
       }
       <!-- Submit button -->
       <div class="flex justify-end pt-2">
-        <div [ngClass]="[boneBase(), waveClass(), 'h-10 w-32 rounded-lg']"></div>
+        <div class="h-10 w-32 rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
       </div>
     </div>
   }
@@ -258,13 +258,13 @@
                  pinned to `sv-stat-card` by the same gate: three cards drifting
                  together is still three cards in the wrong place. -->
             <div class="flex items-center justify-between">
-              <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-20 rounded-full']"></div>
-              <div [ngClass]="[boneBase(), waveClass(), 'h-8 w-8 rounded-xl']"></div>
+              <div class="h-3 w-20 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+              <div class="h-8 w-8 rounded-xl" [class]="boneBase() + ' ' + waveClass()"></div>
             </div>
-            <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-28 rounded-md']"></div>
+            <div class="h-7 w-28 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
             <div class="flex items-center gap-2">
-              <div [ngClass]="[boneBase(), waveClass(), 'h-5 w-12 rounded-full']"></div>
-              <div [ngClass]="[boneBase(), waveClass(), 'h-3 w-16 rounded-full']"></div>
+              <div class="h-5 w-12 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
+              <div class="h-3 w-16 rounded-full" [class]="boneBase() + ' ' + waveClass()"></div>
             </div>
           </div>
         }
@@ -273,20 +273,20 @@
       <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm
                   dark:border-gray-800 dark:bg-gray-900 space-y-4">
         <div class="flex items-center justify-between">
-          <div [ngClass]="[boneBase(), waveClass(), 'h-4 w-40 rounded-md']"></div>
-          <div [ngClass]="[boneBase(), waveClass(), 'h-7 w-24 rounded-lg']"></div>
+          <div class="h-4 w-40 rounded-md" [class]="boneBase() + ' ' + waveClass()"></div>
+          <div class="h-7 w-24 rounded-lg" [class]="boneBase() + ' ' + waveClass()"></div>
         </div>
         <!-- Y-axis labels + bars -->
         <div class="flex items-end gap-2 pt-2" style="height: 10rem;">
           <div class="flex w-8 shrink-0 flex-col justify-between py-1">
             @for (_ of [0,1,2,3,4]; track $index) {
-              <div [ngClass]="[boneBase(), 'h-2.5 w-6 rounded opacity-50']"></div>
+              <div class="h-2.5 w-6 rounded opacity-50" [class]="boneBase()"></div>
             }
           </div>
           <div class="flex flex-1 items-end gap-1.5 h-full">
             @for (h of [55,72,48,88,65,94,70,58,82,76,90,68]; track $index) {
               <div
-                [ngClass]="[boneBase(), waveClass(), 'flex-1 rounded-t-sm']"
+                class="flex-1 rounded-t-sm" [class]="boneBase() + ' ' + waveClass()"
                 [style.height.%]="h"
               ></div>
             }
@@ -295,7 +295,7 @@
         <!-- X-axis labels -->
         <div class="flex justify-around pl-8">
           @for (_ of [0,1,2,3,4,5,6,7,8,9,10,11]; track $index) {
-            <div [ngClass]="[boneBase(), 'h-2.5 w-4 rounded opacity-40']"></div>
+            <div class="h-2.5 w-4 rounded opacity-40" [class]="boneBase()"></div>
           }
         </div>
       </div>
@@ -310,7 +310,7 @@
     >
       @for (item of lineItems(); track $index) {
         <div
-          [ngClass]="[boneBase(), waveClass(), roundedClass()]"
+          [class]="boneBase() + ' ' + waveClass() + ' ' + roundedClass()"
           [style.width]="item.width"
           [style.height]="height()"
         ></div>

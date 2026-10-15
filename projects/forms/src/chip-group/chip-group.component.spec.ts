@@ -64,13 +64,20 @@ describe('SvChipGroupComponent — the set has a name', () => {
     expect(container().getAttribute('aria-label')).toBe('Filter by tag');
   });
 
-  it('declares the axis the arrows move along', () => {
+  /**
+   * DA-47 — `aria-orientation` is not allowed on `role="group"` (axe:
+   * aria-allowed-attr, critical), and the arrows move on both axes in either
+   * layout, so orientation is a layout fact only.
+   */
+  it('lays the chips out on the requested axis without claiming an ARIA orientation', () => {
     const { host, container, tick } = setup();
-    expect(container().getAttribute('aria-orientation')).toBe('horizontal');
+    expect(container().hasAttribute('aria-orientation')).toBe(false);
+    expect(container().className).toContain('flex-row');
 
     host.orientation.set('vertical');
     tick();
-    expect(container().getAttribute('aria-orientation')).toBe('vertical');
+    expect(container().hasAttribute('aria-orientation')).toBe(false);
+    expect(container().className).toContain('flex-col');
   });
 
   /**

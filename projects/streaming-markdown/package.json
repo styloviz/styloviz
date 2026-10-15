@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/streaming-markdown",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Safe Markdown renderer built for token-by-token output. Renders a parsed token model through Angular bindings — no innerHTML and no bypassSecurityTrust, so untrusted content can never become markup. Headings, lists (incl. tasks), tables with alignment, blockquotes and inline emphasis;",
   "keywords": [
     "angular",
@@ -24,8 +24,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^1.0.1",
-    "@styloviz/code-block": "^1.0.1"
+    "@styloviz/icons": "^1.0.2",
+    "@styloviz/code-block": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

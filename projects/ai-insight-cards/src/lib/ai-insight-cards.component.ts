@@ -587,6 +587,67 @@ export class SvAiInsightCardsComponent implements OnDestroy {
     return `${Math.floor(hours / 24)}d ago`;
   }
 
+  // ── Card view-models ──────────────────────────────────────────────────────
+  //
+  // ★ DA-23. A card's classes, labels, ring and provenance are worked out here
+  //   once per change of the insight list — up to twenty helper calls a card
+  //   used to re-run on every check, three times over in the spotlight. The
+  //   `#provenance` template takes a view too, so a row that stamps it out
+  //   does not re-derive what its own card already holds.
+  //
+  //   `relativeTime` reads the clock, so "4m ago" is as of the last change to
+  //   the list — as it was before: this card has no timer of its own.
+
+  private insightView(insight: AiInsight) {
+    const points = insight.dataPoints.map((dp) => ({
+      dp,
+      icon: this.trendIconName(dp.trend),
+      ink: this.trendClass(dp.trend),
+    }));
+    return {
+      insight,
+      borderClass: this.priorityBorderClass(insight.priority),
+      accentClass: this.priorityAccentClass(insight.priority),
+      headerGradient: this.categoryHeaderGradient(insight.category),
+      iconBg: this.categoryIconBg(insight.category),
+      iconName: this.categoryIconName(insight.category),
+      iconInk: this.categoryIconColor(insight.category),
+      categoryText: this.categoryLabel(insight.category),
+      badgeClass: this.priorityBadgeClass(insight.priority),
+      dotClass: this.priorityDotClass(insight.priority),
+      priorityText: this.priorityLabel(insight.priority),
+      ringStroke: this.confidenceRingStroke(insight.confidence),
+      ringDashArray: this.ringDash(insight.confidence),
+      confidenceInk: this.confidenceTextClass(insight.confidence),
+      confidenceText: this.confidenceLabel(insight),
+      evidence: this.evidence(insight),
+      relativeText: this.relativeTime(insight.detectedAt),
+      points,
+      topPoints: points.slice(0, 2),
+    };
+  }
+
+  /** Every visible insight, as a card. */
+  protected readonly insightCards = computed(() => this.visibleInsights().map((i) => this.insightView(i)));
+
+  /** The spotlight's insight, as a card. */
+  protected readonly activeView = computed(() => {
+    const active = this.activeInsight();
+    return active ? this.insightView(active) : null;
+  });
+
+  /** The anomaly list, with each row's sparkline, sigma and badge. */
+  protected readonly anomalyRowVms = computed(() =>
+    this.anomalyRows().map((row) => ({
+      row,
+      ariaLabel: this.anomalyAriaLabel(row),
+      spark: this.anomalySpark(row.baseline.series),
+      title: this.anomalyTitle(row.anomaly),
+      sigmaText: this.fmtSigma(row.anomaly.sigma),
+      severityClass: this.severityClass(row.anomaly.severity),
+    })),
+  );
+
   // ── Private ────────────────────────────────────────────────────────────────
 
   private clampIndex(): void {

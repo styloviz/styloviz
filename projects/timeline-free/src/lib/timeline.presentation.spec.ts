@@ -480,8 +480,10 @@ describe('SvTimelineComponent — size presets', () => {
     ['lg', 'h-11 w-11', 'text-lg'],
   ])('scales the dot and the title together at %s', async (size, dot, title) => {
     const f = await setup({ items: [{ id: 1, title: 'Deployed' }] as TimelineItem[], size });
-    expect(el(f).querySelector('.ring-4')!.className).toContain(dot);
-    expect(el(f).querySelector('h3, p')!.className).toContain(title);
+    // Each class as a token: the order Angular adds them in is not part of the contract.
+    const ring = el(f).querySelector('.ring-4')!.classList;
+    for (const token of dot.split(' ')) expect(ring.contains(token)).toBe(true);
+    expect(el(f).querySelector('h3, p')!.classList.contains(title)).toBe(true);
   });
 });
 

@@ -69,10 +69,12 @@ export type ChipGroupSelection = 'multiple' | 'none';
     { provide: SV_CHIP_GROUP, useExisting: forwardRef(() => SvChipGroupComponent) },
   ],
   template: `
+    <!-- ★ DA-47 — no aria-orientation. It is not allowed on role="group"
+           (axe: aria-allowed-attr, critical), and it would say nothing true
+           anyway: both arrow axes walk the chips in either layout. -->
     <div
       role="group"
       [attr.aria-label]="label() || null"
-      [attr.aria-orientation]="orientation()"
       [class]="listClasses()"
     >
       <ng-content />
@@ -89,7 +91,10 @@ export class SvChipGroupComponent implements SvChipGroupContext {
    */
   label = input<string>('');
 
-  /** Layout direction, and what the arrows are told the axis is. @default 'horizontal' */
+  /**
+   * Layout direction. Visual only: both arrow axes walk the chips in either
+   * layout, so a user who guesses the wrong axis is still right. @default 'horizontal'
+   */
   orientation = input<ChipGroupOrientation>('horizontal');
 
   /**

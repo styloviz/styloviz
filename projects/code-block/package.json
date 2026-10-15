@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/code-block",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Read-only source display with a zero-dependency highlighter for 9 languages. Four variants — block, multi-file tabs, diff (unified or split with per-hunk accept/reject) and terminal — plus streaming-safe rendering, line numbers, soft wrap, line highlighting, copy-to-clipboard, and a render cap fo…",
   "keywords": [
     "angular",
@@ -24,8 +24,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^1.0.1",
-    "@styloviz/core": "^1.0.1"
+    "@styloviz/icons": "^1.0.2",
+    "@styloviz/core": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

@@ -80,6 +80,7 @@ export class DemoComponent {}
 | `retry` | `void` | The host should re-run the failed load. |
 | `slideChange` | `number` | Emitted with the active slide index when it changes. |
 | `pausedChange` | `boolean` | Emitted when the user toggles auto-play; payload is the paused state. |
+| `ctaClick` | `CarouselSlide` | Emitted with the slide whose call-to-action was activated (click, Enter or Space). A slide with `ctaLink` still navigates; this fires first, so it suits analytics. A slide without one has no other effect — handle it here. |
 
 ## Documentation
 

@@ -45,7 +45,7 @@
             [attr.d]="bar.path"
             [attr.fill]="bar.color"
             fill-opacity="0.88"
-            class="bc-bar-v cursor-pointer outline-none transition-opacity duration-150 hover:fill-opacity-100 focus-visible:fill-opacity-100"
+            class="bc-bar-v cursor-pointer outline-none transition-[fill-opacity] duration-150 hover:[fill-opacity:1] focus-visible:[fill-opacity:1] focus-visible:stroke-2 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white"
             [style.animation-delay]="bar.delay + 'ms'"
             tabindex="0"
             role="button"

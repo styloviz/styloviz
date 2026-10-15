@@ -127,27 +127,21 @@ describe('SvSidebarComponent — the footer strip', () => {
 });
 
 describe('SvSidebarComponent — talking to the shell', () => {
-  it('asks the shell to close when the mobile overlay is dismissed', async () => {
+  // ★ This used to call `mobileClose.emit()` itself and then assert that it
+  //   had fired — true of any component. It now drives the real control: a
+  //   navigation link, which closes the mobile overlay as it navigates.
+  it('asks the shell to close the mobile overlay when a link is followed', async () => {
+    TestBed.resetTestingModule();
+    const { fixture } = await render(SvSidebarComponent, {
+      inputs: { menuGroups: GROUPS, mobileOpen: true } as ComponentInput<SvSidebarComponent>,
+      providers: [provideRouter([{ path: '**', children: [] }])],
+    });
     let closes = 0;
-    const { fixture } = await setup({ mobileOpen: true });
     fixture.componentInstance.mobileClose.subscribe(() => { closes += 1; });
-    fixture.componentInstance.mobileClose.emit();
+
+    await userEvent.click(screen.getAllByRole('link', { name: /Users/ })[0]);
+
     expect(closes).toBe(1);
-  });
-
-  it('asks the shell to collapse when its own toggle is used', async () => {
-    let toggles = 0;
-    const { fixture } = await setup();
-    fixture.componentInstance.toggleCollapse.subscribe(() => { toggles += 1; });
-
-    const button = el(fixture).querySelector('button');
-    if (button) {
-      await userEvent.click(button);
-      expect(toggles).toBe(1);
-    } else {
-      fixture.componentInstance.toggleCollapse.emit();
-      expect(toggles).toBe(1);
-    }
   });
 });
 

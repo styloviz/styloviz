@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/icons",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "174 original glyphs on a 24px grid, resolved by name through one component or imported per icon for the smallest bundle. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 513 more glyphs and the `sharp` and `duotone` weights.",
   "keywords": [
     "angular",

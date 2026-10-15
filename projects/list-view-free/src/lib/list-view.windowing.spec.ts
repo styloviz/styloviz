@@ -167,6 +167,50 @@ describe('SvListViewComponent — the keyboard cursor over a windowed list', () 
     expect(focusedId()).toBeNull();
   });
 
+  /**
+   * DA-45 — after a rescue the cursor row is off-window, so the viewport is now
+   * the tab stop. Parking focus there must not hand it straight back to the row
+   * the user just scrolled away from.
+   */
+  it('becomes the tab stop after a rescue without bouncing focus back to the row', async () => {
+    const f = await windowed();
+    press(f, 'Home');
+    f.componentInstance.onContainerScroll(scrollTo(4000));
+    f.detectChanges();
+
+    expect(document.activeElement).toBe(viewport(f));
+    expect(viewport(f).getAttribute('tabindex')).toBe('0');
+    expect(f.componentInstance.scrollOffset()).toBe(4000);
+  });
+
+  /**
+   * DA-45 — a host that restored the cursor far down the list, with the window
+   * at the top, used to render no tab stop at all: the cursor row was not in
+   * the DOM and the region, deferring to the rows, was -1. Tab skipped the list.
+   */
+  it('keeps the list reachable by Tab when the cursor row is outside the window', async () => {
+    const f = await windowed({ activeItemId: 150 });
+    expect(rows(f).some((row) => row.getAttribute('tabindex') === '0')).toBe(false);
+    expect(root(f).getAttribute('tabindex')).toBe('-1');
+    expect(viewport(f).getAttribute('tabindex')).toBe('0');
+  });
+
+  it('hands keyboard focus from the viewport to the remembered row', async () => {
+    const f = await windowed({ activeItemId: 150 });
+    viewport(f).focus();
+    f.detectChanges();
+    await untilRendered(f, () => focusedId() === '150', { label: 'the cursor row to take focus' });
+
+    expect(viewport(f).getAttribute('tabindex')).toBe('-1');
+    expect(rows(f).filter((row) => row.getAttribute('tabindex') === '0')).toHaveLength(1);
+  });
+
+  it('is not a second tab stop while the cursor row is on screen', async () => {
+    const f = await windowed({ activeItemId: 2 });
+    expect(viewport(f).getAttribute('tabindex')).toBe('-1');
+    expect(rows(f).filter((row) => row.getAttribute('tabindex') === '0')).toHaveLength(1);
+  });
+
   /** Focus went to the viewport, but the cursor did not go back to nothing. */
   it('carries on from the row the cursor was on after a rescue', async () => {
     const f = await windowed();

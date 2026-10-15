@@ -9,7 +9,7 @@ Angular and Tailwind CSS 4 components for dashboards, admin panels and internal 
 | Spec files in this repo | 527, run by CI on every push |
 | App templates | 21 (3 free, in `templates/`) |
 | Angular | >=21.0.0 <23.0.0 |
-| Version | 1.0.1 |
+| Version | 1.0.2 |
 
 ```sh
 npm i @styloviz/all

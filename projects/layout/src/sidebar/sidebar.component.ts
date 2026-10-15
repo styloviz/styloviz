@@ -48,7 +48,13 @@ export class SvSidebarComponent {
   /** Emits when the mobile sidebar should close */
   mobileClose = output<void>();
 
-  /** Emits when the user clicks the collapse/expand toggle inside the sidebar */
+  /**
+   * Deprecated, and never emitted: the sidebar has no collapse toggle of its own — the toggle
+   * lives in `sv-topbar` (`(toggleSidebar)`), and the parent shell owns `collapsed`.
+   *
+   * @deprecated Kept so 1.x templates compile; removed in 2.0. Drive
+   * `[collapsed]` from the shell instead.
+   */
   toggleCollapse = output<void>();
 
   /**

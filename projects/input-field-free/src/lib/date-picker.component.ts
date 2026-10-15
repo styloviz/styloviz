@@ -16,7 +16,6 @@ import {
   signal,
   TemplateRef,
   ViewChild,
-  ViewEncapsulation,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
@@ -112,7 +111,6 @@ function stepMonths(d: Date, delta: number): void {
   templateUrl: './date-picker.component.html',
   styleUrl: './date-picker.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

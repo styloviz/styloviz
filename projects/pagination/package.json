@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/pagination",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Smart page-window with ellipsis, a page-size selector, 3 variants and 3 sizes.",
   "keywords": [
     "angular",
@@ -24,8 +24,8 @@
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
     "@angular/forms": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

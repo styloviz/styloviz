@@ -11,7 +11,7 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
 import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
@@ -33,9 +33,12 @@ export interface CarouselSlide {
   readonly image?: string;
   readonly bgColor?: string;
   readonly badge?: string;
-  /** Call-to-action label. Rendered as a link when {@link ctaLink} is set, else a button. */
+  /**
+   * Call-to-action label. Rendered as a link when {@link ctaLink} is set, else a
+   * `type="button"` button; either way activating it emits `ctaClick`.
+   */
   readonly cta?: string;
-  /** In-app route the CTA navigates to (also makes the whole image caption clickable). */
+  /** In-app route (a `routerLink` value) the CTA navigates to. Only the CTA is a link; the caption around it is not. */
   readonly ctaLink?: string;
   /** Short supporting line shown above the CTA, e.g. a price or offer detail. */
   readonly meta?: string;
@@ -66,7 +69,7 @@ export const DEMO_SLIDES: CarouselSlide[] = [
   selector: 'sv-carousel',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent, RouterLink, SvIconComponent],
+  imports: [SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent, RouterLink, SvIconComponent, NgTemplateOutlet],
   templateUrl: './carousel.component.html',
 })
 export class SvCarouselComponent {
@@ -133,6 +136,12 @@ export class SvCarouselComponent {
   slideChange = output<number>();
   /** Emitted when the user toggles auto-play; payload is the paused state. */
   pausedChange = output<boolean>();
+  /**
+   * Emitted with the slide whose call-to-action was activated (click, Enter or
+   * Space). A slide with `ctaLink` still navigates; this fires first, so it
+   * suits analytics. A slide without one has no other effect — handle it here.
+   */
+  ctaClick = output<CarouselSlide>();
 
   readonly current   = signal(0);
   readonly direction = signal<'next' | 'prev'>('next');

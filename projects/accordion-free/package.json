@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/accordion",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "10 varieties: default, flush, separated, filled, multi-expand, icon placements, badges & subtitles and disabled items. Sizes (sm / md / lg), CSS-grid animation and keyboard navigation are free; multi-expand is available in the Pro package.",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"

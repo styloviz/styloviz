@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | **1.0.1** |
+| Version | **1.0.2** |
 | Tier | **Free** |
 | Built with | Angular 22.2.0, Tailwind CSS 4, TypeScript (strict), standalone components, signals, zoneless change detection |
 | Opens at | `http://localhost:4200/templates/errors` |

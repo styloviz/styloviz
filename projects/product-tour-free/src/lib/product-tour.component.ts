@@ -78,7 +78,14 @@ export class SvProductTourComponent implements OnDestroy {
 
   /** Step definitions. */
   steps = input<TourStep[]>([]);
-  /** Visual variant. Free tier supports `'modal'` only. */
+  /**
+   * Deprecated, and has no effect: the free tour renders the `modal` variant only, so this
+   * input has a single value.
+   *
+   * @deprecated Kept so 1.x templates compile; removed in 2.0. The seven other
+   * variants are Pro: `sv-product-tour-pro [variant]`.
+   * @default 'modal'
+   */
   variant = input<TourVariant>('modal');
   /** Two-way: controls tour visibility. Set to `true` to launch the tour. */
   active = model<boolean>(false);

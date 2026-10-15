@@ -11,6 +11,257 @@ Every package in the kit shares one version, sourced from `packages.json`.
 
 ---
 
+## [1.0.2] — 2026-10-14
+
+A patch release from the 11 October audit: contrast and keyboard fixes found by
+an axe pass over every showcase page, outputs and calls to action that now
+fire, storage handling that survives blocked site data, four members that never
+did anything marked deprecated, and notice of how icon registration changes in
+1.1 and 2.0. No breaking changes: upgrading from 1.0.x needs nothing but the
+version bump.
+
+### Fixed — Split button: its outer corners are round again (Pro)
+
+`sv-split-button` flattened the seam between its two halves with selectors that
+counted children (`[&>*:first-child_button]:rounded-r-none`). The first child
+of `sv-group` is its own layout wrapper, so both rules matched both buttons and
+the control rendered with every corner square. The selectors now name the two
+buttons by the component that renders them, and use logical corners, so the
+seam stays on the inside under `dir="rtl"` as well.
+
+### Fixed — Live spline chart and Sankey value labels meet WCAG AA contrast (Pro)
+
+`sv-live-spline-chart` coloured each series pill's text with the series colour
+on a 15 % tint of the same colour — 2.0–3.4:1 in light mode, below the 4.5:1 AA
+floor on every default palette colour. The pill now uses the theme's ink on a
+`color-mix()` tint, with the series colour on a swatch dot: at least 8.0:1
+light and 10.4:1 dark across the whole hue circle. The `sv-sankey-chart` hover
+badge had the same shape and gets the same fix.
+
+### Fixed — Sidebar, sidebar nav and footer labels meet WCAG AA contrast
+
+The section labels in `sv-sidebar-nav`, `sv-sidebar` and `sv-footer` used
+`text-gray-500/70` and `/80` — 2.7–3.3:1 at 9.5–10 px. They are now
+`text-gray-600` (at least 7.0:1 on the solid and the translucent surfaces).
+
+### Fixed — Faded secondary text meets WCAG AA contrast (Pro AI Pack, product tour, templates)
+
+Counts and hints that took their colour from `opacity-50`/`-70` fell below
+4.5:1: the `sv-ai-agent-activity-log` filter counts, the
+`sv-ai-writing-assistant` shortcut hint, and in the templates the POS filter
+counts, the chat system-message time and the get-started filter counts. They
+now use the full ink with a lighter weight for hierarchy. The
+`sv-product-tour-pro` placeholder "Step x of y" (80 % white over the primary
+gradient) now sits on a `primary-700` chip.
+
+### Fixed — File upload: resume bookmarks are versioned (Pro)
+
+`svLocalResumeStore` wrote each resume record as bare JSON and read it back
+with a type cast, so a record in an unexpected shape was trusted as-is. Records
+are now stored in the kit's `{ kind, version, state }` envelope
+(`sv-file-upload/resume`, v1) and validated field by field on the way back; a
+record that does not hold is ignored and, in development, reported to the
+console. Bare records written by 1.0.0 and 1.0.1 are still read, so an upload
+that was in progress across the upgrade still resumes.
+
+### Fixed — Bar chart: horizontal bars no longer cut off their category labels
+
+With `orientation="horizontal"`, `sv-bar-chart` and `sv-bar-chart-pro` reserved
+a fixed 56-unit margin for the category labels, so a label such as "Product A"
+could lose its first letter where the font measured slightly wider. The margin
+is now sized from the longest label.
+
+### Fixed — Date pickers no longer add global CSS to your app
+
+`sv-date-picker`, `sv-date-picker-pro` and `sv-date-range-picker-pro` turned
+Angular's style encapsulation off, so their stylesheets — including rules on
+`.sv-dp`, a pressed-day transform and two keyframes — applied to the whole
+application that imported them. They now use the default encapsulation; the
+panels look and animate exactly as before.
+
+### Fixed — Sidebar: the built-in logo reserves its space before it loads
+
+`sv-sidebar`'s default logo now carries its intrinsic `width` and `height`, so
+the brand row no longer shifts when the image arrives.
+
+### Fixed — Dimmed states and selected-row labels meet WCAG AA contrast
+
+States that faded a whole row now say what they are and keep their text
+readable: a switched-off step in `sv-ai-workflow-builder` (was `opacity-50`,
+1.98:1) shows an "Off" pill; a switched-off rule in `sv-guardrail-panel` (was
+`opacity-55`) sits on a muted surface; a dismissed `sv-ai-writing-assistant`
+suggestion (was `opacity-60`) keeps full ink. The time and "Sending…" under a
+`sv-ai-chat` user message (2.54:1 on the bubble) are now `primary-50`, and the
+`sv-artifact-panel` diff sign is no longer faded. Secondary text that sat at
+4.36–4.44:1 on a selected or error row now uses the next step darker: model
+details in `sv-ai-chat`, span timings in `sv-ai-agent-activity-log`, size,
+progress and messages on a failed `sv-file-upload` row (Pro and free), item
+descriptions in `sv-transfer`, the pending step number in `sv-timeline` (Pro
+and free), the dial code in `sv-phone-input`, the variable count in
+`sv-prompt-template-library`, the writing-assistant tone description, and the
+HRMS template's leave-tab count.
+
+### Fixed — List view: a windowed list can always be reached with Tab
+
+In `sv-list-view` and `sv-list-view-pro`, when the host restored a saved
+`activeItemId` whose row was outside the rendered window, no element in the
+list was focusable and Tab skipped the whole list. The scroll viewport now
+takes the tab stop while the active row is not rendered, and hands focus to
+that row (scrolling it into view) as soon as it receives keyboard focus.
+
+### Fixed — Speed dial: a menu larger than the screen stays on it (Pro)
+
+`sv-speed-dial` clamped its menu's position into the viewport but never
+its size, so a menu wider or taller than the screen (long labels on a phone)
+started at the margin and ran off the far edge. The menu is now capped to the
+room left to the far edges and scrolls inside it; a menu that fits is
+unchanged.
+
+### Fixed — Keyboard focus is visible on every chart mark (Pro and free)
+
+On the bubble, funnel, pyramid, multi-axis, multi-level-label,
+axis-label-template and waterfall charts, the only focus style was
+`focus-visible:fill-opacity-100` — a class Tailwind does not have, so it
+generated no CSS and a keyboard user saw nothing move. Their hover fade was the
+same dead class. The date-time category chart had no focus style on its
+category columns at all. Every one now draws the kit's focus ring on the
+focused mark (a 2 px dark stroke, white in dark mode), the hover fades work,
+and a `check:ui` rule rejects `*-opacity-N` classes that do not exist.
+
+### Fixed — Mega menu: pausing on the way to the panel no longer closes it (Pro)
+
+`sv-mega-menu` kept its panel open while the pointer crossed the gap from the
+trigger only as long as the pointer kept MOVING: a pause longer than
+`closeDelay` (150 ms) inside the safe corridor — a careful hand, a trackpad
+lift, a busy page — closed the menu it was reaching for. The panel now stays
+open while the pointer rests anywhere in the corridor, and still closes at
+once when the pointer leaves it.
+
+### Fixed — Carousel: every call to action works, and none submits a form
+
+On a slide without an image, `sv-carousel` rendered the CTA as a `<button>`
+with no `type` — inside a host `<form>` it submitted the form — that ignored
+`ctaLink` and did nothing when pressed. Both slide layouts now share one CTA:
+a link when the slide has `ctaLink`, otherwise a `type="button"` button, and
+either one emits the new `(ctaClick)` output with the slide. The `ctaLink` doc
+no longer claims the whole caption is clickable; only the CTA is.
+
+### Fixed — Data table: a bare `svDtAutoFocus` attribute focuses
+
+`DtAutoFocusDirective` (both tables) was the last `@Input()` in the kit; a
+bare `svDtAutoFocus` attribute bound `''` and switched focusing off. It is a
+signal input with a boolean-attribute transform now, and focuses after the
+first render instead of on a 0 ms timer. `SvDataTableCellDirective.svDtCell`
+(Pro) is a signal input too — template usage (`svDtCell="name"`) is unchanged;
+code that read the property directly reads `svDtCell()`.
+
+### Fixed — Blocked site data no longer crashes resumable uploads or the store and dev templates
+
+With site data blocked (a browser setting, Safari's "Block all cookies", a
+sandboxed iframe such as an embedded StackBlitz), even `typeof localStorage`
+throws a `SecurityError`. `svLocalResumeStore()` (Pro file upload) and the
+store and dev templates' cart, wishlist, currency, consent and theme services
+guarded their storage reads that way, so the guard itself threw. They now go
+through `svLocalStorage()` from `@styloviz/core`, which returns `null` when the
+store is missing or blocked: uploads, carts and themes keep working for the
+visit and are simply not remembered. A new `check:ui` rule,
+`storage-global-unguarded`, fails any storage read outside `svLocalStorage()`
+or a `try`.
+
+### Fixed — Drag-and-drop list: `(itemClick)` fires, via the new `[clickable]` input
+
+`sv-dnd-list` documented `(itemClick)` but never emitted it. Set
+`[clickable]="true"` and each item's label renders as a button that emits
+`(itemClick)` with the item on click, Enter or Space, in all four variants.
+Without `clickable` the label stays plain text, so lists that only reorder gain
+no extra tab stops.
+
+### Fixed — Voice assistant: `(silenceDetected)` fires
+
+`sv-voice-assistant` showed its "silence detected" hint but never emitted the
+output. It now emits once each time a listening turn's trailing silence
+reaches `silenceFrames`, and again only after speech resumes and falls silent
+again.
+
+### Fixed — Chip group no longer puts `aria-orientation` on its group
+
+`sv-chip-group` set `aria-orientation`, which is not allowed on `role="group"`
+(axe: critical). The attribute is gone; `orientation` is visual only — the
+arrow keys walk the chips on both axes in either layout.
+
+### Changed — Twelve AI Pack and data components work out each row once per change (Pro)
+
+`sv-kanban-board`, `sv-pivot-table`, `sv-rag-knowledge-base`,
+`sv-ai-model-selector`, `sv-ai-token-dashboard`, `sv-ai-insight-cards`,
+`sv-ai-agent-activity-log`, `sv-ai-workflow-builder`, `sv-mcp-tool-registry`,
+`sv-prompt-template-library`, `sv-sentiment-analysis-widget` and
+`sv-widget-grid` called a formatting or styling method per row on every change
+detection pass — up to twenty per row, 571 call sites in all. A 40-row pivot
+with twelve columns and two measures looked up, formatted and titled nearly a
+thousand cells on every pointer move, and the knowledge base re-ran its privacy
+mask over every chunk. Each list now derives what its rows show in a `computed()`, once per
+change of its data, settings or state. Nothing you bind to or listen for
+changes: the same inputs, outputs and public methods, and `track` and every
+output still carry your own objects.
+
+One visible difference: a relative time ("4m ago" on an insight, the elapsed
+time on a support card) is as of the last change to the list, where before it
+also moved forward whenever something unrelated re-rendered. Neither component
+has a clock of its own, before or after.
+
+### Changed — Spotlight stat card's dark surface follows the theme (Pro)
+
+`sv-spotlight-stat-card` painted its dark-mode surface with a literal
+`#0d0d16`; it is the `gray-950` token now, so a theme's own canvas colour
+reaches the card. Its contrast proof was re-run against the token.
+
+### Changed — Tiles default to `role="group"` (Pro)
+
+`sv-tiles` defaulted to `role="list"`, but projected tiles carry no
+`listitem` role, which screen readers report as a broken list. The default is
+now `group`, valid around any content. `[role]="'list'"` remains available for
+collections a screen reader should count: give each tile `role="listitem"` —
+in development, a `list` whose tiles are not list items logs a warning naming
+the first one.
+
+### Deprecated — Icons that resolve without being registered (fallback removed in 2.0)
+
+Announced now so no upgrade surprises anyone; nothing changes in 1.0.2.
+
+`<sv-icon>` and `<sv-icon-pro>` resolve any glyph name because each carries the
+whole registry — about 57 KB gzipped for the free set and 126 KB for Pro — in
+every app that uses a single kit component. Under the SemVer promise above, the
+fix is split across two releases:
+
+- **1.1 (no code change needed):** each kit component registers the glyphs it
+  draws, so the full registry leaves your bundle. A name nobody registered
+  still renders: the full registry loads on demand as a lazy chunk, and a
+  development-mode warning names the glyph to register. 1.1 also adds
+  per-glyph exports and an explicit "register everything" option for
+  `provideSvIcons()`.
+- **2.0:** the on-demand fallback is removed, and an unregistered name renders
+  nothing (with the same warning). The 1.1 notes will give the one-line
+  registration that makes 2.0 a no-op for your own templates.
+
+### Deprecated — Four members that never did anything (removed in 2.0)
+
+These were documented as working but have no effect. They are kept so 1.x
+templates compile, marked `@deprecated` (your editor strikes them through), and
+will be removed in 2.0:
+
+- `sv-stat-card` `[variant]` and the `StatCardVariant` type — the free card has
+  one colour treatment. The six semantic variants are `sv-stat-card-pro
+  [variant]`.
+- `sv-stat-card` `(cardClick)` — the free card is not interactive. Use
+  `sv-stat-card-pro [clickable]` and its `(cardClick)`.
+- `sv-product-tour` `[variant]` and the `TourVariant` type — the free tour
+  renders the modal only. The other seven variants are `sv-product-tour-pro
+  [variant]`.
+- `sv-sidebar` `(toggleCollapse)` — the sidebar has no toggle of its own; the
+  toggle is `sv-topbar`'s `(toggleSidebar)`, and the shell owns `[collapsed]`.
+
+---
+
 ## [1.0.1] — 2026-10-07
 
 A patch release: an install fix for the bundles, a drawer focus fix, and package

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/citation-sources",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Numbered citations attached to an answer, with the coverage strip that names the passages nothing supports. 3 variants: inline chips, source cards and a side panel.",
   "keywords": [
     "angular",
@@ -27,8 +27,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^1.0.1",
-    "@styloviz/icons": "^1.0.1"
+    "@styloviz/core": "^1.0.2",
+    "@styloviz/icons": "^1.0.2"
   },
   "publishConfig": {
     "access": "public"
