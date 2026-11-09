@@ -3,6 +3,7 @@ import {
   Component,
   ElementRef,
   HostListener,
+  afterNextRender,
   computed,
   inject,
   input,
@@ -10,6 +11,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { svIsRtl } from '@styloviz/core/a11y';
 import {
   createOptimisticEdit,
   svRequestKey,
@@ -18,10 +20,13 @@ import {
   SvSkeletonShellComponent,
   warnOnDuplicateItemKeys,
   type SvDataError,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { svLocale, injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerDndListIcons } from './dnd-list.component.icons';
 export type DndListVariant = 'default' | 'kanban' | 'checklist' | 'compact';
 
 export interface DndItem {
@@ -31,6 +36,11 @@ export interface DndItem {
   icon?: string;
   color?: string;
   priority?: 'low' | 'medium' | 'high' | 'critical';
+  /**
+   * The item cannot be moved by the user — not by drag, the Move up/down
+   * buttons, the kanban column buttons or the keyboard grab. Other items can
+   * still be moved past it, which displaces it by one place.
+   */
   disabled?: boolean;
   badge?: string | number;
   completed?: boolean;
@@ -51,12 +61,12 @@ export interface DndItem {
  *   teaches the wrong pattern even though the component itself is fine.
  */
 export const DEMO_DND_ITEMS: DndItem[] = [
-  { id: '1', label: 'Design system audit',      sublabel: 'Review all components for consistency', priority: 'high',     badge: '2h',   assignee: 'AP', assigneeColor: '#1447e6', dueDate: '2026-06-25', tags: ['design'],   column: 'in-progress' },
-  { id: '2', label: 'Write unit tests',          sublabel: 'Coverage above 80%',                   priority: 'medium',   badge: '4h',   assignee: 'MK', assigneeColor: '#007a55', dueDate: '2026-06-28', tags: ['dev'],      column: 'todo' },
-  { id: '3', label: 'Update documentation',      sublabel: 'All new APIs documented',              priority: 'low',                     assignee: 'LN', assigneeColor: '#7008e7', dueDate: '2026-07-01', tags: ['docs'],     column: 'todo' },
-  { id: '4', label: 'Performance profiling',     sublabel: 'Identify render bottlenecks',          priority: 'high',                    assignee: 'OR', assigneeColor: '#bb4d00', dueDate: '2026-06-22', tags: ['perf'],     column: 'in-progress' },
-  { id: '5', label: 'Accessibility pass',        sublabel: 'WCAG 2.1 AA compliance',              priority: 'medium',                   assignee: 'YT', assigneeColor: '#c10007',                        tags: ['a11y'],     column: 'done', completed: true },
-  { id: '6', label: 'Release v2.0',              sublabel: 'Tag & publish to npm',                 priority: 'critical', badge: '🚀',  assignee: 'AP', assigneeColor: '#1447e6', dueDate: '2026-06-30', tags: ['release'],  column: 'todo' },
+  { id: '1', label: 'Design system audit',      sublabel: 'Review all components for consistency', priority: 'high',     badge: '2h',   assignee: 'AP', assigneeColor: '#1447e6', dueDate: '2026-06-25', tags: ['design'],   column: 'in-progress' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '2', label: 'Write unit tests',          sublabel: 'Coverage above 80%',                   priority: 'medium',   badge: '4h',   assignee: 'MK', assigneeColor: '#007a55', dueDate: '2026-06-28', tags: ['dev'],      column: 'todo' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '3', label: 'Update documentation',      sublabel: 'All new APIs documented',              priority: 'low',                     assignee: 'LN', assigneeColor: '#7008e7', dueDate: '2026-07-01', tags: ['docs'],     column: 'todo' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '4', label: 'Performance profiling',     sublabel: 'Identify render bottlenecks',          priority: 'high',                    assignee: 'OR', assigneeColor: '#bb4d00', dueDate: '2026-06-22', tags: ['perf'],     column: 'in-progress' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '5', label: 'Accessibility pass',        sublabel: 'WCAG 2.1 AA compliance',              priority: 'medium',                   assignee: 'YT', assigneeColor: '#c10007',                        tags: ['a11y'],     column: 'done', completed: true }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '6', label: 'Release v2.0',              sublabel: 'Tag & publish to npm',                 priority: 'critical', badge: '🚀',  assignee: 'AP', assigneeColor: '#1447e6', dueDate: '2026-06-30', tags: ['release'],  column: 'todo' }, // sv-i18n-ignore: demo sample data the host replaces
 ];
 
 /** A reorder, with a way to undo it if the save fails. */
@@ -123,17 +133,32 @@ export interface DndItemChangeEvent {
   imports: [DatePipe, NgTemplateOutlet,
     SvEmptyShellComponent,
     SvErrorShellComponent,
-    SvSkeletonShellComponent, SvIconComponent],
+    SvSkeletonShellComponent, SvIconComponent, SvLabelPipe],
   templateUrl: './dnd-list.component.html',
 })
 export class SvDndListComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerDndListIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ display })` says otherwise. */
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);
+
+  /**
+   * The board's columns run in the inline direction, so under RTL the button
+   * that moves a card back a column moves it to the RIGHT — its name says so.
+   */
+  protected readonly rtl = signal(false);
+
+  constructor() {
+    afterNextRender(() => this.rtl.set(svIsRtl(this.host.nativeElement)));
+  }
 
   /**
    * The items to render and reorder. Two-way — this is a `model()`.
    *
-   * The items to order. Defaults to empty — this used to default to a demo
-   * fixture, so an unbound list rendered convincing fake rows.
+   * Defaults to empty, so an unbound list renders no rows.
    */
   items    = model<DndItem[]>([]);
   /** Visual variant. @default 'default' */
@@ -160,7 +185,7 @@ export class SvDndListComponent {
   error    = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'Nothing to order yet' */
-  emptyText = input<string>('Nothing to order yet');
+  emptyText = input<string>(this.labels.nothingToOrder);
 
   // ── Loading the definition ──────────────────────────────────────────────────
 
@@ -218,6 +243,9 @@ export class SvDndListComponent {
    */
   clickable = input<boolean>(false);
 
+  /** BCP 47 locale for dates and numbers. @default the kit's locale (`SV_LOCALE`) */
+  readonly locale = input<string>(svLocale());
+
   /** Emitted with the item whose label was activated (click, Enter or Space). Needs `clickable`. */
   itemClick = output<DndItem>();
 
@@ -245,6 +273,11 @@ export class SvDndListComponent {
   /** Polite screen-reader announcement for reorder / remove / complete. */
   readonly liveMessage = signal('');
 
+  /** An announcement with the item's name, its 1-based position and the list's length. */
+  private _say(template: string, name: string, position: number, total: number): string {
+    return svFormatLabel(template, { name, position: String(position), total: String(total) });
+  }
+
   /** Re-announce by clearing first so identical consecutive messages are read. */
   private _announce(message: string): void {
     this.liveMessage.set('');
@@ -265,9 +298,9 @@ export class SvDndListComponent {
   private readonly _edit = createOptimisticEdit({
     revision: () => this._editSeq,
     selector: 'sv-dnd-list',
-    superseded:
-      'the order has changed since. Restoring it would undo that newer move too. ' +
-      'Bind [saving] so the list cannot be reordered again while the save is in flight.',
+    superseded: // sv-i18n-ignore: developer message (the console warning on a stale rollback)
+      'the order has changed since. Restoring it would undo that newer move too. ' + // sv-i18n-ignore: developer message (the console warning on a stale rollback)
+      'Bind [saving] so the list cannot be reordered again while the save is in flight.', // sv-i18n-ignore: developer message (the console warning on a stale rollback)
   });
 
   /** Whether the list has nothing to show. */
@@ -284,7 +317,7 @@ export class SvDndListComponent {
   }
 
   onDragStart(i: number): void {
-    if (this.saving()) return;
+    if (this.saving() || this.items()[i]?.disabled) return;
     this.dragIndex.set(i);
     this.isDragging.set(true);
   }
@@ -292,6 +325,34 @@ export class SvDndListComponent {
   onDragOver(e: DragEvent, i: number): void {
     e.preventDefault();
     this.overIndex.set(i);
+    this._autoScroll(e.clientY);
+  }
+
+  /**
+   * Scroll the list's scroll container while a drag hovers near its top or
+   * bottom edge. The browser scrolls the WINDOW during a native drag, but not a
+   * scrollable panel the list lives in, so a long list could not be reordered
+   * past what was on screen.
+   */
+  private _autoScroll(clientY: number): void {
+    const scroller = this._scrollParent();
+    if (!scroller) return;
+    const rect = scroller.getBoundingClientRect();
+    const EDGE = 40;
+    const STEP = 16;
+    if (clientY < rect.top + EDGE) scroller.scrollTop -= STEP;
+    else if (clientY > rect.bottom - EDGE) scroller.scrollTop += STEP;
+  }
+
+  /** The nearest ancestor that actually scrolls vertically, or `null`. */
+  private _scrollParent(): HTMLElement | null {
+    let node = this.host.nativeElement.parentElement as HTMLElement | null;
+    while (node && node !== document.body) {
+      const overflow = getComputedStyle(node).overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && node.scrollHeight > node.clientHeight) return node;
+      node = node.parentElement;
+    }
+    return null;
   }
 
   onDrop(e: DragEvent, i: number): void {
@@ -304,7 +365,7 @@ export class SvDndListComponent {
     if (moved) list.splice(i, 0, moved);
     this.items.set(list);
     this._emitReorder(before, list);
-    if (moved) this._announce(`${moved.label} moved to position ${i + 1} of ${list.length}.`);
+    if (moved) this._announce(this._say(this.labels.dndMovedTo, moved.label, i + 1, list.length));
     this._resetDrag();
   }
 
@@ -354,13 +415,13 @@ export class SvDndListComponent {
       event.preventDefault();
       if (this.isGrabbed(i)) {
         this._dropAt(i);
+      } else if (this.items()[i]?.disabled) {
+        // A disabled item does not lift — say so rather than swallow the key.
+        this._announce(svFormatLabel(this.labels.dndItemLocked, { name: this.items()[i]?.label ?? this.labels.dndUnnamedItem }));
       } else {
         this._beforeGrab = this.items();
         this.grabbedIndex.set(i);
-        this._announce(
-          `${this.items()[i]?.label ?? 'Item'} lifted. Use the arrow keys to move it, ` +
-          'space to drop, escape to cancel.',
-        );
+        this._announce(svFormatLabel(this.labels.dndLifted, { name: this.items()[i]?.label ?? this.labels.dndUnnamedItem }));
       }
       return;
     }
@@ -371,7 +432,7 @@ export class SvDndListComponent {
       if (restore) this.items.set([...restore]);
       this.grabbedIndex.set(-1);
       this._beforeGrab = null;
-      this._announce('Move cancelled. The order is unchanged.');
+      this._announce(this.labels.dndMoveCancelled);
       return;
     }
 
@@ -393,12 +454,20 @@ export class SvDndListComponent {
     list.splice(to, 0, moved!);
     this.items.set(list);
     this.grabbedIndex.set(to);
-    this._announce(`${moved!.label} at position ${to + 1} of ${list.length}.`);
+    this._announce(this._say(this.labels.dndAtPosition, moved!.label, to + 1, list.length));
     // Focus follows the row, or the next arrow press lands on whatever moved
     // into the old position instead.
+    //
+    // ★ And the row stays IN VIEW. Focus used `preventScroll: true`, so in a
+    //   long list the lifted row walked off the bottom of its scroller while
+    //   the arrows kept moving it. `block: 'nearest'` scrolls only as far as
+    //   needed, and not at all while it is visible.
     queueMicrotask(() => {
       const handles = this.host.nativeElement.querySelectorAll<HTMLElement>('[data-dnd-handle]');
-      handles[to]?.focus({ preventScroll: true });
+      const handle = handles[to];
+      if (!handle) return;
+      handle.focus({ preventScroll: true });
+      (handle.closest('li') ?? handle).scrollIntoView?.({ block: 'nearest' });
     });
   }
 
@@ -413,31 +482,31 @@ export class SvDndListComponent {
     if (before && before.some((it, n) => it.id !== after[n]?.id)) {
       this._emitReorder([...before], [...after]);
     }
-    this._announce(`${after[i]?.label ?? 'Item'} dropped at position ${i + 1} of ${after.length}.`);
+    this._announce(this._say(this.labels.dndDroppedAt, after[i]?.label ?? this.labels.dndUnnamedItem, i + 1, after.length));
   }
 
   // ── Item actions ──────────────────────────────────────────────────────────
 
   moveUp(i: number): void {
-    if (i === 0 || this.saving()) return;
+    if (i === 0 || this.saving() || this.items()[i]?.disabled) return;
     const before = this.items();
     const list = [...before];
     const label = list[i]!.label;
     [list[i - 1], list[i]] = [list[i]!, list[i - 1]!];
     this.items.set(list);
     this._emitReorder(before, list);
-    this._announce(`${label} moved up to position ${i} of ${list.length}.`);
+    this._announce(this._say(this.labels.dndMovedUpTo, label, i, list.length));
   }
 
   moveDown(i: number): void {
     const list = this.items();
-    if (i === list.length - 1 || this.saving()) return;
+    if (i === list.length - 1 || this.saving() || list[i]?.disabled) return;
     const arr = [...list];
     const label = arr[i]!.label;
     [arr[i], arr[i + 1]] = [arr[i + 1]!, arr[i]!];
     this.items.set(arr);
     this._emitReorder(list, arr);
-    this._announce(`${label} moved down to position ${i + 2} of ${arr.length}.`);
+    this._announce(this._say(this.labels.dndMovedDownTo, label, i + 2, arr.length));
   }
 
   remove(id: string): void {
@@ -463,7 +532,9 @@ export class SvDndListComponent {
       requestKey: svRequestKey('del'),
       rollback: this._edit.begin(() => this.items.set(before)),
     });
-    this._announce(`${removed.label} removed. ${list.length} item${list.length === 1 ? '' : 's'} remaining.`);
+    this._announce(
+      svFormatLabel(this.labels.dndRemoved, { name: removed.label, count: list.length, n: String(list.length) }, this.locale()),
+    );
   }
 
   /**
@@ -503,7 +574,7 @@ export class SvDndListComponent {
 
     const item: DndItem = { ...found, completed: !found.completed };
     this._patch(before, item);
-    this._announce(`${item.label} marked ${item.completed ? 'complete' : 'incomplete'}.`);
+    this._announce(svFormatLabel(item.completed ? this.labels.dndMarkedComplete : this.labels.dndMarkedIncomplete, { name: item.label }));
   }
 
   // ── Kanban helpers ────────────────────────────────────────────────────────
@@ -530,9 +601,9 @@ export class SvDndListComponent {
   }
 
   readonly colLabels: Record<string, string> = {
-    'todo':        'To Do',
-    'in-progress': 'In Progress',
-    'done':        'Done',
+    'todo':        this.labels.dndColumnTodo,
+    'in-progress': this.labels.dndColumnInProgress,
+    'done':        this.labels.dndColumnDone,
   };
 
   readonly colColors: Record<string, string> = {
@@ -545,9 +616,38 @@ export class SvDndListComponent {
     if (this.saving()) return;
     const before = this.items();
     const found = before.find(it => it.id === id);
-    if (!found) return;
+    if (!found || found.disabled) return;
 
     this._patch(before, { ...found, column: col, completed: col === 'done' });
+  }
+
+  /**
+   * Reorder a kanban card within its own column by one step — the
+   * single-pointer alternative (WCAG 2.5.7) to dragging it there. The card
+   * swaps places with its column neighbour in `items()`, so cards in other
+   * columns keep their positions, and the move reports through `reordered`
+   * exactly like every other reorder in this component.
+   */
+  moveInColumn(id: string, direction: -1 | 1): void {
+    if (this.saving()) return;
+    const before = this.items();
+    const from = before.findIndex(it => it.id === id);
+    const card = before[from];
+    if (!card || card.disabled) return;
+    const column = before.filter(it => it.column === card.column);
+    const at = column.indexOf(card);
+    const neighbour = column[at + direction];
+    if (!neighbour) return;
+
+    const list = [...before];
+    const to = before.indexOf(neighbour);
+    [list[from], list[to]] = [neighbour, card];
+    this.items.set(list);
+    this._emitReorder(before, list);
+    this._announce(this._say(
+      direction < 0 ? this.labels.dndMovedUpTo : this.labels.dndMovedDownTo,
+      card.label, at + direction + 1, column.length,
+    ));
   }
 
   /** Apply one row's new fields, report the change, and hand back the way out. */

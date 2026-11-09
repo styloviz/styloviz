@@ -1,15 +1,15 @@
 # Styloviz
 
-Angular and Tailwind CSS 4 components for dashboards, admin panels and internal tools. This repository is the source of the **free tier**: 92 components in 52 packages, MIT-licensed, published to npm as `@styloviz/*`.
+Angular and Tailwind CSS 4 components for dashboards, admin panels and internal tools. This repository is the source of the **free tier**: 108 components in 54 packages, MIT-licensed, published to npm as `@styloviz/*`.
 
 | | |
 | --- | --- |
-| Components in the kit | 169 (92 free here, the rest under a Pro licence) |
-| Free packages in this repo | 52 |
-| Spec files in this repo | 527, run by CI on every push |
-| App templates | 21 (3 free, in `templates/`) |
+| Components in the kit | 189 (108 free here, the rest under a Pro license) |
+| Free packages in this repo | 54 |
+| Spec files in this repo | 737, run by CI on every push |
+| App templates | 27 (3 free, in `templates/`) |
 | Angular | >=21.0.0 <23.0.0 |
-| Version | 1.0.2 |
+| Version | 2.0.0 |
 
 ```sh
 npm i @styloviz/all

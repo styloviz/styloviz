@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { SvBarChartComponent } from './bar-chart/bar-chart.component';
 import { SvLineChartComponent } from './line-chart/line-chart.component';
-import { SvDefaultPieChartComponent } from './pie-chart/default-pie-chart.component';
+import { SvPieChartComponent } from './pie-chart/pie-chart.component';
 import { SvRadarChartComponent } from './radar-chart/radar-chart.component';
 
 /**
@@ -81,14 +81,14 @@ const RADAR_SERIES = [{ name: 'Model A', color: '#3b82f6', values: [100, 50] }];
 const DRAWS: readonly (readonly [...ChartCase, fallback: string])[] = [
   ['bar',   SvBarChartComponent,        { categories: CATEGORIES, datasets: TWO_SERIES }, 'Bar chart'],
   ['line',  SvLineChartComponent,       { categories: CATEGORIES, series: TWO_SERIES },   'Line chart'],
-  ['pie',   SvDefaultPieChartComponent, { slices: SLICES },                               'Pie chart'],
+  ['pie',   SvPieChartComponent, { slices: SLICES },                               'Pie chart'],
   ['radar', SvRadarChartComponent,      { axes: AXES, series: RADAR_SERIES },             'Radar chart'],
 ];
 
 const EMPTY: readonly ChartCase[] = [
   ['bar',   SvBarChartComponent,        { categories: [], datasets: [] }],
   ['line',  SvLineChartComponent,       { categories: [], series: [] }],
-  ['pie',   SvDefaultPieChartComponent, { slices: [] }],
+  ['pie',   SvPieChartComponent, { slices: [] }],
   ['radar', SvRadarChartComponent,      { axes: [], series: [] }],
 ];
 
@@ -147,7 +147,7 @@ describe('charts-free bar and line — one row per category, one column per seri
 
 describe('charts-free pie — value and share per segment', () => {
   it('gives the pie chart a segment, value and share column', async () => {
-    const { host } = await mount(SvDefaultPieChartComponent, { slices: SLICES });
+    const { host } = await mount(SvPieChartComponent, { slices: SLICES });
     expect(summary(host)?.columns).toEqual(['Segment', 'Value', 'Share']);
     expect(summary(host)?.rows).toEqual([
       { header: 'Direct', cells: ['300', '75.0%'] },

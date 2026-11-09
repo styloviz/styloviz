@@ -20,25 +20,26 @@ import {
   ViewChild,
   viewChild,
 } from '@angular/core';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
+import { SvErrorShellComponent, SvSkeletonShellComponent, type SvDataError } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_FLOATING_ORDER, svElementSize, svFloatingRegion, type SvFloatingAnchor } from '@styloviz/core/layout';
 import {
   createPortalHost,
-  SV_FLOATING_ORDER,
-  SvErrorShellComponent,
   SvOverlayStackService,
-  SvSkeletonShellComponent,
-  svElementSize,
-  svFloatingRegion,
   svRecoverFocus,
   svSuccessorIndex,
-  svUniqueId,
-  svWarnOnce,
-  type SvDataError,
-  type SvFloatingAnchor,
   type SvOverlayHandle,
   type SvPortalHost,
-} from '@styloviz/core';
+} from '@styloviz/core/overlay';
+import { NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { injectSvKbdLabels, SvKbdComponent, svKbdChord, svKbdPlatform, type SvKbdPlatform } from '@styloviz/kbd';
+import { SvTooltipComponent } from '@styloviz/overlays';
+import { SV_LAYOUT_LABELS } from '../layout.labels';
 
+import { registerToolbarIcons } from './toolbar.component.icons';
 export type ToolbarSize    = 'sm' | 'md' | 'lg';
 export type ToolbarVariant = 'default' | 'glass' | 'bordered' | 'elevated' | 'ghost';
 
@@ -106,6 +107,7 @@ const MENU_HARD_MAX_H = 320;
  *    `--tw-outline-style: none`, which `outline-2` alone would inherit.
  */
 const FORCED_FOCUS =
+  // sv-i18n-ignore: Tailwind classes
   'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2';
 
 export interface ToolbarAction {
@@ -119,6 +121,63 @@ export interface ToolbarAction {
   readonly tooltip?: string;
   /** If true this button behaves as a toggle (stays active after click). */
   readonly toggle?: boolean;
+  /**
+   * The action's request is in flight (`LU-11-M4`): the button reports
+   * `aria-busy`, shows a spinner in place of its icon and ignores clicks until
+   * the host clears it. It stays focusable, so keyboard focus is not lost. The
+   * same as listing the id in the toolbar's `busyIds`.
+   */
+  readonly pending?: boolean;
+  /**
+   * The keyboard shortcut that runs this action (`LU-11-M5`), in `sv-kbd`
+   * chord notation — `mod+b`, `ctrl+shift+k`, `alt+n` (`mod` is ⌘ on Apple
+   * platforms, Ctrl elsewhere). Exposed as `aria-keyshortcuts` and drawn with
+   * `sv-kbd` in the button's tooltip and in its overflow-menu row. The toolbar
+   * only ADVERTISES it — the host binds the key itself.
+   */
+  readonly shortcut?: string;
+}
+
+/** `sv-kbd` token → the key name `aria-keyshortcuts` expects (WAI-ARIA 1.2 §6.7). */
+const ARIA_KEY_NAMES: Readonly<Record<string, string>> = {
+  ctrl: 'Control', control: 'Control', '⌃': 'Control',
+  cmd: 'Meta', command: 'Meta', meta: 'Meta', win: 'Meta', '⌘': 'Meta',
+  alt: 'Alt', option: 'Alt', opt: 'Alt', '⌥': 'Alt',
+  shift: 'Shift', '⇧': 'Shift',
+  esc: 'Escape', escape: 'Escape', enter: 'Enter', return: 'Enter', '↵': 'Enter',
+  space: 'Space', tab: 'Tab', backspace: 'Backspace', delete: 'Delete', del: 'Delete',
+  up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
+  home: 'Home', end: 'End', pageup: 'PageUp', pagedown: 'PageDown', pgup: 'PageUp', pgdn: 'PageDown',
+  plus: '+',
+};
+
+/**
+ * A `ToolbarAction.shortcut` chord as an `aria-keyshortcuts` value — `mod+b`
+ * becomes `Control+B` (or `Meta+B` on Apple platforms).
+ *
+ * ★ A SEQUENCE (`g i`, steps separated by spaces) returns `null`: in
+ *   `aria-keyshortcuts` a space separates ALTERNATIVE shortcuts, so "g i"
+ *   would announce two one-key shortcuts that do not exist.
+ */
+export function svToolbarAriaShortcut(shortcut: string | undefined, platform: SvKbdPlatform = 'other'): string | null {
+  const chord = (shortcut ?? '').trim();
+  if (!chord || /\s/.test(chord)) return null;
+  const keys: string[] = [];
+  const parts = chord.split('+');
+  for (let i = 0; i < parts.length; i++) {
+    // `++` is a literal plus, as in `svKbdChord`.
+    if (parts[i] === '' && parts[i + 1] === '') { keys.push('+'); i++; continue; }
+    const raw = parts[i];
+    if (!raw) continue;
+    const lower = raw.toLowerCase();
+    // sv-i18n-ignore: ARIA key names (aria-keyshortcuts), not language
+    if (lower === 'mod') { keys.push(platform === 'apple' ? 'Meta' : 'Control'); continue; }
+    const named = ARIA_KEY_NAMES[lower];
+    if (named) keys.push(named);
+    else if (raw.length === 1) keys.push(raw.toUpperCase());
+    else keys.push(raw.charAt(0).toUpperCase() + raw.slice(1));
+  }
+  return keys.length ? keys.join('+') : null;
 }
 
 export interface ToolbarGroup {
@@ -128,7 +187,10 @@ export interface ToolbarGroup {
 
 @Component({
   imports: [
+    NgTemplateOutlet,
     SvIconComponent,
+    SvTooltipComponent,
+    SvKbdComponent,
     SvErrorShellComponent,
     SvSkeletonShellComponent,
   ],
@@ -136,17 +198,34 @@ export interface ToolbarGroup {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './toolbar.component.html',
-  // ★ In `menu` mode the host is what gets measured, so it must be able to
-  //   shrink below its content: `min-w-0` + `flex-auto` let it do that as a
-  //   flex item (a `flex justify-between` header) instead of pinning at the
-  //   full strip width and never overflowing — and let it grow back.
+  // ★ The host must be able to shrink below its content in EVERY mode. A flex
+  //   parent blockifies it into a flex item whose `min-width: auto` is the
+  //   full strip width — so in a `flex items-center` row (a label + toolbar)
+  //   the strip's own `max-w-full overflow-x-auto` resolved against a host as
+  //   wide as the strip, never scrolled, and pushed the trailing actions out
+  //   of the card at 320 px (FL-J3-LU-07). `min-w-0 max-w-full` lets it
+  //   shrink to the row, so `scroll` mode really scrolls. (Both are ignored
+  //   on an inline host, where the strip already resolves against its block.)
+  // ★ In `menu` mode the host is also what gets measured: `block` +
+  //   `flex-auto` let it take the width its parent allows (a `flex
+  //   justify-between` header) instead of pinning at the full strip width and
+  //   never overflowing — and let it grow back.
   host: {
-    '[class.block]': "overflow() === 'menu'",
-    '[class.min-w-0]': "overflow() === 'menu'",
-    '[class.flex-auto]': "overflow() === 'menu'",
+    class: 'min-w-0 max-w-full', // sv-i18n-ignore: host binding key
+    '[class.block]': "overflow() === 'menu'", // sv-i18n-ignore: host binding key
+    '[class.flex-auto]': "overflow() === 'menu'", // sv-i18n-ignore: host binding key
   },
 })
 export class SvToolbarComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerToolbarIcons();
+
+  protected readonly labels = injectSvLabels('layout', SV_LAYOUT_LABELS);
+  /** The spoken key names `sv-kbd` uses — so the tooltip's chips match every other shortcut hint. */
+  private readonly kbdLabels = injectSvKbdLabels();
+  /** Read once: `mod` is drawn and announced per platform. */
+  private readonly platform = svKbdPlatform();
+
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly appRef = inject(ApplicationRef);
   private readonly injector = inject(Injector);
@@ -167,7 +246,7 @@ export class SvToolbarComponent implements OnDestroy {
   /** Visual variant: default, glass, bordered, elevated or ghost. @default 'default' */
   variant  = input<ToolbarVariant>('default');
   /** Accessible label for the toolbar region. @default 'Toolbar' */
-  label    = input<string>('Toolbar');
+  label    = input<string>(this.labels.toolbar);
   /** Stick the toolbar to the top while scrolling. @default false */
   sticky   = input<boolean>(false);
 
@@ -194,7 +273,7 @@ export class SvToolbarComponent implements OnDestroy {
   overflow = input<ToolbarOverflowMode>('scroll');
 
   /** Accessible name (and tooltip) of the "More" button and its menu. @default 'More actions' */
-  overflowLabel = input<string>('More actions');
+  overflowLabel = input<string>(this.labels.toolbarMoreActions);
 
   // ── Loading the definition ──────────────────────────────────────────────────
 
@@ -258,8 +337,46 @@ export class SvToolbarComponent implements OnDestroy {
     return this._busy().has(id);
   }
 
+  /**
+   * Whether this action is in flight — its own `pending` flag, or its id in
+   * `busyIds`. Either one shows the spinner, sets `aria-busy` and makes a
+   * click do nothing.
+   */
+  isPending(action: ToolbarAction): boolean {
+    return !!action.pending || this.isBusy(action.id);
+  }
+
   /** Whether anything at all is in flight. */
-  readonly hasBusy = computed(() => this._busy().size > 0);
+  readonly hasBusy = computed(() => this._busy().size > 0 || this.flatActions().some((a) => !!a.pending));
+
+  /** The action's shortcut as `aria-keyshortcuts`, or `null`. */
+  ariaShortcut(action: ToolbarAction): string | null {
+    return svToolbarAriaShortcut(action.shortcut, this.platform);
+  }
+
+  /**
+   * Every action's shortcut chips, computed once per action list — the template
+   * reads them on every pass, and a fresh array each time would re-feed the
+   * tooltip's `kbd` input on every change detection.
+   */
+  private readonly _shortcutKeys = computed<ReadonlyMap<ToolbarAction, readonly string[]>>(() => {
+    const map = new Map<ToolbarAction, readonly string[]>();
+    for (const a of this.flatActions()) {
+      if (!a.shortcut) continue;
+      map.set(
+        a,
+        svKbdChord(a.shortcut, this.kbdLabels, this.platform)
+          // A letter key is printed on the keycap in capitals: `mod+b` reads Ctrl B.
+          .map((k) => (k.glyph.length === 1 ? k.glyph.toUpperCase() : k.glyph)),
+      );
+    }
+    return map;
+  });
+
+  /** The action's shortcut as the glyphs `sv-kbd` draws, one chip per key. */
+  shortcutKeys(action: ToolbarAction): readonly string[] {
+    return this._shortcutKeys().get(action) ?? [];
+  }
 
   /** The `role="toolbar"` strip — the region `floatingAnchor` registers. */
   private readonly _strip = viewChild<ElementRef<HTMLElement>>('strip');
@@ -282,7 +399,7 @@ export class SvToolbarComponent implements OnDestroy {
   click(action: ToolbarAction): void {
     // A second click while the first request is still running is the most
     // common way an action button creates duplicate records.
-    if (action.disabled || this.isBusy(action.id)) return;
+    if (action.disabled || this.isPending(action)) return;
     if (action.toggle) {
       this.activeIds.update(s => {
         const n = new Set(s);
@@ -301,7 +418,7 @@ export class SvToolbarComponent implements OnDestroy {
   private _pressTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnDestroy(): void {
-    // Regression guard for PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1: the
+    // Regression guard for docs/audit/PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1: the
     // pressed-flash timer must not outlive the component.
     if (this._pressTimer) clearTimeout(this._pressTimer);
     this.detachScroll();
@@ -517,15 +634,25 @@ export class SvToolbarComponent implements OnDestroy {
   private _navigate(event: KeyboardEvent, idx: number, stops: readonly ToolbarStop[]): void {
     if (stops.length < 2 || idx === -1) return;
 
+    // ★ Left/Right follow what the user SEES (`LU-11-I5`, `X-14`): the strip is
+    //   a flex row, which mirrors under RTL, so the next action in the DOM sits
+    //   to the LEFT. Up/Down stay "next/previous" in either direction.
+    const rtl = svIsRtl(this.host.nativeElement);
+    const forward = (idx + 1) % stops.length;
+    const back = (idx - 1 + stops.length) % stops.length;
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
-      case 'ArrowDown':
-        next = (idx + 1) % stops.length;
+        next = rtl ? back : forward;
         break;
       case 'ArrowLeft':
+        next = rtl ? forward : back;
+        break;
+      case 'ArrowDown':
+        next = forward;
+        break;
       case 'ArrowUp':
-        next = (idx - 1 + stops.length) % stops.length;
+        next = back;
         break;
       case 'Home':
         next = 0;
@@ -553,7 +680,7 @@ export class SvToolbarComponent implements OnDestroy {
   /**
    * The button for a stop, looked up inside THIS toolbar's host only.
    *
-   * ★ Regression guard for PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1: never a
+   * ★ Regression guard for docs/audit/PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1: never a
    *   document-wide lookup (`document.getElementById`, a global selector) — two
    *   toolbars on one page share action ids, and a global lookup focused the
    *   other toolbar's button.
@@ -808,7 +935,7 @@ export class SvToolbarComponent implements OnDestroy {
 
   /** Activate an action from the menu, then close it. */
   onMenuSelect(action: ToolbarAction): void {
-    if (action.disabled || this.isBusy(action.id)) return;
+    if (action.disabled || this.isPending(action)) return;
     this.click(action);
     this.closeMenu(true);
   }
@@ -911,11 +1038,16 @@ export class SvToolbarComponent implements OnDestroy {
     const maxH = Math.max(MENU_MIN_H, Math.min(MENU_HARD_MAX_H, above ? spaceAbove : spaceBelow));
 
     // The More button sits at the END of the strip, so prefer lining the
-    // panel's right edge up with it; fall back to the left when that side is
-    // too tight.
+    // panel's end edge up with it — its right edge in LTR, its left edge under
+    // dir="rtl", where the strip mirrors — and fall back to the start edge when
+    // that side is too tight.
     const leftRoom = vw - rect.left - MENU_MARGIN;
     const rightRoom = rect.right - MENU_MARGIN;
-    const right = rightRoom >= MENU_PANEL_W || rightRoom > leftRoom;
+    const rtl = svIsRtl(trigger);
+    const endRoom = rtl ? leftRoom : rightRoom;
+    const startRoom = rtl ? rightRoom : leftRoom;
+    const atEnd = endRoom >= MENU_PANEL_W || endRoom > startRoom;
+    const right = rtl ? !atEnd : atEnd;
 
     const style: Record<string, string> = {
       position: 'fixed',
@@ -971,6 +1103,7 @@ export class SvToolbarComponent implements OnDestroy {
     const base = 'inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-xl p-1 transition-all duration-150';
     const s = this.sticky() ? ' sticky top-2 z-30' : '';
     if (v === 'default')  return base + s + ' bg-white border border-gray-200/80 shadow-sm dark:bg-gray-800 dark:border-gray-700/60';
+    // sv-glass: opt-in variant — the consumer chose `glass` for a toolbar floating over content or media.
     if (v === 'glass')    return base + s + ' bg-white/70 backdrop-blur-md border border-white/50 shadow-lg dark:bg-gray-900/70 dark:border-gray-700/30';
     if (v === 'bordered') return base + s + ' border-2 border-gray-300 dark:border-gray-600';
     if (v === 'elevated') return base + s + ' bg-white shadow-[0_4px_24px_-8px_color-mix(in_oklab,var(--color-gray-900)_18%,transparent)] dark:bg-gray-800 dark:shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5)]';

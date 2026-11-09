@@ -10,18 +10,19 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { type SvDataSummary } from '@styloviz/core/a11y';
 import {
   SvChartFrameComponent,
-  SvDataSummaryTableComponent,
   svBinDensityStep,
   svHexBin,
   svHexPath,
   svNiceScale,
   svTickLabel,
   type SvDataError,
-  type SvDataSummary,
   type SvPointBin,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel, svLocale, SV_MACHINE_LOCALE, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 import {
   svScatterCrowding,
   svScatterHygiene,
@@ -139,10 +140,13 @@ export const DEMO_SCATTER_SERIES: ScatterSeries[] = [
   selector: 'sv-scatter-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvChartFrameComponent, SvDataSummaryTableComponent],
+  imports: [SvChartFrameComponent, SvLabelPipe],
   templateUrl: './scatter-chart.component.html',
 })
 export class SvScatterChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
+
   // ── Async state ───────────────────────────────────────────────────────────
 
   /** True while the series is being fetched. @default false */
@@ -156,7 +160,7 @@ export class SvScatterChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the no-data state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /** True when the emptiness is caused by a filter rather than an empty set. */
   readonly filtered = input<boolean>(false);
@@ -178,9 +182,9 @@ export class SvScatterChartComponent {
   /** Show background grid lines. @default true */
   showGrid = input<boolean>(true);
   /** X-axis label. @default 'X Axis' */
-  xLabel   = input<string>('X Axis');
+  xLabel   = input<string>(this.labels.xAxis);
   /** Y-axis label. @default 'Y Axis' */
-  yLabel   = input<string>('Y Axis');
+  yLabel   = input<string>(this.labels.yAxis);
   /** Chart title. */
   title    = input<string>('');
   /** Accessible name override for the chart. Falls back to a generated summary. */
@@ -526,61 +530,54 @@ export class SvScatterChartComponent {
     const total = this.entries().length;
     const drawn = this.drawn().length;
 
-    if (this.drawMode() === 'bins' && this.binMarks().length) {
-      parts.push(
-        `${plural(drawn, 'point')} aggregated into ` +
-        `${plural(this.binMarks().length, 'hexagonal bin')}; the shading is how many ` +
-        `landed in each, and the densest holds ${this.peakBinCount()}.`,
-      );
+    // Counts go in twice: as the plural selector, and unformatted as the figure shown.
+    const bins = this.binMarks().length;
+    const binned = {
+      points: drawn, drawn: String(drawn), bins, binCount: String(bins), peak: String(this.peakBinCount()),
+    };
+    if (this.drawMode() === 'bins' && bins) {
+      parts.push(svFormatLabel(this.labels.scatterBinned, binned, this.locale));
       if (this.series().length > 1) {
-        parts.push('Series are pooled — hover or focus a bin for its breakdown.');
+        parts.push(this.labels.scatterPooled);
       }
     } else if (this.useRaster() && this.rasterHref() === null) {
       // No canvas to paint on (a server render, a locked-down browser): the
       // hexagons are shaded and ARE the picture, so saying "painted as one
       // image" would describe a raster that is not there.
-      parts.push(
-        `${plural(drawn, 'point')} aggregated into ` +
-        `${plural(this.binMarks().length, 'hexagonal bin')} because they could not be ` +
-        `painted as one image here; the shading is how many landed in each, and the ` +
-        `densest holds ${this.peakBinCount()}.`,
-      );
+      parts.push(svFormatLabel(this.labels.scatterBinnedNoCanvas, binned, this.locale));
     } else if (this.useRaster()) {
-      parts.push(
-        `${plural(drawn, 'point')} painted as one image rather than ` +
-        `${drawn} separate shapes; the hexagons over it are the hover and keyboard targets.`,
-      );
+      parts.push(svFormatLabel(this.labels.scatterRaster, binned, this.locale));
     }
 
     const stride = this.sampled().stride;
     if (stride > 1) {
-      parts.push(
-        `Showing ${drawn} of ${h.usable.length} points — every ${ordinal(stride)}, ` +
-        `spread evenly so the shape of the cloud is preserved. Individual gaps are not.`,
-      );
+      parts.push(svFormatLabel(
+        this.labels.scatterSampled,
+        { drawn: String(drawn), usable: String(h.usable.length), nth: this.ordinal(stride) },
+        this.locale,
+      ));
     }
 
     if (h.droppedCoord > 0) {
-      parts.push(
-        `${plural(h.droppedCoord, 'point')} of ${total} had no usable x or y and ` +
-        `${h.droppedCoord === 1 ? 'is' : 'are'} not plotted.`,
-      );
+      parts.push(svFormatLabel(
+        this.labels.scatterDroppedCoord,
+        { count: h.droppedCoord, n: String(h.droppedCoord), total: String(total) },
+        this.locale,
+      ));
     }
 
     if (h.droppedSize > 0) {
-      parts.push(
-        `${plural(h.droppedSize, 'point')} had a size that cannot be drawn and ` +
-        `${h.droppedSize === 1 ? 'is' : 'are'} shown at the default radius.`,
-      );
+      parts.push(svFormatLabel(this.labels.scatterDroppedSize, { count: h.droppedSize, n: String(h.droppedSize) }, this.locale));
     }
 
     // In bins mode the count IS the answer to overlapping, so saying it twice
     // would only make the notice longer.
     if (this.drawMode() === 'points' && h.overlapSites > 0) {
-      parts.push(
-        `${plural(h.overlapping, 'point')} share ${plural(h.overlapSites, 'exact coordinate')} ` +
-        `with another, so they are drawn on top of each other.`,
-      );
+      parts.push(svFormatLabel(
+        this.labels.scatterOverlap,
+        { count: h.overlapping, n: String(h.overlapping), sites: h.overlapSites, s: String(h.overlapSites) },
+        this.locale,
+      ));
     }
 
     for (const axis of this.crowding()) parts.push(axis);
@@ -600,18 +597,18 @@ export class SvScatterChartComponent {
     if (usable.length < 3) return out;
 
     const axes = [
-      { label: this.xLabel(), scale: this.xScale(), values: usable.map(e => e.p.x), name: 'horizontal' },
-      { label: this.yLabel(), scale: this.yScale(), values: usable.map(e => e.p.y), name: 'vertical' },
+      { label: this.xLabel(), scale: this.xScale(), values: usable.map(e => e.p.x), sentence: this.labels.scatterCrowdingX },
+      { label: this.yLabel(), scale: this.yScale(), values: usable.map(e => e.p.y), sentence: this.labels.scatterCrowdingY },
     ];
 
     for (const axis of axes) {
       const { outliers, coreShare } = svScatterCrowding(axis.values, axis.scale.min, axis.scale.max);
       if (outliers > 0 && coreShare < 0.25) {
-        out.push(
-          `${plural(outliers, 'extreme ' + axis.label + ' value')} ` +
-          `${outliers === 1 ? 'holds' : 'hold'} the ${axis.name} axis open: the rest of the ` +
-          `data sits in ${Math.round(coreShare * 100)}% of it.`,
-        );
+        out.push(svFormatLabel(
+          axis.sentence,
+          { count: outliers, n: String(outliers), axis: axis.label, pct: String(Math.round(coreShare * 100)) },
+          this.locale,
+        ));
       }
     }
     return out;
@@ -622,30 +619,63 @@ export class SvScatterChartComponent {
   /** Generated accessible summary used when `ariaLabel` is not supplied. */
   readonly resolvedAriaLabel = computed<string>(() => {
     if (this.ariaLabel()) return this.ariaLabel();
-    const base = this.title() || 'Scatter plot';
+    const base = this.title() || this.labels.chartScatter;
     const parts = this.series()
-      .map(s => `${s.name}: ${plural(s.points.length, 'point')}`)
+      .map(s => svFormatLabel(
+        this.labels.scatterSeriesCount,
+        { name: s.name, count: s.points.length, n: String(s.points.length) },
+        this.locale,
+      ))
       .join(', ');
     if (!parts) return base;
-    const nav = this.focusTargets() === 'bins'
-      ? ` Drawn as ${plural(this.binMarks().length, 'density bin')}. Use the arrow keys to move between them.`
-      : '';
-    return `${base}. ${this.xLabel()} versus ${this.yLabel()}. ${parts}.${nav}`;
+    const bins = this.binMarks().length;
+    return svFormatLabel(
+      this.focusTargets() === 'bins' ? this.labels.scatterSummaryBins : this.labels.scatterSummary,
+      { title: base, x: this.xLabel(), y: this.yLabel(), series: parts, bins, binCount: String(bins) },
+      this.locale,
+    );
   });
 
   /** Per-point accessible label. */
   pointAriaLabel(s: ScatterSeries, p: ScatterPoint): string {
-    const name = p.label ? `${p.label}, ` : '';
-    return `${name}${s.name}: ${this.xLabel()} ${p.x}, ${this.yLabel()} ${p.y}`;
+    const params = {
+      label: p.label ?? '', series: s.name, x: this.xLabel(), xValue: String(p.x), y: this.yLabel(), yValue: String(p.y),
+    };
+    return svFormatLabel(p.label ? this.labels.scatterPointLabelled : this.labels.scatterPoint, params);
   }
 
   private binAriaLabel(event: ScatterBinEvent): string {
-    const where = `${this.xLabel()} about ${this.xTick(event.x)}, ` +
-      `${this.yLabel()} about ${this.yTick(event.y)}`;
-    const shares = event.shares.length > 1
-      ? ` — ${event.shares.map(s => `${s.series} ${s.count}`).join(', ')}`
-      : '';
-    return `${where}: ${plural(event.count, 'point')}${shares}`;
+    const params = {
+      x: this.xLabel(), xValue: this.xTick(event.x), y: this.yLabel(), yValue: this.yTick(event.y),
+      count: event.count, n: String(event.count), shares: this.binShares(event),
+    };
+    return svFormatLabel(event.shares.length > 1 ? this.labels.scatterBinShares : this.labels.scatterBin, params, this.locale);
+  }
+
+  /** A bin's per-series counts, `alpha 3, beta 2`. */
+  private binShares(event: ScatterBinEvent): string {
+    return event.shares
+      .map(s => svFormatLabel(this.labels.scatterShare, { series: s.series, count: String(s.count) }))
+      .join(', ');
+  }
+
+  /**
+   * `2nd`, `3rd`, `11th` — for "every 4th point". The suffix is chosen by the
+   * locale's ORDINAL plural rule, which in English is exactly st/nd/rd/th.
+   */
+  private ordinal(n: number): string {
+    let category = 'other';
+    try {
+      category = new Intl.PluralRules(this.locale || SV_MACHINE_LOCALE, { type: 'ordinal' }).select(n);
+    } catch {
+      // an invalid tag keeps `other`
+    }
+    const template =
+      category === 'one' ? this.labels.ordinalOne
+        : category === 'two' ? this.labels.ordinalTwo
+          : category === 'few' ? this.labels.ordinalFew
+            : this.labels.ordinalOther;
+    return svFormatLabel(template, { n: String(n) });
   }
 
   /**
@@ -657,39 +687,42 @@ export class SvScatterChartComponent {
    * technically be the data and would answer nothing.
    */
   readonly a11ySummary = computed<SvDataSummary>(() => {
-    const base = this.title() || 'Scatter plot';
+    const base = this.title() || this.labels.chartScatter;
 
     if (this.focusTargets() === 'bins') {
       const marks = this.binMarks();
       return {
-        caption: `${base} — density bins`,
-        columns: ['Bin', 'Points', 'Series'],
+        caption: svFormatLabel(this.labels.scatterDensityCaption, { title: base }),
+        columns: [this.labels.binColumn, this.labels.pointsColumn, this.labels.seriesColumn],
         rows: marks.map(m => ({
           key: `${m.cx},${m.cy}`,
-          header: `${this.xLabel()} ${this.xTick(m.event.x)}, ${this.yLabel()} ${this.yTick(m.event.y)}`,
-          cells: [
-            String(m.count),
-            m.event.shares.map(s => `${s.series} ${s.count}`).join(', '),
-          ],
+          header: svFormatLabel(this.labels.scatterBinHeader, {
+            x: this.xLabel(), xValue: this.xTick(m.event.x), y: this.yLabel(), yValue: this.yTick(m.event.y),
+          }),
+          cells: [String(m.count), this.binShares(m.event)],
         })),
         overview: marks.length
-          ? `${plural(this.drawn().length, 'point')} in ${plural(marks.length, 'bin')}. ` +
-            `The densest holds ${this.peakBinCount()}.`
+          ? svFormatLabel(this.labels.scatterBinsOverview, {
+            points: this.drawn().length, drawn: String(this.drawn().length),
+            bins: marks.length, binCount: String(marks.length), peak: String(this.peakBinCount()),
+          }, this.locale)
           : undefined,
       };
     }
 
     const marks = this.pointMarks();
     return {
-      caption: `${base} — ${this.xLabel()} versus ${this.yLabel()}`,
-      columns: ['Point', 'Series', this.xLabel(), this.yLabel()],
+      caption: svFormatLabel(this.labels.scatterPointsCaption, { title: base, x: this.xLabel(), y: this.yLabel() }),
+      columns: [this.labels.pointColumn, this.labels.seriesColumn, this.xLabel(), this.yLabel()],
       rows: marks.map((m, i) => ({
         key: `${m.series.name}-${i}`,
         header: m.point.label ?? `${this.xTick(m.point.x)}, ${this.yTick(m.point.y)}`,
         cells: [m.series.name, String(m.point.x), String(m.point.y)],
       })),
       overview: marks.length
-        ? `${plural(marks.length, 'point')} across ${plural(this.series().length, 'series', 'series')}.`
+        ? svFormatLabel(this.labels.scatterPointsOverview, {
+          points: marks.length, n: String(marks.length), series: this.series().length, s: String(this.series().length),
+        }, this.locale)
         : undefined,
     };
   });
@@ -934,22 +967,6 @@ function canvasWorks(): boolean {
   return canvasSupport;
 }
 
-/** `1 point` / `2 points`, because "1 points" reads as a bug in the data. */
-function plural(count: number, one: string, many = `${one}s`): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
-/** `2nd`, `3rd`, `11th` — for "every 4th point". */
-function ordinal(n: number): string {
-  const rest = n % 100;
-  if (rest >= 11 && rest <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1: return `${n}st`;
-    case 2: return `${n}nd`;
-    case 3: return `${n}rd`;
-    default: return `${n}th`;
-  }
-}
 
 /** Trim float noise off a coordinate so the emitted attributes stay short. */
 function round(value: number): number {

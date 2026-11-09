@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SV_FLOATING_Z, SvFloatingLayerService } from '@styloviz/core';
+import { SV_FLOATING_Z, SvFloatingLayerService } from '@styloviz/core/layout';
 import { SvAffixComponent } from './affix.component';
 
 /**

@@ -11,7 +11,9 @@ import {
   PLATFORM_ID,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { svHighContrast, svOnHighContrastChange, svUniqueId } from '@styloviz/core';
+import { svHighContrast, svOnHighContrastChange, svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_OVERLAYS_LABELS } from '../overlays.labels';
 
 export type ProgressRingSize    = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type ProgressRingVariant = 'default' | 'gradient' | 'dashed' | 'glow';
@@ -31,6 +33,10 @@ const SIZES = {
   templateUrl: './progress-ring.component.html',
 })
 export class SvProgressRingComponent {
+  protected readonly labels = injectSvLabels('overlays', SV_OVERLAYS_LABELS);
+  /** The kit's locale — fills the generated name and value text. */
+  private readonly locale = svLocale();
+
   /** Current progress value (0–max). @default 0 */
   value    = input<number>(0);       // 0–100
   /** Value that represents 100%. @default 100 */
@@ -207,13 +213,13 @@ export class SvProgressRingComponent {
     if (suffix) return `${value}${suffix}`;
     const max = this.max();
     return Number.isFinite(max) && max > 0 && max !== 100
-      ? `${value} of ${max}`
+      ? svFormatLabel(this.labels.progressRingOf, { value: String(value), max: String(max) }, this.locale)
       : `${value}`;
   });
 
   /** Accessible label resolved from `ariaLabel`, `label`, or a generated summary. */
   readonly resolvedAriaLabel = computed<string>(() =>
-    this.ariaLabel() || this.label() || `Progress: ${Math.round(this.pct())}%`
+    this.ariaLabel() || this.label() || svFormatLabel(this.labels.progressRingName, { pct: String(Math.round(this.pct())) }, this.locale)
   );
 
   readonly radius = computed(() => {
@@ -290,6 +296,6 @@ export class SvProgressRingComponent {
   //
   // `color-mix` takes whatever the caller passed. 0x88/0xff ≈ 53%.
   readonly gradientEnd = computed(() =>
-    `color-mix(in oklab, ${this.color()} 53%, transparent)`
+    `color-mix(in oklab, ${this.color()} 53%, transparent)` // sv-i18n-ignore: CSS colour value
   );
 }

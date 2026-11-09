@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import {
   SV_NAV_TELEMETRY,
   provideSvNavLocation,
   svQueryParamNavLocation,
-  svResetWarnOnce,
   type SvNavEvent,
   type SvNavTelemetry,
-} from '@styloviz/core';
+} from '@styloviz/core/nav';
 import { SvTabsComponent, type TabItem } from './tabs.component';
 
 /**

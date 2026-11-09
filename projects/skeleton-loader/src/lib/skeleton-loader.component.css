@@ -1,3 +1,13 @@
+/* ★ COMPOSITOR-ONLY (STYLOVIZ_SCROLL_FLICKER_TODO SF-11). The sheen used to
+     animate `background-position` on this pseudo-element, which repaints it
+     every frame; it now slides with `transform`, so the GPU moves a layer and
+     nothing is repainted. Same look: the old 200%-wide background REPEATED,
+     so the sheen is a continuous wave with period 2W moving left → right by 4W
+     per 1.6 s cycle. `::after` is a repeating strip 6W wide with 2W tiles,
+     translated across exactly that range (−2W → +2W), so every tile is where
+     the old background put it at every instant.
+   ★ This more specific `::after` also wins over the kit stylesheet's global
+     `.skeleton-wave::after`, so a loader bone shows one sheen, not two. */
 .skeleton-wave {
   position: relative;
   overflow: hidden;
@@ -6,14 +16,20 @@
 .skeleton-wave::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
+  top: 0;
+  bottom: 0;
+  left: -200%; /* sv-physical: a decorative shimmer band that sweeps the same way in both directions */
+  width: 600%;
+  pointer-events: none;
+  background-image: linear-gradient(
     90deg,
     transparent 0%,
     var(--sv-skeleton-sheen) 50%,
     transparent 100%
   );
-  background-size: 200% 100%;
+  background-size: 33.3333% 100%;
+  background-repeat: repeat-x;
+  transform: translateX(-33.3333%);
   animation: sk-wave 1.6s ease-in-out infinite;
 }
 
@@ -22,12 +38,13 @@
      the component, which never exists, so dark mode never applied. */
 
 @keyframes sk-wave {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  from { transform: translateX(-33.3333%); }
+  to   { transform: translateX(33.3333%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton-wave::after {
     animation: none;
+    background: none;
   }
 }

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `cloud-upload` icon. */
 export const cloudUploadNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const cloudUploadNodes: readonly IconNode[] = [
 export const cloudUploadSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7 12.9q-2 .2-3.7-1.1-1.7-1.3-1.9-3.4-.3-2.2 1.1-3.8 1.1-1.5 2.9-1.9 1.6-3.9 6.1-3.7 4.4.2 5.7 4.2 1.6.3 2.7 1.6 1.3 1.5 1.2 3.5-.1 2-1.6 3.4-1.5 1.3-3.5 1.2h-3.3q.1.1.1.2l3.3 3.3q.6.6 0 1.2-.3.3-.6.3-.3 0-.6-.3l-2-2v5.4q0 .9-.9.9-.9 0-.9-.9v-5.4l-2 2q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l3.3-3.3q0-.1.1-.2z' },
 ];
+
+/** `cloud-upload` as a registrable glyph — `registerSvIcons([cloudUploadIcon])` / `provideSvIcons([cloudUploadIcon])`. */
+export const cloudUploadIcon: SvIconDef = { name: 'cloud-upload', nodes: cloudUploadNodes, solid: cloudUploadSolidNodes };
 
 /** `cloud-upload` — tree-shakable standalone icon. Use `<sv-cloud-upload-icon />`. */
 @Component({

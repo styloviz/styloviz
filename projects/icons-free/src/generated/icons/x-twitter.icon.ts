@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `x-twitter` icon. */
 export const xTwitterNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const xTwitterNodes: readonly IconNode[] = [
 export const xTwitterSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5.6 4.4l6.4 6.4 6.4-6.4q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6l-6.4 6.4 6.4 6.4q.6.6 0 1.2-.6.6-1.2 0l-6.4-6.4-6.4 6.4q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l6.4-6.4-6.4-6.4q-.6-.6 0-1.2.6-.6 1.2 0z' },
 ];
+
+/** `x-twitter` as a registrable glyph — `registerSvIcons([xTwitterIcon])` / `provideSvIcons([xTwitterIcon])`. */
+export const xTwitterIcon: SvIconDef = { name: 'x-twitter', nodes: xTwitterNodes, solid: xTwitterSolidNodes };
 
 /** `x-twitter` — tree-shakable standalone icon. Use `<sv-x-twitter-icon />`. */
 @Component({

@@ -1,5 +1,6 @@
 import {
   ApplicationRef,
+  DestroyRef,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -20,14 +21,22 @@ import {
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
+import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
 import {
-  svStackedPopup, SvFieldErrorComponent, createFieldError, type SvServerError,
   svFirstDayOfWeek,
   svToday,
   svWeekdayLabels,
-  svUniqueId,
-} from '@styloviz/core';
+  svLocale,
+  svMonthLabels,
+  SV_MACHINE_LOCALE,
+  injectSvLabels,
+  SvLabelPipe,
+} from '@styloviz/core/i18n';
+import { createPortalHost, svInlineAnchor, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
+import { SV_INPUT_FIELD_LABELS } from './input-field-free.labels';
 
+import { registerDatePickerIcons } from './date-picker.component.icons';
 /** A single cell in the calendar day grid. */
 export interface CalendarDay {
   readonly date: Date;
@@ -44,13 +53,10 @@ export interface CalendarDay {
  *    The other half was a `mondayOffset` in the grid builder. Both are now
  *    derived from `locale` / `weekStart` through `svWeekdayLabels` and
  *    `svFirstDayOfWeek` in `@styloviz/core` — which read CLDR rather than a
- *    list, because `en-US` starts on Sunday and `ar-EG` on Saturday.
+ *    list, because `en-US` starts on Sunday and `ar-EG` on Saturday. The
+ *    English `MONTH_NAMES` table went the same way: month names come from
+ *    `svMonthLabels`, keyed on the same `locale`.
  */
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April',
-  'May', 'June', 'July', 'August',
-  'September', 'October', 'November', 'December',
-] as const;
 
 /** Panel width (px) — matches the 17.5 rem CSS width in the template. */
 const PANEL_W = 280;
@@ -107,7 +113,7 @@ function stepMonths(d: Date, delta: number): void {
 @Component({
   selector: 'sv-date-picker',
   standalone: true,
-  imports: [NgClass, SvFieldErrorComponent, SvIconComponent],
+  imports: [NgClass, SvFieldErrorComponent, SvIconComponent, SvLabelPipe],
   templateUrl: './date-picker.component.html',
   styleUrl: './date-picker.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -120,6 +126,12 @@ function stepMonths(d: Date, delta: number): void {
   ],
 })
 export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerDatePickerIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ inputField })` says otherwise. */
+  protected readonly labels = injectSvLabels('inputField', SV_INPUT_FIELD_LABELS);
+
   /** Per-instance id prefix, so the visible label can name the trigger. */
   protected readonly uid = svUniqueId('sv-dp');
 
@@ -136,7 +148,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    * storing one for "15 June" means the value shifts across midnight for half
    * the world.
    *
-   * ⚠️ COMPOSING THIS WITH `sv-time-picker` IS NOT `new Date(d + 'T' + t)`.
+   * COMPOSING THIS WITH `sv-time-picker` IS NOT `new Date(d + 'T' + t)`.
    *    That composes in the browser's zone, silently, and twice a year it
    *    composes something that does not exist: London, 2026-03-29, the clocks
    *    go 01:00 → 02:00 and `new Date('2026-03-29T01:30')` returns 02:30
@@ -149,7 +161,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   readonly label = input<string>('');
 
   /** Placeholder shown when no date is selected. */
-  readonly placeholder = input<string>('Select date');
+  readonly placeholder = input<string>(this.labels.selectDate);
 
   /** Minimum selectable date (YYYY-MM-DD). Cells before it are disabled. */
   readonly minDate = input<string>('');
@@ -177,11 +189,17 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    * Measured first days: `en-US` Sunday, `en-GB` Monday, `ar-EG` **Saturday**.
    * Three answers in six locales, so there is no majority to default to.
    *
-   * ⚠️ `''` MEANS "KEEP MONDAY", NOT "ASK THE BROWSER". Defaulting to the
-   *    runtime's locale would move every existing caller's columns on upgrade
-   *    — a change a host should make on purpose, not discover from a ticket.
+   * ★ The default is the kit's locale (`SV_LOCALE`, which follows Angular's
+   *   `LOCALE_ID`), so an app set to `de-DE` gets German month names, German
+   *   day names and a Monday-first grid without touching each picker. The
+   *   month header, the day cells' accessible names and the trigger text all
+   *   read it.
+   *
+   * ⚠️ `''` STILL MEANS "KEEP MONDAY" — English names, Monday first — for the
+   *    host that passes it on purpose. It never means "ask the browser".
+   * @default the kit's locale (`SV_LOCALE`)
    */
-  readonly locale = input<string>('');
+  readonly locale = input<string>(svLocale());
 
   /**
    * Override the first day of the week. `0` is Sunday. @default null — derive
@@ -202,16 +220,14 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    *
    *     Every "today" in this component — the highlighted cell, the Today
    *     button, the month the panel opens on, the keyboard's starting point —
-   *     was computed with `new Date()` in the BROWSER'S zone. That is right for
-   *     a personal calendar and wrong for an app pinned to a business zone: a
-   *     Sydney user booking against a New York ledger sees tomorrow highlighted
-   *     as today, and the Today button writes a date the server rejects.
+   *     is computed in this zone. The browser's zone is right for a personal
+   *     calendar and wrong for an app pinned to a business zone: a Sydney user
+   *     booking against a New York ledger would see tomorrow highlighted as
+   *     today, and the Today button would write a date the server rejects.
    *
-   * An IANA zone (`'America/New_York'`). Empty means the browser's own, which
-   * is what this component was silently doing before the input existed — so
-   * leaving it unset changes nothing.
+   * An IANA zone (`'America/New_York'`). Empty means the browser's own zone.
    *
-   * ⚠️ It does NOT convert the value. A calendar date has no zone to convert
+   * It does NOT convert the value. A calendar date has no zone to convert
    *    between; use `svComposeDateTime` when you need an instant.
    *
    * @default '' — the browser's zone
@@ -326,6 +342,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
 
   /** Container div appended to document.body while the panel is open. */
   private portalEl: HTMLElement | null = null;
+  private portalHost: SvPortalHost | null = null;
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
    * this popup sits in stays "topmost", and one Escape closes both.
@@ -341,7 +358,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    * Capture-phase scroll listener — fires for ANY scrollable ancestor
    * (not just the window), RAF-throttled so it never runs more than once
    * per frame. Repositions the panel to keep it anchored to the trigger
-   * instead of drifting or closing (see dropdown-instruction.md §6).
+   * instead of drifting or closing (see docs/dropdown-instruction.md §6).
    */
   private _rafId: number | null = null;
   private readonly _scrollHandler = (): void => {
@@ -368,7 +385,26 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   readonly weekDays   = computed<readonly string[]>(() =>
     svWeekdayLabels(this.locale(), this.firstDay()),
   );
-  readonly monthNames = MONTH_NAMES;
+  /**
+   * The tag the dates are written in. `locale()` itself, canonicalised; `''`
+   * (the explicit "keep Monday") and an invalid tag write English — the same
+   * fallback `svMonthLabels` uses — rather than throwing from `Intl`.
+   */
+  protected readonly displayLocale = computed<string>(() => {
+    try {
+      return Intl.getCanonicalLocales(this.locale())[0] ?? SV_MACHINE_LOCALE;
+    } catch {
+      return SV_MACHINE_LOCALE;
+    }
+  });
+
+  /** The twelve month names in `locale`, January first. */
+  readonly monthNames = computed<readonly string[]>(() => svMonthLabels(this.displayLocale(), 'long'));
+
+  /** The month-view buttons' abbreviations ("Jan", "Mär", "juil."). */
+  protected readonly monthShortNames = computed<readonly string[]>(() =>
+    svMonthLabels(this.displayLocale(), 'short'),
+  );
 
   readonly yearRange = computed(() => {
     const base = Math.floor(this.viewYear() / 10) * 10 - 5;
@@ -378,12 +414,12 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   readonly displayValue = computed(() => {
     const v = this.value();
     if (!v) return '';
-    return new Date(v + 'T00:00:00').toLocaleDateString('en-US', {
+    return new Date(v + 'T00:00:00').toLocaleDateString(this.displayLocale(), {
       month: 'short', day: 'numeric', year: 'numeric',
     });
   });
 
-  readonly monthName = computed(() => MONTH_NAMES[this.viewMonth()]);
+  readonly monthName = computed(() => this.monthNames()[this.viewMonth()] ?? '');
 
   /** Accessible name for the trigger — combines the field name with the selection. */
   readonly triggerAriaLabel = computed<string | null>(() => {
@@ -443,6 +479,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   // ─── DI ───────────────────────────────────────────────────────────────────
 
   private readonly el     = inject(ElementRef);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly appRef = inject(ApplicationRef);
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -499,7 +536,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   @HostListener('window:resize')
   onResize(): void {
     // Viewport resize invalidates the layout — close rather than reposition
-    // with now-stale coordinates (dropdown-instruction.md §8).
+    // with now-stale coordinates (docs/dropdown-instruction.md §8).
     if (this.isOpen()) this.close();
   }
 
@@ -535,8 +572,15 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     //    This escapes ALL parent overflow:hidden and CSS transform contexts.
     if (!this.panelTpl) return;
 
-    this.portalEl = document.createElement('div');
-    this.portalEl.className = 'sv-dp-portal';
+    // Context-carrying host: dir, lang and a locally scoped theme reach the
+    // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+    this.portalHost = createPortalHost({
+      origin: this.el.nativeElement as HTMLElement,
+      className: 'sv-dp-portal',
+      label: 'date-picker',
+      destroyRef: this.destroyRef,
+    });
+    this.portalEl = this.portalHost.element;
 
     this.portalView = this.panelTpl.createEmbeddedView({});
     this.appRef.attachView(this.portalView);
@@ -546,7 +590,7 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     // scripts/fix-portal-insertion-order.mjs.
     this.portalView.detectChanges();
     this.portalView.rootNodes.forEach((n: Node) => this.portalEl!.appendChild(n));
-    document.body.appendChild(this.portalEl);
+    this.portalHost.attach();
 
     this.isOpen.set(true);
     this.opened.emit();
@@ -589,9 +633,13 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     const base = this.activeKey() || this.value() || this.todayKey();
     const d = new Date(base + 'T00:00:00');
 
+    // The grid mirrors under dir="rtl", so Left/Right follow what the user
+    // SEES: ArrowRight is the previous day there, the day to its right.
+    const across = svIsRtl(this.el.nativeElement as HTMLElement) ? -1 : 1;
+
     switch (event.key) {
-      case 'ArrowLeft':  d.setDate(d.getDate() - 1); break;
-      case 'ArrowRight': d.setDate(d.getDate() + 1); break;
+      case 'ArrowLeft':  d.setDate(d.getDate() - across); break;
+      case 'ArrowRight': d.setDate(d.getDate() + across); break;
       case 'ArrowUp':    d.setDate(d.getDate() - 7); break;
       case 'ArrowDown':  d.setDate(d.getDate() + 7); break;
       // ★ The start of the week AS DISPLAYED. Hardcoded to Monday before, which
@@ -811,16 +859,19 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
     const above = spaceBelow < PANEL_H && spaceAbove > spaceBelow;
-    const right = rect.left + PANEL_W > vw;
+    // Start-edge alignment through the shared engine: the trigger's RIGHT edge
+    // under dir="rtl", the end edge as the fallback when it would overflow (`X-7`).
+    const inline = svInlineAnchor({
+      anchor: rect, panelWidth: PANEL_W, viewportWidth: vw,
+      rtl: svIsRtl(this.el.nativeElement as HTMLElement), margin: GAP,
+    });
+    const right = inline.edge === 'right';
 
     this.openAbove.set(above);
     this.alignRight.set(right);
 
-    // Unify left/right alignment into a single clamped `left` value so the
-    // panel can never render partially outside the viewport horizontally.
-    const desiredLeft = right ? rect.right - PANEL_W : rect.left;
-    const maxLeft = Math.max(GAP, vw - PANEL_W - GAP);
-    const clampedLeft = Math.min(Math.max(desiredLeft, GAP), maxLeft);
+    // One clamped `left`, so the panel can never sit partly off-screen.
+    const clampedLeft = inline.left;
 
     const style: Record<string, string> = {
       position: 'fixed',
@@ -847,7 +898,8 @@ export class SvDatePickerComponent implements OnInit, OnDestroy, ControlValueAcc
       this.portalView.destroy();
       this.portalView = null;
     }
-    this.portalEl?.remove();
+    this.portalHost?.destroy();
+    this.portalHost = null;
     this.portalEl = null;
   }
 

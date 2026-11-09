@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -17,14 +16,13 @@ import {
 } from '@angular/core';
 import { NgClass, isPlatformBrowser } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  SvSpinnerArcComponent,
-  SvLiveAnnouncer,
-  createAsyncAction,
-  type SvDataError,
-  type SvRequest,
-} from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { createAsyncAction, type SvDataError, type SvRequest } from '@styloviz/core/data';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_OVERLAYS_LABELS } from '../overlays.labels';
 
+import { registerResultIcons } from './result.component.icons';
 /** The work a result page's retry performs, owned by the component. */
 export type ResultRetryAction = (request: SvRequest) => unknown;
 
@@ -77,7 +75,13 @@ export type ResultSize   = 'sm' | 'md' | 'lg';
   templateUrl: './result.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SvResultComponent implements AfterViewInit {
+export class SvResultComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerResultIcons();
+
+  /** @internal Visible text — English unless `provideSvLabels({ overlays })` says otherwise. */
+  protected readonly labels = injectSvLabels('overlays', SV_OVERLAYS_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /**
@@ -105,12 +109,10 @@ export class SvResultComponent implements AfterViewInit {
   /**
    * Label for a built-in retry button. `null` renders none.
    *
-   * ★★★ THE RETRY WAS ALWAYS SOMEONE ELSE'S BUTTON, WHICH IS WHY IT HAD NO
-   *     STATE. Actions here are slotted content, so the retry on every error
-   *     result in the kit was a host `<button>` with a `(click)` — and
-   *     `OF-16-I2` is the consequence: it can be pressed repeatedly, with no
-   *     feedback, firing the failed request again and again. The page reports
-   *     an outcome and then has nothing to say about the attempt to fix it.
+   * A slotted retry is a host `<button>` with a `(click)`: it has no state, so
+   * it can be pressed repeatedly, with no feedback, firing the failed request
+   * again and again. The built-in one pairs with `retryAction` for a pending
+   * state and a rendered failure.
    *
    * ★ Slotted actions still work and are still right for "go home" or
    *   "contact support". This is for the one action whose whole point is that
@@ -133,7 +135,7 @@ export class SvResultComponent implements AfterViewInit {
   retryAction = input<ResultRetryAction | null>(null);
 
   /** Label while the retry is in flight. @default 'Retrying…' */
-  retryPendingLabel = input<string>('Retrying…');
+  retryPendingLabel = input<string>(this.labels.resultRetrying);
 
   /**
    * The host's own retry is in flight — for a host that listens to `(retry)`
@@ -174,13 +176,13 @@ export class SvResultComponent implements AfterViewInit {
    * ★ A reference nobody can copy is a reference typed out by hand, wrongly,
    *   into a support form.
    */
-  copyLabel = input<string | null>('Copy');
+  copyLabel = input<string | null>(this.labels.resultCopy);
 
   /** Confirmation shown in place of `copyLabel` after a copy. @default 'Copied' */
-  copiedLabel = input<string>('Copied');
+  copiedLabel = input<string>(this.labels.resultCopied);
 
   /** Heading for the collapsed technical block. @default 'Technical details' */
-  detailsLabel = input<string>('Technical details');
+  detailsLabel = input<string>(this.labels.resultTechnicalDetails);
 
   /**
    * Show the status/code block. @default false
@@ -239,8 +241,7 @@ export class SvResultComponent implements AfterViewInit {
 
   /**
    * One step of the arrival focus. Idempotent: it does nothing once the
-   * heading has been focused, so the effect and the deprecated
-   * `ngAfterViewInit` can both call it.
+   * heading has been focused, so the effect may re-run on any input change.
    *
    * ★★★ THE ROOT HOLDS FOCUS UNTIL THE HEADING TAKES IT. A page that arrives
    *     before its title focuses its root; when the title lands, the root's
@@ -272,19 +273,6 @@ export class SvResultComponent implements AfterViewInit {
       this._rootFocusable.set(true);
       afterNextRender(() => root.focus(), { injector: this._injector });
     }
-  }
-
-  /**
-   * Runs the arrival focus now, if it is still owed.
-   *
-   * @deprecated Kept so the public member list is unchanged; the focus now
-   * runs from an effect, because a title that arrives after the first render
-   * was missed by a one-shot lifecycle hook. Calling it by hand still does what
-   * it always did — focus the heading when `focusHeading` is on — and is a
-   * no-op once that has happened.
-   */
-  ngAfterViewInit(): void {
-    this._moveFocus();
   }
 
   /** True while a retry is in flight — the component's own or the host's. */
@@ -364,8 +352,8 @@ export class SvResultComponent implements AfterViewInit {
     const err = this._diagnosed();
     if (!err) return [];
     const rows: { label: string; value: string }[] = [];
-    if (err.status !== undefined) rows.push({ label: 'Status', value: String(err.status) });
-    if (err.code) rows.push({ label: 'Code', value: err.code });
+    if (err.status !== undefined) rows.push({ label: this.labels.resultStatus, value: String(err.status) });
+    if (err.code) rows.push({ label: this.labels.resultCode, value: err.code });
     return rows;
   });
 
@@ -486,12 +474,18 @@ export class SvResultComponent implements AfterViewInit {
 
   readonly titleClass = computed<string>(() => {
     const sz: Record<ResultSize, string> = { sm: 'text-lg', md: 'text-2xl', lg: 'text-3xl' };
-    return `font-bold tracking-tight text-gray-900 dark:text-white ${sz[this.size()]}`;
+    // ★ Long localized titles (FL-J3-OF-15, `OF-16-I5`): a German or Finnish
+    //   compound is one unbreakable word wider than a 320px screen, and in a
+    //   centred flex column it pushed the whole result sideways. `max-w-xl`
+    //   caps the line, `hyphens-auto` breaks at a syllable where the browser
+    //   has the language, and `wrap-anywhere` is the last resort that lets the
+    //   word's min-content shrink at all.
+    return `max-w-xl font-bold tracking-tight text-balance hyphens-auto wrap-anywhere text-gray-900 dark:text-white ${sz[this.size()]}`;
   });
 
   readonly descriptionClass = computed<string>(() => {
     const sz: Record<ResultSize, string> = { sm: 'text-sm', md: 'text-base', lg: 'text-lg' };
-    return `text-gray-500 dark:text-gray-400 leading-relaxed max-w-md ${sz[this.size()]}`;
+    return `text-gray-500 dark:text-gray-400 leading-relaxed max-w-md hyphens-auto wrap-anywhere ${sz[this.size()]}`;
   });
 
   readonly containerPadding = computed<string>(() => {

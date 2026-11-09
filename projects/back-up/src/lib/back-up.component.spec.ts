@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import {
   SV_LINK_ADAPTER,
   SV_NAV_TELEMETRY,
-  svResetWarnOnce,
   type SvLinkAdapter,
   type SvLinkTarget,
   type SvNavEvent,
   type SvNavTelemetry,
-} from '@styloviz/core';
+} from '@styloviz/core/nav';
 import { SvBackUpComponent, type BackUpNavigation } from './back-up.component';
 
 /**

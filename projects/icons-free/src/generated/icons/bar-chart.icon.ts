@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bar-chart` icon. */
 export const barChartNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const barChartNodes: readonly IconNode[] = [
 export const barChartSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 19.1h2.1v-7.1q0-.9.9-.9.9 0 .9.9v7.1h3.2v-12.1q0-.9.9-.9.9 0 .9.9v12.1h3.2v-5.1q0-.9.9-.9.9 0 .9.9v5.1h2.1q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `bar-chart` as a registrable glyph — `registerSvIcons([barChartIcon])` / `provideSvIcons([barChartIcon])`. */
+export const barChartIcon: SvIconDef = { name: 'bar-chart', nodes: barChartNodes, solid: barChartSolidNodes };
 
 /** `bar-chart` — tree-shakable standalone icon. Use `<sv-bar-chart-icon />`. */
 @Component({

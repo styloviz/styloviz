@@ -11,10 +11,10 @@
       >
         {{ label() }}
         @if (required()) {
-          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+          <span class="ms-0.5 text-danger-500" aria-hidden="true">*</span>
         }
         @if (optionalTag() && !required()) {
-          <span class="ml-1.5 font-normal text-gray-500 dark:text-gray-400 text-xs">(optional)</span>
+          <span class="ms-1.5 font-normal text-gray-500 dark:text-gray-400 text-xs">{{ labels.optional }}</span>
         }
       </label>
     </div>
@@ -32,10 +32,10 @@
       >
         {{ label() }}
         @if (required()) {
-          <span class="ml-0.5 text-danger-500" aria-hidden="true">*</span>
+          <span class="ms-0.5 text-danger-500" aria-hidden="true">*</span>
         }
         @if (optionalTag() && !required()) {
-          <span class="ml-1 font-normal text-[0.65rem]" aria-hidden="true">(opt)</span>
+          <span class="ms-1 font-normal text-[0.65rem]" aria-hidden="true">{{ labels.optionalShort }}</span>
         }
       </label>
     }
@@ -85,7 +85,7 @@
             @if (hasStaleValue()) {
               <span
                 data-sv-stale-chip
-                title="No longer in the list of options."
+                [title]="labels.staleChipTitle"
                 [ngClass]="[
                   'inline-flex shrink-0 items-center gap-1 rounded-md border border-warning-300 bg-warning-50 italic',
                   'text-warning-700 dark:border-warning-700 dark:bg-warning-900/30 dark:text-warning-400',
@@ -96,9 +96,9 @@
                 @if (!resolvedDisabled()) {
                   <button
                     type="button"
-                    class="ml-0.5 rounded text-warning-700 dark:text-warning-400 hover:text-warning-800 dark:hover:text-warning-300
+                    class="ms-0.5 rounded text-warning-700 dark:text-warning-400 hover:text-warning-800 dark:hover:text-warning-300
                            focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
-                    [attr.aria-label]="'Remove ' + staleLabel()"
+                    [attr.aria-label]="labels.removeChip | svLabel: { name: staleLabel() }"
                     (click)="removeStale($event)"
                     tabindex="-1"
                   >
@@ -125,9 +125,9 @@
                 @if (!resolvedDisabled()) {
                   <button
                     type="button"
-                    class="ml-0.5 rounded text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
+                    class="ms-0.5 rounded text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200
                            focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
-                    [attr.aria-label]="'Remove ' + chip.label"
+                    [attr.aria-label]="labels.removeChip | svLabel: { name: chip.label }"
                     (click)="removeChip(chip.value, $event)"
                     tabindex="-1"
                   >
@@ -145,15 +145,15 @@
           <!-- Overflow badge — lives OUTSIDE the clipping wrapper so it's always visible -->
           @if (overflowCount() > 0) {
             <span [ngClass]="[chipTextClass(), 'shrink-0 text-gray-500 dark:text-gray-400 font-medium']">
-              +{{ overflowCount() }} more
+              {{ labels.moreCount | svLabel: { count: overflowCount() } }}
             </span>
           }
 
         } @else {
           <!-- Single: label or placeholder -->
           @if (displayLabel()) {
-            @let selectedOpt = selectedOptions()[0];
             <span class="flex min-w-0 items-center gap-2">
+              @let selectedOpt = selectedOptions()[0];
               @if (selectedOpt?.avatarUrl) {
                 <img [src]="selectedOpt.avatarUrl" alt=""
                      class="h-5 w-5 shrink-0 rounded-full object-cover" aria-hidden="true"/>
@@ -174,7 +174,7 @@
                     [class.text-warning-700]="hasStaleValue()"
                     [class.dark:text-warning-400]="hasStaleValue()"
                     [class.italic]="hasStaleValue()"
-                    [attr.title]="hasStaleValue() ? 'This value is no longer in the list of options.' : null"
+                    [attr.title]="hasStaleValue() ? labels.staleValueTitle : null"
               >{{ displayLabel() }}</span>
             </span>
           } @else if (!isFloating() || labelIsFloated()) {
@@ -189,16 +189,16 @@
       </span>
 
       <!-- Right-side controls -->
-      <span class="ml-auto flex shrink-0 items-center gap-1 pl-1">
+      <span class="ms-auto flex shrink-0 items-center gap-1 ps-1">
 
         <!-- Clear button -->
         @if (showClear()) {
           <span
             role="button"
             tabindex="-1"
-            class="flex items-center rounded text-gray-500 hover:text-gray-600 dark:hover:text-gray-300
+            class="sv-target flex items-center rounded text-gray-500 hover:text-gray-600 dark:hover:text-gray-300
                    focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
-            aria-label="Clear selection"
+            [attr.aria-label]="labels.clearSelection"
             (click)="clearAll($event)"
             (mousedown)="$event.preventDefault()"
           >
@@ -215,18 +215,24 @@
 
     <!-- ── Dropdown panel — portaled into document.body ──────────────────── -->
     <ng-template #panelTpl>
-      <div
-        class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden rounded-xl border
+      <!-- sheetOnNarrow: a bottom sheet below 640px — full width, rounded only
+           at the top, clear of the home indicator and riding the keyboard. -->
+      <!-- sv-physical: fixed viewport coordinates from getBoundingClientRect — the start/end edge is resolved for RTL in the component's position code -->
+      <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']"
+        class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden border
                border-gray-200 bg-white shadow-xl shadow-gray-900/10
                dark:border-gray-700 dark:bg-gray-900 dark:shadow-gray-900/40"
+        [class.rounded-xl]="!asSheet()"
+        [class.rounded-t-2xl]="asSheet()"
+        [attr.data-sv-sheet]="asSheet() ? '' : null"
         [style.position]="panelStyle()['position']"
         [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
         [style.top]="panelStyle()['top']"
-        [style.bottom]="panelStyle()['bottom']"
-        [style.left]="panelStyle()['left']"
-        [style.right]="panelStyle()['right']"
+        [style.bottom]="asSheet() ? sheetBottom() : panelStyle()['bottom']"
         [style.width]="panelStyle()['width']"
         [style.maxHeight]="panelStyle()['maxHeight']"
+        [style.maxWidth]="panelStyle()['maxWidth']"
+        [style.padding-bottom]="panelStyle()['paddingBottom']"
         role="dialog"
         aria-modal="false"
       >
@@ -243,7 +249,7 @@
                 [attr.aria-expanded]="true"
                 [attr.aria-controls]="listboxId()"
                 [attr.aria-activedescendant]="activeDescendantId()"
-                [attr.aria-label]="label() || 'Search options'"
+                [attr.aria-label]="label() || labels.searchOptions"
                 class="flex-1 bg-transparent text-sm text-gray-900 placeholder-gray-500
                        outline-none dark:text-gray-100 dark:placeholder-gray-400"
                 [attr.placeholder]="resolvedSearchPlaceholder()"
@@ -255,7 +261,7 @@
               @if (searchQuery()) {
                 <button type="button"
                         class="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                        (click)="setSearch('')" tabindex="-1" aria-label="Clear search">
+                        (click)="setSearch('')" tabindex="-1" [attr.aria-label]="labels.clearSearch">
                   <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2.5" />
                 </button>
               }
@@ -267,7 +273,7 @@
         @if (multiple() && maxSelected() > 0) {
           <div class="border-b border-gray-100 px-3 py-2 dark:border-gray-800">
             <p class="text-xs text-gray-500 dark:text-gray-400" aria-live="polite">
-              {{ selectedValues().length }} / {{ maxSelected() }} selected
+              {{ labels.selectedOfMax | svLabel: { selected: selectedValues().length, max: maxSelected() } }}
             </p>
           </div>
         }
@@ -306,10 +312,12 @@
                  so sends the user hunting for an entry that is on its way. A
                  *refinement* never reaches here — it has options on screen, so
                  `noResults()` is false and `svStale` dims them instead. -->
-            <li class="flex items-center justify-center gap-2 px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
-                role="status" data-sv-state="loading">
-              <sv-spinner-arc cssClass="h-4 w-4" />
-              {{ resolvedLoadingText() }}
+            <li class="flex items-center justify-center px-4 py-6 text-sm text-gray-500 dark:text-gray-400"
+                data-sv-state="loading">
+              <span class="flex items-center gap-2" role="status">
+                <sv-spinner-arc cssClass="h-4 w-4" />
+                {{ resolvedLoadingText() }}
+              </span>
             </li>
           } @else if (noResults() && !panelLoading()) {
             <li class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
@@ -388,7 +396,7 @@
 
               <!-- Checkmark for single -->
               @if (!multiple() && isSelected(opt.value)) {
-                <sv-icon name="check" cssClass="ml-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
+                <sv-icon name="check" cssClass="ms-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
               }
 
             </li>
@@ -459,7 +467,7 @@
                       </span>
                     }
                     @if (!multiple() && isSelected(opt.value)) {
-                      <sv-icon name="check" cssClass="ml-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
+                      <sv-icon name="check" cssClass="ms-auto h-4 w-4 shrink-0 text-primary-500 dark:text-primary-400" [strokeWidth]="2.5" />
                     }
                   </li>
                 }
@@ -472,13 +480,13 @@
             <li class="border-t border-gray-100 px-2 py-1.5 dark:border-gray-700">
               @if (resolvedLoadingMore()) {
                 <p class="px-2 py-1 text-center text-xs text-gray-500 dark:text-gray-400"
-                   role="status" data-sv-state="loading-more">Loading…</p>
+                   role="status" data-sv-state="loading-more">{{ labels.loadingMore }}</p>
               } @else {
                 <button
                   type="button"
                   class="w-full rounded-md px-2 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:text-primary-400 dark:hover:bg-primary-950/40"
                   (click)="onLoadMore(); $event.stopPropagation()">
-                  Load more
+                  {{ labels.loadMore }}
                 </button>
               }
             </li>
@@ -494,7 +502,7 @@
                      dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
               (click)="clearAll($event)"
             >
-              Clear all ({{ selectedValues().length }})
+              {{ labels.clearAllCount | svLabel: { count: selectedValues().length } }}
             </button>
           </div>
         }

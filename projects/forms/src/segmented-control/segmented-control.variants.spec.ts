@@ -5,6 +5,11 @@ import {
   type SegmentOption,
 } from './segmented-control.component';
 import { until } from '../../../../src/testing/async';
+import { provideSvIcons } from '@styloviz/icons';
+import { sunIcon } from '@styloviz/icons/glyph/sun';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([sunIcon]);
 
 /**
  * The five visual variants, the swatch picker (sold-out stock, colour dots) and
@@ -28,6 +33,7 @@ const SWATCHES: SegmentOption[] = [
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvSegmentedControlComponent, {
+    providers: [HOST_ICONS],
     inputs: { options: OPTIONS, value: 'a', ...inputs },
   });
   return fixture;

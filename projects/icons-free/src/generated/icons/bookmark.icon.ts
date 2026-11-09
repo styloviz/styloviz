@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bookmark` icon. */
 export const bookmarkNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const bookmarkNodes: readonly IconNode[] = [
 export const bookmarkSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M6 3 h12 a1 1 0 0 1 1 1 v17 l-7 -4.5 -7 4.5 V4 a1 1 0 0 1 1 -1 Z' },
 ];
+
+/** `bookmark` as a registrable glyph — `registerSvIcons([bookmarkIcon])` / `provideSvIcons([bookmarkIcon])`. */
+export const bookmarkIcon: SvIconDef = { name: 'bookmark', nodes: bookmarkNodes, solid: bookmarkSolidNodes };
 
 /** `bookmark` — tree-shakable standalone icon. Use `<sv-bookmark-icon />`. */
 @Component({

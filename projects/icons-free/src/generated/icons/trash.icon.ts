@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `trash` icon. */
 export const trashNodes: readonly IconNode[] = [
@@ -17,6 +18,9 @@ export const trashNodes: readonly IconNode[] = [
 export const trashSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 6.1h2.5q0 0 .1 0h1.5v-.6q0-2.4 2.4-2.4h3q2.4 0 2.4 2.4v.6h1.5q.1 0 .1 0h2.5q.9 0 .9.9 0 .9-.9.9h-1.7l-.7 11.2q-.2 2.2-2.4 2.2h-6.4q-2.2 0-2.4-2.2l-.7-11.2h-1.7q-.9 0-.9-.9 0-.9.9-.9zm6.9 4.9q0-.9-.9-.9-.9 0-.9.9v6q0 .9.9.9.9 0 .9-.9zm4 0q0-.9-.9-.9-.9 0-.9.9v6q0 .9.9.9.9 0 .9-.9z' },
 ];
+
+/** `trash` as a registrable glyph — `registerSvIcons([trashIcon])` / `provideSvIcons([trashIcon])`. */
+export const trashIcon: SvIconDef = { name: 'trash', nodes: trashNodes, solid: trashSolidNodes };
 
 /** `trash` — tree-shakable standalone icon. Use `<sv-trash-icon />`. */
 @Component({

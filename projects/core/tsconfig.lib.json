@@ -9,18 +9,13 @@
     "paths": {
       "@styloviz/icons": [
         "../../dist/@styloviz/icons/types/styloviz-icons.d.ts"
-      ]
+      ],
+      "@styloviz/icons/glyph/*": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/icons/registry": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/core/*": ["./*/public-api.ts"]
     }
   },
   "exclude": [
     "**/*.spec.ts"
-  ],
-  "angularCompilerOptions": {
-    "extendedDiagnostics": {
-      "checks": {
-        "nullishCoalescingNotNullable": "suppress",
-        "optionalChainNotNullable": "suppress"
-      }
-    }
-  }
+  ]
 }

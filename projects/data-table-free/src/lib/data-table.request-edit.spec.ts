@@ -1,5 +1,5 @@
 import { render } from '@testing-library/angular';
-import { SvDataTableComponent, type ServerPageEvent, type TableColumn } from './data-table.component';
+import { SvDataTableComponent, type TableColumn } from './data-table.component';
 
 interface Row extends Record<string, unknown> {
   id: number;
@@ -33,8 +33,8 @@ async function setup(extra: Record<string, unknown> = {}) {
 describe('SvDataTableComponent (free) — server response ordering', () => {
   it('stamps every rendered-control request with an id that only ever goes up', async () => {
     const { c, fixture, el } = await setup({ serverSide: true });
-    const ids: (number | undefined)[] = [];
-    c.serverPageChange.subscribe((e: ServerPageEvent) => ids.push(e.requestId));
+    const ids: number[] = [];
+    c.queryChange.subscribe(() => ids.push(c.serverRequestId()));
 
     // Drive it through the rendered sort headers, not just the API.
     const headers = el.querySelectorAll<HTMLElement>('thead [aria-sort]');
@@ -51,7 +51,7 @@ describe('SvDataTableComponent (free) — server response ordering', () => {
   it('refuses a response that a newer request has already superseded', async () => {
     const { c } = await setup({ serverSide: true });
     const ids: number[] = [];
-    c.serverPageChange.subscribe(e => ids.push(e.requestId ?? -1));
+    c.queryChange.subscribe(() => ids.push(c.serverRequestId()));
 
     c.onSort(COLUMNS[0], new MouseEvent('click'));
     c.onSort(COLUMNS[1], new MouseEvent('click'));
@@ -60,18 +60,6 @@ describe('SvDataTableComponent (free) — server response ordering', () => {
     expect(c.acceptsResponse(ids[1])).toBe(true);
   });
 
-  it('exposes the same id to a queryChange handler, which runs with the emission', async () => {
-    const { c } = await setup({ serverSide: true });
-    const fromEvent: (number | undefined)[] = [];
-    const fromSignal: number[] = [];
-    c.serverPageChange.subscribe(e => fromEvent.push(e.requestId));
-    c.queryChange.subscribe(() => fromSignal.push(c.serverRequestId()));
-
-    c.goTo(2);
-    c.goTo(1);
-
-    expect(fromSignal).toEqual(fromEvent);
-  });
 
   it('issues no id at all in client mode', async () => {
     const { c } = await setup();

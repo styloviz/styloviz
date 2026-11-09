@@ -1,7 +1,7 @@
 import { render } from '@testing-library/angular';
 import { TestBed } from '@angular/core/testing';
-import { SvLiveAnnouncer } from '@styloviz/core';
-import { ToastService } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { ToastService } from '@styloviz/core/services';
 import { SvToastHostComponent } from './toast-host.component';
 
 async function setup(inputs: Record<string, unknown> = {}) {

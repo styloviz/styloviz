@@ -1,7 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 import { SvAlertBannerComponent, type AlertAction } from './alert-banner.component';
 
 async function setup(inputs: Record<string, unknown> = {}) {

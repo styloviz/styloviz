@@ -150,6 +150,41 @@ describe('sv-autocomplete — how it says it', () => {
     expect(row!.textContent).toContain('Showing 8 of 500');
   });
 
+  it('lives inside the listbox so the page does not grow when the panel opens', async () => {
+    // ★★ `SR-01`: the truncation row was rendered AFTER `</ul>`, so the panel
+    //     appended a static 34 px <li> to the body portal — `document.scrollHeight`
+    //     grew on every open, the main scrollbar appeared, and the row was
+    //     never visible. The fix moves it inside the <ul> as a sticky footer.
+    const s = await setup({ options: many(500) });
+    openWith(s, 'Result');
+
+    const row = portal()!.querySelector('[data-sv-state="truncated"]');
+    expect(row).not.toBeNull();
+    const listbox = portal()!.querySelector('[role="listbox"]')!;
+    expect(listbox).not.toBeNull();
+    expect(listbox.contains(row)).toBe(true);
+  });
+
+  it('keeps the truncation row sticky at the bottom of the scrolling list', async () => {
+    // `sticky bottom-0` is what keeps the row visible when the user scrolls
+    // through options; it is also a structural check that we have NOT drifted
+    // back to a static block outside the <ul>.
+    const s = await setup({ options: many(500) });
+    openWith(s, 'Result');
+
+    const row = portal()!.querySelector<HTMLElement>('[data-sv-state="truncated"]')!;
+    expect(row.classList.contains('sticky')).toBe(true);
+    expect(row.classList.contains('bottom-0')).toBe(true);
+  });
+
+  it('pads the list scroll so a keyboard-highlighted option is not hidden under the footer', async () => {
+    const s = await setup({ options: many(500) });
+    openWith(s, 'Result');
+
+    const listbox = portal()!.querySelector<HTMLElement>('[role="listbox"]')!;
+    expect(listbox.classList.contains('scroll-pb-9')).toBe(true);
+  });
+
   it('announces it once through a status region outside the listbox', async () => {
     const s = await setup({ options: many(500) });
     openWith(s, 'Result');

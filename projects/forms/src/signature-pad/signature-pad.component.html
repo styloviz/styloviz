@@ -23,7 +23,7 @@
 
   <div
     class="relative overflow-hidden rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900"
-    [class.border-dashed]="isEmpty()"
+    [class.border-dashed]="isEmpty() && !readonly()"
   >
     <!--
       ★★ `touch-action: none` IS LOAD-BEARING ON A PHONE.
@@ -36,12 +36,13 @@
     -->
     <canvas
       #canvas
-      [class]="'block w-full ' + heightClass()"
+      [class]="'block w-full text-gray-900 dark:text-gray-100 ' + heightClass()"
       style="touch-action: none"
       role="img"
       [attr.aria-label]="label()"
       [attr.aria-describedby]="consentText() ? consentId : null"
       [attr.aria-disabled]="disabled() ? 'true' : null"
+      [attr.data-sv-readonly]="readonly() ? '' : null"
       (pointerdown)="onPointerDown($event)"
       (pointermove)="onPointerMove($event)"
       (pointerup)="onPointerUp($event)"
@@ -58,7 +59,7 @@
       <div class="pointer-events-none absolute inset-x-6 bottom-8 border-b border-gray-300 dark:border-gray-700" aria-hidden="true"></div>
     }
 
-    @if (isEmpty() && !disabled()) {
+    @if (isEmpty() && !locked()) {
       <p class="pointer-events-none absolute inset-x-0 bottom-2.5 text-center text-xs text-gray-500 dark:text-gray-400" aria-hidden="true">
         {{ label() }}
       </p>
@@ -80,7 +81,7 @@
        component that writes "By typing my name I agree…" is writing a contract
        it has not read.
   -->
-  @if (allowTyped() && !disabled()) {
+  @if (allowTyped() && !locked()) {
     <div class="mt-2 flex flex-col gap-1">
       <label [attr.for]="typedNameId" class="text-xs font-medium text-gray-700 dark:text-gray-300">
         {{ typedNameLabel() }}
@@ -106,7 +107,7 @@
       <span class="flex-1"></span>
     }
 
-    @if (showActions() && !disabled()) {
+    @if (showActions() && !locked()) {
       <div class="flex shrink-0 items-center gap-1">
         <!--
           ★ Both actions are DISABLED while there is nothing to act on, rather
@@ -120,7 +121,7 @@
           (click)="undo()"
         >
           <sv-icon name="undo" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
-          Undo
+          {{ labels.undo }}
         </button>
         <button
           type="button"
@@ -129,7 +130,7 @@
           (click)="clear()"
         >
           <sv-icon name="trash" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
-          Clear
+          {{ labels.clear }}
         </button>
       </div>
     }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "count": 174,
+  "count": 185,
   "generatedBy": "scripts/generate-icons.mjs",
   "icons": [
     {
@@ -104,6 +104,15 @@
       "selector": "sv-apple-pay-icon",
       "file": "src/icons/apple-pay.svg",
       "nodes": 1
+    },
+    {
+      "name": "archive",
+      "category": "files",
+      "aliases": [],
+      "component": "SvArchiveIcon",
+      "selector": "sv-archive-icon",
+      "file": "src/icons/archive.svg",
+      "nodes": 3
     },
     {
       "name": "arrow-down",
@@ -273,6 +282,15 @@
       "selector": "sv-camera-icon",
       "file": "src/icons/camera.svg",
       "nodes": 2
+    },
+    {
+      "name": "captions",
+      "category": "media",
+      "aliases": [],
+      "component": "SvCaptionsIcon",
+      "selector": "sv-captions-icon",
+      "file": "src/icons/captions.svg",
+      "nodes": 3
     },
     {
       "name": "caravan",
@@ -706,6 +724,15 @@
       "nodes": 1
     },
     {
+      "name": "flag",
+      "category": "action",
+      "aliases": [],
+      "component": "SvFlagIcon",
+      "selector": "sv-flag-icon",
+      "file": "src/icons/flag.svg",
+      "nodes": 2
+    },
+    {
       "name": "flame",
       "category": "weather",
       "aliases": [
@@ -1032,6 +1059,24 @@
       "nodes": 1
     },
     {
+      "name": "mic",
+      "category": "media",
+      "aliases": [],
+      "component": "SvMicIcon",
+      "selector": "sv-mic-icon",
+      "file": "src/icons/mic.svg",
+      "nodes": 4
+    },
+    {
+      "name": "mic-off",
+      "category": "media",
+      "aliases": [],
+      "component": "SvMicOffIcon",
+      "selector": "sv-mic-off-icon",
+      "file": "src/icons/mic-off.svg",
+      "nodes": 7
+    },
+    {
       "name": "minimize",
       "category": "layout",
       "aliases": [],
@@ -1156,6 +1201,15 @@
       "selector": "sv-phone-icon",
       "file": "src/icons/phone.svg",
       "nodes": 1
+    },
+    {
+      "name": "picture-in-picture",
+      "category": "media",
+      "aliases": [],
+      "component": "SvPictureInPictureIcon",
+      "selector": "sv-picture-in-picture-icon",
+      "file": "src/icons/picture-in-picture.svg",
+      "nodes": 2
     },
     {
       "name": "pinterest",
@@ -1317,6 +1371,24 @@
       "nodes": 3
     },
     {
+      "name": "skip-back",
+      "category": "media",
+      "aliases": [],
+      "component": "SvSkipBackIcon",
+      "selector": "sv-skip-back-icon",
+      "file": "src/icons/skip-back.svg",
+      "nodes": 2
+    },
+    {
+      "name": "skip-forward",
+      "category": "media",
+      "aliases": [],
+      "component": "SvSkipForwardIcon",
+      "selector": "sv-skip-forward-icon",
+      "file": "src/icons/skip-forward.svg",
+      "nodes": 2
+    },
+    {
       "name": "smile",
       "category": "people",
       "aliases": [],
@@ -1427,6 +1499,15 @@
       "selector": "sv-threads-icon",
       "file": "src/icons/threads.svg",
       "nodes": 1
+    },
+    {
+      "name": "thumbs-down",
+      "category": "people",
+      "aliases": [],
+      "component": "SvThumbsDownIcon",
+      "selector": "sv-thumbs-down-icon",
+      "file": "src/icons/thumbs-down.svg",
+      "nodes": 2
     },
     {
       "name": "thumbs-up",
@@ -1597,6 +1678,24 @@
       "selector": "sv-visa-icon",
       "file": "src/icons/visa.svg",
       "nodes": 1
+    },
+    {
+      "name": "volume-2",
+      "category": "media",
+      "aliases": [],
+      "component": "SvVolume2Icon",
+      "selector": "sv-volume-2-icon",
+      "file": "src/icons/volume-2.svg",
+      "nodes": 3
+    },
+    {
+      "name": "volume-x",
+      "category": "media",
+      "aliases": [],
+      "component": "SvVolumeXIcon",
+      "selector": "sv-volume-x-icon",
+      "file": "src/icons/volume-x.svg",
+      "nodes": 3
     },
     {
       "name": "wechat-pay",

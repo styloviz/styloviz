@@ -41,9 +41,8 @@ export class SvDividerComponent {
   /**
    * Name of an icon in `@styloviz/icons`, e.g. `'sparkles'`.
    *
-   * This used to be a raw `<path d="…">` string, which put SVG geometry in
-   * every consumer's config and skipped the library's sizing, stroke and
-   * dark-mode handling. Pass a name.
+   * A name, not a raw `<path d="…">` string: the library supplies the sizing,
+   * stroke and dark-mode handling.
    */
   icon        = input<string>('');
   /** Custom line color (any CSS color). */
@@ -67,11 +66,7 @@ export class SvDividerComponent {
    * Whether this divider is a real thematic break (`semantic`) or a visual
    * flourish (`decorative`).
    *
-   * ★ The default stays `semantic` because that is what every divider rendered
-   *   before this input existed, and changing it would silently change what a
-   *   screen reader announces on every page already using the component.
-   *
-   * ⚠️ A divider — semantic or not — is NOT a heading. A labelled rule that
+   * A divider — semantic or not — is not a heading. A labelled rule that
    *   visually introduces a section ("Billing") gives assistive technology no
    *   heading to navigate by; use a real `<h2>`–`<h6>` for that and, if you want
    *   the line too, a `decorative` divider beside it.
@@ -123,7 +118,11 @@ export class SvDividerComponent {
     if (this.isHorizontal()) {
       return `border-top-style:${style};border-top-width:${thick}px;${colorPart}`;
     }
-    return `border-left-style:${style};border-left-width:${thick}px;min-height:1rem;${colorPart}`;
+    // ★ Logical (`inline-start`), like every other edge in the layout family
+    //   (FL-J3-LU-02): the rule is one border on a zero-width line, so it looks
+    //   the same either way — but a physical `left` is the kind of edge an RTL
+    //   audit has to stop and prove harmless.
+    return `border-inline-start-style:${style};border-inline-start-width:${thick}px;min-height:1rem;${colorPart}`;
   });
 
   // Computed class for each line segment
@@ -139,13 +138,13 @@ export class SvDividerComponent {
       return 'flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent dark:via-gray-600 forced-colors:h-0 forced-colors:border-t forced-colors:border-[CanvasText]';
     }
     if (v === 'gradient' && !horiz) {
-      return 'flex-1 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent dark:via-gray-600 forced-colors:w-0 forced-colors:border-l forced-colors:border-[CanvasText]';
+      return 'flex-1 w-px bg-gradient-to-b from-transparent via-gray-300 to-transparent dark:via-gray-600 forced-colors:w-0 forced-colors:border-s forced-colors:border-[CanvasText]';
     }
     if (horiz) {
       return `flex-1 border-t ${colorClass}`;
     }
-    // Vertical: use a thin div with a left border; flex-1 fills the height
-    return `flex-1 w-0 border-l ${colorClass}`;
+    // Vertical: a thin div with an inline-start border; flex-1 fills the height
+    return `flex-1 w-0 border-s ${colorClass}`;
   });
 
   readonly wrapperClass = computed(() => {

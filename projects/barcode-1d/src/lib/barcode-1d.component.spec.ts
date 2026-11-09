@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { SvBarcode1dComponent } from './barcode-1d.component';
 import { svEncode } from './barcode-1d.encode';
+import { SV_BARCODE_1D_LABELS } from './barcode-1d.labels';
 
 /**
  * `sv-barcode-1d`, through the component.
@@ -89,7 +90,7 @@ describe('SvBarcode1dComponent — what it refuses to draw', () => {
 
 describe('SvBarcode1dComponent — the drawn symbol', () => {
   it('draws one rect per bar and none per space', async () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     const f = await code({ value: '590123412345', symbology: 'ean13' });
     expect(all(f, '[data-sv-bar]')).toHaveLength(e.modules.filter((m) => m.bar).length);
   });

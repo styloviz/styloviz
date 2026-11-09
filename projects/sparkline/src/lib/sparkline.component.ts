@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import type { SvDataError } from '@styloviz/core';
+import { type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import {
   applyMissing,
   areaPathOf,
@@ -12,6 +13,7 @@ import {
   type SparklineMissing,
 } from './sparkline-geometry';
 import type { SparklineDatum, SparklineTone, SparklineVariant } from './sparkline.types';
+import { SV_SPARKLINE_LABELS } from './sparkline.labels';
 
 /** Tailwind text colour per tone — the SVG paints with `currentColor`. */
 const TONE: Readonly<Record<Exclude<SparklineTone, 'auto'>, string>> = {
@@ -54,6 +56,11 @@ const TONE: Readonly<Record<Exclude<SparklineTone, 'auto'>, string>> = {
   },
 })
 export class SvSparklineComponent {
+  /** @internal Accessible names — English unless `provideSvLabels({ sparkline })` says otherwise. */
+  protected readonly labels = injectSvLabels('sparkline', SV_SPARKLINE_LABELS);
+  /** The kit's locale — picks the plural forms of the generated description. */
+  private readonly locale = svLocale();
+
   // ── Async state ───────────────────────────────────────────────────────────
   //
   // No shells here on purpose. A sparkline lives inside a KPI tile, a table
@@ -304,18 +311,18 @@ export class SvSparklineComponent {
     if (override) return override;
 
     const s = this.stats();
-    if (!s) return 'No data';
+    const L = this.labels;
+    if (!s) return L.noData;
 
-    const change =
-      s.changePct === null
-        ? s.direction
-        : `${s.direction} ${Math.abs(s.changePct).toFixed(1)}%`;
-
+    const direction =
+      s.direction === 'up' ? L.directionUp : s.direction === 'down' ? L.directionDown : L.directionFlat;
     const parts = [
-      `Sparkline, ${s.count} point${s.count === 1 ? '' : 's'}`,
-      `trending ${change}`,
-      `from ${fmt(s.first)} to ${fmt(s.last)}`,
-      `low ${fmt(s.min)}, high ${fmt(s.max)}`,
+      svFormatLabel(L.summaryPoints, { count: s.count, n: String(s.count) }, this.locale),
+      s.changePct === null
+        ? svFormatLabel(L.trending, { direction })
+        : svFormatLabel(L.trendingBy, { direction, percent: Math.abs(s.changePct).toFixed(1) }),
+      svFormatLabel(L.fromTo, { first: fmt(s.first), last: fmt(s.last) }),
+      svFormatLabel(L.lowHigh, { min: fmt(s.min), max: fmt(s.max) }),
     ];
 
     // ★ A missing sample changes the shape, so it belongs in the summary. Being
@@ -323,16 +330,16 @@ export class SvSparklineComponent {
     // reader gets from the break in the line and a screen-reader user did not.
     const gaps = this.gaps();
     if (gaps > 0) {
-      parts.push(
-        `${gaps} missing ${gaps === 1 ? 'sample' : 'samples'}, ` +
-          (this.missing() === 'gap'
-            ? 'drawn as breaks'
-            : this.missing() === 'connect'
-              ? 'drawn as straight lines across'
-              : this.missing() === 'zero'
-                ? 'drawn as zero'
-                : 'left out'),
-      );
+      const missing = this.missing();
+      const treatment =
+        missing === 'gap'
+          ? L.missingAsBreaks
+          : missing === 'connect'
+            ? L.missingAsLines
+            : missing === 'zero'
+              ? L.missingAsZero
+              : L.missingLeftOut;
+      parts.push(svFormatLabel(L.missingSamples, { count: gaps, n: String(gaps), treatment }, this.locale));
     }
 
     // ★ THE COMPARABILITY DISCLOSURE. Without it a column of these invites a
@@ -342,12 +349,14 @@ export class SvSparklineComponent {
     if (this.domainPinned()) {
       const lo = this.rangeMin();
       const hi = this.rangeMax();
-      parts.push(
-        `scale ${lo === null ? 'auto' : fmt(lo)} to ${hi === null ? 'auto' : fmt(hi)}` +
-          (clipped > 0 ? `, ${clipped} beyond it` : ''),
-      );
+      const range = {
+        low: lo === null ? L.scaleAuto : fmt(lo),
+        high: hi === null ? L.scaleAuto : fmt(hi),
+        clipped: String(clipped),
+      };
+      parts.push(svFormatLabel(clipped > 0 ? L.scaleClipped : L.scale, range));
     } else {
-      parts.push('scaled to this series alone, so its height is not comparable');
+      parts.push(L.scaleNotComparable);
     }
 
     return parts.join(', ');

@@ -1,8 +1,10 @@
 # @styloviz/tree-view
 
-> 8 premium variants: collapsible tree, file explorer, tri-state checkboxes, org chart, tree table, searchable, drag & drop reordering and lazy load. Lazy loading, the tree-table columns and drag & drop reordering are Pro (`sv-tree-view-pro`); the free component renders the nodes you give it.
+> 8 variants: collapsible tree, file explorer, tri-state checkboxes, org chart, tree table, searchable, drag & drop reordering and lazy load. Lazy loading, the tree-table columns and drag & drop reordering are Pro (`sv-tree-view-pro`); the free component renders the nodes you give it. Both draw as an indented list or, with `layout="org"`, as a top-down org chart of boxes joined by connector lines.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -59,10 +61,12 @@ export class DemoComponent {}
 | --- | --- | --- | --- |
 | `nodes` | `TreeNode[]` | `[]` | Tree node data (nested children, optional icons). |
 | `selectable` | `boolean` | `true` | Enable single-row selection highlight. |
-| `showLines` | `boolean` | `true` | Show vertical connector guide lines. |
+| `showLines` | `boolean` | `true` | Show vertical connector guide lines in the `list` layout. The `org` layout always draws its connectors — they are what make it a chart. |
+| `layout` | `TreeViewLayout` | `'list'` | How the tree is drawn: `list` (indented rows) or `org` (top-down boxes joined by connector lines, each parent centred over its children). Same tree, same keyboard model, same outputs — only the picture changes. `org` shows each node's `role` and `department` and scrolls sideways inside a labelled region when it is wider than its container. |
 | `ariaLabel` | `string` | `''` | What this tree is, e.g. `'Project files'` — names the `role="tree"` region. Two trees side by side both announce as an unnamed "tree" without this. Left unset, no name is invented: an `aria-label` of "Tree" only repeats the role. Matches `sv-tree-view-pro`'s input of the same name. |
 | `loading` | `boolean` | `false` | True while the tree is being fetched. Replaces it with a placeholder. |
 | `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
+| `iconTemplate` | `TemplateRef<TreeIconContext> \| null` | `null` | A template for the glyph before each label in the `list` layout, drawn in place of the text `icon`. Stamped with TreeIconContext — the node as `$implicit`, plus `expanded` and `depth` — so a host can draw an icon-library glyph per node (`sv-file-tree` draws a file-type glyph this way). Decorative: the row's name is its label. The `org` layout keeps its initials avatar. Same input on `sv-tree-view-pro`. |
 | `emptyText` | `string` | `'No items to display'` | Copy for the empty state. |
 | `expandedIds` | `Set<string> (two-way)` | `new Set()` | Expanded node ids. Two-way bindable, so an expansion state loaded from the server — or restored from a URL — survives a reload. |
 | `selectedId` | `string \| null (two-way)` | `null` | The selected node id. Two-way bindable. |
@@ -85,4 +89,4 @@ Full API reference and live demos: https://styloviz.dev/docs/tree-view
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

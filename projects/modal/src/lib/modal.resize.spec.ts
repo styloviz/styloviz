@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { SvModalComponent } from './modal.component';
-import { svResetBodyScrollLock } from '@styloviz/core';
+import { svResetBodyScrollLock } from '@styloviz/core/overlay';
 
 /**
  * Resizing and maximizing, through the component.
@@ -195,6 +195,33 @@ describe('SvModalComponent — dragging', () => {
     const size = f.componentInstance.panelSize()!;
     expect(size.width).toBeLessThanOrEqual(window.innerWidth);
     expect(size.height).toBeLessThanOrEqual(window.innerHeight);
+  });
+
+  /**
+   * FL-B9 — under `dir="rtl"` the grip is the bottom-LEFT corner (`end-0`),
+   * so the drag that widens the panel is the one toward the left.
+   */
+  it('widens on a leftward drag under dir="rtl"', async () => {
+    document.documentElement.setAttribute('dir', 'rtl');
+    try {
+      const f = await modal({ resizable: true, minWidth: 200, minHeight: 160 });
+      const grip = handle()!;
+      grip.dispatchEvent(pointer('pointerdown', 400, 100));
+      grip.dispatchEvent(pointer('pointermove', 400, 100));
+      f.detectChanges();
+      const start = f.componentInstance.panelSize()!.width;
+
+      grip.dispatchEvent(pointer('pointermove', 340, 100));
+      f.detectChanges();
+      expect(f.componentInstance.panelSize()!.width).toBe(start + 60);
+
+      // …and a move back to the right gives some of it up again.
+      grip.dispatchEvent(pointer('pointermove', 370, 100));
+      f.detectChanges();
+      expect(f.componentInstance.panelSize()!.width).toBe(start + 30);
+    } finally {
+      document.documentElement.removeAttribute('dir');
+    }
   });
 
   it('ignores pointer movement that never started with a press', async () => {

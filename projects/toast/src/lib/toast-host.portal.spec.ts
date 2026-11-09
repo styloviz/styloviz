@@ -1,6 +1,7 @@
 import { render } from '@testing-library/angular';
 import { TestBed } from '@angular/core/testing';
-import { SvOverlayStackService, ToastService } from '@styloviz/core';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
+import { ToastService } from '@styloviz/core/services';
 import { SvToastHostComponent } from './toast-host.component';
 
 /**

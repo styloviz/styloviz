@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvTabsComponent, SvTabPanelDirective, type TabItem } from './tabs.component';
 
 /**

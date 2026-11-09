@@ -1,8 +1,10 @@
 # @styloviz/list-view
 
-> Market-ready list patterns: default, checklist, nested tree, virtualized, grouped, template cards, call history and infinite scrolling.
+> List patterns: default, checklist, nested tree, virtualized, grouped, template cards, call history and infinite scrolling — and swipe actions on rows, with an Actions button that reaches them without a swipe.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -53,6 +55,8 @@ import { SvListViewComponent } from '@styloviz/list-view';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -85,6 +89,9 @@ export class DemoComponent {}
 | `enableBulkHotkeys` | `boolean` | `false` | Enable keyboard hotkeys for bulk actions. |
 | `bulkHotkeys` | `Record<string, string>` | `{}` | Map of hotkey → bulk action id. |
 | `enableRovingFocus` | `boolean` | `true` | Enable roving-tabindex keyboard navigation. |
+| `swipeStartActions` | `readonly ListViewSwipeAction[]` | `[]` | Actions behind each row's START edge, revealed by swiping the row toward its end — right in a left-to-right page, left in a right-to-left one. The first sits at the edge and is the one a full swipe runs. Every action is also in the row's Actions button, for a mouse, a keyboard and a screen reader. Flat and grouped rows, windowed or not; nested rows do not swipe. |
+| `swipeEndActions` | `readonly ListViewSwipeAction[]` | `[]` | Actions behind each row's END edge, revealed by swiping toward the start. The first is the full-swipe action. |
+| `fullSwipe` | `boolean` | `true` | A swipe past 60% of the row's width runs that side's first action without a tap. |
 | `loading` | `boolean` | `false` | True while the first page is being fetched. Replaces the list with a placeholder. For the *next* page use `loadingMore`, which keeps the rows already on screen. |
 | `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
 | `serverSide` | `boolean` | `false` | Search on the server instead of in the component. The supplied `items` are rendered as given — filtering them again would hide rows the server deliberately returned, and client-side search can only ever look at the page already downloaded. |
@@ -92,7 +99,7 @@ export class DemoComponent {}
 | `selectedIds` | `Set<string \| number> (two-way)` | `new Set()` | Selected row ids (two-way). |
 | `checkedIds` | `Set<string \| number> (two-way)` | `new Set()` | Checked row ids (two-way). |
 | `expandedIds` | `Set<string \| number> (two-way)` | `new Set()` | Which nested items are expanded (two-way). A `model` alongside `selectedIds` and `checkedIds` because it is the same kind of fact and the host has the same reasons to reach it: open the branch a deep link names, restore the tree after a route change, persist what the user had open. Held in a private signal it could be neither set nor observed — the one piece of this component's item state that was unreachable. |
-| `activeItemId` | `string \| number \| null (two-way)` | `null` | The row the keyboard cursor is on (two-way) — the roving tab stop. Windowed lists made this unavoidable. Roving focus used to walk the RENDERED buttons, and a windowed list renders twenty of five hundred: the cursor stopped dead at the edge of the window instead of the end of the list, and scrolling the focused row out of the window dropped focus to `<body>`. A keyboard cursor over a list that is only partly in the DOM has to be an id, not an element. Two-way because it is the same kind of fact as `selectedIds`: a host can put the cursor on the row a deep link names, and read where the user left it. |
+| `activeItemId` | `string \| number \| null (two-way)` | `null` | The row the keyboard cursor is on (two-way) — the roving tab stop. An id, not an element, because a windowed list renders twenty rows of five hundred: the cursor moves to the end of the list, not the edge of the window, and keeps its place when the focused row scrolls out of the DOM. Two-way because it is the same kind of fact as `selectedIds`: a host can put the cursor on the row a deep link names, and read where the user left it. |
 | `scrollOffset` | `number (two-way)` | `0` | Scroll position of the list viewport, in pixels (two-way). Written on every scroll, applied to the viewport whenever it changes from the outside — bind it and the position survives what destroys the component: a route change, a tab switch, a `@defer` block re-entering, an infinite-scroll page arriving. Without it, restoring a list meant restoring its rows and landing the user back at the top of them. |
 | `query` | `string (two-way)` | `''` | The search term. Two-way bindable, so it can be restored from a URL and kept in step with a server-side query. |
 
@@ -106,6 +113,7 @@ export class DemoComponent {}
 | `loadMore` | `ListViewLoadMoreEvent` | Emitted when more items should be loaded (infinite scroll). |
 | `quickActionClick` | `ListViewQuickActionClickEvent` | Emitted when a quick action is clicked. |
 | `bulkActionClick` | `ListViewBulkActionClickEvent` | Emitted when a bulk action is triggered. |
+| `swipeAction` | `ListViewSwipeActionEvent` | A swipe action ran — from a revealed button, a full swipe or the row's Actions menu. The list removes nothing itself. |
 | `searched` | `string` | The debounced search term — fetch matching rows. Debounced by `debounceMs` and never emitted twice for the same term. Pair with `serverSide`. Named `searched` rather than `queryChange`, and that is load-bearing: `query` below is a `model()`, which already owns an output of that name and emits it on every keystroke. Declaring it here as well claimed the same binding twice — Angular reports "Output 'queryChange' is bound to both 'query' and 'queryChange'", the component's metadata stops resolving, and every component importing it then fails with "Component imports must be standalone components…". It also made the debounce contract above a lie, since the model's undebounced emission went out under the same name. `sv-search-bar` has the identical shape and solves it the same way: `value = model()` for the two-way text, `searched = output()` for the debounced notification. Enforced by `model-output-collision` in scripts/check-ui-invariants.mjs. |
 | `retry` | `void` | The host should re-run the failed load. |
 | `selectedIdsChange` | `Set<string \| number>` | Emits the new `selectedIds` whenever it changes — the output half of `[(selectedIds)]`. |
@@ -121,4 +129,4 @@ Full API reference and live demos: https://styloviz.dev/docs/list-view
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

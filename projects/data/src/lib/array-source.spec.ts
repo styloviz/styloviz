@@ -1,4 +1,4 @@
-import { createQuery } from '@styloviz/core';
+import { createQuery } from '@styloviz/core/data';
 import { createArrayDataSource } from './array-source';
 
 interface Order { id: string; customer: string; status: string; amount: number }

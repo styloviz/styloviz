@@ -18,20 +18,25 @@ import {
   type TemplateRef,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
 import {
-  SvLiveAnnouncer,
+  createDelayedVisibility,
+  createWaitEscalation,
+  svFormatExpectedWait,
+  type SvWaitStage,
+} from '@styloviz/core/feedback';
+import { injectSvLabels, svLocale } from '@styloviz/core/i18n';
+import {
   SvOverlayStackService,
   createFocusScope,
   createPortalHost,
-  createWaitEscalation,
-  svFormatExpectedWait,
   svLockBodyScroll,
   svUnlockBodyScroll,
-  svWarnOnce,
   type SvOverlayHandle,
   type SvPortalHost,
-  type SvWaitStage,
-} from '@styloviz/core';
+} from '@styloviz/core/overlay';
+import { SV_OVERLAYS_LABELS } from '../overlays.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +64,11 @@ export type SpinnerStyle   = 'border' | 'dots' | 'pulse' | 'bars';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvSpinnerComponent {
+  /** @internal Visible text — English unless `provideSvLabels({ overlays })` says otherwise. */
+  protected readonly labels = injectSvLabels('overlays', SV_OVERLAYS_LABELS);
+  /** The kit's locale — picks the plural form of the expected wait. */
+  private readonly locale = svLocale();
+
   // ── Appearance ────────────────────────────────────────────────────────────
 
   /** Size of the spinner. @default 'md' */
@@ -73,7 +83,7 @@ export class SvSpinnerComponent {
   // ── Content ───────────────────────────────────────────────────────────────
 
   /** Accessible label (also shown visually when labelVisible is true). @default 'Loading…' */
-  label = input<string>('Loading…');
+  label = input<string>(this.labels.spinnerLoading);
 
   /** Show the label text visually beneath the spinner. @default false */
   labelVisible = input<boolean>(false);
@@ -85,12 +95,51 @@ export class SvSpinnerComponent {
 
   /**
    * Portal the fullscreen surface to `<body>` and make the page behind it
-   * `inert` (OF-18-I6). `false` is the opt-back to the pre-0.4 placement: the
-   * backdrop renders inside the host, still takes its z-index from the stack
+   * `inert`. `false` keeps the backdrop in place instead: it renders inside the host, still takes its z-index from the stack
    * and still locks scroll, but the page behind it stays focusable.
    * @default true
    */
   portal = input<boolean>(true);
+
+  // ── Delayed show / minimum duration (FL-J3-OF-06, `OF-18-M2`) ──────────────
+
+  /**
+   * Whether the wait is in progress. Bind it — `[active]="loading()"` — and
+   * keep the spinner mounted when using `showAfterMs` / `minVisibleMs`: a
+   * spinner the host removes cannot stay for its minimum. @default true
+   */
+  active = input<boolean>(true);
+
+  /**
+   * Appear only once the wait has lasted this long, in ms — a request that
+   * answers in 80 ms then shows nothing instead of a flash of spinner.
+   * `0` shows at once. @default 0
+   */
+  showAfterMs = input<number>(0);
+
+  /**
+   * Once shown, stay at least this long, in ms, so a spinner is never yanked
+   * away mid-glance. `0` hides with `active`. Watch `(visibleChange)` (or use
+   * `createDelayedVisibility` from `@styloviz/core`) to swap the content in at
+   * the same moment. @default 0
+   */
+  minVisibleMs = input<number>(0);
+
+  /** Emits whenever the spinner appears (`true`) or leaves (`false`). */
+  readonly visibleChange = output<boolean>();
+
+  private readonly _delayed = createDelayedVisibility(() => this.active(), {
+    showAfterMs: () => this.showAfterMs(),
+    minVisibleMs: () => this.minVisibleMs(),
+  });
+
+  /**
+   * Whether anything renders. With both delays at 0 it IS `active`, read
+   * synchronously — today's behaviour exactly, with no effect in the way.
+   */
+  readonly shown = computed<boolean>(() =>
+    this.showAfterMs() <= 0 && this.minVisibleMs() <= 0 ? this.active() : this._delayed(),
+  );
 
   // ── Expectation (OF-18-I8) ────────────────────────────────────────────────
 
@@ -153,7 +202,7 @@ export class SvSpinnerComponent {
   readonly expectationText = computed<string | null>(() => {
     const custom = this.expectationMessage();
     if (custom !== null) return custom.trim() === '' ? null : custom;
-    return svFormatExpectedWait(this._expected());
+    return svFormatExpectedWait(this._expected(), this.labels, this.locale);
   });
 
   // ── Escalation (OF-18-I5 / OF-18-M3) ──────────────────────────────────────
@@ -185,10 +234,10 @@ export class SvSpinnerComponent {
   stalledAfterMs = input<number>(0);
 
   /** Message shown at the `slow` stage. */
-  slowMessage = input<string>('This is taking longer than usual…');
+  slowMessage = input<string>(this.labels.spinnerSlow);
 
   /** Message shown at the `stalled` stage. */
-  stalledMessage = input<string>('This seems to be stuck.');
+  stalledMessage = input<string>(this.labels.spinnerStalled);
 
   /**
    * Label for a cancel button shown once the wait is `stalled`. `null` = none.
@@ -295,15 +344,12 @@ export class SvSpinnerComponent {
     //    input would break every existing `<sv-spinner />`, so the guarantee is
     //    enforced here instead: a blank label falls back to the default and
     //    dev mode says so (see the constructor).
-    if (!tail) return label === '' ? SvSpinnerComponent.FALLBACK_LABEL : this.label();
+    if (!tail) return label === '' ? this.labels.spinnerLoading : this.label();
     if (label === '') return tail;
     // A comma buys the reader a pause; a label that already ends in
     // punctuation ("Loading…") does not need a second mark after it.
     return /[.!?…:,;]$/.test(label) ? `${label} ${tail}` : `${label}, ${tail}`;
   });
-
-  /** The name a spinner falls back to when the host gives it a blank one. */
-  private static readonly FALLBACK_LABEL = 'Loading…';
 
   /** Bound to the cancel button. */
   requestCancel(): void {
@@ -391,6 +437,11 @@ export class SvSpinnerComponent {
    */
   private readonly _announcer = inject(SvLiveAnnouncer).scoped();
 
+  /** Set after the first browser render — see the visibility effect. */
+  private _rendered = false;
+  /** What `shown()` was at the last render or transition. */
+  private _wasShown = false;
+
   constructor() {
     // Say the label once, on the first browser render. `afterNextRender` never
     // runs on the server, and it is torn down with this component — a spinner
@@ -404,16 +455,36 @@ export class SvSpinnerComponent {
         // ★ An explicit platform check: `afterNextRender` itself keys off the
         //   build-time `ngServerMode` flag, not the injected PLATFORM_ID.
         if (!isPlatformBrowser(this._platformId)) return;
+        this._rendered = true;
+        this._wasShown = this.shown();
+        if (!this._wasShown) return;
         if (this.overlay() && this.portal()) return;
         this._announcer.announce(this.resolvedLabel(), { priority: 'polite' });
       },
+    });
+
+    // ★ A spinner that appears LATE (`showAfterMs`) is announced when it
+    //   appears, not at mount when nothing was on screen — and each time it
+    //   reappears for a new wait.
+    effect(() => {
+      const shown = this.shown();
+      untracked(() => {
+        if (!this._rendered || shown === this._wasShown) return;
+        this._wasShown = shown;
+        this.visibleChange.emit(shown);
+        if (shown && !(this.overlay() && this.portal())) {
+          this._announcer.announce(this.resolvedLabel(), { priority: 'polite' });
+        }
+      });
     });
 
     // Register only while actually overlaying. An inline spinner is not a
     // surface and must not take a z-index, a scroll lock, or a place in the
     // stack.
     effect(() => {
-      const on = this.overlay();
+      // ★ A delayed spinner takes the stack, the scroll lock and the inert
+      //   page only once it is actually on screen (FL-J3-OF-06).
+      const on = this.overlay() && this.shown();
       const tpl = this._overlayTpl();
       const portalled = this.portal();
       if (!isPlatformBrowser(this._platformId)) return;
@@ -515,7 +586,7 @@ export class SvSpinnerComponent {
         svWarnOnce(
           'sv-spinner/blank-label',
           '[styloviz] sv-spinner: [label] is blank, so this status region would be ' +
-            `announced as nothing at all. It falls back to "${SvSpinnerComponent.FALLBACK_LABEL}"; ` +
+            `announced as nothing at all. It falls back to "${this.labels.spinnerLoading}"; ` +
             'pass a label that says what is loading ("Loading invoices…").',
         );
       }
@@ -596,43 +667,52 @@ export class SvSpinnerComponent {
     }
   });
 
+  /**
+   * ★ Non-text contrast (FL-J3-OF-19, `OF-18-I7`): the arc must clear 3:1
+   *   against BOTH things it touches — the track and the page. On the `-200`
+   *   tracks success (2.86), warning (1.72) and info (3.02) did not; the
+   *   `-100` tracks and a `warning-700` arc clear it for every variant, light
+   *   and dark (`spinner.contrast.spec.ts` measures all of them). In forced
+   *   colours the ramps are replaced by system colours: a `GrayText` track and
+   *   a `Highlight` arc, so the turning segment is still visible.
+   */
   readonly trackColor = computed<string>(() => {
     const map: Record<SpinnerVariant, string> = {
-      primary: 'border-primary-200 dark:border-primary-900',
-      success: 'border-accent-200 dark:border-accent-900',
-      warning: 'border-warning-200 dark:border-warning-900',
-      danger:  'border-danger-200 dark:border-danger-900',
-      info:    'border-info-200 dark:border-info-900',
+      primary: 'border-primary-100 dark:border-primary-900',
+      success: 'border-accent-100 dark:border-accent-900',
+      warning: 'border-warning-100 dark:border-warning-900',
+      danger:  'border-danger-100 dark:border-danger-900',
+      info:    'border-info-100 dark:border-info-900',
       neutral: 'border-gray-200 dark:border-gray-700',
       white:   'border-white/20',
     };
-    return map[this.variant()];
+    return `${map[this.variant()]} forced-colors:border-[GrayText]`;
   });
 
   readonly fillColor = computed<string>(() => {
     const map: Record<SpinnerVariant, string> = {
       primary: 'border-t-primary-600 dark:border-t-primary-400',
       success: 'border-t-accent-600 dark:border-t-accent-400',
-      warning: 'border-t-warning-500 dark:border-t-warning-400',
+      warning: 'border-t-warning-700 dark:border-t-warning-400',
       danger:  'border-t-danger-600 dark:border-t-danger-400',
       info:    'border-t-info-600 dark:border-t-info-400',
       neutral: 'border-t-gray-600 dark:border-t-gray-400',
       white:   'border-t-white',
     };
-    return map[this.variant()];
+    return `${map[this.variant()]} forced-colors:border-t-[Highlight]`;
   });
 
   readonly dotColor = computed<string>(() => {
     const map: Record<SpinnerVariant, string> = {
       primary: 'bg-primary-600 dark:bg-primary-400',
       success: 'bg-accent-600 dark:bg-accent-400',
-      warning: 'bg-warning-500 dark:bg-warning-400',
+      warning: 'bg-warning-700 dark:bg-warning-400',
       danger:  'bg-danger-600 dark:bg-danger-400',
       info:    'bg-info-600 dark:bg-info-400',
       neutral: 'bg-gray-600 dark:bg-gray-400',
       white:   'bg-white',
     };
-    return map[this.variant()];
+    return `${map[this.variant()]} forced-colors:bg-[Highlight]`;
   });
 
   readonly dotSize = computed<string>(() => {

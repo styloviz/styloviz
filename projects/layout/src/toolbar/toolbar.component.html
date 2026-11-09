@@ -25,7 +25,7 @@
     <sv-skeleton-shell variant="text" [rows]="1" ariaLabel="Loading actions" />
   </div>
 } @else {
-<div #strip [class]="wrapperClass()" role="toolbar" [attr.aria-label]="label()"
+<div #strip [class]="wrapperClass()" [attr.data-sv-sticky]="sticky() ? 'page-top' : null" role="toolbar" [attr.aria-label]="label()"
      [attr.data-sv-floating]="floatingRegistered() ? floatingAnchor() : null"
      (focusin)="onStripFocusIn()" (focusout)="onStripFocusOut($event)">
   @for (group of allActions(); track group; let last = $last) {
@@ -34,25 +34,16 @@
     @for (action of group.actions; track action) {
       @let i = indexOf(action);
       <!-- In `menu` mode the trailing actions render in the More menu instead. -->
-      @if (i < visibleCount()) {
-      <button type="button"
-        [attr.data-action-id]="action.id"
-        [attr.data-sv-toolbar-index]="i"
-        [class]="variantBtnClass(action, isActive(action))"
-        [disabled]="action.disabled"
-        [attr.tabindex]="tabIndexFor(action)"
-        [title]="action.tooltip || action.label"
-        [attr.aria-label]="action.label"
-        [attr.aria-pressed]="action.toggle ? isActive(action) : null"
-        (click)="click(action)"
-        (focus)="onStopFocus(action)"
-        [attr.aria-busy]="isBusy(action.id) ? 'true' : null"
-        [class.opacity-50]="isBusy(action.id)"
-        [class.pointer-events-none]="isBusy(action.id)"
-        (keydown)="onKeydown($event, action)">
-
-        <sv-icon [name]="action.icon" [cssClass]="iconSize()" [strokeWidth]="2" />
-      </button>
+      @if (visibleCount() > i) {
+      <!-- An action with a `shortcut` gets a real tooltip, so the keys can be drawn
+           with sv-kbd (a native `title` is plain text); the others keep `title`. -->
+      @if (action.shortcut) {
+        <sv-tooltip [text]="action.tooltip || action.label" [kbd]="shortcutKeys(action)" position="bottom" touch="off">
+          <ng-container *ngTemplateOutlet="actionButton; context: { $implicit: action, i: i }" />
+        </sv-tooltip>
+      } @else {
+        <ng-container *ngTemplateOutlet="actionButton; context: { $implicit: action, i: i }" />
+      }
 
       @if (showSeparatorsAfter(i)) {
         @if (action.dividerAfter) {
@@ -94,9 +85,42 @@
 </div>
 }<!-- /@else toolbar -->
 
+<!--
+  One action button. A template so the shortcut tooltip can wrap it without a
+  second copy of the markup.
+  ★ PENDING (`LU-11-M4`): `aria-busy`, a spinner in place of the icon and an
+    inert click — but NOT `disabled`, so a button holding keyboard focus keeps it.
+-->
+<ng-template #actionButton let-action let-i="i">
+  <button type="button"
+    [attr.data-action-id]="action.id"
+    [attr.data-sv-toolbar-index]="i"
+    [class]="variantBtnClass(action, isActive(action))"
+    [disabled]="action.disabled"
+    [attr.tabindex]="tabIndexFor(action)"
+    [attr.title]="action.shortcut ? null : (action.tooltip || action.label)"
+    [attr.aria-label]="action.label"
+    [attr.aria-pressed]="action.toggle ? isActive(action) : null"
+    [attr.aria-keyshortcuts]="ariaShortcut(action)"
+    (click)="click(action)"
+    (focus)="onStopFocus(action)"
+    [attr.aria-busy]="isPending(action) ? 'true' : null"
+    [attr.data-sv-pending]="isPending(action) ? '' : null"
+    [class.opacity-50]="isPending(action)"
+    [class.pointer-events-none]="isPending(action)"
+    (keydown)="onKeydown($event, action)">
+    @if (isPending(action)) {
+      <sv-icon name="loader" [cssClass]="iconSize() + ' motion-safe:animate-spin'" [strokeWidth]="2" />
+    } @else {
+      <sv-icon [name]="action.icon" [cssClass]="iconSize()" [strokeWidth]="2" />
+    }
+  </button>
+</ng-template>
+
 <!-- Overflow menu — never rendered in place; instantiated into <body> on open. -->
 <ng-template #menuTpl>
-  <div
+  <!-- sv-physical: fixed viewport coordinates from getBoundingClientRect — the start/end edge is resolved for RTL in the component's position code -->
+  <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']"
     [id]="menuId"
     role="menu"
     tabindex="-1"
@@ -105,8 +129,6 @@
     [style.zIndex]="panelStyle()['zIndex']"
     [style.top]="panelStyle()['top']"
     [style.bottom]="panelStyle()['bottom']"
-    [style.left]="panelStyle()['left']"
-    [style.right]="panelStyle()['right']"
     [style.minWidth]="panelStyle()['minWidth']"
     [style.maxWidth]="panelStyle()['maxWidth']"
     [style.maxHeight]="panelStyle()['maxHeight']"
@@ -120,15 +142,30 @@
         [attr.data-action-id]="entry.action.id"
         [attr.role]="entry.action.toggle ? 'menuitemcheckbox' : 'menuitem'"
         [attr.aria-checked]="entry.action.toggle ? isActive(entry.action) : null"
-        [attr.aria-busy]="isBusy(entry.action.id) ? 'true' : null"
-        [disabled]="entry.action.disabled || isBusy(entry.action.id)"
+        [attr.aria-busy]="isPending(entry.action) ? 'true' : null"
+        [attr.aria-keyshortcuts]="ariaShortcut(entry.action)"
+        [disabled]="entry.action.disabled || isPending(entry.action)"
         tabindex="-1"
-        class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-gray-700 outline-none transition-colors hover:bg-gray-100 focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-primary-400/50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus-visible:bg-gray-800 forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2"
+        class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-start text-sm text-gray-700 outline-none transition-colors hover:bg-gray-100 focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-primary-400/50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800 dark:focus-visible:bg-gray-800 forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2"
         (click)="onMenuSelect(entry.action)">
-        <sv-icon [name]="entry.action.icon" cssClass="h-4 w-4 shrink-0" [strokeWidth]="2" />
+        @if (isPending(entry.action)) {
+          <sv-icon name="loader" cssClass="h-4 w-4 shrink-0 motion-safe:animate-spin" [strokeWidth]="2" />
+        } @else {
+          <sv-icon [name]="entry.action.icon" cssClass="h-4 w-4 shrink-0" [strokeWidth]="2" />
+        }
         <span class="truncate">{{ entry.action.label }}</span>
         @if (entry.action.toggle && isActive(entry.action)) {
           <sv-icon name="check" cssClass="ms-auto h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" [strokeWidth]="2" />
+        }
+        @if (entry.action.shortcut) {
+          <!-- The keys are already in aria-keyshortcuts; the chips are for the eye. -->
+          <span class="flex shrink-0 gap-0.5 text-xs text-gray-500 dark:text-gray-400"
+                [class.ms-auto]="!(entry.action.toggle && isActive(entry.action))"
+                aria-hidden="true" data-sv-toolbar-shortcut>
+            @for (k of shortcutKeys(entry.action); track $index) {
+              <sv-kbd variant="plain">{{ k }}</sv-kbd>
+            }
+          </span>
         }
       </button>
     }

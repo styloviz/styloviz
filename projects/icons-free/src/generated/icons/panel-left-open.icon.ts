@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `panel-left-open` icon. */
 export const panelLeftOpenNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const panelLeftOpenNodes: readonly IconNode[] = [
 export const panelLeftOpenSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 3.1h14q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm3.1 16h1.8v-14.2h-1.8zm5.5-10.7q-.3-.3-.6-.3-.3 0-.6.3-.6.6 0 1.2l2.4 2.4-2.4 2.4q-.6.6 0 1.2.6.6 1.2 0l3-3q.6-.6 0-1.2z' },
 ];
+
+/** `panel-left-open` as a registrable glyph — `registerSvIcons([panelLeftOpenIcon])` / `provideSvIcons([panelLeftOpenIcon])`. */
+export const panelLeftOpenIcon: SvIconDef = { name: 'panel-left-open', nodes: panelLeftOpenNodes, solid: panelLeftOpenSolidNodes };
 
 /** `panel-left-open` — tree-shakable standalone icon. Use `<sv-panel-left-open-icon />`. */
 @Component({

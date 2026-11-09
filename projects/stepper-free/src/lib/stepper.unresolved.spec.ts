@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import type { SvUnresolvedValue } from '@styloviz/core';
+import type { SvUnresolvedValue } from '@styloviz/core/data';
 import { SvStepperComponent, type StepperItem } from './stepper.component';
 
 /**

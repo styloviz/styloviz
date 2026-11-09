@@ -6,10 +6,13 @@
   moving anyone. Not in the tab order — `-1` is programmatic focus only, so a
   keyboard user still tabs straight into the first field.
 -->
+<!-- `role="group"` only with a name (`FI-11-I2`): an unnamed group announces
+     "group" and nothing else. `aria-invalid` needs the role, so it goes with it. -->
 <div
-  role="group"
+  [attr.role]="isNamed() ? 'group' : null"
   [attr.aria-labelledby]="label() ? _uid : null"
-  [attr.aria-invalid]="hasError() ? 'true' : null"
+  [attr.aria-label]="!label() && ariaLabel().trim() ? ariaLabel().trim() : null"
+  [attr.aria-invalid]="hasError() && isNamed() ? 'true' : null"
   [attr.aria-describedby]="describedBy()"
   [attr.tabindex]="hasError() ? -1 : null"
   [ngClass]="outerClass()"
@@ -61,7 +64,7 @@
         -->
         <button
           type="button"
-          [attr.aria-label]="(isExpanded() ? 'Collapse ' : 'Expand ') + label()"
+          [attr.aria-label]="(isExpanded() ? labels.collapseGroup : labels.expandGroup) | svLabel: { name: label() }"
           [attr.aria-describedby]="showErrorCount() ? errorCountId : null"
           [attr.aria-expanded]="isExpanded()"
           [attr.aria-controls]="collapsible() ? 'group-content-' + _uid : null"

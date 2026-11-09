@@ -23,9 +23,8 @@ import { SvLiveStreamChartComponent } from './live-chart/live-stream-chart.compo
 import { SvLiveUpdateChartComponent } from './live-chart/live-update-chart.component';
 import { SvAxisLabelTemplateChartComponent } from './other-chart/axis-label-template-chart.component';
 import { SvDateTimeCategoryChartComponent } from './other-chart/datetime-category-chart.component';
-import { SvDefaultPieChartComponent } from './pie-chart/default-pie-chart.component';
+import { SvPieChartComponent } from './pie-chart/pie-chart.component';
 import { SvRadarChartComponent } from './radar-chart/radar-chart.component';
-import { SvPerformanceChartComponent } from './other-chart/performance-chart.component';
 import { SvScatterChartComponent } from './scatter-chart/scatter-chart.component';
 import { SvWaterfallChartComponent } from './waterfall-chart/waterfall-chart.component';
 
@@ -63,7 +62,7 @@ describeAsyncContracts([
     loadedSelector: 'svg' },
   { component: SvDateTimeCategoryChartComponent, collection: 'series', rows: LINES,
     inputs: { categories: CATEGORIES }, loadedSelector: 'svg' },
-  { component: SvDefaultPieChartComponent, collection: 'slices',
+  { component: SvPieChartComponent, collection: 'slices',
     rows: [{ label: 'A', value: 5 }, { label: 'B', value: 3 }], loadedSelector: 'svg' },
   { component: SvRadarChartComponent, collection: 'series',
     rows: [{ name: 'A', color: '#3b82f6', values: [1, 2, 3] }],
@@ -72,11 +71,4 @@ describeAsyncContracts([
     rows: [{ name: 'A', color: '#3b82f6', points: [{ x: 1, y: 2 }] }], loadedSelector: 'svg' },
   { component: SvWaterfallChartComponent, collection: 'data',
     rows: [{ label: 'Start', value: 100 }, { label: 'Q1', value: -20 }], loadedSelector: 'svg' },
-  // Joined the table once it gained `data`, the same way `sv-live-stock-chart`
-  // did. Before that it synthesised 10 000 random points in `ngOnInit` on every
-  // instance, so it had no host series to have states about — and no reachable
-  // empty state either. `options.pointCount` is now the opt-in for that
-  // benchmark, and leaving it unset is what makes this row assertable.
-  { component: SvPerformanceChartComponent, collection: 'data',
-    rows: [3, 5, 4], loadedSelector: 'svg' },
 ]);

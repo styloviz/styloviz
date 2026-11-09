@@ -17,7 +17,7 @@
   is the labelled close button inside the drawer, plus Escape.
   native-element-rule: allow — see above.
 -->
-@if (drawerOpen()) {
+@if (showBackdrop()) {
   <button
     type="button"
     tabindex="-1"
@@ -27,7 +27,7 @@
   ></button>
 }
 
-<aside [ngClass]="asideClasses()">
+<aside [id]="navId" [ngClass]="asideClasses()" [style.transform]="dragTransform()">
   @if (showHeader()) {
     <div
       class="flex h-16 shrink-0 items-center gap-2 border-b border-gray-200 px-3 dark:border-gray-800"
@@ -47,90 +47,235 @@
   <ng-template #closeButton>
     <button
       type="button"
-      class="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500
+      class="ms-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500
              transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none
              focus-visible:ring-2 focus-visible:ring-primary-500
              dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-      aria-label="Close navigation"
+      [attr.aria-label]="text().close"
       (click)="closeDrawer()"
     >
       <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
     </button>
   </ng-template>
 
-  <nav class="flex-1 overflow-y-auto px-2.5 py-3" [attr.aria-label]="ariaLabel()">
-    @for (group of menuGroups(); track group.groupLabel) {
+  <!--
+    One row's link. A template so the rail can wrap it in a tooltip and the
+    full sidebar can put a sub-page toggle beside it, without two copies.
+
+    ⚠️ [attr.href], never [href]. A property binding assigns `a.href = null`,
+    the DOM coerces that to "" and the attribute reflects back — resolving to
+    the CURRENT url, so an item with no resolvable target silently links to the
+    page you are on.
+
+    ★ In the rail the label is the link's accessible NAME (`aria-label`) and
+      the kit tooltip its visible one (`SR-30`). A native `title` showed after a
+      second, never on keyboard focus, and not at all on touch.
+  -->
+  <ng-template #rowLink let-row="row" let-group="group">
+    <a
+      data-sv-nav-row
+      [attr.data-sv-nav-parent]="row.key"
+      [attr.href]="row.href"
+      [ngClass]="row.classes"
+      [attr.aria-label]="railed() ? row.item.label : null"
+      [attr.aria-current]="row.current"
+      [attr.target]="row.item.external ? '_blank' : null"
+      [attr.rel]="row.item.external ? 'noopener noreferrer' : null"
+      (click)="onSelect($event, group, row.item, null)"
+    >
+      <sv-icon
+        [name]="row.item.icon"
+        cssClass="h-[18px] w-[18px] shrink-0 opacity-80"
+        [strokeWidth]="1.8"
+      />
+
+      @if (railed()) {
+        @if (row.item.badge || row.item.dot) {
+          <span class="absolute end-2 top-1.5 h-2 w-2 rounded-full bg-danger-500 ring-2 ring-white dark:ring-gray-900"
+                aria-hidden="true" data-sv-nav-rail-dot></span>
+        }
+      } @else {
+        <span class="min-w-0 flex-1 truncate tracking-tight">{{ row.item.label }}</span>
+        @if (row.item.external) {
+          <sv-icon name="external-link" cssClass="h-3.5 w-3.5 shrink-0 opacity-60 rtl:-scale-x-100" [strokeWidth]="2" />
+          <span class="sr-only">{{ text().external }}</span>
+        }
+        @if (row.item.dot) {
+          <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" aria-hidden="true" data-sv-nav-dot></span>
+        }
+        @if (row.item.shortcut) {
+          <kbd class="hidden shrink-0 rounded border border-gray-200 px-1 font-sans text-[10px] font-medium text-gray-500 sm:inline
+                      dark:border-gray-700 dark:text-gray-400">{{ row.item.shortcut }}</kbd>
+        }
+        @if (row.item.badge) {
+          @if (badgeVariant() === 'dot') {
+            <span [ngClass]="row.badgeClass" aria-hidden="true" data-sv-nav-badge></span>
+            <span class="sr-only">{{ row.item.badge }}</span>
+          } @else {
+            <span [ngClass]="row.badgeClass" data-sv-nav-badge>{{ row.item.badge }}</span>
+          }
+        }
+      }
+    </a>
+  </ng-template>
+
+  <!-- Above the list (`SR-30`): a search box, a pinned list, a notice. -->
+  <ng-content select="[slot=top]" />
+
+  <!-- ★ The list scrolls inside `sv-scroll-area` (`SR-30b`): a hidden scrollbar
+       with edge fades, so a long sidebar says there is more below. The links
+       are focusable, so the scroller adds no tab stop of its own. -->
+  <sv-scroll-area class="flex-1" [fill]="true" tabStop="never" [edgeFade]="scrollFade() !== 'none'"
+                  [fadeStyle]="scrollFade() === 'shadow' ? 'shadow' : 'gradient'" data-sv-nav-scroll>
+  <nav class="px-2.5 py-3" [attr.aria-label]="ariaLabel()">
+    @for (vg of viewGroups(); track vg.key) {
+      @if (vg.group.divider) {
+        <div class="my-2.5 border-t border-gray-200/80 dark:border-gray-800/60" data-sv-nav-divider></div>
+      }
       @if (!railed()) {
         <!-- ★ Section labels are gray-600, not gray-500/80 or /70. A mid-gray
                with an alpha modifier measured 3.28:1 and 2.74:1 under axe on
                white (DA-44), and check:contrast cannot score alpha text.
                gray-600 is ≥ 7.0:1 on the solid sidebar and on the layout
                family's glass surfaces over any gray-50…gray-200 page. -->
-        <p
-          class="mb-1 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-400"
-        >
-          {{ group.groupLabel }}
-        </p>
-      } @else {
+        @if (vg.group.collapsible) {
+          <button
+            type="button"
+            class="mb-1 mt-4 flex min-h-6 w-full items-center justify-between rounded px-2.5 text-[10px] font-semibold uppercase
+                   tracking-widest text-gray-600 hover:text-gray-900 focus:outline-none focus-visible:ring-2
+                   focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+            [attr.aria-expanded]="vg.open"
+            [attr.aria-controls]="vg.headingId"
+            (click)="toggleGroup(vg.group)"
+            data-sv-nav-group-toggle
+          >
+            {{ vg.group.groupLabel }}
+            <span class="block transition-transform motion-reduce:transition-none" [class.-rotate-90]="!vg.open" [class.rtl:rotate-90]="!vg.open">
+              <sv-icon name="chevron-down" cssClass="block h-3 w-3" [strokeWidth]="2.2" />
+            </span>
+          </button>
+        } @else if (vg.group.groupLabel) {
+          <p
+            class="mb-1 mt-4 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-400"
+          >
+            {{ vg.group.groupLabel }}
+          </p>
+        }
+      } @else if (!vg.group.divider) {
         <div class="my-2.5 border-t border-gray-200/80 dark:border-gray-800/60"></div>
       }
 
-      @for (item of group.items; track item.route) {
-        <!--
-          ⚠️ [attr.href], never [href]. A property binding assigns `a.href =
-          null`, the DOM coerces that to "" and the attribute reflects back —
-          resolving to the CURRENT url, so an item with no resolvable target
-          silently links to the page you are on.
-        -->
-        <a
-          [attr.href]="hrefFor(item)"
-          [ngClass]="itemClasses(item)"
-          [attr.title]="railed() ? item.label : null"
-          [attr.aria-current]="isActive(item) ? 'page' : null"
-          (click)="onSelect($event, group, item, null)"
-        >
-          <sv-icon
-            [name]="item.icon"
-            cssClass="h-[18px] w-[18px] shrink-0 opacity-80"
-            [strokeWidth]="1.8"
-          />
+      @if (vg.open || railed()) {
+        <div [id]="navId + '-' + vg.idSuffix">
+          <!-- Label + route: two items may share a route (a filtered view of the
+               same page), and a duplicate track key re-uses the wrong row. -->
+          @for (row of vg.items; track row.item.label + '@' + row.item.route) {
+            @if (railed()) {
+              <sv-tooltip [text]="row.item.label" position="right" [fullWidth]="true" [delay]="150">
+                <ng-container [ngTemplateOutlet]="rowLink" [ngTemplateOutletContext]="{ row: row, group: vg.group }" />
+              </sv-tooltip>
+            } @else {
+              <div class="flex items-center">
+                <ng-container [ngTemplateOutlet]="rowLink" [ngTemplateOutletContext]="{ row: row, group: vg.group }" />
+                @if (itemEnd(); as end) {
+                  <!-- The host's row-end slot (`SR-30c`): beside the link, never in it. -->
+                  <ng-container [ngTemplateOutlet]="end.template" [ngTemplateOutletContext]="{ $implicit: row.item, current: !!row.current }" />
+                }
+                @if (row.hasChildren) {
+                  <!-- ★ Sub-pages open on a click (`SR-30`) — they used to appear
+                         only once the reader was already on the parent's page. -->
+                  <button
+                    type="button"
+                    class="mb-0.5 ms-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-gray-500
+                           hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2
+                           focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                    [attr.aria-expanded]="row.open"
+                    [attr.aria-controls]="row.childrenId"
+                    [attr.aria-label]="row.toggleText"
+                    (click)="toggleItem(row.item)"
+                    data-sv-nav-toggle
+                  >
+                    <span class="block transition-transform motion-reduce:transition-none" [class.-rotate-90]="!row.open" [class.rtl:rotate-90]="!row.open">
+                      <sv-icon name="chevron-down" cssClass="block h-3.5 w-3.5" [strokeWidth]="2" />
+                    </span>
+                  </button>
+                }
+              </div>
+            }
 
-          @if (!railed()) {
-            <span class="flex-1 tracking-tight">{{ item.label }}</span>
-            @if (item.badge) {
-              <span [ngClass]="badgeClasses(item)">{{ item.badge }}</span>
+            @if (row.open) {
+              <div class="mb-1 ms-[1.125rem] border-s border-gray-200/70 ps-3 dark:border-gray-800/50"
+                   [id]="navId + '-' + row.childrenSuffix" [attr.data-sv-nav-children]="row.key">
+                @for (childGroup of row.childGroups; track childGroup.label) {
+                  <p
+                    class="mb-0.5 px-1 text-[9.5px] font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-400"
+                    [class.mt-3]="!$first"
+                    [class.mt-1.5]="$first"
+                  >
+                    {{ childGroup.label }}
+                  </p>
+
+                  @for (entry of childGroup.items; track entry.child.id) {
+                    <div class="flex items-center">
+                      <a
+                        data-sv-nav-row
+                        [attr.href]="entry.href"
+                        [attr.data-sv-nav-item]="entry.child.id"
+                        [attr.data-sv-nav-parent]="entry.key"
+                        [ngClass]="entry.classes"
+                        [attr.aria-current]="entry.current"
+                        (click)="onSelect($event, vg.group, row.item, entry.child)"
+                      >
+                        {{ entry.child.label }}
+                      </a>
+                      @if (entry.toggleable) {
+                        <button
+                          type="button"
+                          class="ms-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-gray-500
+                                 hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2
+                                 focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                          [attr.aria-expanded]="entry.open"
+                          [attr.aria-controls]="navId + '-' + entry.suffix"
+                          [attr.aria-label]="entry.toggleText"
+                          (click)="toggleChild(row.item, entry.child)"
+                          data-sv-nav-toggle
+                        >
+                          <span class="block transition-transform motion-reduce:transition-none" [class.-rotate-90]="!entry.open" [class.rtl:rotate-90]="!entry.open">
+                            <sv-icon name="chevron-down" cssClass="block h-3 w-3" [strokeWidth]="2" />
+                          </span>
+                        </button>
+                      }
+                    </div>
+                    @if (entry.open) {
+                      <!-- The third level (`SR-30b`). -->
+                      <div class="ms-3 border-s border-gray-200/70 ps-2 dark:border-gray-800/50"
+                           [id]="navId + '-' + entry.suffix" [attr.data-sv-nav-children]="entry.key">
+                        @for (leaf of entry.children; track leaf.child.id) {
+                          <a
+                            data-sv-nav-row
+                            [attr.href]="leaf.href"
+                            [attr.data-sv-nav-item]="leaf.child.id"
+                            [ngClass]="leaf.classes"
+                            [attr.aria-current]="leaf.current"
+                            (click)="onSelect($event, vg.group, row.item, leaf.child, entry.child)"
+                          >
+                            {{ leaf.child.label }}
+                          </a>
+                        }
+                      </div>
+                    }
+                  }
+                }
+              </div>
             }
           }
-        </a>
-
-        @if (showsChildren(item)) {
-          <div class="mb-1 ml-[1.125rem] border-l border-gray-200/70 pl-3 dark:border-gray-800/50">
-            @for (childGroup of item.childGroups ?? []; track childGroup.label) {
-              <p
-                class="mb-0.5 px-1 text-[9.5px] font-semibold uppercase tracking-widest text-gray-600 dark:text-gray-400"
-                [class.mt-3]="!$first"
-                [class.mt-1.5]="$first"
-              >
-                {{ childGroup.label }}
-              </p>
-
-              @for (child of childGroup.items; track child.id) {
-                <a
-                  [attr.href]="hrefFor(item, child)"
-                  [attr.data-sv-nav-item]="child.id"
-                  [ngClass]="childClasses(child)"
-                  [attr.aria-current]="openChildId() === child.id ? 'page' : null"
-                  (click)="onSelect($event, group, item, child)"
-                >
-                  {{ child.label }}
-                </a>
-              }
-            }
-          </div>
-        }
+        </div>
       }
     }
   </nav>
+  </sv-scroll-area>
+
+  <ng-content select="[slot=user]" />
 
   @if (showFooter()) {
     <div class="shrink-0 border-t border-gray-200 px-2.5 py-2.5 dark:border-gray-800">
@@ -150,16 +295,18 @@
                focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset
                dark:text-gray-400 dark:hover:bg-gray-800/70 dark:hover:text-gray-200"
         [attr.aria-expanded]="!collapsed()"
-        [attr.aria-label]="collapsed() ? 'Expand navigation' : 'Collapse navigation'"
+        [attr.aria-controls]="navId"
+        [attr.aria-label]="collapsed() ? text().expand : text().collapse"
         (click)="onToggleCollapse()"
+        data-sv-collapse-toggle
       >
         <sv-icon
           [name]="collapsed() ? 'chevron-right' : 'chevron-left'"
-          cssClass="h-4 w-4 shrink-0"
+          cssClass="h-4 w-4 shrink-0 rtl:-scale-x-100"
           [strokeWidth]="2"
         />
         @if (!collapsed()) {
-          <span>Collapse</span>
+          <span>{{ text().collapseText }}</span>
         }
       </button>
       }

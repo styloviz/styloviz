@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `columns` icon. */
 export const columnsNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const columnsNodes: readonly IconNode[] = [
 export const columnsSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6 4.1h12q2.9 0 2.9 2.9v10q0 2.9-2.9 2.9h-12q-2.9 0-2.9-2.9v-10q0-2.9 2.9-2.9zm5.1 14h1.8v-12.2h-1.8z' },
 ];
+
+/** `columns` as a registrable glyph — `registerSvIcons([columnsIcon])` / `provideSvIcons([columnsIcon])`. */
+export const columnsIcon: SvIconDef = { name: 'columns', nodes: columnsNodes, solid: columnsSolidNodes };
 
 /** `columns` — tree-shakable standalone icon. Use `<sv-columns-icon />`. */
 @Component({

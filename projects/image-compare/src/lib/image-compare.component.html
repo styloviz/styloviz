@@ -22,9 +22,16 @@
      data-sv-frame-note>{{ frameNote() }}</p>
   }
 
+  <!-- ★ `touch-pan-y`, not `touch-none`: a vertical swipe over the pair must
+       still scroll the page on a phone (the browser cancels our pointer for
+       it), while a horizontal drag moves the wipe. `touch-pinch-zoom` keeps
+       pinch-to-zoom working, which `pan-y` alone would forbid. -->
   <div #box
-       class="relative select-none overflow-hidden rounded-lg touch-none"
-       [class.cursor-ew-resize]="showHandle()"
+       class="relative select-none overflow-hidden rounded-lg touch-pan-y touch-pinch-zoom"
+       [class.cursor-ew-resize]="showHandle() && ready()"
+       [class.min-h-40]="!ready()"
+       [attr.aria-busy]="loadState() === 'loading' ? 'true' : null"
+       [attr.data-sv-media-state]="loadState()"
        (pointerdown)="onPointerDown($event)"
        (pointermove)="onPointerMove($event)"
        (pointerup)="onPointerUp()"
@@ -35,6 +42,7 @@
          [src]="beforeSrc()"
          [alt]="beforeAlt()"
          (load)="onImageLoad('before', $event)"
+         (error)="onImageError('before')"
          draggable="false"
          data-sv-before />
 
@@ -47,9 +55,20 @@
          [alt]="afterAlt()"
          [style.clip-path]="clip()"
          (load)="onImageLoad('after', $event)"
+         (error)="onImageError('after')"
          draggable="false"
          aria-hidden="true"
          data-sv-after />
+
+    <!-- Until both images are in, the wipe is covered: half a pair compares
+         nothing. The message is a status so it is announced once. -->
+    @if (loadState(); as state) {
+    <div class="absolute inset-0 z-10 grid place-items-center bg-gray-100 p-4 text-center text-xs text-gray-600
+                dark:bg-gray-800 dark:text-gray-300"
+         data-sv-load-overlay>
+      <p role="status" [class.text-danger-700]="state === 'error'" [class.dark:text-danger-300]="state === 'error'">{{ loadMessage() }}</p>
+    </div>
+    }
 
     <!-- ★★★ THE LABELS SIT ON THE SIDES THE IMAGES ACTUALLY OCCUPY, WHICH IS
          NOT THE READING ORDER OF THE WORDS "BEFORE" AND "AFTER".
@@ -65,11 +84,13 @@
          other. A caption that contradicts the picture is worse than no caption,
          because the reader believes it. -->
     @if (afterLabel()) {
+    <!-- sv-physical: captions the photo's own left side — the images do not mirror in RTL, so neither does the wipe -->
     <span class="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5
                  text-[11px] font-medium text-white"
           data-sv-label-after>{{ afterLabel() }}</span>
     }
     @if (beforeLabel()) {
+    <!-- sv-physical: captions the photo's own right side — the images do not mirror in RTL, so neither does the wipe -->
     <span class="pointer-events-none absolute bottom-2 right-2 rounded bg-black/60 px-2 py-0.5
                  text-[11px] font-medium text-white"
           data-sv-label-before>{{ beforeLabel() }}</span>
@@ -113,8 +134,9 @@
     }
 
     @if (showHandle()) {
-    <span class="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
-          [style.left.%]="ariaValue()"
+    <!-- sv-physical: the wipe edge in the photo's pixel frame (clip-path inset is physical); images do not mirror in RTL -->
+    <span [style.left.%]="ariaValue()"
+          class="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
           aria-hidden="true"
           data-sv-divider></span>
     }
@@ -124,11 +146,12 @@
          announce the position on every arrow press; `tabindex="0"` is what lets
          anyone reach it at all. The keyboard handler only calls
          `preventDefault()` for keys the slider owns, so Tab still leaves. -->
-    <div class="absolute top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center
+    <!-- sv-physical: the handle rides the wipe edge in the photo's pixel frame, centred on it; images do not mirror in RTL -->
+    <div [style.left.%]="showHandle() ? ariaValue() : null"
+         class="absolute top-1/2 grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center
                 rounded-full bg-white text-gray-700 shadow ring-1 ring-black/10
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
          [class.sr-only]="!showHandle()"
-         [style.left.%]="showHandle() ? ariaValue() : null"
          role="slider"
          tabindex="0"
          [attr.aria-label]="ariaLabel()"
@@ -136,6 +159,7 @@
          aria-valuemax="100"
          [attr.aria-valuenow]="ariaValue()"
          [attr.aria-valuetext]="positionLabel()"
+         [attr.aria-disabled]="ready() ? null : 'true'"
          [attr.aria-describedby]="icId('readout')"
          (keydown)="onKeydown($event)"
          data-sv-handle>
@@ -152,39 +176,39 @@
 <dl class="mt-2 max-w-md space-y-1 text-[11px] text-gray-700 dark:text-gray-300"
     data-sv-inspect>
   <div class="flex gap-2">
-    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">before</dt>
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.inspectBefore }}</dt>
     <dd class="font-mono tabular-nums" data-sv-inspect-before>
       {{ beforeWidth() }}×{{ beforeHeight() }}
       <span class="text-gray-500 dark:text-gray-400">({{ aspect().before.toFixed(3) }}:1)</span>
     </dd>
   </div>
   <div class="flex gap-2">
-    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">after</dt>
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.inspectAfter }}</dt>
     <dd class="font-mono tabular-nums" data-sv-inspect-after>
       {{ afterWidth() }}×{{ afterHeight() }}
       <span class="text-gray-500 dark:text-gray-400">({{ aspect().after.toFixed(3) }}:1)</span>
     </dd>
   </div>
   <div class="flex gap-2">
-    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">difference</dt>
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.inspectDifference }}</dt>
     <dd [attr.data-sv-comparable]="!aspect().mismatched" data-sv-inspect-difference>
       <span class="font-mono tabular-nums">{{ (aspect().difference * 100).toFixed(2) }}%</span>
-      <span class="ml-1"
+      <span class="ms-1"
             [class.text-warning-700]="aspect().mismatched"
             [class.dark:text-warning-400]="aspect().mismatched"
             [attr.data-sv-verdict]="frames().verdict">
         @switch (frames().verdict) {
-          @case ('rotated')   { a quarter turn apart }
-          @case ('reshaped')  { not comparable by wiping }
-          @case ('scaled')    { the same shape, different sizes }
-          @case ('identical') { the same dimensions }
-          @default            { not measured yet }
+          @case ('rotated')   {<ng-container>{{ labels.verdictRotated }}</ng-container>}
+          @case ('reshaped')  {<ng-container>{{ labels.verdictReshaped }}</ng-container>}
+          @case ('scaled')    {<ng-container>{{ labels.verdictScaled }}</ng-container>}
+          @case ('identical') {<ng-container>{{ labels.verdictIdentical }}</ng-container>}
+          @default            {<ng-container>{{ labels.verdictUnmeasured }}</ng-container>}
         }
       </span>
     </dd>
   </div>
   <div class="flex gap-2">
-    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">position</dt>
+    <dt class="w-24 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.inspectPosition }}</dt>
     <dd class="font-mono tabular-nums" data-sv-inspect-position>{{ ariaValue() }}%</dd>
   </div>
 </dl>
@@ -194,12 +218,9 @@
   cost every term/definition pair its semantics.
 -->
 <p class="pt-1 text-gray-500 dark:text-gray-400" data-sv-inspect-caveat>
-  The ratios are read from each file's intrinsic size, not from the boxes on screen —
-  the layout stretches both to the same rectangle, so the rendered sizes always agree
-  even when the pictures do not. Matching dimensions do not prove matching
-  <em>framing</em>: two files the same size can still be different crops of the same
-  scene, which nothing measurable from a browser can detect. Turn on
-  <code>landmarks</code> and check a fixed feature against the same line on both sides.
+  {{ labels.caveatBefore }}
+  <em>{{ labels.caveatFraming }}</em>{{ labels.caveatMiddle }}
+  <code>landmarks</code> {{ labels.caveatAfter }}
 </p>
 
 }

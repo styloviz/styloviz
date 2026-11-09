@@ -9,19 +9,24 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import {
-  SvFieldErrorComponent,
-  createFieldError,
-  svPointerFraction,
-  type SvServerError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svPointerFraction, svUniqueId } from '@styloviz/core/a11y';
+import { SvFieldErrorComponent, createFieldError, type SvServerError, svNumberOr } from '@styloviz/core/forms';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 import { SvNumberInputComponent } from '../number-input/number-input.component';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SliderVariant = 'primary' | 'success' | 'warning' | 'danger' | 'neutral';
 export type SliderSize    = 'sm' | 'md' | 'lg';
+
+/**
+ * Forced colours (Windows High Contrast, FI-06-M3). The thumb is a coloured
+ * fill with a box-shadow ring — forced colours repaints the fill as Canvas and
+ * removes the ring, so the handle vanished. ButtonText keeps it visible, and
+ * keyboard focus (a ring on the thumb) becomes an outline on the input.
+ */
+const FORCED_THUMB = 'forced-colors:[&::-webkit-slider-thumb]:bg-[ButtonText] forced-colors:[&::-moz-range-thumb]:bg-[ButtonText] forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid'; // sv-i18n-ignore: Tailwind classes
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -53,6 +58,9 @@ export type SliderSize    = 'sm' | 'md' | 'lg';
   ],
 })
 export class SvSliderComponent implements ControlValueAccessor {
+  /** The handles' default names; override with `provideSvLabels({ forms: … })`. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   // ── Two-way bindings ──────────────────────────────────────────────────────
 
   /** Single slider value. Use `[(value)]` for two-way binding. @default 50 */
@@ -118,10 +126,10 @@ export class SvSliderComponent implements ControlValueAccessor {
   });
 
   /** Minimum value. @default 0 */
-  min = input<number>(0);
+  min = input(0, { transform: svNumberOr(0) });
 
   /** Maximum value. @default 100 */
-  max = input<number>(100);
+  max = input(100, { transform: svNumberOr(100) });
 
   /** Step increment. @default 1 */
   step = input<number>(1);
@@ -138,12 +146,9 @@ export class SvSliderComponent implements ControlValueAccessor {
   /**
    * Show the current value.
    *
-   * ★★ THIS USED TO BE IGNORED IN RANGE MODE. The single slider honoured it;
-   *    the two-handle one drew its value bubbles unconditionally, so a host
-   *    that had already rendered a formatted range above the track — the normal
-   *    thing to do for money, where `4000000` is not a label anybody wants —
-   *    got the raw numbers printed on top of it anyway, with no way to turn
-   *    them off. One input, one meaning, both modes.
+   * Applies in both modes: in range mode it hides the two value bubbles too,
+   * for a host that renders its own formatted range above the track — the
+   * normal thing to do for money, where `4000000` is not a label anybody wants.
    * @default true
    */
   showValue = input<boolean>(true);
@@ -306,11 +311,11 @@ export class SvSliderComponent implements ControlValueAccessor {
   private readonly _groupName = computed<string>(() => this.ariaLabel() || this.label());
   readonly startAriaLabel = computed<string>(() => {
     const n = this._groupName();
-    return n ? `${n} minimum` : 'Range minimum';
+    return n ? svFormatLabel(this.labels.rangeMinimumNamed, { name: n }) : this.labels.rangeMinimum;
   });
   readonly endAriaLabel = computed<string>(() => {
     const n = this._groupName();
-    return n ? `${n} maximum` : 'Range maximum';
+    return n ? svFormatLabel(this.labels.rangeMaximumNamed, { name: n }) : this.labels.rangeMaximum;
   });
 
   readonly ticks = computed<number[]>(() => {
@@ -334,7 +339,9 @@ export class SvSliderComponent implements ControlValueAccessor {
       danger:  'bg-danger-500',
       neutral: 'bg-gray-500',
     };
-    return map[this.variant()];
+    // Forced colours (FI-06-M3): the fill is a background, repainted as Canvas
+    // — the value disappeared into the track. Highlight is a system colour.
+    return `${map[this.variant()]} forced-colors:bg-[Highlight]`; // sv-i18n-ignore: Tailwind classes
   });
 
   /**
@@ -359,7 +366,8 @@ export class SvSliderComponent implements ControlValueAccessor {
       danger:  'bg-danger-600 text-white',
       neutral: 'bg-gray-700 text-white',
     };
-    return map[this.variant()];
+    // The bubble's fill goes under forced colours; an edge keeps its shape.
+    return `${map[this.variant()]} forced-colors:border forced-colors:border-[CanvasText]`; // sv-i18n-ignore: Tailwind classes
   });
 
   // ── Computed: thumb classes ───────────────────────────────────────────────
@@ -367,38 +375,38 @@ export class SvSliderComponent implements ControlValueAccessor {
   /** Single slider thumb: size + color ring. */
   readonly singleThumbClasses = computed<string>(() => {
     const sizeMap: Record<SliderSize, string> = {
-      sm: '[&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5',
-      md: '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4',
-      lg: '[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5',
+      sm: '[&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5', // sv-i18n-ignore: Tailwind classes
+      md: '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4', // sv-i18n-ignore: Tailwind classes
+      lg: '[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5', // sv-i18n-ignore: Tailwind classes
     };
     const colorMap: Record<SliderVariant, string> = {
-      primary: '[&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:ring-primary-200 [&::-moz-range-thumb]:bg-primary-600',
-      success: '[&::-webkit-slider-thumb]:bg-accent-600 [&::-webkit-slider-thumb]:ring-accent-200 [&::-moz-range-thumb]:bg-accent-600',
-      warning: '[&::-webkit-slider-thumb]:bg-warning-500 [&::-webkit-slider-thumb]:ring-warning-200 [&::-moz-range-thumb]:bg-warning-500',
-      danger:  '[&::-webkit-slider-thumb]:bg-danger-600 [&::-webkit-slider-thumb]:ring-danger-200 [&::-moz-range-thumb]:bg-danger-600',
-      neutral: '[&::-webkit-slider-thumb]:bg-gray-600 [&::-webkit-slider-thumb]:ring-gray-200 [&::-moz-range-thumb]:bg-gray-600',
+      primary: '[&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:ring-primary-200 [&::-moz-range-thumb]:bg-primary-600', // sv-i18n-ignore: Tailwind classes
+      success: '[&::-webkit-slider-thumb]:bg-accent-600 [&::-webkit-slider-thumb]:ring-accent-200 [&::-moz-range-thumb]:bg-accent-600', // sv-i18n-ignore: Tailwind classes
+      warning: '[&::-webkit-slider-thumb]:bg-warning-500 [&::-webkit-slider-thumb]:ring-warning-200 [&::-moz-range-thumb]:bg-warning-500', // sv-i18n-ignore: Tailwind classes
+      danger:  '[&::-webkit-slider-thumb]:bg-danger-600 [&::-webkit-slider-thumb]:ring-danger-200 [&::-moz-range-thumb]:bg-danger-600', // sv-i18n-ignore: Tailwind classes
+      neutral: '[&::-webkit-slider-thumb]:bg-gray-600 [&::-webkit-slider-thumb]:ring-gray-200 [&::-moz-range-thumb]:bg-gray-600', // sv-i18n-ignore: Tailwind classes
     };
     // Stronger ring on keyboard focus for a clear focus indicator.
-    const focusRing = 'focus-visible:[&::-webkit-slider-thumb]:ring-4 focus-visible:[&::-moz-range-thumb]:ring-2';
-    return `${sizeMap[this.size()]} ${colorMap[this.variant()]} ${focusRing}`;
+    const focusRing = 'focus-visible:[&::-webkit-slider-thumb]:ring-4 focus-visible:[&::-moz-range-thumb]:ring-2'; // sv-i18n-ignore: Tailwind classes
+    return `${sizeMap[this.size()]} ${colorMap[this.variant()]} ${focusRing} ${FORCED_THUMB}`;
   });
 
   /** Range slider thumb: size + color ring (same for both handles). */
   readonly rangeThumbClasses = computed<string>(() => {
     const sizeMap: Record<SliderSize, string> = {
-      sm: '[&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5',
-      md: '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4',
-      lg: '[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5',
+      sm: '[&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5', // sv-i18n-ignore: Tailwind classes
+      md: '[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4', // sv-i18n-ignore: Tailwind classes
+      lg: '[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5', // sv-i18n-ignore: Tailwind classes
     };
     const colorMap: Record<SliderVariant, string> = {
-      primary: '[&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:ring-primary-300 [&::-moz-range-thumb]:bg-primary-600',
-      success: '[&::-webkit-slider-thumb]:bg-accent-600 [&::-webkit-slider-thumb]:ring-accent-300 [&::-moz-range-thumb]:bg-accent-600',
-      warning: '[&::-webkit-slider-thumb]:bg-warning-500 [&::-webkit-slider-thumb]:ring-warning-300 [&::-moz-range-thumb]:bg-warning-500',
-      danger:  '[&::-webkit-slider-thumb]:bg-danger-600 [&::-webkit-slider-thumb]:ring-danger-300 [&::-moz-range-thumb]:bg-danger-600',
-      neutral: '[&::-webkit-slider-thumb]:bg-gray-600 [&::-webkit-slider-thumb]:ring-gray-300 [&::-moz-range-thumb]:bg-gray-600',
+      primary: '[&::-webkit-slider-thumb]:bg-primary-600 [&::-webkit-slider-thumb]:ring-primary-300 [&::-moz-range-thumb]:bg-primary-600', // sv-i18n-ignore: Tailwind classes
+      success: '[&::-webkit-slider-thumb]:bg-accent-600 [&::-webkit-slider-thumb]:ring-accent-300 [&::-moz-range-thumb]:bg-accent-600', // sv-i18n-ignore: Tailwind classes
+      warning: '[&::-webkit-slider-thumb]:bg-warning-500 [&::-webkit-slider-thumb]:ring-warning-300 [&::-moz-range-thumb]:bg-warning-500', // sv-i18n-ignore: Tailwind classes
+      danger:  '[&::-webkit-slider-thumb]:bg-danger-600 [&::-webkit-slider-thumb]:ring-danger-300 [&::-moz-range-thumb]:bg-danger-600', // sv-i18n-ignore: Tailwind classes
+      neutral: '[&::-webkit-slider-thumb]:bg-gray-600 [&::-webkit-slider-thumb]:ring-gray-300 [&::-moz-range-thumb]:bg-gray-600', // sv-i18n-ignore: Tailwind classes
     };
-    const focusRing = 'focus-visible:[&::-webkit-slider-thumb]:ring-4 focus-visible:[&::-moz-range-thumb]:ring-2';
-    return `${sizeMap[this.size()]} ${colorMap[this.variant()]} ${focusRing}`;
+    const focusRing = 'focus-visible:[&::-webkit-slider-thumb]:ring-4 focus-visible:[&::-moz-range-thumb]:ring-2'; // sv-i18n-ignore: Tailwind classes
+    return `${sizeMap[this.size()]} ${colorMap[this.variant()]} ${focusRing} ${FORCED_THUMB}`;
   });
 
   // ── Which handle the pointer gets (FI-24-I1) ──────────────────────────────
@@ -538,6 +546,41 @@ export class SvSliderComponent implements ControlValueAccessor {
     if (clamped === this.rangeEnd()) return;
     this.rangeEnd.set(clamped);
     this.rangeChange.emit([this.rangeStart(), clamped]);
+  }
+
+  /**
+   * A click or tap on the range track — moves the NEAREST handle there.
+   *
+   * ★★ WCAG 2.5.7 (Dragging Movements). The two range inputs are
+   *    `pointer-events-none` except for their thumbs, so a click on the bare
+   *    track used to land on nothing: the only pointer way to change the range
+   *    was to drag a thumb. The single-thumb slider never had this gap because
+   *    its native input covers the whole track and jumps on click.
+   *
+   * ★ The value is snapped to `step`, then written through the SAME clamping
+   *   path as the paired number fields, so `min`, `max` and `minGap` hold and
+   *   `rangeChange` emits exactly as a drag would. A click that lands ON a thumb
+   *   targets the native input and is left to the browser.
+   */
+  onRangeTrackClick(event: MouseEvent): void {
+    if (this.resolvedDisabled()) return;
+    if (event.target instanceof HTMLInputElement) return;
+    const el = event.currentTarget as HTMLElement;
+    if (el.getBoundingClientRect().width === 0) return;
+    const v = this.snapToStep(this.min() + svPointerFraction(event.clientX, el) * (this.max() - this.min()));
+    const ds = Math.abs(v - this.rangeStart());
+    const de = Math.abs(v - this.rangeEnd());
+    const moveStart = ds === de ? v < this.rangeStart() : ds < de;
+    if (moveStart) this.setRangeStartFromInput(v);
+    else this.setRangeEndFromInput(v);
+  }
+
+  /** Round a raw track value to the nearest `step`, within `min`…`max`. */
+  private snapToStep(raw: number): number {
+    const step = this.step() > 0 ? this.step() : 1;
+    const snapped = this.min() + Math.round((raw - this.min()) / step) * step;
+    const clamped = Math.max(this.min(), Math.min(this.max(), snapped));
+    return Number(clamped.toFixed(this.inputDecimals()));
   }
 
   onRangeStartChange(event: Event): void {

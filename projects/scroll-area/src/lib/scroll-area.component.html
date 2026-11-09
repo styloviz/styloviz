@@ -1,4 +1,7 @@
-<div class="relative" data-sv-scroll-area [attr.data-sv-variant]="variant()" [attr.data-sv-orientation]="orientation()">
+<div class="relative" [class.flex-1]="fill()" [class.min-h-0]="fill()" data-sv-scroll-area [attr.data-sv-variant]="variant()" [attr.data-sv-orientation]="orientation()"
+     [attr.data-sv-scrollbars]="scrollbars()"
+     [style.--sv-sa-fade]="fadeVar()"
+     [style.--sv-sa-hide-delay]="hideDelay() + 'ms'">
 
   <!-- ★★★ A REAL SCROLL CONTAINER. `scrollbar-width: none` hides the native
        chrome; everything else about scrolling — keyboard, momentum, find-in-page,
@@ -13,15 +16,21 @@
        X-7: the ring is a box-shadow, which forced colors removes, and the base
        is `outline-none` — so under forced colors the port gets a real (inset)
        outline in the system colour instead. -->
-  <div #port
+  <div svRevealFocus #port
        class="overscroll-contain [scrollbar-width:none]
               [&::-webkit-scrollbar]:hidden focus-visible:outline-none
               focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500
               forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid
               forced-colors:focus-visible:-outline-offset-2"
        [class.overflow-y-auto]="!horizontal()"
-       [class.overflow-x-auto]="horizontal()"
-       [style.max-height]="maxHeight()"
+       [class.overflow-x-auto]="horizontal() || both()"
+       [ngClass]="(horizontal() || both() ? '[contain:inline-size] ' : '') + snapClass()"
+       [style.max-height]="fill() ? null : maxHeight()"
+       [class.h-full]="fill()"
+       [style.padding-inline-end.px]="!horizontal() && !both() && gutterPx() ? gutterPx() : null"
+       [style.padding-bottom.px]="horizontal() && gutterPx() ? gutterPx() : null"
+       [style.margin-inline-end.px]="both() && gutterPx() ? gutterPx() : null"
+       [style.margin-bottom.px]="both() && gutterPx() ? gutterPx() : null"
        [attr.tabindex]="tabIndex()"
        role="region"
        [attr.aria-label]="ariaLabel() || null"
@@ -31,8 +40,21 @@
        (blur)="onFocusChange(false)"
        data-sv-port>
     <!-- The observed content box (`X-4`). Horizontally it is sized to its
-         content (`w-max`), or a row growing sideways would never change it. -->
-    <div #content data-sv-content [class.w-max]="horizontal()" [class.min-w-full]="horizontal()">
+         content (`w-max`), or a row growing sideways would never change it.
+         The port's `contain: inline-size` (horizontal only) keeps that width
+         out of the port's own min-content size, so a grid or flex ancestor
+         cannot be pushed to the strip's full width (`SR-08`). Vertically it
+         would collapse the port in a shrink-to-fit parent, so it is not set. -->
+    <!-- ★★ THE STICKY HEADER SITS INSIDE THE SCROLLER (`SR-28b`), so it stays
+         put while the rows move under it, and scrolls sideways with a wide
+         table in `'both'`. The start fade and the thumb begin below it. -->
+    <div data-sv-sticky="top" #header class="sticky top-0 z-10 empty:hidden" data-sv-header>
+      <ng-content select="[svScrollAreaHeader]" />
+    </div>
+    <!-- `contentHeight` (`SR-28b`): a virtual list renders a window of rows,
+         and this minimum height keeps the element scrolling the whole list. -->
+    <div #content data-sv-content [class.w-max]="horizontal() || both()" [class.min-w-full]="horizontal() || both()"
+         [style.min-height.px]="contentHeight()">
       <ng-content />
     </div>
   </div>
@@ -42,35 +64,76 @@
        user never had that cue in the first place. -->
   <span [id]="saId('readout')" class="sr-only" data-sv-readout>{{ label() }}</span>
 
+  <!-- ★ LOGICAL EDGES. `start-0` / `end-0` follow the text direction, and the
+       gradient flips with `rtl:`, so the fade sits on the side with more
+       content in either direction.
+
+       ★★ THE FADE ENDS IN THE SURFACE COLOUR, WHICH IS THE HOST'S (`SR-28`).
+       It was hard-coded to white / gray-900, so on any coloured card it drew
+       a white band. `--sv-sa-fade` (or `fadeColor`) names the surface;
+       `fadeStyle="shadow"` needs no colour at all. -->
   @if (horizontal()) {
-    <!-- ★ LOGICAL EDGES. `start-0` / `end-0` follow the text direction, and the
-         gradient flips with `rtl:`, so the fade sits on the side with more
-         content in either direction. -->
     @if (fadeStart()) {
-    <span class="pointer-events-none absolute inset-y-0 start-0 w-6 bg-gradient-to-r rtl:bg-gradient-to-l
-                 from-white to-transparent dark:from-gray-900"
+    <span class="pointer-events-none absolute inset-y-0 start-0 w-6 bg-gradient-to-r rtl:bg-gradient-to-l to-transparent"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
           aria-hidden="true"
           data-sv-fade-start></span>
     }
     @if (fadeEnd()) {
-    <span class="pointer-events-none absolute inset-y-0 end-0 w-6 bg-gradient-to-l rtl:bg-gradient-to-r
-                 from-white to-transparent dark:from-gray-900"
+    <span class="pointer-events-none absolute inset-y-0 end-0 w-6 bg-gradient-to-l rtl:bg-gradient-to-r to-transparent"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
           aria-hidden="true"
           data-sv-fade-end></span>
     }
   } @else {
     @if (fadeStart()) {
-    <span class="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b
-                 from-white to-transparent dark:from-gray-900"
+    <span class="pointer-events-none absolute inset-x-0 top-0 h-6 bg-gradient-to-b to-transparent"
+          [style.top.px]="fadeTopPx() || null"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
           aria-hidden="true"
           data-sv-fade-start></span>
     }
     @if (fadeEnd()) {
-    <span class="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t
-                 from-white to-transparent dark:from-gray-900"
+    <span class="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t to-transparent"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
           aria-hidden="true"
           data-sv-fade-end></span>
     }
+    @if (xFadeStart()) {
+    <span class="pointer-events-none absolute inset-y-0 start-0 w-6 bg-gradient-to-r rtl:bg-gradient-to-l to-transparent"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
+          aria-hidden="true"
+          data-sv-x-fade-start></span>
+    }
+    @if (xFadeEnd()) {
+    <span class="pointer-events-none absolute inset-y-0 end-0 w-6 bg-gradient-to-l rtl:bg-gradient-to-r to-transparent"
+          [ngClass]="fadeStyle() === 'shadow' ? 'from-black/15 dark:from-black/50' : 'from-[var(--sv-sa-fade,#fff)] dark:from-[var(--sv-sa-fade,var(--color-gray-900))]'"
+          aria-hidden="true"
+          data-sv-x-fade-end></span>
+    }
+  }
+
+  @if (progress()) {
+    <!-- Reading progress (`SR-28`): a transform, not a width, so it never
+         triggers layout on scroll. -->
+    <span class="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden" aria-hidden="true" data-sv-progress>
+      <span class="block h-full w-full origin-left bg-primary-500 rtl:origin-right dark:bg-primary-400"
+            [style.transform]="'scaleX(' + progressValue() + ')'"></span>
+    </span>
+  }
+
+  @if (showBackToTop()) {
+    <button type="button"
+            class="absolute bottom-3 end-3 flex h-9 w-9 items-center justify-center rounded-full border border-gray-200
+                   bg-white/95 text-gray-700 shadow-md transition-colors hover:bg-gray-50 focus-visible:outline-2
+                   focus-visible:outline-offset-2 focus-visible:outline-primary-500
+                   dark:border-gray-700 dark:bg-gray-800/95 dark:text-gray-200 dark:hover:bg-gray-700"
+            [attr.aria-label]="backToTopLabel()"
+            [title]="backToTopLabel()"
+            (click)="scrollToStart()"
+            data-sv-back-to-top>
+      <sv-icon [name]="horizontal() ? 'arrow-left' : 'arrow-up'" [size]="16" cssClass="block shrink-0 rtl:-scale-x-100" [strokeWidth]="2" />
+    </button>
   }
 
   @if (showThumb()) {
@@ -95,15 +158,16 @@
          track's fade stills under reduced motion. -->
     @if (horizontal()) {
     <div #track
-         class="absolute start-0 bottom-0.5 h-2 rounded-full transition-opacity motion-reduce:transition-none"
+         class="absolute start-0 bottom-0.5 transition-opacity motion-reduce:transition-none"
          [style.width.px]="viewport()"
-         [ngClass]="variant() === 'always' || dragging()
-                      ? 'opacity-100'
-                      : 'opacity-0 hover:opacity-100 focus-within:opacity-100'"
+         [style.height.px]="thumbPx()"
+         [ngClass]="trackClass()"
          (pointerdown)="onTrackClick($event, track)"
          aria-hidden="true"
          data-sv-track>
-      <span class="absolute bottom-0 h-2 rounded-full bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+      <span class="absolute bottom-0 bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            [ngClass]="thumbClass()"
+            [style.height.px]="thumbPx()"
             [style.width.px]="thumb().size"
             [style.inset-inline-start.px]="thumb().offset"
             [attr.data-sv-clamped]="thumb().clamped"
@@ -112,15 +176,17 @@
     </div>
     } @else {
     <div #track
-         class="absolute end-0.5 top-0 w-2 rounded-full transition-opacity motion-reduce:transition-none"
-         [style.height.px]="viewport()"
-         [ngClass]="variant() === 'always' || dragging()
-                      ? 'opacity-100'
-                      : 'opacity-0 hover:opacity-100 focus-within:opacity-100'"
+         class="absolute end-0.5 top-0 transition-opacity motion-reduce:transition-none"
+         [style.top.px]="trackInset() || null"
+         [style.height.px]="trackLength()"
+         [style.width.px]="thumbPx()"
+         [ngClass]="trackClass()"
          (pointerdown)="onTrackClick($event, track)"
          aria-hidden="true"
          data-sv-track>
-      <span class="absolute end-0 w-2 rounded-full bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+      <span class="absolute end-0 bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            [ngClass]="thumbClass()"
+            [style.width.px]="thumbPx()"
             [style.height.px]="thumb().size"
             [style.top.px]="thumb().offset"
             [attr.data-sv-clamped]="thumb().clamped"
@@ -128,5 +194,34 @@
             data-sv-thumb></span>
     </div>
     }
+  }
+
+  @if (showXThumb()) {
+    <!-- `'both'` (`SR-28b`): the inline thumb, short of the corner. -->
+    <div #xTrack
+         class="absolute start-0 bottom-0.5 transition-opacity motion-reduce:transition-none"
+         [style.width.px]="xTrackLength()"
+         [style.height.px]="thumbPx()"
+         [ngClass]="trackClass()"
+         (pointerdown)="onXTrackClick($event, xTrack)"
+         aria-hidden="true"
+         data-sv-x-track>
+      <span class="absolute bottom-0 bg-gray-400/70 dark:bg-gray-500/70 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]"
+            [ngClass]="thumbClass()"
+            [style.height.px]="thumbPx()"
+            [style.width.px]="xThumb().size"
+            [style.inset-inline-start.px]="xThumb().offset"
+            aria-hidden="true"
+            data-sv-x-thumb></span>
+    </div>
+  }
+
+  @if (cornerPx()) {
+    <span class="pointer-events-none absolute bottom-0 end-0"
+          [ngClass]="thumbStyle() === 'track' ? 'bg-gray-200/80 dark:bg-gray-700/60' : ''"
+          [style.width.px]="cornerPx()"
+          [style.height.px]="cornerPx()"
+          aria-hidden="true"
+          data-sv-corner></span>
   }
 </div>

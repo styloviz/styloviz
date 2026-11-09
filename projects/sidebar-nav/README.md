@@ -1,16 +1,18 @@
 # @styloviz/sidebar-nav
 
-> The reusable half of a dashboard sidebar: grouped items, sub-navigation, a collapsed rail and a mobile drawer — with no router dependency and no brand welded in. Bring your own header and footer.
+> The reusable navigation of a dashboard, with no router dependency and no brand welded in — a sidebar (grouped items, click-to-expand sub-navigation with an active trail, a collapsed rail and a mobile drawer) and a phone bottom navigation bar, both rendered from the same MenuItem model.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/core @styloviz/icons @styloviz/sidebar-nav
+npm install @styloviz/core @styloviz/icons @styloviz/overlays @styloviz/scroll-area @styloviz/sidebar-nav
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons`, `@styloviz/overlays`, `@styloviz/scroll-area` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -53,13 +55,15 @@ import { SvSidebarNavComponent } from '@styloviz/sidebar-nav';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `menuGroups` | `readonly MenuGroup[]` | `[]` | Grouped navigation items. |
-| `activeRoute` | `string` | `''` | The path the reader is on, so one item can be marked current. Controlled rather than derived. See the class note: matching a route is the router's job, and a component that guessed at it would be wrong in a different way in every app. `[activeRoute]="router.url"` is the whole wiring for a routed app. |
-| `childKey` | `string \| null` | `'c'` | URL parameter naming the open sub-item — the `?c=…` `sv-sidebar` has always used. Read through `SvNavLocation`, so it is inert until the app provides one. `null` turns sub-item tracking off. |
+| `activeRoute` | `string` | `''` | The path the reader is on, so one item can be marked current. Controlled rather than derived: matching a route is the router's job, and a component that guessed at it would be wrong in a different way in every app. `[activeRoute]="router.url"` is the whole wiring for a routed app. |
+| `childKey` | `string \| null` | `'c'` | URL parameter naming the open sub-item — the same `?c=…` parameter `sv-sidebar` uses. Read through `SvNavLocation`, so it is inert until the app provides one. `null` turns sub-item tracking off. |
 | `activeChildId` | `string \| null` | `null` | Pin the open sub-item, ignoring the URL. For a host that keeps this in its own state rather than in the address. |
 | `collapsed` | `boolean (two-way)` | `false` | Icon-only rail. Two-way via `[(collapsed)]`. |
 | `mobileOpen` | `boolean (two-way)` | `false` | Mobile drawer open. Two-way via `[(mobileOpen)]`. |
@@ -69,6 +73,17 @@ export class DemoComponent {}
 | `showFooter` | `boolean` | `true` | Render the footer area holding the `[slot=footer]` content and, outside the mobile drawer, the collapse toggle. |
 | `surfaceId` | `string \| null` | `null` | Names this sidebar in the shared navigation-analytics stream. Ignored unless `provideSvNavTelemetry()` is wired up. |
 | `customClass` | `string` | `''` | Additional CSS classes on the `<aside>`. |
+| `expandMode` | `SidebarNavExpandMode` | `'multiple'` | Whether opening one section closes the others. |
+| `expandedIds` | `readonly string[] (two-way)` | `[]` | Keys (`item.id`, else the route) of the items whose sub-pages are open, and `<item key>::<sub-item id>` for an open third level. The section the reader is inside opens on its own, and closes again when they leave unless they opened it themselves. Two-way. |
+| `collapsedGroups` | `readonly string[] (two-way)` | `[]` | Keys (`group.id`, else its label) of `collapsible` groups folded away. Two-way. |
+| `activeStyle` | `SidebarNavActiveStyle` | `'fill'` | The active row's look. |
+| `badgeVariant` | `SidebarNavBadgeVariant` | `'pill'` | How badges are drawn. |
+| `density` | `SidebarNavDensity` | `'comfortable'` | Row height. |
+| `labels` | `Partial<SvSidebarNavLabels>` | `{}` | Every string the sidebar renders. |
+| `scrollFade` | `SidebarNavScrollFade` | `'gradient'` | Fades at the list's edges while there is more to scroll. `'gradient'` fades to the sidebar's surface (`--sv-sa-fade` to change it); `'shadow'` suits a tinted or translucent sidebar. |
+| `drawerMode` | `SidebarNavDrawerMode` | `'overlay'` | The drawer below `mobileBreakpoint`: over the page, or pushing it aside. |
+| `swipeToClose` | `boolean` | `true` | Swipe the open drawer toward its edge to close it (touch and pen). |
+| `edgeSwipe` | `boolean` | `false` | Swipe in from the start edge of the screen to open the drawer. |
 
 ## Outputs
 
@@ -79,6 +94,8 @@ export class DemoComponent {}
 | `toggleCollapse` | `boolean` | The rail toggle was pressed. `collapsed` is already flipped. |
 | `collapsedChange` | `boolean` | Emits the new `collapsed` whenever it changes — the output half of `[(collapsed)]`. |
 | `mobileOpenChange` | `boolean` | Emits the new `mobileOpen` whenever it changes — the output half of `[(mobileOpen)]`. |
+| `expandedIdsChange` | `readonly string[]` | Emits the new `expandedIds` whenever it changes — the output half of `[(expandedIds)]`. |
+| `collapsedGroupsChange` | `readonly string[]` | Emits the new `collapsedGroups` whenever it changes — the output half of `[(collapsedGroups)]`. |
 
 ## Documentation
 
@@ -86,4 +103,4 @@ Full API reference and live demos: https://styloviz.dev/docs/sidebar-nav
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

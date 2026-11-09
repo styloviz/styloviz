@@ -8,16 +8,19 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import {
   SV_LINK_ADAPTER,
   svCloseOnNavigation,
   svIsModifiedClick,
   svNavRecorder,
-  svWarnOnce,
   type SvLinkTarget,
-} from '@styloviz/core';
+} from '@styloviz/core/nav';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_BACK_UP_LABELS } from './back-up.labels';
 
+import { registerBackUpIcons } from './back-up.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Which promise this control makes. See the class note — they are not the same. */
@@ -125,6 +128,12 @@ export interface BackUpNavigation {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvBackUpComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerBackUpIcons();
+
+  /** @internal Visible text — English unless `provideSvLabels({ backUp })` says otherwise. */
+  protected readonly labels = injectSvLabels('backUp', SV_BACK_UP_LABELS);
+  private readonly locale = svLocale();
   private readonly links = inject(SV_LINK_ADAPTER);
 
   /**
@@ -174,8 +183,8 @@ export class SvBackUpComponent {
   /**
    * The hierarchical parent — where "up" goes, and where "back" lands when there
    * is no history. **Required in practice**: without it a `back` control has no
-   * fallback and can still dead-end, which is the defect this component exists
-   * to prevent. Warns once in dev when it is missing. @default null
+   * fallback and can dead-end on a deep-linked page. Warns once in dev when it
+   * is missing. @default null
    */
   up = input<SvLinkTarget | null>(null);
 
@@ -210,7 +219,7 @@ export class SvBackUpComponent {
    *   symmetric — going up when back would have worked is a mild surprise;
    *   leaving the site when the user expected to stay is a lost session.
    *
-   * ⚠️ In a single-page app both signals are weaker: a router's `pushState` is
+   * In a single-page app both signals are weaker: a router's `pushState` is
    *   not observed, a control inside a routed page starts counting from zero on
    *   each route, and `document.referrer` describes how the reader entered the
    *   app, not the entry behind this one. So it errs towards going up.
@@ -277,8 +286,9 @@ export class SvBackUpComponent {
     if (explicit) return explicit;
 
     const name = this.upLabel();
-    const verb = this.mode() === 'back' ? 'Back' : 'Up';
-    return name ? `${verb} to ${name}` : verb;
+    const back = this.mode() === 'back';
+    if (!name) return back ? this.labels.back : this.labels.up;
+    return svFormatLabel(back ? this.labels.backTo : this.labels.upTo, { name }, this.locale);
   });
 
   /**
@@ -312,7 +322,7 @@ export class SvBackUpComponent {
     return [
       'inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-colors',
       'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1',
-      'disabled:cursor-not-allowed disabled:opacity-50',
+      'disabled:cursor-not-allowed disabled:opacity-50', // sv-i18n-ignore: Tailwind class list
       'aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
       this.variant() === 'link' ? 'px-0' : '',
       sizing,

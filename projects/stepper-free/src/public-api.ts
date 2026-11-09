@@ -41,3 +41,8 @@ export {
   svRestoreStepperResume,
 } from './lib/stepper.resume';
 export type { SvStepperResume } from './lib/stepper.resume';
+export { SV_STEPPER_LABELS } from './lib/stepper-free.labels';
+export type { SvStepperLabels } from './lib/stepper-free.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/stepper-free.labels.packs';

@@ -1,12 +1,8 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import {
-  SvOverlayStackService,
-  svBodyScrollLockDepth,
-  svResetBodyScrollLock,
-  svResetWarnOnce,
-} from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { SvOverlayStackService, svBodyScrollLockDepth, svResetBodyScrollLock } from '@styloviz/core/overlay';
 import { SvSpinnerComponent } from './spinner.component';
 
 /**
@@ -42,7 +38,7 @@ async function mountWithTrigger(inputs: Record<string, unknown> = {}) {
 afterEach(() => {
   svResetBodyScrollLock(document);
   document.body.style.overflow = '';
-  document.body.style.paddingRight = '';
+  document.body.style.paddingInlineEnd = '';
   document.querySelectorAll('main').forEach((m) => m.remove());
 });
 

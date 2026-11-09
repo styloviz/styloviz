@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { afterEach, vi } from 'vitest';
-import { SvOverlayStackService } from '@styloviz/core';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { SvProductTourComponent } from './product-tour.component';
 import {
   svSerializeTourProgress,

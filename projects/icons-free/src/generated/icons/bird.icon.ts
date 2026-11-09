@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bird` icon. */
 export const birdNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const birdNodes: readonly IconNode[] = [
 export const birdSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm13.4 18.5v3q0 .9-.9.9-.9 0-.9-.9v-.9q-.2.3-.6.3h-.6v1.1q0 .9-.9.9-.9 0-.9-.9v-1.1q-2.7-.2-4.6-2.3-1.9-2.1-1.9-5.1 0-3 2-4.9 1.9-2 4.9-2 1.4 0 2.6.6 2.1-2.2 5.1-1.1 1.7.7 2.5 1.9l1.5-.5q.4-.2.7 0 .3.1.4.5.2.5-.1.9l-1.8 2.1q0 0 0 0 0 5.6-5.5 5.9l-1 1.4q0 .1 0 .2zm-5.4-7.2q-.7.5-.2 1.2.5.7 1.2.2 1.6-1.1 2.8.4.6.6 1.3.1.6-.6.1-1.3-2.3-2.6-5.2-.6zm7-1.7q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `bird` as a registrable glyph — `registerSvIcons([birdIcon])` / `provideSvIcons([birdIcon])`. */
+export const birdIcon: SvIconDef = { name: 'bird', nodes: birdNodes, solid: birdSolidNodes };
 
 /** `bird` — tree-shakable standalone icon. Use `<sv-bird-icon />`. */
 @Component({

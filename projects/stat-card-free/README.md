@@ -2,7 +2,9 @@
 
 > KPI metric cards with sparklines, trend chips and four layout variants.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -53,6 +55,8 @@ import { SvStatCardComponent } from '@styloviz/stat-card';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -66,23 +70,24 @@ export class DemoComponent {}
 | `trendValue` | `number \| null` | `null` | Absolute delta value shown alongside the trend icon. |
 | `trendPercent` | `number \| null` | `null` | Percentage change shown in the trend chip. |
 | `trendLabel` | `string` | `''` | Comparison context label (e.g. "vs last month"). |
-| `updatedAt` | `string` | `''` | When this figure was last refreshed, as `YYYY-MM-DD` or an ISO timestamp. A CACHED KPI LOOKS IDENTICAL TO A LIVE ONE. A number is a number, and nothing about a stale one announces itself — so the reader assumes the dashboard is current, which is exactly the assumption a broken pipeline exploits. This is in the FREE tier deliberately. Telling a reader their figure may be out of date is an honesty feature, not a premium one, and a free card that hides staleness is the defect rather than a smaller version of it. |
+| `trendPolarity` | `StatCardTrendPolarity` | `'up-is-good'` | Which direction is good news — see StatCardTrendPolarity. `'up-is-good'` paints a rise green and a fall red; `'down-is-good'` swaps them, for a churn or cost KPI; `'neutral'` paints any change grey. |
+| `sparklineDomain` | `readonly [number, number] \| null` | `null` | `[min, max]` for the inline sparkline, shared across a KPI row. Unset, each card scales its line to itself, and two cards rising 2% and 900% draw the same shape side by side. Compute one range with `svSharedDomain()` from `@styloviz/sparkline` over every card's series and bind it to all of them. An sr-only note says which kind of scale the line is on. |
+| `updatedAt` | `string` | `''` | When this figure was last refreshed, as `YYYY-MM-DD` or an ISO timestamp. Renders an "Updated … ago" line under the figure, marked stale past `staleAfterMinutes`, because a cached KPI looks identical to a live one. |
 | `staleAfterMinutes` | `number` | `60` | How many minutes before the figure is called out as possibly stale. |
 | `source` | `string` | `''` | Where the figure came from — a warehouse, a job, a service. |
-| `variant` | `StatCardVariant` | `'default'` | Deprecated, and has no effect: the free card has one colour treatment. |
 | `layout` | `StatCardLayout` | `'default'` | Card layout mode. |
-| `icon` | `string` | `''` | Name of an icon in `@styloviz/icons`, e.g. `'trending-up'`. This was `iconPath` — a raw `<path d="…">` — with a companion `iconViewBox` because a pasted path might be 20-box or 24-box. Both are gone: a library name is always 24-box, and the viewBox binding is what hid these glyphs from `check:ui` in the first place (a bound `viewBox` does not match a literal `viewBox="…"` test). |
+| `icon` | `string` | `''` | Name of an icon in `@styloviz/icons`, e.g. `'trending-up'`. A library glyph is always drawn on a 24-unit box, so there is no viewBox to pass. |
 | `sparkline` | `SparkPoint[]` | `[]` | Array of data points for the inline sparkline. Values should be on a consistent numeric scale; the component normalises them internally. Empty array hides the sparkline. |
 | `loading` | `boolean` | `false` | Show skeleton loading shimmer instead of content. |
 | `error` | `SvDataError \| string \| null` | `null` | The figure could not be loaded. Rendered in place of the metric, because a card that keeps showing a stale number after a failed refresh is worse than one that admits it: the reader has no way to tell the two apart. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
 | `linkLabel` | `string` | `''` | Label for the bottom "view more" link. Empty string hides the link. |
 | `customClass` | `string` | `''` | Additional CSS classes merged on the root card element. |
+| `locale` | `string` | `svLocale()` | BCP 47 locale for dates and numbers. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
-| `cardClick` | `void` | Deprecated, and never emitted: the free card is not interactive. |
 | `linkClick` | `void` | Emitted when the "view more" link is clicked. |
 | `retry` | `void` | The host should re-run the failed load. |
 
@@ -92,4 +97,4 @@ Full API reference and live demos: https://styloviz.dev/docs/stat-card
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

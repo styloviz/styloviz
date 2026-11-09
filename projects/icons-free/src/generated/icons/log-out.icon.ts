@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `log-out` icon. */
 export const logOutNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const logOutNodes: readonly IconNode[] = [
 export const logOutSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm14 3.1h4q1.9 0 1.9 1.9v14q0 1.9-1.9 1.9h-4q-.9 0-.9-.9 0-.9.9-.9h4q.1 0 .1-.1v-14q0-.1-.1-.1h-4q-.9 0-.9-.9 0-.9.9-.9zm-4.4 5.5l-2.5 2.5h7.9q.9 0 .9.9 0 .9-.9.9h-7.9l2.5 2.5q.6.6 0 1.2-.3.3-.6.3-.3 0-.6-.3l-3.8-3.8q-.3-.1-.4-.5-.2-.3 0-.6.1-.4.4-.5l3.8-3.8q.3-.3.6-.3.3 0 .6.3.6.6 0 1.2z' },
 ];
+
+/** `log-out` as a registrable glyph — `registerSvIcons([logOutIcon])` / `provideSvIcons([logOutIcon])`. */
+export const logOutIcon: SvIconDef = { name: 'log-out', nodes: logOutNodes, solid: logOutSolidNodes };
 
 /** `log-out` — tree-shakable standalone icon. Use `<sv-log-out-icon />`. */
 @Component({

@@ -2,7 +2,9 @@
 
 > Core utilities, services, directives and design tokens shared by every Styloviz component.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 `@styloviz/core` is the shared services and theming layer — `ThemeService` (dark/light), `ToastService`, the `provideStyloviz()` config token, design-token directives and the kit stylesheet (`@styloviz/core/styles/styloviz.css` — see Styles below). Most Styloviz packages list it as a peer dependency, so npm installs it alongside them; on pnpm and yarn add it yourself. It's included automatically in the `@styloviz/all` bundle.
 

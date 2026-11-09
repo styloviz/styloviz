@@ -6,6 +6,7 @@ import {
   svScrollable,
   svThumbGeometry,
 } from './scroll-area.geometry';
+import { SV_SCROLL_AREA_LABELS } from './scroll-area.labels';
 
 // ── Thumb geometry ──────────────────────────────────────────────────────────
 
@@ -204,10 +205,10 @@ describe('which edges have more behind them', () => {
 
 describe('the accessible read-out', () => {
   it('says where in the content the reader is and how much they can see', () => {
-    expect(svScrollLabel(400, 800, 200)).toBe('Scrolled 50%; 50% of the content is visible.');
+    expect(svScrollLabel(400, 800, 200, SV_SCROLL_AREA_LABELS)).toBe('Scrolled 50%; 50% of the content is visible.');
   });
 
   it('says there is nothing to scroll rather than reporting 0%', () => {
-    expect(svScrollLabel(400, 300, 0)).toBe('Everything fits; nothing to scroll.');
+    expect(svScrollLabel(400, 300, 0, SV_SCROLL_AREA_LABELS)).toBe('Everything fits; nothing to scroll.');
   });
 });

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `clock` icon. */
 export const clockNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const clockNodes: readonly IconNode[] = [
 export const clockSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.9 12q0 4.1-2.9 7-2.9 2.9-7 2.9-4.1 0-7-2.9-2.9-2.9-2.9-7 0-4.1 2.9-7 2.9-2.9 7-2.9 4.1 0 7 2.9 2.9 2.9 2.9 7zm-9-5q0-.9-.9-.9-.9 0-.9.9v5q0 .5.5.8l3.5 2q.3.2.6.1.3-.1.6-.5.2-.3.1-.6-.1-.3-.5-.6l-3-1.7z' },
 ];
+
+/** `clock` as a registrable glyph — `registerSvIcons([clockIcon])` / `provideSvIcons([clockIcon])`. */
+export const clockIcon: SvIconDef = { name: 'clock', nodes: clockNodes, solid: clockSolidNodes };
 
 /** `clock` — tree-shakable standalone icon. Use `<sv-clock-icon />`. */
 @Component({

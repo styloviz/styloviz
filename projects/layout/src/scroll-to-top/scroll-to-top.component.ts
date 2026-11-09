@@ -13,15 +13,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  SV_FLOATING_ORDER,
-  prefersReducedMotion,
-  svFloatingInset,
-  svFloatingRegion,
-  svIsFocusable,
-  svWarnOnce,
-} from '@styloviz/core';
+import { prefersReducedMotion } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_FLOATING_ORDER, svFloatingInset, svFloatingRegion } from '@styloviz/core/layout';
+import { svIsFocusable } from '@styloviz/core/overlay';
+import { SV_LAYOUT_LABELS } from '../layout.labels';
 
+import { registerScrollToTopIcons } from './scroll-to-top.component.icons';
 export type ScrollToTopVariant    = 'circle' | 'rounded' | 'pill';
 export type ScrollToTopAppearance = 'solid' | 'glass' | 'gradient' | 'outline';
 export type ScrollToTopPosition   = 'bottom-right' | 'bottom-left' | 'bottom-center';
@@ -55,6 +54,7 @@ const FALLBACK_FOCUS_QUERY = 'main, [role="main"]';
  *    `--tw-outline-style: none`, which `outline-2` alone would inherit.
  */
 const FORCED_FOCUS =
+  // sv-i18n-ignore: Tailwind classes
   'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2';
 
 @Component({
@@ -65,13 +65,18 @@ const FORCED_FOCUS =
   templateUrl: './scroll-to-top.component.html',
 })
 export class SvScrollToTopComponent implements AfterViewInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerScrollToTopIcons();
+
+  protected readonly labels = injectSvLabels('layout', SV_LAYOUT_LABELS);
+
   private readonly el = inject(ElementRef<HTMLElement>);
 
   /** Scroll distance (px) before the button appears. @default 200 */
   threshold    = input<number>(200);
   /** Shape variant: circle, rounded or pill. @default 'circle' */
   variant      = input<ScrollToTopVariant>('circle');
-  /** Premium surface style: solid, glass, gradient or outline. @default 'solid' */
+  /** Surface style: solid, glass, gradient or outline. @default 'solid' */
   appearance   = input<ScrollToTopAppearance>('solid');
   /** Screen corner to anchor the button. @default 'bottom-right' */
   position     = input<ScrollToTopPosition>('bottom-right');
@@ -80,7 +85,7 @@ export class SvScrollToTopComponent implements AfterViewInit, OnDestroy {
   /** Optional text label next to the icon. */
   label        = input<string>('');
   /** Accessible label for the button. @default 'Scroll to top' */
-  ariaLabel    = input<string>('Scroll to top');
+  ariaLabel    = input<string>(this.labels.scrollToTop);
   /** Demo / preview mode: button is always visible regardless of scroll. */
   demo         = input<boolean>(false);
   /** Pin the button inside its nearest positioned ancestor (`position: absolute`)
@@ -338,8 +343,11 @@ export class SvScrollToTopComponent implements AfterViewInit, OnDestroy {
     // sit side-by-side inside a showcase card instead of stacking fixed in a corner.
     if (this.demo()) return 'inline-flex';
     const corner = {
+      // sv-physical: the position input names a physical side (bottom-right / bottom-left), kept in RTL like the toast positions
       'bottom-right':  'bottom-6 right-6',
+      // sv-physical: the position input names a physical side (bottom-right / bottom-left), kept in RTL like the toast positions
       'bottom-left':   'bottom-6 left-6',
+      // sv-physical: centring — left-1/2 with -translate-x-1/2 is direction-neutral
       'bottom-center': 'bottom-6 left-1/2 -translate-x-1/2',
     }[this.position()];
     // Contained: pin to the nearest positioned ancestor; else fix to the viewport.
@@ -364,6 +372,7 @@ export class SvScrollToTopComponent implements AfterViewInit, OnDestroy {
     // Appearance controls the surface (colour / blur / border / shadow).
     const look = {
       solid:    ' bg-primary-600 text-white shadow-lg hover:bg-primary-700 hover:shadow-xl',
+      // sv-glass: pinned — the button is `fixed` over the scrolling page; `demo`/`contained` place it over a panel's own scrolling content.
       glass:    ' bg-white/70 text-primary-600 border border-white/50 shadow-lg backdrop-blur-md hover:bg-white/90 hover:shadow-xl dark:bg-gray-900/60 dark:text-primary-300 dark:border-white/10 dark:hover:bg-gray-900/80',
       gradient: ' bg-gradient-to-br from-primary-600 to-brandaccent-700 text-white shadow-lg shadow-primary-500/30 hover:shadow-xl hover:brightness-110',
       outline:  ' border-2 border-primary-500/70 bg-white text-primary-600 shadow-sm hover:bg-primary-50 hover:shadow-md dark:bg-gray-900 dark:text-primary-300 dark:hover:bg-primary-950/40',

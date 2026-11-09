@@ -1,9 +1,15 @@
 import { TestBed } from '@angular/core/testing';
-import { render, type ComponentInput } from '@testing-library/angular';
 import { until } from '@testing/async';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvSelectDropdownComponent } from './select-dropdown.component';
-import type { SelectOption, SvSelectOptionSource } from './select-dropdown.component';
+import type { SelectOption } from './select-dropdown.component';
+import { renderSelect } from '@testing/select-host';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+/** What `svSelectSource({ search })` calls. */
+type Search = (term: string, signal: AbortSignal) => Promise<readonly SelectOption[]>;
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 /**
  * `FI-23-I2` / `FI-23-M2` / `FI-23-M3` re-verified 2026-09-26 (free twin).
@@ -12,7 +18,7 @@ import type { SelectOption, SvSelectOptionSource } from './select-dropdown.compo
  * mode `hasStaleValue()` was true and nothing on screen said so: the trigger
  * drew chips for the values it could resolve and silently skipped the rest —
  * with every value dropped, it drew an empty trigger and no placeholder —
- * while the form went on submitting them. And with `loadOptions`, a pick made
+ * while the form went on submitting them. And with a `source`, a pick made
  * under one search term vanished from the chips under the next one, because
  * the fetched list is "whatever answers this term", not the catalogue.
  */
@@ -25,9 +31,7 @@ const FRUIT: SelectOption[] = [
 async function setup(inputs: Record<string, unknown>) {
   TestBed.resetTestingModule();
   svResetWarnOnce();
-  const r = await render(SvSelectDropdownComponent, {
-    inputs: { options: FRUIT, ...inputs } as ComponentInput<SvSelectDropdownComponent>,
-  });
+  const r = { fixture: await renderSelect(SvSelectDropdownComponent, FEATURES, { options: FRUIT, ...inputs }) };
   const host = r.fixture.nativeElement as HTMLElement;
   return { fixture: r.fixture, c: r.fixture.componentInstance, host };
 }
@@ -85,16 +89,16 @@ describe('SvSelectDropdownComponent — a stale value in a MULTI select', () => 
   });
 });
 
-describe('SvSelectDropdownComponent — loadOptions keeps what the user picked', () => {
+describe('SvSelectDropdownComponent — a [source] keeps what the user picked', () => {
   it('keeps an earlier pick labelled after a search that does not return it', async () => {
     const DB: SelectOption[] = [
       { value: 'ada', label: 'Ada Lovelace' },
       { value: 'bob', label: 'Bob Kahn' },
     ];
-    const load: SvSelectOptionSource = async (term) =>
+    const load: Search = async (term) =>
       DB.filter((o) => o.label.toLowerCase().includes(term.toLowerCase()));
     const { fixture, c, host } = await setup({
-      options: [], multiple: true, value: [], searchable: true, debounceMs: 0, loadOptions: load,
+      options: [], multiple: true, value: [], searchable: true, debounceMs: 0, sourceSearch: load,
     });
 
     c.openDropdown();

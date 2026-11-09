@@ -15,9 +15,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { svDescribedBy, SvFieldErrorComponent, svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { svDescribedBy, SvFieldErrorComponent } from '@styloviz/core/forms';
+import { injectSvLabels, svFormatLabel, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerGroupIcons } from './group.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type GroupOrientation = 'vertical' | 'horizontal';
@@ -41,11 +46,18 @@ export type GroupGap         = 'none' | 'xs' | 'sm' | 'md' | 'lg';
 @Component({
   selector: 'sv-group',
   standalone: true,
-  imports: [SvIconComponent, SvFieldErrorComponent, NgClass],
+  imports: [SvIconComponent, SvFieldErrorComponent, NgClass, SvLabelPipe],
   templateUrl: './group.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerGroupIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+  /** The kit's locale, for the error count's plural form. */
+  private readonly labelLocale = svLocale();
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Section label shown above children. */
@@ -53,6 +65,15 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
 
   /** Optional description text below the label. */
   description = input<string>('');
+
+  /**
+   * Accessible name for a group with no visible `label` (`FI-11-I2`). The
+   * group is only exposed as `role="group"` when it has a name — `label` or
+   * this — because an unnamed group is announced as "group" and nothing else,
+   * which is worse than no group at all. A layout-only wrapper (Split Button's
+   * two halves) stays role-less. @default ''
+   */
+  ariaLabel = input<string>('');
 
   /** Layout direction of children. @default 'vertical' */
   orientation = input<GroupOrientation>('vertical');
@@ -159,7 +180,7 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Id of the group-level error slot. */
   readonly errorId = `${this._uid}-error`;
   /** Id of the collapsed-header error count. */
-  readonly errorCountId = `${this._uid}-error-count`;
+  readonly errorCountId = `${this._uid}-error-count`; // sv-i18n-ignore: DOM id
 
   /** True when the group has anything to report — a message, a child count, or both. */
   readonly hasError = computed(() => !!this.errorMessage() || this.errorCount() > 0);
@@ -180,6 +201,9 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
    * heard. All three parts can be present at once and `aria-describedby` takes
    * a list, so they compose rather than displace each other (`FI-27-M1`).
    */
+  /** Whether the group has a name — and so is exposed as `role="group"`. */
+  readonly isNamed = computed(() => !!this.label() || !!this.ariaLabel().trim());
+
   readonly describedBy = computed<string | null>(() =>
     svDescribedBy({
       hint: !!this.description() && this.descriptionId,
@@ -192,9 +216,10 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
   );
 
   /** Plural-correct suffix for the count badge's screen-reader text. */
-  readonly errorCountLabel = computed(() =>
-    this.errorCount() === 1 ? '1 field needs attention' : `${this.errorCount()} fields need attention`,
-  );
+  readonly errorCountLabel = computed(() => {
+    const n = this.errorCount();
+    return svFormatLabel(this.labels.groupErrorCount, { count: n, n: String(n) }, this.labelLocale);
+  });
 
   private readonly contentRef = viewChild<ElementRef<HTMLDivElement>>('groupContent');
 
@@ -202,6 +227,19 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
   private _initialised = false;
 
   constructor() {
+    // A group that carries group semantics (an error, a collapse) but has no
+    // name loses its role — say so, once, in dev.
+    effect(() => {
+      if (this.isNamed()) return;
+      if (!this.errorMessage() && !this.collapsible()) return;
+      svWarnOnce(
+        'group-unnamed',
+        '<sv-group> has an error message or is collapsible but no `label` or `ariaLabel`, ' + // sv-i18n-ignore: developer message
+          'so it is not exposed as role="group" and a screen reader cannot tell what the ' + // sv-i18n-ignore: developer message
+          'error or the toggle belongs to. Give it a `label` (visible) or an `ariaLabel`.', // sv-i18n-ignore: developer message
+      );
+    });
+
     // A change to `collapsed` after init is a request, not a command — the
     // error guard can refuse it. Idempotent: a `collapsed` that already matches
     // the group's state does nothing, which is what the first run after
@@ -291,7 +329,7 @@ export class SvGroupComponent implements OnInit, AfterViewInit, OnDestroy {
     // Avoids overflow-hidden (subpixel blur, clipped focus rings).
     // focus-within gives the whole compound control a ring when any part is focused.
     const fuse = this.fused()
-      ? 'rounded-md [&>*]:!rounded-none [&>*:first-child]:!rounded-l-md [&>*:last-child]:!rounded-r-md focus-within:ring-2 focus-within:ring-primary-400/50'
+      ? 'rounded-md [&>*]:!rounded-none [&>*:first-child]:!rounded-s-md [&>*:last-child]:!rounded-e-md focus-within:ring-2 focus-within:ring-primary-400/50'
       : '';
 
     return [dir, gap, div, fuse].filter(Boolean).join(' ');

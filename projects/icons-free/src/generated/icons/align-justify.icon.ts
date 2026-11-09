@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `align-justify` icon. */
 export const alignJustifyNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const alignJustifyNodes: readonly IconNode[] = [
 export const alignJustifySolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 11.1h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm0-6h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm0 12h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `align-justify` as a registrable glyph — `registerSvIcons([alignJustifyIcon])` / `provideSvIcons([alignJustifyIcon])`. */
+export const alignJustifyIcon: SvIconDef = { name: 'align-justify', nodes: alignJustifyNodes, solid: alignJustifySolidNodes };
 
 /** `align-justify` — tree-shakable standalone icon. Use `<sv-align-justify-icon />`. */
 @Component({

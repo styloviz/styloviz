@@ -12,17 +12,19 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels } from '@styloviz/core/i18n';
 import {
   SV_FLOATING_ORDER,
   SvFloatingLayerService,
   svElementSize,
-  svFixedOrigin,
   svFloatingRegion,
-  svWarnOnce,
   type SvFloatingAnchor,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/layout';
+import { svFixedOrigin } from '@styloviz/core/overlay';
 import { svAffixLabel, svAffixState, svIsAffixed, type AffixMode, type SvAffixState } from './affix.position';
+import { SV_AFFIX_LABELS } from './affix.labels';
 import {
   svFixedContainingBlock,
   svSameContainingBlock,
@@ -68,6 +70,8 @@ const STATIC: SvAffixState = { mode: 'static', top: 0, placeholder: 0, atBoundar
   templateUrl: './affix.component.html',
 })
 export class SvAffixComponent {
+  /** The state announced to screen readers; override with `provideSvLabels({ affix: … })`. */
+  protected readonly labels = injectSvLabels('affix', SV_AFFIX_LABELS);
   private readonly uid = svUniqueId('sv-af');
   private readonly floatingLayer = inject(SvFloatingLayerService);
 
@@ -105,12 +109,12 @@ export class SvAffixComponent {
   readonly holdRestingHeight = input<boolean>(false);
 
   /**
-   * Join the shared floating layer (`X-5`, `LU-01-M3`) while PINNED, as an
+   * Join the shared floating layer while PINNED, as an
    * occupied region at this anchor — usually `'top'` for a full-width bar, or a
    * corner for a pinned card. Floating controls at that edge then stack clear of
    * it, and regions ranked before it (a host's top banner) push it down through
    * `collisionOffset`, which is added to `offsetTop`. `null` registers nothing
-   * and leaves the offset at 0 — the behaviour before this input existed.
+   * and leaves the offset at 0.
    * @default null
    */
   readonly floatingAnchor = input<SvFloatingAnchor | null>(null);
@@ -252,7 +256,7 @@ export class SvAffixComponent {
   });
 
   readonly affixed = computed(() => svIsAffixed(this.state()));
-  readonly label = computed(() => svAffixLabel(this.state()));
+  readonly label = computed(() => svAffixLabel(this.state(), this.labels));
 
   // ── Interactions ──────────────────────────────────────────────────────────
 
@@ -344,7 +348,7 @@ export class SvAffixComponent {
     this.containingBlockChange.emit(next);
 
     if (next) {
-      const who = element ? `<${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}>` : 'an ancestor';
+      const who = element ? `<${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}>` : 'an ancestor'; // sv-i18n-ignore: developer message
       svWarnOnce(
         'sv-affix:containing-block',
         `sv-affix: ${who} is the containing block for position: fixed (a transform, filter, perspective, ` +

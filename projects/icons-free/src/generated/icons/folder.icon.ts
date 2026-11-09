@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `folder` icon. */
 export const folderNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const folderNodes: readonly IconNode[] = [
 export const folderSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm2.1 7q0-1.9 1.9-1.9h5q.4 0 .6.3l1.8 1.7h7.6q1.9 0 1.9 1.9v9q0 1.9-1.9 1.9h-15q-1.9 0-1.9-1.9z' },
 ];
+
+/** `folder` as a registrable glyph — `registerSvIcons([folderIcon])` / `provideSvIcons([folderIcon])`. */
+export const folderIcon: SvIconDef = { name: 'folder', nodes: folderNodes, solid: folderSolidNodes };
 
 /** `folder` — tree-shakable standalone icon. Use `<sv-folder-icon />`. */
 @Component({

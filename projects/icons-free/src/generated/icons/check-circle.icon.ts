@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `check-circle` icon. */
 export const checkCircleNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const checkCircleNodes: readonly IconNode[] = [
 export const checkCircleSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 3 a9 9 0 1 0 0 18 a9 9 0 0 0 0 -18 Z M15.9 8.3 L10.8 13.6 L8.6 11.4 L7.3 12.7 L10.8 16.2 L17.2 9.6 Z', fillRule: 'evenodd' },
 ];
+
+/** `check-circle` as a registrable glyph — `registerSvIcons([checkCircleIcon])` / `provideSvIcons([checkCircleIcon])`. */
+export const checkCircleIcon: SvIconDef = { name: 'check-circle', nodes: checkCircleNodes, solid: checkCircleSolidNodes };
 
 /** `check-circle` — tree-shakable standalone icon. Use `<sv-check-circle-icon />`. */
 @Component({

@@ -1,0 +1,205 @@
+@if (loading()) {
+  <sv-skeleton-shell variant="list" [rows]="4" [ariaLabel]="text().transcriptLoading" />
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" />
+} @else {
+  <section
+    role="region"
+    data-sv-transcript
+    class="isolate overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 print:border-0 print:shadow-none"
+    [attr.aria-label]="regionLabel()"
+    [attr.data-live]="live() ? 'true' : null">
+    <!-- ── Toolbar: search, match count, copy and download ── -->
+    @if (showToolbar()) {
+      <div class="flex flex-wrap items-center gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-800 print:hidden">
+        @if (live()) {
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-danger-50 px-2.5 py-1 text-xs font-semibold text-danger-700 dark:bg-danger-500/15 dark:text-danger-300">
+            <span aria-hidden="true" class="h-2 w-2 rounded-full bg-danger-500"></span>
+            {{ text().transcriptLive }}
+          </span>
+        }
+
+        @if (searchable()) {
+          <div role="search" class="flex min-w-0 flex-1 items-center gap-1">
+            <label class="relative flex min-w-0 flex-1 items-center">
+              <span class="sr-only">{{ text().transcriptSearch }}</span>
+              <sv-icon name="search" [size]="16" cssClass="pointer-events-none absolute start-2.5 text-gray-500 dark:text-gray-400" />
+              <input
+                type="search"
+                class="h-9 w-full min-w-0 rounded-lg border border-gray-200 bg-white ps-8 pe-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-400"
+                autocomplete="off"
+                enterkeyhint="search"
+                [value]="search.raw()"
+                [attr.placeholder]="text().transcriptSearchPlaceholder"
+                [attr.aria-controls]="emptyReason() ? null : uid + '-list'"
+                [attr.aria-describedby]="hasQuery() ? uid + '-count' : null"
+                (input)="onSearchInput($event)"
+                (keydown)="onSearchKeydown($event)" />
+            </label>
+            @if (hasQuery()) {
+              <span [id]="uid + '-count'" class="shrink-0 whitespace-nowrap px-1 text-xs tabular-nums text-gray-600 dark:text-gray-400" aria-live="polite">
+                {{ matchText() }}
+              </span>
+              <button
+                type="button"
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+                [disabled]="matchCount() === 0"
+                [attr.aria-label]="text().transcriptPreviousMatch"
+                (click)="stepMatch(-1)">
+                <sv-icon name="chevron-up" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+                [disabled]="matchCount() === 0"
+                [attr.aria-label]="text().transcriptNextMatch"
+                (click)="stepMatch(1)">
+                <sv-icon name="chevron-down" [size]="16" />
+              </button>
+              <button
+                type="button"
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-800"
+                [attr.aria-label]="text().transcriptClearSearch"
+                (click)="clearSearch()">
+                <sv-icon name="close" [size]="16" />
+              </button>
+            }
+          </div>
+        } @else {
+          <span class="flex-1"></span>
+        }
+
+        @if (copyable() || offersText() || offersVtt()) {
+          <div role="group" class="ms-auto flex items-center gap-1" [attr.aria-label]="text().transcriptActions">
+            @if (copyable()) {
+              <button
+                type="button"
+                data-sv-transcript-copy
+                class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+                [disabled]="!canExport()"
+                (click)="copy()">
+                <sv-icon [name]="copyState() === 'done' ? 'check' : 'copy'" [size]="16" />
+                <span class="hidden sm:inline">{{ copyState() === 'done' ? text().transcriptCopied : text().transcriptCopy }}</span>
+                <span class="sr-only sm:hidden">{{ text().transcriptCopy }}</span>
+              </button>
+            }
+            @if (offersText()) {
+              <button
+                type="button"
+                data-sv-transcript-download="text"
+                class="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+                [disabled]="!canExport()"
+                [attr.aria-label]="text().transcriptDownloadText"
+                [attr.title]="text().transcriptDownloadText"
+                (click)="download('text')">
+                <sv-icon name="download" [size]="16" />
+                <span aria-hidden="true">{{ formatNames.text }}</span>
+              </button>
+            }
+            @if (offersVtt()) {
+              <button
+                type="button"
+                data-sv-transcript-download="vtt"
+                class="inline-flex h-9 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+                [disabled]="!canExport()"
+                [attr.aria-label]="text().transcriptDownloadVtt"
+                [attr.title]="text().transcriptDownloadVtt"
+                (click)="download('vtt')">
+                <sv-icon name="download" [size]="16" />
+                <span aria-hidden="true">{{ formatNames.vtt }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Segments ── -->
+    @if (emptyReason(); as reason) {
+      <div class="p-4">
+        <sv-empty-shell
+          [reason]="reason"
+          [compact]="true"
+          [title]="reason === 'no-results' ? text().transcriptNoResultsTitle : text().transcriptEmptyTitle"
+          [message]="emptyMessage()"
+          [actionLabel]="reason === 'no-results' ? (hasQuery() ? text().transcriptClearSearch : '') : ''"
+          (action)="onEmptyAction()" />
+      </div>
+    } @else {
+      <div class="relative">
+        <ol
+          #scroller
+          class="relative flex flex-col gap-0.5 overflow-y-auto overscroll-contain p-2 print:max-h-none print:overflow-visible"
+          [id]="uid + '-list'"
+          [style.max-height]="scrollMax()"
+          [attr.aria-label]="regionLabel()"
+          [attr.tabindex]="showTimestamps() ? null : 0"
+          (scroll)="onScroll($event)">
+          @for (row of rows(); track row.key) {
+            <li
+              class="flex gap-3 rounded-lg px-2 py-1.5 transition-colors print:break-inside-avoid"
+              [class]="row.key === activeKey() ? 'bg-primary-50 dark:bg-primary-500/10' : ''"
+              [attr.data-sv-segment]="row.key"
+              [attr.data-final]="row.final ? 'true' : 'false'"
+              [attr.aria-current]="row.key === activeKey() ? 'time' : null">
+              @if (showTimestamps()) {
+                <button
+                  type="button"
+                  class="mt-px h-7 shrink-0 self-start rounded-md px-1.5 font-mono text-xs tabular-nums text-primary-700 underline-offset-2 transition-colors hover:bg-primary-50 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-300 dark:hover:bg-primary-500/15 print:text-gray-900"
+                  [attr.aria-label]="row.seekLabel"
+                  (click)="onSeek(row)">
+                  {{ row.time }}
+                </button>
+              }
+              <div class="min-w-0 flex-1">
+                @if (row.showSpeaker) {
+                  <p class="text-xs font-semibold" [class]="row.toneClass">{{ row.speaker }}</p>
+                }
+                <p
+                  class="whitespace-pre-line break-words text-sm leading-relaxed"
+                  [class]="row.final ? 'text-gray-900 dark:text-gray-100' : 'italic text-gray-500 dark:text-gray-400'">
+                  @if (!row.showSpeaker && row.speaker) {
+                    <span class="sr-only">{{ row.speaker }}: </span>
+                  }
+                  @for (part of row.parts; track part.at) {@if (part.match) {<mark class="rounded-sm px-0.5 text-gray-950 dark:text-gray-950" [class]="part.ordinal === safeCursor() ? 'bg-warning-300 ring-2 ring-warning-500' : 'bg-warning-100 dark:bg-warning-200'" [attr.data-sv-match]="part.ordinal">{{ part.text }}</mark>} @else {<span>{{ part.text }}</span>}}
+                  @if (!row.final) {
+                    <span aria-hidden="true" class="ms-0.5 text-gray-500 dark:text-gray-400">…</span>
+                    <span class="sr-only"> {{ text().transcriptInterim }}</span>
+                  }
+                  @if (row.key === activeKey()) {
+                    <span class="sr-only"> — {{ text().transcriptNowPlaying }}</span>
+                  }
+                </p>
+              </div>
+            </li>
+          }
+        </ol>
+
+        @if (live() && unseen() > 0) {
+          <button
+            type="button"
+            class="absolute bottom-3 start-1/2 inline-flex min-h-9 -translate-x-1/2 items-center gap-1.5 rounded-full bg-gray-900 px-3 text-xs font-semibold text-white shadow-lg transition-colors hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 rtl:translate-x-1/2 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white print:hidden"
+            (click)="jumpToLatest()">
+            <sv-icon name="arrow-down" [size]="14" />
+            {{ text().transcriptJumpToLatest }} ({{ unseen() }})
+          </button>
+        }
+      </div>
+    }
+
+    <!-- Finals only, politely — interim text changes too often to be spoken. -->
+    <p class="sr-only" aria-live="polite" aria-atomic="true">{{ live() ? liveAnnouncement() : '' }}</p>
+    <p class="sr-only" role="status">
+      @if (copyState() === 'done') {
+        {{ text().transcriptCopied }}
+      } @else if (copyState() === 'failed') {
+        {{ text().transcriptCopyFailed }}
+      }
+    </p>
+    @if (copyState() === 'failed') {
+      <p class="border-t border-gray-200 px-3 py-2 text-xs text-danger-700 dark:border-gray-800 dark:text-danger-300 print:hidden" aria-hidden="true">
+        {{ text().transcriptCopyFailed }}
+      </p>
+    }
+  </section>
+}

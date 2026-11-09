@@ -13,9 +13,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core';
+import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerFormErrorSummaryIcons } from './form-error-summary.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** One invalid field, as the summary needs to describe it. */
@@ -138,6 +141,12 @@ export type SvFormErrorReachFailure = 'not-found' | 'not-focusable';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvFormErrorSummaryComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerFormErrorSummaryIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+  /** The kit's locale, for the heading's plural form. */
+  private readonly labelLocale = svLocale();
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   // ── Inputs ────────────────────────────────────────────────────────────────
@@ -176,7 +185,7 @@ export class SvFormErrorSummaryComponent {
    * Move focus here when the summary appears — that is, when the error list
    * goes from empty to non-empty.
    *
-   * ⚠️ **A second failed submit with the same errors is not a transition**, so
+   * **A second failed submit with the same errors is not a transition**, so
    * this will not fire for it, and the user is left where they were with no
    * indication anything happened. Call {@link focusSummary} from your submit
    * handler for that case; it is the reliable half of this pair, and `autoFocus`
@@ -202,7 +211,7 @@ export class SvFormErrorSummaryComponent {
   readonly busy = input(false, { transform: booleanAttribute });
 
   /** The note shown while {@link busy}. @default 'Rechecking…' */
-  readonly busyMessage = input<string>('Rechecking…');
+  readonly busyMessage = input<string>(this.labels.rechecking);
 
   /** Extra classes on the root region. @default '' */
   readonly customClass = input<string>('');
@@ -256,7 +265,7 @@ export class SvFormErrorSummaryComponent {
     const supplied = this.heading().trim();
     const n = this.count();
     if (supplied) return supplied.replace('{n}', String(n));
-    return n === 1 ? 'There is a problem' : `There are ${n} problems`;
+    return svFormatLabel(this.labels.errorSummaryHeading, { count: n, n: String(n) }, this.labelLocale);
   });
 
   constructor() {

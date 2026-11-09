@@ -1,21 +1,18 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  LOCALE_ID,
   computed,
-  inject,
   input,
   output,
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { svFormatLabel, svLocale, injectSvLabels } from '@styloviz/core/i18n';
 import { DEFAULT_COLORS, formatChartValue, niceMax, gridTicks } from '../bar-chart/bar-chart.utils';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,8 +79,8 @@ export interface DateTimeCategoryEvent {
  *    labels are WORDS, and every one of them came out in American English and
  *    American order — "Mar 15" on a German dashboard, "Mar 15" on a Japanese
  *    one — with no input to change it and nothing saying so. It now defaults to
- *    the application's own `LOCALE_ID`, which is the value Angular already
- *    resolves for `DatePipe`, so a correctly configured app is right without
+ *    the kit's locale (`SV_LOCALE`), which falls back to the application's own
+ *    `LOCALE_ID` — the value Angular already resolves for `DatePipe` — so a correctly configured app is right without
  *    doing anything and any chart can still be overridden on its own.
  */
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -135,6 +132,9 @@ function formatDateLabel(iso: string, zoom: DateTimeZoom, locale: string): strin
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvDateTimeCategoryChartComponent {
+  /** @internal Accessible names — English unless `provideSvLabels({ charts })` says otherwise. */
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-datetime-category-chart');
 
@@ -152,7 +152,7 @@ export class SvDateTimeCategoryChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -170,7 +170,7 @@ export class SvDateTimeCategoryChartComponent {
   categories  = input<string[]>([]);
   /** Line series; `data` holds one value per category. The area under a line is filled per the series' `fill`, else `options.showArea` (on by default). */
   series      = input<DateTimeSeries[]>([]);
-  /** Chart title rendered above the plot; also used as the plot's accessible name. */
+  /** Chart title rendered above the plot; also the base of the generated accessible name and the data table's caption. */
   title       = input<string>('');
   /** Chart height in pixels. @default 320 */
   height      = input<number>(320);
@@ -180,19 +180,22 @@ export class SvDateTimeCategoryChartComponent {
   /**
    * BCP 47 locale for the date labels on the x-axis.
    *
-   * Defaults to the application's `LOCALE_ID` — the same value `DatePipe` uses —
-   * so an app that has configured its locale gets matching axis labels without
-   * doing anything here. Override per chart for a report that must read in one
+   * Defaults to the kit's locale (`SV_LOCALE`, set with `provideSvLocale`), which
+   * itself falls back to the application's `LOCALE_ID` — the same value `DatePipe`
+   * uses — so an app that has configured its locale gets matching axis labels
+   * without doing anything here. Override per chart for a report that must read in one
    * fixed language whoever opens it.
    *
    * ★ Only the LABELS are localised. The `categories` themselves stay ISO
    *   strings, because they are also the join key for the series and a localised
    *   key would differ between two readers looking at the same dashboard.
-   * @default the app's LOCALE_ID
+   * @default the kit's locale (`SV_LOCALE`)
    */
-  locale      = input<string>(inject(LOCALE_ID));
+  locale      = input<string>(svLocale());
   /** Extra CSS classes applied to the root wrapper. */
   customClass = input<string>('');
+  /** Accessible-name override for the plot; otherwise a series summary is generated. @default '' */
+  readonly ariaLabel = input<string>('');
 
   // ── Outputs ───────────────────────────────────────────────────────────────
   /** Emitted when a category is hovered or keyboard-focused. */
@@ -202,6 +205,7 @@ export class SvDateTimeCategoryChartComponent {
 
   // ── Constants ─────────────────────────────────────────────────────────────
   readonly SVG_WIDTH = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD       = { top: 20, right: 24, bottom: 52, left: 56 };
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -234,6 +238,47 @@ export class SvDateTimeCategoryChartComponent {
   xLabels = computed(() =>
     this.categories().map(c => formatDateLabel(c, this.zoom(), this.locale())),
   );
+
+  // ── Accessibility ─────────────────────────────────────────────────────────
+
+  /** The plot's accessible name: `ariaLabel` when set, otherwise the title, then how many series and points it draws. */
+  readonly resolvedAriaLabel = computed<string>(() => {
+    const override = this.ariaLabel();
+    if (override) return override;
+    const cats = this.categories();
+    const sets = this.series();
+    const base = this.title() || this.labels.dateTimeCategoryChart;
+    if (!cats.length || !sets.length) return base;
+    const names = sets.map((s) => s.label).filter(Boolean).join(', ');
+    const template = !names
+      ? this.labels.lineSummary
+      : sets.length === 1 ? this.labels.lineSummaryOneNamed : this.labels.lineSummaryNamed;
+    return svFormatLabel(template, { title: base, series: sets.length, names, points: cats.length }, this.locale());
+  });
+
+  /**
+   * The points as rows — one date per row, one column per series. Each date is
+   * printed as the axis prints it (`zoom` and `locale`); the ISO category is the
+   * row's key, because it is the join key and the label may repeat.
+   *
+   * ★ No `overview`: the SVG's name already counts the series and points.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets   = this.series();
+    const labels = this.xLabels();
+    return {
+      caption: this.title() || this.labels.dateTimeCategoryChart,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: this.categories().map((iso, ci) => ({
+        key: iso,
+        header: labels[ci],
+        cells: sets.map((s) => {
+          const v = s.data[ci];
+          return v !== undefined && Number.isFinite(v) ? this.fmt(v) : this.labels.noValue;
+        }),
+      })),
+    };
+  });
 
   /** Step between category positions */
   xStep = computed(() => {

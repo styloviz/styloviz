@@ -13,10 +13,11 @@ import {
   svSnapModuleWidth,
   svValidate,
 } from './barcode-1d.encode';
+import { SV_BARCODE_1D_LABELS } from './barcode-1d.labels';
 
 /** The bar/space pattern as a `1`/`0` string, for comparing against the spec. */
 const bits = (value: string, symbology: 'code128' | 'ean13' | 'ean8'): string => {
-  const e = svEncode(value, symbology);
+  const e = svEncode(value, symbology, SV_BARCODE_1D_LABELS);
   let out = '';
   for (const m of e.modules) out += (m.bar ? '1' : '0').repeat(m.width);
   return out;
@@ -249,37 +250,37 @@ describe('what cannot be encoded', () => {
    * input ships an unscannable label to a warehouse.
    */
   it('accepts a 12-digit EAN-13 payload and a 13-digit one with a good check', () => {
-    expect(svValidate('590123412345', 'ean13')).toBeNull();
-    expect(svValidate('5901234123457', 'ean13')).toBeNull();
+    expect(svValidate('590123412345', 'ean13', SV_BARCODE_1D_LABELS)).toBeNull();
+    expect(svValidate('5901234123457', 'ean13', SV_BARCODE_1D_LABELS)).toBeNull();
   });
 
   it('names the wrong check digit rather than silently re-deriving it', () => {
-    const why = svValidate('5901234123458', 'ean13');
+    const why = svValidate('5901234123458', 'ean13', SV_BARCODE_1D_LABELS);
     expect(why).toContain('check digit is wrong');
     expect(why).toContain('checks to 7');
     expect(why).toContain('different article number');
   });
 
   it('rejects the wrong length and says what it wanted', () => {
-    expect(svValidate('59012341234', 'ean13')).toContain('needs 12 digits');
-    expect(svValidate('123', 'ean8')).toContain('needs 7 digits');
+    expect(svValidate('59012341234', 'ean13', SV_BARCODE_1D_LABELS)).toContain('needs 12 digits');
+    expect(svValidate('123', 'ean8', SV_BARCODE_1D_LABELS)).toContain('needs 7 digits');
   });
 
   it('rejects non-digits for EAN', () => {
-    expect(svValidate('59012341234X', 'ean13')).toContain('digits only');
+    expect(svValidate('59012341234X', 'ean13', SV_BARCODE_1D_LABELS)).toContain('digits only');
   });
 
   it('rejects a character Code 128 subset B cannot carry, and says which', () => {
-    const why = svValidate('ABéCD', 'code128');
+    const why = svValidate('ABéCD', 'code128', SV_BARCODE_1D_LABELS);
     expect(why).toContain('position 3');
   });
 
   it('rejects nothing at all', () => {
-    expect(svValidate('', 'code128')).toBe('Nothing to encode.');
+    expect(svValidate('', 'code128', SV_BARCODE_1D_LABELS)).toBe('Nothing to encode.');
   });
 
   it('renders no modules for an input it refused', () => {
-    const e = svEncode('123', 'ean13');
+    const e = svEncode('123', 'ean13', SV_BARCODE_1D_LABELS);
     expect(e.error).not.toBeNull();
     expect(e.modules).toEqual([]);
     expect(e.moduleCount).toBe(0);
@@ -301,11 +302,11 @@ describe('the drawn symbol', () => {
   });
 
   it('is exactly 95 modules wide, as EAN-13 always is', () => {
-    expect(svEncode('590123412345', 'ean13').moduleCount).toBe(95);
+    expect(svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS).moduleCount).toBe(95);
   });
 
   it('is exactly 67 modules wide for EAN-8', () => {
-    expect(svEncode('9638507', 'ean8').moduleCount).toBe(67);
+    expect(svEncode('9638507', 'ean8', SV_BARCODE_1D_LABELS).moduleCount).toBe(67);
   });
 
   /**
@@ -357,7 +358,7 @@ describe('the drawn symbol', () => {
 
   it('covers every module with no gap and no overlap', () => {
     for (const [v, s] of [['590123412345', 'ean13'], ['9638507', 'ean8'], ['ABC-123', 'code128']] as const) {
-      const e = svEncode(v, s);
+      const e = svEncode(v, s, SV_BARCODE_1D_LABELS);
       let at = 0;
       for (const m of e.modules) {
         expect(m.at).toBe(at);
@@ -370,13 +371,13 @@ describe('the drawn symbol', () => {
 
   it('alternates bar and space, never two bars in a row', () => {
     for (const [v, s] of [['590123412345', 'ean13'], ['HELLO 42', 'code128']] as const) {
-      const mods = svEncode(v, s).modules;
+      const mods = svEncode(v, s, SV_BARCODE_1D_LABELS).modules;
       for (let i = 1; i < mods.length; i++) expect(mods[i].bar).not.toBe(mods[i - 1].bar);
     }
   });
 
   it('starts and ends a Code 128 symbol with a bar', () => {
-    const mods = svEncode('HELLO', 'code128').modules;
+    const mods = svEncode('HELLO', 'code128', SV_BARCODE_1D_LABELS).modules;
     expect(mods[0].bar).toBe(true);
     expect(mods[mods.length - 1].bar).toBe(true);
   });
@@ -391,7 +392,7 @@ describe('the drawn symbol', () => {
    * the rendering would ever have shown it.
    */
   it('terminates with the stop pattern\'s own two-module bar, and no extra one', () => {
-    const e = svEncode('A', 'code128');
+    const e = svEncode('A', 'code128', SV_BARCODE_1D_LABELS);
     const last = e.modules[e.modules.length - 1];
     expect(last.bar).toBe(true);
     expect(last.width).toBe(2);
@@ -401,13 +402,13 @@ describe('the drawn symbol', () => {
   });
 
   it('reports the check digit it appended in the human-readable text', () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     expect(e.text).toBe('5901234123457');
     expect(e.check).toBe(7);
   });
 
   it('does not append a second check digit to a value that already has one', () => {
-    expect(svEncode('5901234123457', 'ean13').text).toBe('5901234123457');
+    expect(svEncode('5901234123457', 'ean13', SV_BARCODE_1D_LABELS).text).toBe('5901234123457');
   });
 });
 
@@ -420,25 +421,25 @@ describe('the quiet zones', () => {
    * stops scanning and nobody can see why.
    */
   it('reserves the mandated margins, asymmetrically for EAN', () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     expect(e.quietLeft).toBe(SV_QUIET_EAN_LEFT);
     expect(e.quietRight).toBe(SV_QUIET_EAN_RIGHT);
     expect(e.quietLeft).not.toBe(e.quietRight);
   });
 
   it('reserves ten modules each side for Code 128', () => {
-    const e = svEncode('HELLO', 'code128');
+    const e = svEncode('HELLO', 'code128', SV_BARCODE_1D_LABELS);
     expect(e.quietLeft).toBe(SV_QUIET_CODE128);
     expect(e.quietRight).toBe(SV_QUIET_CODE128);
   });
 
   it('counts the quiet zones in the drawn width', () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     expect(svBarcodeWidth(e, 2)).toBe((11 + 95 + 7) * 2);
   });
 
   it('reserves them even for a value it refused, so the layout does not jump', () => {
-    const e = svEncode('123', 'ean13');
+    const e = svEncode('123', 'ean13', SV_BARCODE_1D_LABELS);
     expect(e.quietLeft).toBe(SV_QUIET_EAN_LEFT);
   });
 });
@@ -482,7 +483,7 @@ describe('the extended guard bars', () => {
    * operator recognises it.
    */
   it('extends the outer and centre guards on an EAN-13', () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     const guard = e.modules.filter((m) => svIsGuardModule(e, m));
     // Three runs at each end plus five in the middle.
     expect(guard.length).toBeGreaterThanOrEqual(9);
@@ -491,11 +492,11 @@ describe('the extended guard bars', () => {
   });
 
   it('puts the centre guard at module 45 on an EAN-13 and 31 on an EAN-8', () => {
-    const a = svEncode('590123412345', 'ean13');
+    const a = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     expect(svIsGuardModule(a, { at: 45, width: 1, bar: false })).toBe(true);
     expect(svIsGuardModule(a, { at: 44, width: 1, bar: false })).toBe(false);
 
-    const b = svEncode('9638507', 'ean8');
+    const b = svEncode('9638507', 'ean8', SV_BARCODE_1D_LABELS);
     expect(svIsGuardModule(b, { at: 31, width: 1, bar: false })).toBe(true);
     expect(svIsGuardModule(b, { at: 30, width: 1, bar: false })).toBe(false);
   });
@@ -508,20 +509,20 @@ describe('the extended guard bars', () => {
    * 3 + 42 + 5 + 42 + 3), so the spec can name them.
    */
   it('marks exactly the eleven guard modules of an EAN-13, and no others', () => {
-    const e = svEncode('590123412345', 'ean13');
+    const e = svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS);
     const marked = e.modules.filter((m) => svIsGuardModule(e, m)).map((m) => m.at);
     expect(marked).toEqual([0, 1, 2, 45, 46, 47, 48, 49, 92, 93, 94]);
   });
 
   it('marks exactly the eleven guard modules of an EAN-8', () => {
     // 67 modules: 3 + 28 + 5 + 28 + 3.
-    const e = svEncode('9638507', 'ean8');
+    const e = svEncode('9638507', 'ean8', SV_BARCODE_1D_LABELS);
     const marked = e.modules.filter((m) => svIsGuardModule(e, m)).map((m) => m.at);
     expect(marked).toEqual([0, 1, 2, 31, 32, 33, 34, 35, 64, 65, 66]);
   });
 
   it('has no guard bars on Code 128, which has no such thing', () => {
-    const e = svEncode('HELLO', 'code128');
+    const e = svEncode('HELLO', 'code128', SV_BARCODE_1D_LABELS);
     expect(e.modules.some((m) => svIsGuardModule(e, m))).toBe(false);
   });
 });
@@ -530,15 +531,15 @@ describe('the extended guard bars', () => {
 
 describe('the encoding label', () => {
   it('names the symbology, the encoded text and the check', () => {
-    expect(svEncodingLabel(svEncode('590123412345', 'ean13')))
+    expect(svEncodingLabel(svEncode('590123412345', 'ean13', SV_BARCODE_1D_LABELS), SV_BARCODE_1D_LABELS))
       .toBe('EAN-13 · 5901234123457 · check 7');
   });
 
   it('says so when nothing could be encoded', () => {
-    expect(svEncodingLabel(svEncode('12', 'ean13'))).toBe('EAN-13 · cannot encode');
+    expect(svEncodingLabel(svEncode('12', 'ean13', SV_BARCODE_1D_LABELS), SV_BARCODE_1D_LABELS)).toBe('EAN-13 · cannot encode');
   });
 
   it('names Code 128 by its own name', () => {
-    expect(svEncodingLabel(svEncode('A', 'code128'))).toContain('Code 128');
+    expect(svEncodingLabel(svEncode('A', 'code128', SV_BARCODE_1D_LABELS), SV_BARCODE_1D_LABELS)).toContain('Code 128');
   });
 });

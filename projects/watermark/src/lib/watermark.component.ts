@@ -15,7 +15,11 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { svElementSize, svWarnOnce, svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { svElementSize } from '@styloviz/core/layout';
+import { SV_WATERMARK_LABELS } from './watermark.labels';
 import {
   svLooksLikeEmail,
   svOpacityLabel,
@@ -47,10 +51,13 @@ export type WatermarkVariant =
 @Component({
   selector: 'sv-watermark',
   standalone: true,
+  imports: [SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './watermark.component.html',
 })
 export class SvWatermarkComponent {
+  protected readonly labels = injectSvLabels('watermark', SV_WATERMARK_LABELS);
+
   private readonly uid = svUniqueId('sv-wm');
   private readonly document = inject(DOCUMENT);
   private readonly injector = inject(Injector);
@@ -67,14 +74,14 @@ export class SvWatermarkComponent {
   /**
    * The mark.
    *
-   * ⚠️ PRIVACY: whatever you put here is published to every screenshot, screen
+   * PRIVACY: whatever you put here is published to every screenshot, screen
    * share and support ticket the page appears in — and to the DOM, the
    * visually-hidden label and the `data-sv-signature` attribute. Do not put a
    * viewer's name or email here; bind `viewerId` (or a server-minted token)
    * instead. Dev mode warns once when the text looks like an email address.
    * @default 'Confidential'
    */
-  readonly text = input<string>('Confidential');
+  readonly text = input<string>(this.labels.mark);
 
   /**
    * An id identifying the viewer, hashed into an opaque token by
@@ -130,7 +137,7 @@ export class SvWatermarkComponent {
   readonly observeResize = input<boolean>(true);
 
   /**
-   * Emitted by `checkIntegrity()` when the mark in the DOM no longer matches the
+   * Emitted by `checkIntegrity()` when the mark in the DOM does not match the
    * signature the host captured.
    *
    * ★★★ WHAT IT PROVES, PRECISELY: that at the moment of the check, in this
@@ -138,7 +145,7 @@ export class SvWatermarkComponent {
    * configuration (text, angle, opacity, font size) than the one expected — i.e.
    * a client-side DOM mutation, or a configuration change, was observed.
    *
-   * ⚠️ WHAT IT DOES NOT PROVE: that the content is protected, that nobody
+   * WHAT IT DOES NOT PROVE: that the content is protected, that nobody
    * screenshotted it first, that a silent check means the mark was intact (the
    * check runs in the same page an attacker controls; they can stub it, block the
    * event, or copy the content out of the DOM without touching the overlay), or
@@ -209,7 +216,7 @@ export class SvWatermarkComponent {
   readonly markCount = computed(() => this.counts().rows * this.counts().cols);
 
   readonly opacityVerdict = computed(() => svOpacityVerdict(this.opacity()));
-  readonly opacityLabel = computed(() => svOpacityLabel(this.opacity()));
+  readonly opacityLabel = computed(() => svOpacityLabel(this.opacity(), this.labels));
 
   readonly signature = computed(() =>
     svWatermarkSignature(this.markText(), this.angle(), this.opacity(), this.fontSize()),

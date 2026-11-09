@@ -44,7 +44,7 @@ export class SvClipboardError extends Error {
   readonly reason: SvClipboardFailureReason;
 
   constructor(reason: SvClipboardFailureReason, cause?: unknown) {
-    super(cause instanceof Error ? cause.message : `Clipboard write failed (${reason})`, { cause });
+    super(cause instanceof Error ? cause.message : `Clipboard write failed (${reason})`, { cause }); // sv-i18n-ignore: developer message
     this.name = 'SvClipboardError';
     this.reason = reason;
   }

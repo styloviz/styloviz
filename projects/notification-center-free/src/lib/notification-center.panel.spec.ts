@@ -388,3 +388,41 @@ describe('SvNotificationCenterComponent — clicks inside its own element', () =
     }
   });
 });
+
+/**
+ * Under `dir="rtl"` the bell sits at the inline END of a top bar — the LEFT —
+ * so the panel lines up on the trigger's LEFT edge and opens back across the
+ * page to the right. Pinned by `left`, with no `right` left over to fight it.
+ */
+describe('SvNotificationCenterComponent — where the panel lands under dir="rtl"', () => {
+  beforeEach(() => { document.documentElement.dir = 'rtl'; });
+  afterEach(() => { document.documentElement.dir = 'ltr'; });
+
+  it('lines up on the trigger\'s left edge', async () => {
+    const { bell, c } = await setup();
+    stubRect(bell, { top: 40, left: 160, width: 40, height: 40 });
+    await openPanel(bell);
+
+    expect(c._panelStyle().left).toBe('160px');
+    expect(c._panelStyle().right).toBeUndefined();
+    await until(() => portal()?.querySelector('.fixed') != null, { label: 'the panel to render' });
+    const panel = portal()?.querySelector<HTMLElement>('.fixed');
+    expect(panel?.style.left).toBe('160px');
+    expect(panel?.style.right).toBe('');
+  });
+
+  it('never lets the panel run off the right edge', async () => {
+    const { bell, c } = await setup();
+    stubRect(bell, { top: 40, left: VW - 40, width: 40, height: 40 });
+    await openPanel(bell);
+    // rawLeft 1160 would put the far edge past the viewport: clamp to vw − 416 − 8.
+    expect(c._panelStyle().left).toBe(`${VW - 416 - 8}px`);
+  });
+
+  it('keeps a margin from the left edge', async () => {
+    const { bell, c } = await setup();
+    stubRect(bell, { top: 40, left: -20, width: 40, height: 40 });
+    await openPanel(bell);
+    expect(c._panelStyle().left).toBe('8px');
+  });
+});

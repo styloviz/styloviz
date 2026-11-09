@@ -8,6 +8,7 @@ import {
   svNationalLengthState,
   svNationalMask,
 } from './phone-plan';
+import { SV_PHONE_INPUT_LABELS } from './phone-input.labels';
 
 /**
  * Numbering plans, and the mask that was pretending to be one.
@@ -90,28 +91,28 @@ describe('svNationalLengthState', () => {
 
 describe('svLengthHint', () => {
   it('is silent when there is nothing to say', () => {
-    expect(svLengthHint('', country('US'))).toBe('');
-    expect(svLengthHint('5551234567', country('US'))).toBe('');
+    expect(svLengthHint('', country('US'), SV_PHONE_INPUT_LABELS)).toBe('');
+    expect(svLengthHint('5551234567', country('US'), SV_PHONE_INPUT_LABELS)).toBe('');
   });
 
   it('says what it expected rather than declaring the number wrong', () => {
     // ★★ A HINT, NOT AN ERROR. The plan may be out of date — that is the premise
     //    of the whole file — so a number the table calls short may be perfectly
     //    dialable. It reports the expectation and leaves the judgement alone.
-    const hint = svLengthHint('555', country('US'));
+    const hint = svLengthHint('555', country('US'), SV_PHONE_INPUT_LABELS);
     expect(hint).toContain('usually 10 digits');
     expect(hint).toContain('this has 3');
     expect(hint).not.toContain('invalid');
   });
 
   it('states a range when the plan has one', () => {
-    expect(svLengthHint('999', country('DE'))).toContain('usually 6–11 digits');
+    expect(svLengthHint('999', country('DE'), SV_PHONE_INPUT_LABELS)).toContain('usually 6–11 digits');
   });
 
   it('treats the E.164 ceiling as the one rule that cannot go stale', () => {
     // 15 digits total, country code included — the format's own definition
     // rather than any country's plan.
-    const hint = svLengthHint('9'.repeat(15), country('GB'));
+    const hint = svLengthHint('9'.repeat(15), country('GB'), SV_PHONE_INPUT_LABELS);
     expect(hint).toContain(`${SV_E164_MAX_DIGITS}`);
     expect(hint).toContain('cannot be stored');
   });

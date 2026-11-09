@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvAiInsightCardsComponent } from './ai-insight-cards.component';
 import { SV_ANOMALY_MIN_SAMPLES } from './ai-insight-cards.anomaly';
 import type { AiInsight, SvInsightBaseline } from './ai-insight-cards.types';

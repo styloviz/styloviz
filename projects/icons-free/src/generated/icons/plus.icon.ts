@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `plus` icon. */
 export const plusNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const plusNodes: readonly IconNode[] = [
 export const plusSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.9 5v6.1h6.1q.9 0 .9.9 0 .9-.9.9h-6.1v6.1q0 .9-.9.9-.9 0-.9-.9v-6.1h-6.1q-.9 0-.9-.9 0-.9.9-.9h6.1v-6.1q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `plus` as a registrable glyph — `registerSvIcons([plusIcon])` / `provideSvIcons([plusIcon])`. */
+export const plusIcon: SvIconDef = { name: 'plus', nodes: plusNodes, solid: plusSolidNodes };
 
 /** `plus` — tree-shakable standalone icon. Use `<sv-plus-icon />`. */
 @Component({

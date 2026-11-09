@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { SvOverlayRouteService, svResetBodyScrollLock } from '@styloviz/core';
+import { SvOverlayRouteService, svResetBodyScrollLock } from '@styloviz/core/overlay';
 import { provideSvOverlayRouteClose, svOverlayCanDeactivate } from '@styloviz/layout';
 import { SvModalComponent } from './modal.component';
 import { until } from '../../../../src/testing/async';

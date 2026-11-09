@@ -4,6 +4,8 @@ import {
   computed,
   input,
 } from '@angular/core';
+import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 import { NgClass } from '@angular/common';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -30,6 +32,61 @@ export type PriceRoundingMode =
   | 'halfExpand'
   | 'halfTrunc'
   | 'halfEven';
+
+/**
+ * When the currency's full name is given to assistive tech alongside the
+ * visible symbol. `auto` names it only when the symbol is shared with another
+ * currency (see `svCurrencySymbolIsAmbiguous`).
+ */
+export type PriceCurrencyName = 'auto' | 'always' | 'never';
+
+/**
+ * Currencies whose narrow symbols a printed symbol is compared against. A
+ * symbol that is any other currency's narrow symbol — "$" (USD, CAD, AUD…),
+ * "£" (GBP, EGP, FKP…), "¥" (JPY, CNY) — cannot say which currency it is.
+ */
+const SYMBOL_PEERS: readonly string[] = [
+  'USD', 'CAD', 'AUD', 'NZD', 'SGD', 'HKD', 'MXN', 'ARS', 'CLP', 'COP', 'TWD', 'BRL',
+  'GBP', 'EGP', 'FKP', 'GIP', 'SHP', 'SYP', 'LBP',
+  'JPY', 'CNY',
+  'EUR', 'CHF', 'SEK', 'NOK', 'DKK', 'ISK', 'INR', 'PKR', 'LKR', 'NPR', 'KRW', 'KPW',
+  'PHP', 'CUP', 'RUB', 'ZAR', 'TRY', 'PLN', 'ILS', 'THB', 'VND', 'NGN', 'UAH',
+];
+
+const AMBIGUITY_CACHE = new Map<string, boolean>();
+
+function currencyPart(locale: string, currency: string, display: 'symbol' | 'narrowSymbol'): string {
+  return (
+    new Intl.NumberFormat(locale, { style: 'currency', currency, currencyDisplay: display })
+      .formatToParts(1)
+      .find((p) => p.type === 'currency')?.value ?? currency
+  );
+}
+
+/**
+ * Whether the symbol `currency` prints with in `locale` is also another
+ * currency's symbol, so that hearing it ("dollar", "pound") does not say which
+ * currency is meant. USD in `en-US` prints "$", which is also the Canadian and
+ * Australian narrow symbol: ambiguous. CAD in `en-US` prints "CA$": not.
+ * Unknown codes and locales are never ambiguous — there is nothing to name.
+ */
+export function svCurrencySymbolIsAmbiguous(currency: string, locale: string): boolean {
+  const key = `${locale}|${currency}`;
+  const cached = AMBIGUITY_CACHE.get(key);
+  if (cached !== undefined) return cached;
+  let ambiguous = false;
+  try {
+    const own = currencyPart(locale, currency, 'symbol');
+    const code = currency.toUpperCase();
+    ambiguous =
+      own.toUpperCase() !== code &&
+      SYMBOL_PEERS.some((peer) => peer !== code && currencyPart(locale, peer, 'narrowSymbol') === own);
+  } catch {
+    ambiguous = false;
+  }
+  AMBIGUITY_CACHE.set(key, ambiguous);
+  return ambiguous;
+}
 
 /** Whether the printed figure includes tax, and what that tax is called. */
 export type PriceTaxMode = 'unstated' | 'inclusive' | 'exclusive';
@@ -64,11 +121,13 @@ type CurrencyFormatOptions = Intl.NumberFormatOptions & {
 @Component({
   selector: 'sv-price',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, SvLabelPipe],
   templateUrl: './price.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvPriceComponent {
+  protected readonly labels = injectSvLabels('commerce', SV_COMMERCE_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Current price. Interpreted as minor units (cents) when `minorUnits` is true. */
@@ -80,17 +139,15 @@ export class SvPriceComponent {
   /** ISO 4217 currency code. @default 'USD' */
   currency = input<string>('USD');
 
-  /** BCP-47 locale for formatting. @default 'en-US' */
-  locale = input<string>('en-US');
+  /** BCP-47 locale for formatting. @default the kit's locale (`SV_LOCALE`) */
+  locale = input<string>(svLocale());
 
   /**
    * Treat `amount` / `compareAt` / `amountTo` as minor units.
    *
-   * ★★★ MINOR UNITS ARE NOT ALWAYS HUNDREDTHS. This used to divide by 100 no
-   *     matter the currency, which put the decimal point two places out for
-   *     every currency that does not have two decimals: `1000` in JPY became
-   *     ¥10 instead of ¥1,000, and `1000` in KWD became 10.000 KWD instead of
-   *     1.000. The scale is now read back from `Intl` for the currency in play.
+   * Minor units are not always hundredths: the scale is read from `Intl` for
+   * the currency in play, so `1000` is ¥1,000 in JPY, $10.00 in USD and
+   * 1.000 KWD in KWD.
    * @default false
    */
   minorUnits = input<boolean>(false);
@@ -166,7 +223,7 @@ export class SvPriceComponent {
   from = input<boolean>(false);
 
   /** Wording for the open-ended range. @default 'From' */
-  fromLabel = input<string>('From');
+  fromLabel = input<string>(this.labels.fromPrice);
 
   /**
    * Whether the printed figure includes tax.
@@ -186,9 +243,55 @@ export class SvPriceComponent {
    * What the tax is called — 'VAT', 'GST', 'sales tax'. Also the place to put a
    * rate: `'20% VAT'` prints "incl. 20% VAT". @default 'tax'
    */
-  taxLabel = input<string>('tax');
+  taxLabel = input<string>(this.labels.taxName);
+
+  /**
+   * Give assistive tech the currency's full name ("49.99 US dollars") in place
+   * of the visible symbol. The symbol stays on screen; the named figure is
+   * sr-only and the symbol is hidden from the accessibility tree, so the price
+   * is read once.
+   *
+   * - `auto` — only when the symbol is shared with another currency: "$" in a
+   *   store that also sells in CAD, "£" next to EGP. "€" and "CA$" are left as is.
+   * - `always` — every figure, e.g. a multi-currency comparison table.
+   * - `never` — the symbol only.
+   * @default 'auto'
+   */
+  currencyName = input<PriceCurrencyName>('auto');
 
   // ── Computed ────────────────────────────────────────────────────────────────
+
+  /** Whether figures are spoken with the currency's name — see `currencyName`. */
+  readonly speaksCurrencyName = computed<boolean>(() => {
+    const mode = this.currencyName();
+    if (mode === 'never' || this.formatter() === null) return false;
+    return mode === 'always' || svCurrencySymbolIsAmbiguous(this.currency(), this.locale());
+  });
+
+  /** The same formatter with `currencyDisplay: 'name'`, or `null` when names are not spoken. */
+  private readonly nameFormatter = computed<Intl.NumberFormat | null>(() => {
+    const symbol = this.formatter();
+    if (!this.speaksCurrencyName() || symbol === null) return null;
+    try {
+      return new Intl.NumberFormat(this.locale(), {
+        ...(symbol.resolvedOptions() as CurrencyFormatOptions),
+        currencyDisplay: 'name',
+        roundingMode: this.roundingMode(),
+      } as CurrencyFormatOptions);
+    } catch {
+      return null;
+    }
+  });
+
+  /** One figure with the currency named, or '' when names are not spoken. */
+  private spoken(value: number): string {
+    const named = this.nameFormatter();
+    const symbol = this.formatter();
+    if (named === null || symbol === null) return '';
+    const major = this.toMajor(value);
+    // Same negative-zero rule as `format()`: decided on the printed figure.
+    return symbol.format(major) === symbol.format(-0) ? named.format(0) : named.format(major);
+  }
 
   /**
    * A formatter, or `null` when the currency code is not one `Intl` knows.
@@ -295,6 +398,7 @@ export class SvPriceComponent {
     return compare !== null && compare > this.amount();
   });
 
+
   /**
    * Whole-number saving percentage (0 when there is no discount).
    *
@@ -314,6 +418,21 @@ export class SvPriceComponent {
 
   readonly formattedAmount = computed<string>(() => this.format(this.amount()));
 
+  /** `formattedAmount` with the currency named, or '' — see `currencyName`. */
+  readonly spokenAmount = computed<string>(() => this.spoken(this.amount()));
+
+  /** `formattedCompareAt` with the currency named, or ''. */
+  readonly spokenCompareAt = computed<string>(() => {
+    const compare = this.compareAt();
+    return compare === null ? '' : this.spoken(compare);
+  });
+
+  /** `formattedAmountTo` with the currency named, or ''. */
+  readonly spokenAmountTo = computed<string>(() => {
+    const upper = this.amountTo();
+    return upper === null ? '' : this.spoken(upper);
+  });
+
   readonly formattedCompareAt = computed<string>(() => {
     const compare = this.compareAt();
     return compare === null ? '' : this.format(compare);
@@ -327,8 +446,8 @@ export class SvPriceComponent {
   /** The stated tax basis, or '' when there is none to state. */
   readonly taxNote = computed<string>(() => {
     switch (this.taxMode()) {
-      case 'inclusive': return `incl. ${this.taxLabel()}`;
-      case 'exclusive': return `excl. ${this.taxLabel()}`;
+      case 'inclusive': return svFormatLabel(this.labels.taxInclusive, { tax: this.taxLabel() });
+      case 'exclusive': return svFormatLabel(this.labels.taxExclusive, { tax: this.taxLabel() });
       default:          return '';
     }
   });
@@ -361,9 +480,9 @@ export class SvPriceComponent {
   readonly alignClass = computed<string>(
     () =>
       ({
-        start: 'items-start justify-start text-left',
+        start: 'items-start justify-start text-start',
         center: 'items-center justify-center text-center',
-        end: 'items-end justify-end text-right',
+        end: 'items-end justify-end text-end',
       })[this.align()],
   );
 }

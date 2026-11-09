@@ -38,12 +38,12 @@
   <!-- Visual checkbox box (focus ring driven by the peer input) -->
   <span [class]="boxClasses()" aria-hidden="true">
     @if (indeterminate()) {
-      <svg [class]="iconSize()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-        <path d="M2 6h8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <svg [class]="iconClasses()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M2 6h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     } @else if (checked()) {
-      <svg [class]="iconSize()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-        <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg [class]="iconClasses()" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     }
   </span>

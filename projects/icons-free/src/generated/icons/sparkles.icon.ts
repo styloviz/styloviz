@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `sparkles` icon. */
 export const sparklesNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const sparklesSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 3 L13.7 9 L19.5 10.7 L13.7 12.4 L12 18.5 L10.3 12.4 L4.5 10.7 L10.3 9 Z' },
   { tag: 'path', d: 'M18.5 3 L19.3 5.5 L21.8 6.3 L19.3 7.1 L18.5 9.6 L17.7 7.1 L15.2 6.3 L17.7 5.5 Z' },
 ];
+
+/** `sparkles` as a registrable glyph — `registerSvIcons([sparklesIcon])` / `provideSvIcons([sparklesIcon])`. */
+export const sparklesIcon: SvIconDef = { name: 'sparkles', nodes: sparklesNodes, solid: sparklesSolidNodes };
 
 /** `sparkles` — tree-shakable standalone icon. Use `<sv-sparkles-icon />`. */
 @Component({

@@ -5,6 +5,15 @@ import userEvent from '@testing-library/user-event';
 import { SvTabsComponent, SvTabPanelDirective, type TabItem } from './tabs.component';
 
 /**
+ * An inactive panel is hidden one of two ways (FL-J3-NV-04): `hidden="until-found"`
+ * where the browser supports it (jsdom reports that it does), else the `hidden`
+ * class. Either is "not shown".
+ */
+const svPanelHidden = (el: Element): boolean =>
+  el.classList.contains('hidden') || el.getAttribute('hidden') === 'until-found';
+
+
+/**
  * ============================================================================
  *  What a lazy panel loses, and when — `NV-06-I4`, `NV-06-M4`
  * ============================================================================
@@ -116,7 +125,7 @@ describe('SvTabsComponent — lazy panels are retained (the default contract)', 
 
     const notes = [...el(fixture).querySelectorAll<HTMLElement>('[role="tabpanel"]')]
       .find((p) => p.id.endsWith('panel-notes'))!;
-    expect(notes.classList.contains('hidden')).toBe(true);
+    expect(svPanelHidden(notes)).toBe(true);
     expect(notes.getAttribute('tabindex')).toBeNull();
   });
 });
@@ -153,7 +162,7 @@ describe('SvTabsComponent — lazyRetention="destroy"', () => {
 
     const general = [...el(fixture).querySelectorAll<HTMLElement>('[role="tabpanel"]')]
       .find((p) => p.id.endsWith('panel-general'))!;
-    expect(general.classList.contains('hidden')).toBe(true);
+    expect(svPanelHidden(general)).toBe(true);
   });
 
   it('holds at most one lazy panel at a time, whatever the route through the strip', async () => {
@@ -173,5 +182,55 @@ describe('SvTabsComponent — lazyRetention="destroy"', () => {
     await go(fixture, 'Notes');
     await go(fixture, 'General');
     expect(mountedPanels(fixture)).toEqual(['general', 'notes']);
+  });
+});
+
+/**
+ * FL-G1 — a lazy panel that was SHOWN without a click is visited too. The first
+ * tab shown by default and a tab the host selects were never recorded, so
+ * leaving them destroyed the panel under `retain`.
+ */
+@Component({
+  standalone: true,
+  imports: [SvTabsComponent, SvTabPanelDirective],
+  template: `
+    <sv-tabs [tabs]="tabs" [(activeId)]="active">
+      <ng-template svTabPanel="notes"><input data-notes aria-label="Notes" /></ng-template>
+      <ng-template svTabPanel="team">Team body</ng-template>
+    </sv-tabs>
+  `,
+})
+class LazyFirstHost {
+  readonly tabs: TabItem[] = [
+    { id: 'notes', label: 'Notes', lazy: true },
+    { id: 'team', label: 'Team', lazy: true },
+  ];
+  readonly active = signal('');
+}
+
+describe('SvTabsComponent — a lazy panel shown without a click is retained too', () => {
+  async function lazyFirst() {
+    TestBed.resetTestingModule();
+    const r = await render(LazyFirstHost);
+    r.fixture.detectChanges();
+    return r;
+  }
+
+  it('keeps the default-shown lazy panel, and what was typed in it, after switching away', async () => {
+    const { fixture } = await lazyFirst();
+    expect(mountedPanels(fixture)).toEqual(['notes']);
+    notesInput(fixture)!.value = 'draft';
+    await go(fixture, 'Team');
+    expect(mountedPanels(fixture)).toEqual(['notes', 'team']);
+    await go(fixture, 'Notes');
+    expect(notesInput(fixture)!.value).toBe('draft');
+  });
+
+  it('keeps a lazy panel the host selected', async () => {
+    const { fixture } = await lazyFirst();
+    fixture.componentInstance.active.set('team');
+    fixture.detectChanges();
+    await go(fixture, 'Notes');
+    expect(mountedPanels(fixture)).toEqual(['notes', 'team']);
   });
 });

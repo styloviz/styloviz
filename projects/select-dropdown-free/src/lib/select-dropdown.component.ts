@@ -1,6 +1,5 @@
 import {
   ApplicationRef,
-  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -24,44 +23,39 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
 import {
-  svStackedPopup,
   createDebouncer,
   createRequestGuard,
-  createAnchorScrollGuard,
-  svMergeSelectFeatures,
-  svSuggestController,
-  svWarnOnce,
-  SV_SELECT_FEATURE,
   SvErrorShellComponent,
   type SvDataError,
   type SvSelectSource,
-  type SvSuggestController,
   SvStaleDirective,
-  type SvAnchorScrollGuard, SvSpinnerArcComponent,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { svMergeSelectFeatures, SV_SELECT_FEATURE } from '@styloviz/core/forms';
+import { svTextMatches, injectSvLabels, svFormatLabel, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
+import {
+  createSheetMode,
+  SV_SHEET_SAFE_AREA_PADDING,
+  createPortalHost,
+  svInlineAnchor,
+  type SvPortalHost,
+  svStackedPopup,
+  createAnchorScrollGuard,
+  type SvAnchorScrollGuard,
+} from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { SV_SELECT_DROPDOWN_LABELS } from './select-dropdown-free.labels';
 
+import { registerSelectDropdownIcons } from './select-dropdown.component.icons';
 /** Scrolls within this window of opening are ignored by the close-on-scroll handler (ms). */
 const SCROLL_CLOSE_GRACE_MS = 400;
 
-
 export type SelectSize = 'sm' | 'md' | 'lg';
 export type SelectVariant = 'default' | 'filled' | 'flushed';
-
-/**
- * A function the dropdown calls to fetch its own options.
- *
- * The `signal` aborts the moment a newer keystroke supersedes this one —
- * honour it. A picker fires a request per word, and the ones nobody is waiting
- * for are pure cost on a slow connection.
- *
- * @see SelectDropdownComponent.loadOptions
- */
-export type SvSelectOptionSource =
-  (term: string, signal: AbortSignal) => Promise<readonly SelectOption[]>;
 
 export interface SelectOption {
   value: string;
@@ -109,7 +103,7 @@ export interface SelectGroup {
     NgClass,
     SvIconComponent,
     SvErrorShellComponent, SvSpinnerArcComponent,
-    SvStaleDirective],
+    SvStaleDirective, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './select-dropdown.component.html',
   providers: [
@@ -121,6 +115,14 @@ export interface SelectGroup {
   ],
 })
 export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerSelectDropdownIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ selectDropdown })` says otherwise. */
+  protected readonly labels = injectSvLabels('selectDropdown', SV_SELECT_DROPDOWN_LABELS);
+  /** The kit's locale, for plural forms in composed labels. */
+  private readonly labelLocale = svLocale();
+
   // ── Inputs ─────────────────────────────────────────────────────────────────
   /** Selected value(s) — string for single, string[] for multiple (two-way). */
   value        = model<string | string[]>('');
@@ -129,7 +131,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   /** Grouped options with section labels. */
   groups       = input<SelectGroup[]>([]);
   /** Placeholder shown when nothing is selected. @default 'Select an option' */
-  placeholder  = input('Select an option');
+  placeholder  = input<string>(this.labels.placeholder);
   /** Field label. */
   label        = input('');
   /** Helper text shown below the field. */
@@ -187,53 +189,21 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   variant      = input<SelectVariant>('default');
   /** Allow selecting multiple options. @default false */
   multiple     = input(false);
-  /**
-   * Show a search box to filter options. @default false
-   * @deprecated Use `<ng-container svSelectSearch />` as a content child — its presence turns search on. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  searchable   = input(false);
-  /**
-   * Placeholder for the search box. @default 'Search…'
-   * @deprecated Use `<ng-container svSelectSearch searchPlaceholder="…" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  searchPlaceholder = input('Search…');
-  /**
-   * Panel copy while the first set of options is being fetched. @default 'Loading…'
-   * @deprecated Use `<ng-container svSelectSearch loadingText="…" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  loadingText  = input('Loading…');
-  /**
-   * Text shown when a search yields no matches. @default 'No results found'
-   * @deprecated Use `<ng-container svSelectSearch noResultsText="…" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  noResultsText = input('No results found');
   /** Show a clear (×) control. @default false */
   clearable    = input(false);
   /** Disable the field. @default false */
   disabled     = input(false);
   /**
-   * Show a loading state. @default false
-   * @deprecated For the option list, use `[source]="svSelectSource({ search })"` (from `@styloviz/core`), which owns the loading state. The host's own value is still OR-ed in. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
+   * The host is still resolving the *selected* value — fetching the entity a
+   * saved id points at, say. The trigger shows a spinner, reports
+   * `aria-busy` and does not open, so a user cannot pick against a value that
+   * is about to change under them. The option list's own loading state comes
+   * from `source` (`svSelectSource` from `@styloviz/core`); the two are OR-ed
+   * in the panel.
+   * @default false
    */
   loading      = input(false);
 
-  /**
-   * The results on screen answer an **older** query — a newer request is still
-   * in flight.
-   *
-   * Distinct from `loading`, which cannot separate the two cases it covers: the
-   * first fetch (nothing on screen — show a skeleton) and a refinement of
-   * results already visible (keep them, and say they are provisional). Blanking
-   * the panel on the second is the most jarring thing a picker can do; showing
-   * the old list with no indication is a quiet lie.
-   *
-   * Bind `svSuggestController(...).stale` from `@styloviz/data`, or
-   * `createRequestGuard().stale` from `@styloviz/core`. The results dim and
-   * report `aria-busy` while staying fully interactive.
-   * @default false
-   * @deprecated Use `[source]="svSelectSource({ search })"` (from `@styloviz/core`), which owns the stale state. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  stale        = input(false, { transform: booleanAttribute });
   /** Mark the field as required. @default false */
   required     = input(false);
   /** Show an "optional" tag next to the label. @default false */
@@ -254,55 +224,8 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
 
   // ── Remote options ──────────────────────────────────────────────────────────
   //
-  // A picker backed by a server is the normal case once a list outgrows a few
-  // dozen entries. These six inputs are what that needs, and none of them were
-  // here: the panel could show a spinner but never a failure, never a "there
-  // are more", and it re-filtered whatever the server had already filtered.
-
-  /**
-   * Let the server do the searching. The supplied `options` are shown exactly
-   * as given — filtering them again hides entries the server matched on fields
-   * the component cannot see, and client-side search can only ever look at the
-   * page already downloaded.
-   * @default false
-   * @deprecated Use `[source]="svSelectSource({ search })"` (from `@styloviz/core`) — a source implies it — or `<ng-container svSelectSearch [serverSide]="true" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  serverSide   = input(false);
-
-  /**
-   * Delay before `searchChange` fires, in milliseconds. `0` emits immediately.
-   * @default 300
-   * @deprecated Use `[source]="svSelectSource({ search, debounceMs })"` (from `@styloviz/core`) for a server list, or `<ng-container svSelectSearch [debounceMs]="ms" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  debounceMs   = input(300);
-
-  /**
-   * Characters required before a search is sent. Below this the panel says so
-   * rather than showing a misleading "No results found".
-   * @default 0
-   * @deprecated Use `[source]="svSelectSource({ search, minChars })"` (from `@styloviz/core`) for a server list, or `<ng-container svSelectSearch [minChars]="n" />` as a content child. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  minChars     = input(0);
-
-  /**
-   * Failure loading the options. Rendered inside the panel, so the trigger and
-   * the current selection stay put.
-   * @default null
-   * @deprecated Use `[source]="svSelectSource({ search })"` (from `@styloviz/core`), which owns the error state and its retry. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  error        = input<SvDataError | string | null>(null);
-
-  /**
-   * More options exist on the server. Renders a "Load more" row. @default false
-   * @deprecated Use `[source]="svSelectSource({ search, pageSize })"` (from `@styloviz/core`), which owns paging. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  hasMore      = input(false);
-
-  /**
-   * True while the next page is being fetched. @default false
-   * @deprecated Use `[source]="svSelectSource({ search, pageSize })"` (from `@styloviz/core`), which owns paging. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  loadingMore  = input(false);
+  // A server-backed list is a `source` (below); these say what the trigger
+  // shows while the host resolves the selected value.
 
   /**
    * The option matching the current `value`, for when its label lives on the
@@ -312,60 +235,6 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
    */
   selectedOption = input<SelectOption | null>(null);
 
-  /**
-   * Let the component fetch its own options (`FI-23-M3`).
-   *
-   * ★★★ MEASURED — what `serverSide` actually left the host holding. The six
-   *     remote inputs above describe a request; none of them *makes* one. A
-   *     host wiring this picker to `/api/people` had to write, by hand, in
-   *     every component that uses it: a subscription to `(searchChange)`, a
-   *     request-guard so a slow answer to an abandoned term cannot overwrite a
-   *     newer one, an `AbortController` so the abandoned request stops costing
-   *     the server, the `loading`/`stale` split so a refinement dims the list
-   *     instead of blanking it, a try/catch mapping the failure onto `error`,
-   *     and a `(retry)` handler re-running the last term. Six inputs and three
-   *     outputs of ceremony for one URL. The guard is the part everyone skips,
-   *     and skipping it looks correct in review.
-   *
-   * Hand it a function instead:
-   *
-   * ```html
-   * <sv-select-dropdown
-   *   [loadOptions]="searchPeople"
-   *   [selectedOption]="current()"
-   *   [searchable]="true" [minChars]="2" />
-   * ```
-   * ```ts
-   * searchPeople = (term: string, signal: AbortSignal) =>
-   *   fetch(`/api/people?q=${encodeURIComponent(term)}`, { signal })
-   *     .then((r) => r.json());
-   * ```
-   *
-   * With a source set, `options`, `loading`, `stale` and `error` are driven by
-   * the component and the host's own values for them are OR-ed in rather than
-   * replaced — a host may still be loading the *selected* entity while the
-   * panel is idle. `serverSide` is implied: a list this component just fetched
-   * must not then be re-filtered against the same term, which would hide the
-   * entries the server matched on fields the component cannot see.
-   *
-   * ⚠️ **Pass `selectedOption` too.** The fetched list is whatever answers the
-   * current term, so a perfectly valid selection is routinely *not in it* — and
-   * without the hydration input the trigger would call it stale and read
-   * "Unavailable". The component cannot tell "not in these results" from
-   * "deleted on the server", and guessing the friendly answer would undo
-   * `FI-23-I2`. Dev mode warns once when a value is held and neither the
-   * results nor `selectedOption` resolve it.
-   *
-   * ⚠️ **Not compatible with `hasMore` / `loadMore`.** A source returns the
-   * whole answer for a term; there is nowhere for the component to append a
-   * page it did not ask for. Paging stays host-driven through `options`. Dev
-   * mode warns once if both are used.
-   *
-   * @default null
-   * @deprecated Use `[source]="svSelectSource({ search: (term, signal) => … })"` (from `@styloviz/core`) — the same function contract, plus paging. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  loadOptions  = input<SvSelectOptionSource | null>(null);
-
   // ── Outputs ────────────────────────────────────────────────────────────────
   /** Emitted with the new selection (string or string[]). */
   selectionChange = output<string | string[]>();
@@ -373,44 +242,37 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   dropdownOpen    = output<void>();
   /** Emitted when the dropdown closes. */
   dropdownClose   = output<void>();
+
   /**
-   * Emitted with the search query whenever it changes (for remote filtering).
-   * @deprecated Use `(searchChange)` on `<ng-container svSelectSearch />`, or let `[source]="svSelectSource({ search })"` run the search. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
+   * Below 640px, open the panel as a bottom sheet — full width, clear of the
+   * home indicator and of the virtual keyboard the search box raises — instead
+   * of anchoring it to the trigger, where a phone has no room beside it. The
+   * kit's shared contract (`createSheetMode`, as `sv-dropdown-menu`). Off by
+   * default, so an existing app does not change on a phone. @default false
    */
-  searchChange    = output<string>();
-  /**
-   * The host should re-run the failed option load.
-   * @deprecated Use `[source]="svSelectSource({ search })"` (from `@styloviz/core`), which retries itself. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  retry           = output<void>();
-  /**
-   * The user reached the end of the list and wants the next page.
-   * @deprecated Use `[source]="svSelectSource({ search, pageSize })"` (from `@styloviz/core`), which loads the next page itself. Still honoured in this major; removal is scheduled for the next (`FI-23-M1`).
-   */
-  loadMore        = output<void>();
+  sheetOnNarrow = input<boolean>(false);
+
+  private readonly _sheet = createSheetMode({ enabled: () => this.sheetOnNarrow() });
+
+  /** True while the panel is rendering as a bottom sheet. */
+  readonly asSheet = computed(() => this._sheet.asSheet());
+  /** The sheet's bottom offset — live, so it rides up with the virtual keyboard. */
+  readonly sheetBottom = computed(() => `${this._sheet.keyboardInset()}px`);
 
   // ── The composed shape (`FI-23-M1`) ────────────────────────────────────────
   //
-  // Major N of `docs/select-dropdown-split-adr.md`: the features that used to
-  // be twenty-one inputs are also available as content children
-  // (`svSelectSearch`) and as one adapter (`source`). Every legacy input
-  // above still works and is the FALLBACK: each setting resolves as
-  // adapter → feature child → legacy input, taking the first that is set.
-  // There is deliberately no runtime deprecation warning — the kit's own test
-  // harness fails on console output, and the showcase would spam it; the
-  // `@deprecated` JSDoc is the notice.
+  // `docs/select-dropdown-split-adr.md`: search, windowing and bulk selection
+  // are content children (`svSelectSearch`, `svSelectVirtual`, `svSelectBulk`)
+  // and a server list is one adapter (`source`). Each setting resolves as
+  // adapter → feature child → the built-in default.
 
   /**
    * Where the options come from — search, paging and async state as one object.
    *
    * Build it with `svSelectSource({ search, pageSize, minChars, debounceMs })`
-   * from `@styloviz/core`. It replaces `loadOptions`, `serverSide`, `hasMore`,
-   * `loadingMore`, `loading`, `stale`, `error`, `(retry)` and `(loadMore)`:
-   * with a source set the component fetches on open, searches as the user
-   * types, appends pages on "Load more" and retries a failure itself. The
-   * legacy inputs are still OR-ed in, and the legacy outputs still fire.
-   *
-   * Takes precedence over `loadOptions` when both are set.
+   * from `@styloviz/core`. With a source set the component fetches on open,
+   * searches as the user types, appends pages on "Load more" and retries a
+   * failure itself — no host handler is involved.
    * @default null
    */
   source = input<SvSelectSource<SelectOption> | null>(null);
@@ -423,26 +285,25 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   private readonly feature = computed(() => svMergeSelectFeatures(this.features()));
 
   /** `searchable`, after `svSelectSearch`. */
-  readonly resolvedSearchable = computed(() => this.feature().searchable ?? this.searchable());
+  readonly resolvedSearchable = computed(() => this.feature().searchable ?? false);
   /** `searchPlaceholder`, after `svSelectSearch`. */
   readonly resolvedSearchPlaceholder = computed(
-    () => this.feature().searchPlaceholder ?? this.searchPlaceholder());
+    () => this.feature().searchPlaceholder ?? this.labels.searchPlaceholder);
   /** `noResultsText`, after `svSelectSearch`. */
-  readonly resolvedNoResultsText = computed(() => this.feature().noResultsText ?? this.noResultsText());
+  readonly resolvedNoResultsText = computed(() => this.feature().noResultsText ?? this.labels.noResults);
   /** `loadingText`, after `svSelectSearch`. */
-  readonly resolvedLoadingText = computed(() => this.feature().loadingText ?? this.loadingText());
+  readonly resolvedLoadingText = computed(() => this.feature().loadingText ?? this.labels.loading);
   /** `minChars`, after `source` and `svSelectSearch`. */
   readonly resolvedMinChars = computed(
-    () => this.source()?.minChars ?? this.feature().minChars ?? this.minChars());
+    () => this.source()?.minChars ?? this.feature().minChars ?? 0);
   /** `debounceMs`, after `source` and `svSelectSearch`. */
   readonly resolvedDebounceMs = computed(
-    () => this.source()?.debounceMs ?? this.feature().debounceMs ?? this.debounceMs());
-  /** More options exist — the host's `hasMore` or the source's. */
-  readonly resolvedHasMore = computed(() => this.hasMore() || (this.source()?.hasMore() ?? false));
-  /** A next page is loading — the host's `loadingMore` or the source's. */
+    () => this.source()?.debounceMs ?? this.feature().debounceMs ?? 300);
+  /** The source has another page. */
+  readonly resolvedHasMore = computed(() => this.source()?.hasMore() ?? false);
+  /** The source is fetching its next page. */
   readonly resolvedLoadingMore = computed(
-    () => this.loadingMore() || (this.source()?.loadingMore() ?? false));
-
+    () => this.source()?.loadingMore() ?? false);
 
   // ── Internal state ─────────────────────────────────────────────────────────
   isOpen           = signal(false);
@@ -462,35 +323,8 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   /** Exposed so a host can bind `loading` to it when it prefers. */
   readonly searchGuard = createRequestGuard();
 
-  // ── The component-owned fetch (`FI-23-M3`) ─────────────────────────────────
-  //
-  // Built unconditionally, and idle until `loadOptions` is set: it holds three
-  // signals and a timer, and making it conditional would mean an `effect` that
-  // creates one — which needs an injection context these fields have and an
-  // effect body does not.
-  //
-  // `debounceMs: 0` deliberately. The component has debounced `searchQuery`
-  // since long before this input existed, and the controller debouncing it a
-  // second time would make a 300ms picker take 600ms to answer — the kind of
-  // sluggishness nobody traces back to two correct components agreeing.
-  // `minChars: 0` for the same reason: the effect below already holds back a
-  // term that is too short, and `belowMinChars()` already renders the hint.
-  private readonly _suggest: SvSuggestController<SelectOption> = svSuggestController<SelectOption>(
-    (term, signal) => {
-      const source = untracked(this.loadOptions);
-      // Unreachable while `remote()` gates every call site; returning rather
-      // than throwing keeps a host that clears the input mid-flight from
-      // seeing an error it cannot act on.
-      return source ? source(term, signal) : Promise.resolve([]);
-    },
-    { debounceMs: 0, minChars: 0, destroyRef: inject(DestroyRef) },
-  );
-
   /** True when this component owns the fetch rather than the host. */
-  readonly remote = computed(() => !!this.loadOptions() || !!this.source());
-
-  /** `loadOptions` drives the fetch — only when no `source` outranks it. */
-  private readonly ownsFetch = computed(() => !this.source() && !!this.loadOptions());
+  readonly remote = computed(() => !!this.source());
 
   /**
    * The options the panel actually renders.
@@ -501,36 +335,23 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
    */
   readonly effectiveOptions = computed<readonly SelectOption[]>(() => {
     const source = this.source();
-    if (source) return source.options();
-    return this.ownsFetch() ? this._suggest.options() : this.options();
+    return source ? source.options() : this.options();
   });
 
   /**
-   * A fetched list must not be filtered again — see `serverSide`, whose
-   * reasoning this inherits wholesale.
+   * A list the server already searched must not be filtered again: the server
+   * matched on fields the component cannot see, and client-side search only
+   * ever looks at the page already downloaded. `svSelectSearch [serverSide]`
+   * says so for a host-filtered list; a `source` implies it.
    */
   readonly resolvedServerSide = computed(
-    () => (this.feature().serverSide ?? this.serverSide()) || this.remote());
+    () => (this.feature().serverSide ?? false) || this.remote());
 
-  // The host's own value is OR-ed in rather than replaced: with a source set a
-  // host can still be loading the *selected* entity, or reporting a failure
-  // that has nothing to do with the panel.
-  readonly panelLoading = computed(() => this.loading() || this.ownedState('loading'));
-  readonly panelStale   = computed(() => this.stale()   || this.ownedState('stale'));
-  readonly panelError   = computed<SvDataError | string | null>(() => {
-    const source = this.source();
-    const own = this.error();
-    if (own !== null && own !== undefined) return own;
-    if (source) return source.error();
-    return this.ownsFetch() ? this._suggest.error() : null;
-  });
-
-  /** `loading` / `stale` of whichever fetch this component owns, if any. */
-  private ownedState(key: 'loading' | 'stale'): boolean {
-    const source = this.source();
-    if (source) return source[key]();
-    return this.ownsFetch() && this._suggest[key]();
-  }
+  // The host's `loading` is OR-ed in: it may be resolving the *selected*
+  // entity while the source is idle.
+  readonly panelLoading = computed(() => this.loading() || (this.source()?.loading() ?? false));
+  readonly panelStale   = computed(() => this.source()?.stale() ?? false);
+  readonly panelError   = computed<SvDataError | string | null>(() => this.source()?.error() ?? null);
 
   /**
    * Last term handed to the host. Seeded with `''` so the effect's first run —
@@ -587,10 +408,12 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   private listRef        = viewChild<ElementRef<HTMLUListElement>>('listbox');
   private chipWrapperRef = viewChild<ElementRef<HTMLElement>>('chipWrapper');
   private host           = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
   private appRef         = inject(ApplicationRef);
 
   /** Container div appended to document.body while the panel is open. */
   private portalEl: HTMLElement | null = null;
+  private portalHost: SvPortalHost | null = null;
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
    * this popup sits in stays "topmost", and one Escape closes both.
@@ -615,27 +438,15 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
       const min = this.resolvedMinChars();
       if (term.length > 0 && min > 0 && term.length < min) return;
       this.lastSearch = term;
-      this.searchChange.emit(term);
+      // `svSelectSearch (searchChange)` fires with a source set too: a host may
+      // mirror the term into a URL or an analytics event.
       for (const feature of untracked(this.features)) feature.searchChanged?.(term);
-      // `searchChange` still fires with a source set: a host may want to mirror
-      // the term into a URL or an analytics event, and taking that away would
-      // make adopting `loadOptions` a breaking change for anyone doing so.
-      const source = untracked(this.source);
-      if (source) source.search(term);
-      else if (untracked(this.ownsFetch)) this._suggest.search(term);
+      untracked(this.source)?.search(term);
     });
 
-    // ── Dev guards for the two ways `loadOptions` is misused ─────────────────
+    // ── Dev guard: a fetched list needs `selectedOption` ─────────────────────
     effect(() => {
       if (!this.remote()) return;
-      if (this.ownsFetch() && (this.hasMore() || this.loadingMore())) {
-        svWarnOnce(
-          'sv-select-dropdown:load-options-paging',
-          '[sv-select-dropdown] `loadOptions` and `hasMore`/`loadMore` cannot both work: a '
-          + 'source returns the whole answer for a term, so there is nowhere to append a page. '
-          + 'Drop one.',
-        );
-      }
       // Every fetched list is "whatever answers this term", so a valid
       // selection is routinely absent from it. Without `selectedOption` the
       // trigger reads the stale label for a value that is perfectly fine.
@@ -643,13 +454,12 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
         svWarnOnce(
           'sv-select-dropdown:load-options-hydration',
           '[sv-select-dropdown] a value is selected that no fetched option resolves, and no '
-          + '`selectedOption` was given — the trigger will show it as unavailable. With '
-          + '`loadOptions` or `source`, pass `selectedOption` so a selection missing from the current '
+          + '`selectedOption` was given — the trigger will show it as unavailable. With a '
+          + '`source`, pass `selectedOption` so a selection missing from the current '
           + 'results is not mistaken for a deleted one.',
         );
       }
     });
-
 
     // When the selected values change in uncapped multi-mode, reset visible
     // count to all, then measure which chips actually fit after the next render.
@@ -669,7 +479,9 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     this._scrollGuard = createAnchorScrollGuard({
       anchor:  () => this.triggerRef()?.nativeElement,
       portal:  () => this.portalEl,
-      isOpen:  () => this.isOpen(),
+      // A sheet points at nothing, so a scroll under it (iOS scrolls the page
+      // when the keyboard opens) is not a reason to close it.
+      isOpen:  () => this.isOpen() && !this.asSheet(),
       onMoved: () => this.closeDropdown(),
       graceMs: SCROLL_CLOSE_GRACE_MS,
     });
@@ -693,25 +505,34 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
 
   // ── Filtered options / groups ──────────────────────────────────────────────
   filteredOptions = computed<readonly SelectOption[]>(() => {
-    const q = this.resolvedServerSide() ? '' : this.searchQuery().toLowerCase().trim();
+    const q = this.resolvedServerSide() ? '' : this.searchQuery().trim();
     const opts = this.effectiveOptions();
     if (!q) return opts;
-    return opts.filter(o => o.label.toLowerCase().includes(q) || o.sublabel?.toLowerCase().includes(q));
+    return opts.filter(o => this.optionMatches(o, q));
   });
 
   filteredGroups = computed<SelectGroup[]>(() => {
-    const q = this.resolvedServerSide() ? '' : this.searchQuery().toLowerCase().trim();
+    const q = this.resolvedServerSide() ? '' : this.searchQuery().trim();
     const grps = this.groups();
     if (!q) return grps;
     return grps
       .map(g => ({
         ...g,
-        options: g.options.filter(o => o.label.toLowerCase().includes(q) || o.sublabel?.toLowerCase().includes(q)),
+        options: g.options.filter(o => this.optionMatches(o, q)),
       }))
       .filter(g => g.options.length > 0);
   });
 
   noResults = computed(() => this.filteredOptions().length === 0 && this.filteredGroups().length === 0);
+
+  /**
+   * The local search: label or sublabel, accent- and case-folded in the kit's
+   * locale (`FI-01-I4`) — `jose` finds José, as in sv-autocomplete.
+   */
+  private optionMatches(o: SelectOption, q: string): boolean {
+    const opts = { locale: this.labelLocale };
+    return svTextMatches(o.label, q, opts) || svTextMatches(o.sublabel, q, opts);
+  }
 
   // ── Flat navigable list (for keyboard nav) ─────────────────────────────────
   navigableOptions = computed<SelectOption[]>(() => [
@@ -746,7 +567,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   /**
    * Options the user picked from a FETCHED list, kept while they stay selected.
    *
-   * ★★★ WITH `loadOptions` THE LIST IS "WHATEVER ANSWERS THIS TERM", so a pick
+   * ★★★ WITH A `source` THE LIST IS "WHATEVER ANSWERS THIS TERM", so a pick
    *     made under one search is absent from the next one. `selectedOption`
    *     covers a single hydrated value, but a multi-select has no equivalent:
    *     pick "Ada" under `ada`, search `bob`, and the Ada chip used to vanish
@@ -884,8 +705,8 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     const text: Record<SelectSize, string> = { sm: 'text-xs', md: 'text-sm', lg: 'text-base' };
 
     const base = [
-      'relative flex w-full items-center gap-2 text-left transition-all duration-150',
-      'disabled:cursor-not-allowed disabled:opacity-50',
+      'relative flex w-full items-center gap-2 text-start transition-all duration-150',
+      'disabled:cursor-not-allowed disabled:opacity-50', // sv-i18n-ignore: Tailwind classes
       heights[s], pads[s], text[s],
     ];
 
@@ -956,22 +777,22 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     // empty box; `emptyReason() === 'no-data'` is the never-fetched case,
     // which `term()` alone cannot distinguish from a settled empty term.
     const source = this.source();
-    if (source) {
-      source.open(this.searchQuery().trim());
-    } else if (this.ownsFetch()) {
-      const q = this.searchQuery().trim();
-      if (this._suggest.term() !== q || this._suggest.emptyReason() === 'no-data') {
-        this._suggest.search(q);
-      }
-    }
+    if (source) source.open(this.searchQuery().trim());
     this.computePanelPosition();
     this._scrollGuard.capture();
     this.isOpen.set(true);
     this.activeIndex.set(-1);
     this.dropdownOpen.emit();
     if (this.panelTpl) {
-      this.portalEl = document.createElement('div');
-      this.portalEl.className = 'sv-sd-portal';
+      // Context-carrying host: dir, lang and a locally scoped theme reach the
+      // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+      this.portalHost = createPortalHost({
+        origin: this.host.nativeElement,
+        className: 'sv-sd-portal',
+        label: 'select-dropdown',
+        destroyRef: this.destroyRef,
+      });
+      this.portalEl = this.portalHost.element;
       this.portalView = this.panelTpl.createEmbeddedView({});
       this.appRef.attachView(this.portalView);
       // Render BEFORE the nodes reach the document: an unstyled panel inserted
@@ -980,7 +801,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
       // scripts/fix-portal-insertion-order.mjs.
       this.portalView.detectChanges();
       this.portalView.rootNodes.forEach((n: Node) => this.portalEl!.appendChild(n));
-      document.body.appendChild(this.portalEl);
+      this.portalHost.attach();
     }
     if (this.resolvedSearchable()) {
       setTimeout(() => this.searchRef()?.nativeElement.focus(), 30);
@@ -992,9 +813,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     // nobody can see. `cancel`, not `clear`: the options stay, because
     // `selectedOptions()` reads them and wiping them would make a live
     // selection read as stale the moment the panel shut.
-    const source = this.source();
-    if (source) source.cancel();
-    else if (this.ownsFetch()) this._suggest.cancel();
+    this.source()?.cancel();
     this.destroyPortal();
     this.isOpen.set(false);
     this.searchQuery.set('');
@@ -1023,10 +842,9 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
       this.portalView.destroy();
       this.portalView = null;
     }
-    if (this.portalEl) {
-      this.portalEl.remove();
-      this.portalEl = null;
-    }
+    this.portalHost?.destroy();
+    this.portalHost = null;
+    this.portalEl = null;
   }
 
   @HostListener('document:mousedown', ['$event'])
@@ -1054,12 +872,31 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
 
   @HostListener('window:resize')
   onWindowResize(): void {
-    if (this.isOpen()) this.closeDropdown();
+    if (!this.isOpen()) return;
+    // A sheet re-anchors: on a phone the virtual keyboard opening for the
+    // search box IS a resize, and closing on it would make search unusable.
+    if (this.asSheet()) { this.computePanelPosition(); return; }
+    this.closeDropdown();
   }
 
   private computePanelPosition(): void {
     const trigger = this.triggerRef()?.nativeElement;
     if (!trigger) return;
+    if (this.asSheet()) {
+      // A sheet is attached to the bottom edge, full width, and sits on top of
+      // the virtual keyboard; `top`/`left` are dropped rather than zeroed so it
+      // cannot stretch between two edges.
+      this.panelStyle.set({
+        position:      'fixed',
+        zIndex:        '9999',
+        left:          '0px',
+        right:         '0px',
+        maxHeight:     '70vh',
+        maxWidth:      '100vw',
+        paddingBottom: SV_SHEET_SAFE_AREA_PADDING,
+      });
+      return;
+    }
     const rect             = trigger.getBoundingClientRect();
     const vw               = window.innerWidth;
     const vh               = window.innerHeight;
@@ -1070,7 +907,13 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     const spaceBelow = vh - rect.bottom - MARGIN;
     const spaceAbove = rect.top - MARGIN;
     const openUpward = spaceBelow < PREFERRED_HEIGHT && spaceAbove > spaceBelow;
-    const alignRight = rect.left + rect.width > vw - MARGIN;
+    // Inline edge through the shared engine — the trigger's start edge, which
+    // is its RIGHT edge under dir="rtl" (`X-7`). The panel matches the
+    // trigger's width; it flips edge when the trigger sits within MARGIN of
+    // the far viewport edge, so the panel is pinned to the edge it is near.
+    const inline = svInlineAnchor({
+      anchor: rect, panelWidth: rect.width + MARGIN, viewportWidth: vw, rtl: svIsRtl(trigger), margin: 0,
+    });
     const maxHeight  = Math.max(120, openUpward ? spaceAbove : spaceBelow);
 
     const style: Record<string, string> = {
@@ -1082,9 +925,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     style[openUpward ? 'bottom' : 'top'] = openUpward
       ? `${vh - rect.top + GAP}px`
       : `${rect.bottom + GAP}px`;
-    style[alignRight ? 'right' : 'left'] = alignRight
-      ? `${vw - rect.right}px`
-      : `${rect.left}px`;
+    style[inline.edge] = `${inline.offset}px`;
 
     this.panelStyle.set(style);
   }
@@ -1157,26 +998,19 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
   });
 
   /** Panel copy while the user is still short of `minChars`. */
-  readonly minCharsHint = computed(() =>
-    `Type ${this.resolvedMinChars()} character${this.resolvedMinChars() === 1 ? '' : 's'} to search`);
+  readonly minCharsHint = computed(() => {
+    const min = this.resolvedMinChars();
+    return svFormatLabel(this.labels.minCharsHint, { count: min, n: String(min) }, this.labelLocale);
+  });
 
-  /**
-   * Re-run the failed load.
-   *
-   * With a source set the component retries itself; `retry` still fires, so a
-   * host that also reloads something of its own keeps working.
-   */
+  /** Re-run the failed load — the source retries itself. */
   onRetry(): void {
-    const source = this.source();
-    if (source) source.reload();
-    else if (this.ownsFetch()) this._suggest.reload();
-    this.retry.emit();
+    this.source()?.reload();
   }
 
-  /** Ask the host for the next page of options. */
+  /** Fetch the next page of options from the source. */
   onLoadMore(): void {
     this.source()?.loadMore();
-    this.loadMore.emit();
   }
 
   private navigateList(key: string) {
@@ -1321,8 +1155,8 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
     const err = !!this.resolvedError();
     const active = this.isFocused() || this.isOpen();
 
-    const notFloatedLeft = 'left-3.5';
-    const floatedLeft    = 'left-3';
+    const notFloatedLeft = 'start-3.5';
+    const floatedLeft    = 'start-3';
     const leftClass  = floated ? floatedLeft : notFloatedLeft;
     const topClass   = floated ? '-top-px' : 'top-1/2';
     const textSize   = floated ? 'text-[0.7rem] leading-none' : this.labelSizeClass();
@@ -1339,7 +1173,7 @@ export class SvSelectDropdownComponent implements ControlValueAccessor, OnDestro
 
     return [
       'absolute z-10 pointer-events-none select-none -translate-y-1/2',
-      'transition-[top,left,font-size,color,padding,background-color] duration-200 ease-in-out',
+      'transition-[top,left,right,font-size,color,padding,background-color] duration-200 ease-in-out',
       `${leftClass} ${topClass}`,
       textSize, bg, color,
     ].filter(Boolean).join(' ');

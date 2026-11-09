@@ -1,0 +1,141 @@
+<!--
+  ══ sv-stack-trace ════════════════════════════════════════════════════════════
+
+  The error's name and message, then the frames. Runs of library frames fold
+  behind one toggle each; every value is drawn as text.
+-->
+<section
+  class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-white/10 dark:bg-gray-950"
+  [attr.aria-label]="ariaLabel()"
+  data-sv-stack-trace
+>
+  @if (parsed().name || parsed().message || copyable()) {
+    <header
+      class="flex items-start gap-3 border-b border-gray-200 bg-danger-50/60 px-3 py-2.5 dark:border-white/10 dark:bg-danger-950/20"
+    >
+      <div class="min-w-0 flex-1">
+        @if (parsed().name) {
+          <p class="text-sm font-semibold text-danger-800 dark:text-danger-300" data-sv-error-name>{{ parsed().name }}</p>
+        }
+        @if (parsed().message) {
+          <p class="mt-0.5 whitespace-pre-wrap break-words font-mono text-[13px] text-gray-800 [unicode-bidi:isolate] dark:text-gray-100" data-sv-error-message>{{ parsed().message }}</p>
+        }
+      </div>
+      @if (copyable()) {
+        <button
+          type="button"
+          data-sv-stack-copy
+          class="sv-target inline-flex shrink-0 items-center justify-center rounded-md p-1.5 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
+          [attr.aria-label]="labels.stackTraceCopy"
+          [attr.title]="labels.stackTraceCopy"
+          (click)="copy()"
+        >
+          @if (copyState() === 'done') {
+            <sv-check-icon [size]="16" cssClass="text-accent-700 dark:text-accent-400" />
+          } @else {
+            <sv-copy-icon [size]="16" />
+          }
+        </button>
+      }
+    </header>
+  }
+
+  <span class="sr-only" role="status" aria-live="polite">
+    @if (copyState() === 'done') { {{ labels.copied }} }
+    @if (copyState() === 'failed') { {{ labels.copyFailed }} }
+  </span>
+  @if (copyState() === 'failed') {
+    <p data-sv-copy-failed class="border-b border-gray-200 px-3 py-1.5 text-xs text-danger-700 dark:border-white/10 dark:text-danger-300">
+      {{ labels.copyFailed }}
+    </p>
+  }
+
+  @if (drawn().length) {
+    <ol
+      class="divide-y divide-gray-100 overflow-y-auto font-mono text-[13px] leading-relaxed dark:divide-white/5 print:max-h-none! print:overflow-visible"
+      [style.max-height]="maxHeight() || null"
+      [attr.aria-label]="framesLabel()"
+      data-sv-frames
+    >
+      @for (item of drawn(); track item.id) {
+        @if (item.type === 'frame') {
+          <li>
+            <ng-container [ngTemplateOutlet]="frameRow" [ngTemplateOutletContext]="{ $implicit: item }" />
+          </li>
+        } @else {
+          <li data-sv-library-group>
+            <button
+              type="button"
+              class="sv-target flex w-full items-center gap-1.5 px-3 py-1.5 text-start font-sans text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-100"
+              [attr.aria-expanded]="item.open"
+              [attr.aria-controls]="item.domId"
+              (click)="toggle(item)"
+            >
+              <sv-chevron-right-icon
+                [size]="12"
+                [cssClass]="item.open ? 'rotate-90 transition-transform duration-150' : 'transition-transform duration-150 rtl:-scale-x-100'"
+              />
+              {{ item.label }}
+            </button>
+            @if (item.open) {
+              <ol [id]="item.domId" class="divide-y divide-gray-100 border-t border-gray-100 dark:divide-white/5 dark:border-white/5">
+                @for (sub of item.frames; track sub.id) {
+                  <li>
+                    <ng-container [ngTemplateOutlet]="frameRow" [ngTemplateOutletContext]="{ $implicit: sub }" />
+                  </li>
+                }
+              </ol>
+            }
+          </li>
+        }
+      }
+    </ol>
+  } @else if (!parsed().name && !parsed().message) {
+    <p class="px-3 py-3 text-xs text-gray-600 dark:text-gray-400" data-sv-stack-empty>{{ labels.stackTraceEmpty }}</p>
+  }
+</section>
+
+<!-- One frame: function, then where. A button only when it can do something. -->
+<ng-template #frameRow let-item>
+  @if (frameClickable() && item.frame.file) {
+    <button
+      type="button"
+      data-sv-frame
+      [attr.data-sv-library]="item.library ? 'true' : null"
+      class="sv-target block w-full px-3 py-1.5 text-start transition-colors hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:hover:bg-primary-950/30"
+      (click)="open(item.frame)"
+    >
+      <ng-container [ngTemplateOutlet]="frameText" [ngTemplateOutletContext]="{ $implicit: item }" />
+    </button>
+  } @else {
+    <div data-sv-frame [attr.data-sv-library]="item.library ? 'true' : null" class="px-3 py-1.5">
+      <ng-container [ngTemplateOutlet]="frameText" [ngTemplateOutletContext]="{ $implicit: item }" />
+    </div>
+  }
+</ng-template>
+
+<ng-template #frameText let-item>
+  @if (item.frame.format === 'raw') {
+    <span class="block whitespace-pre-wrap break-words text-gray-700 [unicode-bidi:isolate] dark:text-gray-300">{{ item.frame.raw }}</span>
+  } @else {
+    <span class="flex flex-wrap items-baseline gap-x-2">
+      @if (item.frame.async) {
+        <span class="rounded bg-gray-100 px-1 font-sans text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-white/10 dark:text-gray-300">{{ labels.stackTraceAsync }}</span>
+      }
+      <span
+        class="font-semibold [unicode-bidi:isolate]"
+        [class]="item.library ? 'text-gray-600 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'"
+        data-sv-frame-fn
+      >{{ item.frame.functionName ?? labels.stackTraceAnonymous }}</span>
+      @if (item.location) {
+        <span
+          class="min-w-0 break-all [unicode-bidi:isolate]"
+          [class]="item.library ? 'text-gray-500 dark:text-gray-400' : 'text-primary-700 dark:text-primary-300'"
+          data-sv-frame-location
+        >{{ item.location }}</span>
+      } @else if (item.frame.native) {
+        <span class="font-sans text-xs italic text-gray-500 dark:text-gray-400">{{ labels.stackTraceNative }}</span>
+      }
+    </span>
+  }
+</ng-template>

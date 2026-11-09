@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bolt` icon. */
 export const boltNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const boltNodes: readonly IconNode[] = [
 export const boltSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M13 2 L4 13.5 H10.5 L9.5 22 L20 9.5 H13.2 Z' },
 ];
+
+/** `bolt` as a registrable glyph — `registerSvIcons([boltIcon])` / `provideSvIcons([boltIcon])`. */
+export const boltIcon: SvIconDef = { name: 'bolt', nodes: boltNodes, solid: boltSolidNodes };
 
 /** `bolt` — tree-shakable standalone icon. Use `<sv-bolt-icon />`. */
 @Component({

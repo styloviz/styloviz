@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `grid` icon. */
 export const gridNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const gridNodes: readonly IconNode[] = [
 export const gridSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 3.1h5q1.9 0 1.9 1.9v5q0 1.9-1.9 1.9h-5q-1.9 0-1.9-1.9v-5q0-1.9 1.9-1.9zm9 0h5q1.9 0 1.9 1.9v5q0 1.9-1.9 1.9h-5q-1.9 0-1.9-1.9v-5q0-1.9 1.9-1.9zm-9 9h5q1.9 0 1.9 1.9v5q0 1.9-1.9 1.9h-5q-1.9 0-1.9-1.9v-5q0-1.9 1.9-1.9zm9 0h5q1.9 0 1.9 1.9v5q0 1.9-1.9 1.9h-5q-1.9 0-1.9-1.9v-5q0-1.9 1.9-1.9z' },
 ];
+
+/** `grid` as a registrable glyph — `registerSvIcons([gridIcon])` / `provideSvIcons([gridIcon])`. */
+export const gridIcon: SvIconDef = { name: 'grid', nodes: gridNodes, solid: gridSolidNodes };
 
 /** `grid` — tree-shakable standalone icon. Use `<sv-grid-icon />`. */
 @Component({

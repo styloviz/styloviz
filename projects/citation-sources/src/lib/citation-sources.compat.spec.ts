@@ -1,4 +1,5 @@
 import { svPlacementLabel } from './citation-sources.attribution';
+import { SV_CITATION_SOURCES_LABELS } from './citation-sources.labels';
 import type { SvCitationPlacement, SvCitationPlacements } from './citation-sources.attribution';
 
 /**
@@ -42,7 +43,7 @@ describe('public types stay backward compatible', () => {
       unplaced: [{ id: 'c1', sourceId: 's1', start: 0, end: 4, quote: 'q' }],
       drifted: 0,
     };
-    expect(svPlacementLabel(legacy)).toContain('1 citation could not be located');
-    expect(svPlacementLabel(legacy)).not.toContain('names a claim');
+    expect(svPlacementLabel(legacy, SV_CITATION_SOURCES_LABELS)).toContain('1 citation could not be located');
+    expect(svPlacementLabel(legacy, SV_CITATION_SOURCES_LABELS)).not.toContain('names a claim');
   });
 });

@@ -1,7 +1,7 @@
 import { ApplicationRef, PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { SvSkeletonLoaderComponent } from './skeleton-loader.component';
 
 /**

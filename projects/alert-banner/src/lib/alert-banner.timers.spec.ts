@@ -15,7 +15,7 @@ import { SvAlertBannerComponent } from './alert-banner.component';
  * than approximate. (The `@testing/async` helpers are for waiting on a
  * component's own real timer — a different job, and used in the sibling specs.)
  *
- * ★ REGRESSION GUARD — Phase 4 finding (PHASE4_OVERLAYS_FEEDBACK_AUDIT.md, P3).
+ * ★ REGRESSION GUARD — Phase 4 finding (docs/audit/PHASE4_OVERLAYS_FEEDBACK_AUDIT.md, P3).
  *   The two destroy tests at the bottom of this file exist because the defect
  *   they describe SHIPPED: `SvAlertBannerComponent` had no `OnDestroy`, so a
  *   banner removed by its parent (an `@if` flipping false) mid-countdown left

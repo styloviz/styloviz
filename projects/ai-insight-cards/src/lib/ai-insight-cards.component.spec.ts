@@ -2,7 +2,7 @@ import { render } from '@testing-library/angular';
 import { TestBed } from '@angular/core/testing';
 import { SvAiInsightCardsComponent, DEMO_INSIGHTS } from './ai-insight-cards.component';
 import type { AiInsight, InsightCategory } from './ai-insight-cards.types';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 
 const insight = (over: Partial<AiInsight> = {}): AiInsight => ({
   id: 'i1',

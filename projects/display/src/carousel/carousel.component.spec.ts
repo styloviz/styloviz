@@ -146,6 +146,39 @@ describe('SvCarouselComponent — keyboard', () => {
     expect(press(f, 'ArrowRight').defaultPrevented).toBe(false);
     expect(f.componentInstance.current()).toBe(0);
   });
+
+  /**
+   * FL-B9 — under dir="rtl" the track advances leftward (the next slide comes
+   * in from the left, the Next button sits on the left), so the arrow keys
+   * follow what the user sees: ArrowLeft is next, ArrowRight is previous.
+   */
+  describe('under dir="rtl"', () => {
+    afterEach(() => document.documentElement.removeAttribute('dir'));
+
+    it('ArrowLeft goes to the next slide and ArrowRight back', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup();
+      expect(press(f, 'ArrowLeft').defaultPrevented).toBe(true);
+      expect(f.componentInstance.current()).toBe(1);
+      expect(press(f, 'ArrowRight').defaultPrevented).toBe(true);
+      expect(f.componentInstance.current()).toBe(0);
+    });
+
+    it('a vertical carousel keeps Up / Down whatever the direction', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup({ orientation: 'vertical' });
+      press(f, 'ArrowDown');
+      expect(f.componentInstance.current()).toBe(1);
+    });
+
+    it('parks the slide before the active one on the inline-start side (right in RTL)', async () => {
+      const f = await setup();
+      f.componentInstance.goTo(1);
+      // Slide 0 is before: left in LTR, mirrored by the rtl: variant.
+      expect(f.componentInstance.slideClass(0)).toContain('-translate-x-full rtl:translate-x-full');
+      expect(f.componentInstance.slideClass(2)).toContain('translate-x-full rtl:-translate-x-full');
+    });
+  });
 });
 
 describe('SvCarouselComponent — auto-play', () => {

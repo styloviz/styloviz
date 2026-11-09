@@ -9,7 +9,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import type { SvDataError, SvDataQuery } from '@styloviz/core';
+import type { SvDataError, SvDataQuery } from '@styloviz/core/data';
 import { svDataController, type SvDataController } from './controller';
 import type { SvDataControllerOptions, SvDataSource } from './types';
 

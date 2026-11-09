@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `info` icon. */
 export const infoNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const infoNodes: readonly IconNode[] = [
 export const infoSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 3 a9 9 0 1 0 0 18 a9 9 0 0 0 0 -18 Z M11 10.5 h2 v6 h-2 Z M12 6.5 a1 1 0 1 0 0 2 a1 1 0 0 0 0 -2 Z', fillRule: 'evenodd' },
 ];
+
+/** `info` as a registrable glyph — `registerSvIcons([infoIcon])` / `provideSvIcons([infoIcon])`. */
+export const infoIcon: SvIconDef = { name: 'info', nodes: infoNodes, solid: infoSolidNodes };
 
 /** `info` — tree-shakable standalone icon. Use `<sv-info-icon />`. */
 @Component({

@@ -1,4 +1,13 @@
+<!--
+  The accessible alternative to the SVG: one semantic table saying what the
+  picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+  chart templates, and the CSS was the hard part, not the markup — the trap it
+  kept re-learning, and the reason the chart root no longer needs `relative`,
+  is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+  Renders nothing when there are no rows, so it needs no guard here.
+-->
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="resolvedError()"
   [isEmpty]="chartIsEmpty()"
@@ -94,6 +103,7 @@
               [attr.d]="vertBarPath(bar.x, bar.y, bar.barW, bar.barH, bar.r)"
               [attr.fill]="bar.color"
               class="bc-bar-v transition-opacity duration-150 hover:opacity-75 cursor-pointer outline-none focus-visible:stroke-2 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white"
+              [class.opacity-30]="syncedCategory() !== null && syncedCategory() !== bar.cat"
               [style.animation-delay]="$index * 40 + 'ms'"
               tabindex="0"
               role="button"
@@ -181,6 +191,7 @@
               [attr.d]="horizBarPath(bar.x, bar.y, bar.barW, bar.barH, bar.r)"
               [attr.fill]="bar.color"
               class="bc-bar-h transition-opacity duration-150 hover:opacity-75 cursor-pointer outline-none focus-visible:stroke-2 focus-visible:stroke-gray-900 dark:focus-visible:stroke-white"
+              [class.opacity-30]="syncedCategory() !== null && syncedCategory() !== bar.cat"
               [style.animation-delay]="$index * 50 + 'ms'"
               tabindex="0"
               role="button"
@@ -246,16 +257,6 @@
 
     </svg>
   </div>
-
-  <!--
-    The accessible alternative to the SVG: one semantic table saying what the
-    picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
-    chart templates, and the CSS was the hard part, not the markup — the trap it
-    kept re-learning, and the reason the chart root no longer needs `relative`,
-    is written up in `core/src/lib/a11y/data-summary-table.component.css`.
-    Renders nothing when there are no rows, so it needs no guard here.
-  -->
-  <sv-data-summary-table [summary]="a11ySummary()" />
 
   <!-- Legend (only when multiple series) -->
   @if (showLegend() && datasets().length > 1) {

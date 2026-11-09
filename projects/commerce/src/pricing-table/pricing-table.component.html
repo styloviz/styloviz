@@ -1,0 +1,217 @@
+@if (views().length > 0) {
+  <div data-sv-pricing-table [attr.data-layout]="layout()" [attr.data-billing]="billing()" class="block">
+
+    <!-- ── Billing toggle: two native radios, so arrows, Space and a screen reader all just work ── -->
+    @if (toggleVisible()) {
+      <fieldset class="mb-8 flex flex-col items-center gap-2.5 print:hidden" data-sv-pricing-billing>
+        <legend class="sr-only">{{ text().pricingBillingLegend }}</legend>
+        <div class="inline-flex gap-1 rounded-full border border-gray-200 bg-gray-100 p-1 dark:border-gray-700 dark:bg-gray-800">
+          @for (option of billingOptions(); track option.value) {
+            <label class="relative block">
+              <input
+                type="radio"
+                class="peer sr-only"
+                [name]="billingName"
+                [value]="option.value"
+                [checked]="billing() === option.value"
+                [attr.data-sv-pricing-billing-option]="option.value"
+                [attr.aria-describedby]="option.value === 'annual' && headlineSaving() ? savingId : null"
+                (change)="setBilling(option.value)" />
+              <span [class]="billingPillClass">{{ option.label }}</span>
+            </label>
+          }
+        </div>
+        @if (headlineSaving()) {
+          <!-- Derived from the plan that saves least, so it cannot promise more than any plan gives. -->
+          <p [id]="savingId" class="text-xs font-medium text-accent-700 dark:text-accent-400" data-sv-pricing-headline-saving>
+            {{ headlineSaving() }}
+          </p>
+        }
+      </fieldset>
+    }
+
+    @if (layout() === 'table') {
+      <!-- ── Comparison: a real table, scrollable on a phone, its first column pinned ── -->
+      <div
+        svRevealFocus
+        role="region"
+        tabindex="0"
+        [attr.aria-labelledby]="captionId"
+        class="relative overflow-x-auto rounded-2xl border border-gray-200 bg-white focus-visible:outline-none focus-visible:ring-2
+               focus-visible:ring-primary-500 print:overflow-visible dark:border-gray-800 dark:bg-gray-900">
+        <!-- relative: the cells' sr-only spans are absolute; with a static scroller their
+             containing block lay outside it, so they escaped its clip and widened the
+             page by 165 px on a phone (FL-L4-04). -->
+        <!-- On paper the scroller opens up and the table shrinks to the page, so no plan is clipped. -->
+        <table class="w-full min-w-[40rem] border-collapse text-start text-sm print:min-w-0" data-sv-pricing-comparison>
+          <caption [id]="captionId" class="px-5 pt-5 pb-2 text-start text-base font-semibold text-gray-900 dark:text-white">
+            {{ captionText() }}
+          </caption>
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-800">
+              <th scope="col" data-sv-sticky="start" class="sticky start-0 z-10 print:static bg-white px-5 py-4 text-start align-bottom dark:bg-gray-900">
+                <span class="sr-only">{{ text().pricingFeatureHeader }}</span>
+              </th>
+              @for (view of views(); track view.id) {
+                <th
+                  scope="col"
+                  [id]="view.nameId"
+                  [attr.data-sv-pricing-plan]="view.id"
+                  [attr.data-highlighted]="view.highlighted ? 'true' : null"
+                  class="px-4 py-4 text-start align-bottom" [class]="view.highlighted ? highlightClass : ''">
+                  <span class="block text-base font-semibold text-gray-900 dark:text-white">{{ view.name }}</span>
+                  @if (view.badge) {
+                    <span class="mt-1.5 inline-flex items-center rounded-full bg-primary-600 px-2 py-0.5 text-[11px] font-semibold text-white
+                                 dark:bg-primary-400 dark:text-gray-950" data-sv-pricing-badge>{{ view.badge }}</span>
+                  }
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-gray-100 dark:border-gray-800">
+              <th scope="row" data-sv-sticky="start" class="sticky start-0 z-10 print:static bg-white px-5 py-4 text-start font-medium text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                {{ text().pricingPriceRow }}
+              </th>
+              @for (view of views(); track view.id) {
+                <td class="px-4 py-4 align-top" [class]="view.highlighted ? highlightClass : ''"
+                    [attr.data-sv-pricing-price]="view.id">
+                  @if (view.custom !== null) {
+                    <span class="text-xl font-semibold text-gray-900 dark:text-white">{{ view.custom }}</span>
+                  } @else if (view.free) {
+                    <span class="text-xl font-semibold text-gray-900 dark:text-white">{{ text().pricingFree }}</span>
+                  } @else {
+                    <span class="text-xl font-semibold text-gray-900 tabular-nums dark:text-white" data-sv-pricing-amount>{{ view.amount }}</span>
+                    <span class="ms-1 text-xs text-gray-600 dark:text-gray-400" aria-hidden="true">{{ text().pricingPerMonthShort }}</span>
+                    <span class="sr-only">{{ text().pricingPerMonth }}</span>
+                    <span class="mt-1 block text-xs text-gray-600 dark:text-gray-400" data-sv-pricing-billed>{{ view.billed }}</span>
+                    @if (view.saving) {
+                      <span class="mt-0.5 block text-xs font-medium text-accent-700 dark:text-accent-400" data-sv-pricing-saving>{{ view.saving }}</span>
+                    }
+                  }
+                </td>
+              }
+            </tr>
+            <tr class="border-b border-gray-200 dark:border-gray-800">
+              <td data-sv-sticky="start" class="sticky start-0 z-10 print:static bg-white px-5 py-4 dark:bg-gray-900"></td>
+              @for (view of views(); track view.id) {
+                <td class="px-4 pb-4 align-top" [class]="view.highlighted ? highlightClass : ''">
+                  @if (view.href) {
+                    <a [attr.href]="view.href" data-sv-pricing-cta [attr.aria-describedby]="view.nameId" [class]="view.ctaClass"
+                       (click)="select(view)">{{ view.ctaLabel }}</a>
+                  } @else {
+                    <button type="button" data-sv-pricing-cta [attr.aria-describedby]="view.nameId" [class]="view.ctaClass"
+                            [attr.data-selected]="view.selected ? 'true' : null" (click)="select(view)">{{ view.ctaLabel }}</button>
+                  }
+                </td>
+              }
+            </tr>
+          </tbody>
+          @for (group of groups(); track group.key) {
+            <tbody data-sv-pricing-group>
+              @if (group.label) {
+                <tr class="bg-gray-50 dark:bg-gray-800/60">
+                  <th scope="rowgroup" [attr.colspan]="columnCount()"
+                      class="px-5 py-2.5 text-start text-xs font-semibold tracking-wide text-gray-700 uppercase dark:text-gray-300">
+                    {{ group.label }}
+                  </th>
+                </tr>
+              }
+              @for (row of group.rows; track row.id) {
+                <tr class="border-b border-gray-100 last:border-b-0 dark:border-gray-800" [attr.data-sv-pricing-feature]="row.id">
+                  <th scope="row" data-sv-sticky="start" class="sticky start-0 z-10 print:static bg-white px-5 py-3 text-start font-normal text-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                    {{ row.label }}
+                  </th>
+                  @for (cell of row.cells; track cell.planId) {
+                    <td class="px-4 py-3 text-gray-900 dark:text-gray-100" [class]="cell.highlighted ? highlightClass : ''">
+                      @if (cell.value === true) {
+                        <sv-icon name="check" cssClass="h-5 w-5 text-accent-700 dark:text-accent-400" [strokeWidth]="2.5" />
+                        <span class="sr-only">{{ text().pricingIncluded }}</span>
+                      } @else if (cell.value === false) {
+                        <sv-icon name="minus" cssClass="h-5 w-5 text-gray-500" />
+                        <span class="sr-only">{{ text().pricingNotIncluded }}</span>
+                      } @else {
+                        {{ cell.value }}
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          }
+        </table>
+      </div>
+    } @else {
+      <!-- ── Cards: stacked on a phone, side by side from there ── -->
+      <div [class]="gridClass()">
+        @for (view of views(); track view.id) {
+          <article
+            [attr.aria-labelledby]="view.nameId"
+            [attr.data-sv-pricing-plan]="view.id"
+            [attr.data-highlighted]="view.highlighted ? 'true' : null"
+            class="relative flex flex-col rounded-2xl border bg-white p-7 dark:bg-gray-900"
+            [class]="view.highlighted
+              ? 'border-primary-300 shadow-lg ring-1 ring-primary-200 dark:border-primary-500/50 dark:ring-primary-500/30'
+              : 'border-gray-200 shadow-sm dark:border-gray-800'">
+
+            <div role="heading" [attr.aria-level]="headingLevel()" [id]="view.nameId"
+                 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {{ view.name }}@if (view.badge) {<span class="sr-only">, {{ view.badge }}</span>}
+            </div>
+            @if (view.badge) {
+              <!-- Read with the heading above; this is the visible copy. -->
+              <span aria-hidden="true" data-sv-pricing-badge
+                    class="absolute -top-3 start-7 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    [class]="view.highlighted
+                      ? 'bg-primary-600 text-white dark:bg-primary-400 dark:text-gray-950'
+                      : 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'">{{ view.badge }}</span>
+            }
+            @if (view.description) {
+              <p class="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-400">{{ view.description }}</p>
+            }
+
+            <div class="mt-6" [attr.data-sv-pricing-price]="view.id">
+              @if (view.custom !== null) {
+                <p class="text-4xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ view.custom }}</p>
+              } @else if (view.free) {
+                <p class="text-4xl font-semibold tracking-tight text-gray-900 dark:text-white">{{ text().pricingFree }}</p>
+              } @else {
+                <p>
+                  <span class="text-4xl font-semibold tracking-tight text-gray-900 tabular-nums dark:text-white" data-sv-pricing-amount>{{ view.amount }}</span>
+                  <span class="ms-1 text-sm text-gray-600 dark:text-gray-400" aria-hidden="true">{{ text().pricingPerMonthShort }}</span>
+                  <span class="sr-only">{{ text().pricingPerMonth }}</span>
+                </p>
+                <!-- What is actually charged, and when. A per-month figure on an annual plan is the number people feel misled by later. -->
+                <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-400" data-sv-pricing-billed>{{ view.billed }}</p>
+                @if (view.saving) {
+                  <p class="mt-1 text-xs font-medium text-accent-700 dark:text-accent-400" data-sv-pricing-saving>{{ view.saving }}</p>
+                }
+              }
+            </div>
+
+            <div class="mt-6">
+              @if (view.href) {
+                <a [attr.href]="view.href" data-sv-pricing-cta [attr.aria-describedby]="view.nameId" [class]="view.ctaClass"
+                   (click)="select(view)">{{ view.ctaLabel }}</a>
+              } @else {
+                <button type="button" data-sv-pricing-cta [attr.aria-describedby]="view.nameId" [class]="view.ctaClass"
+                        [attr.data-selected]="view.selected ? 'true' : null" (click)="select(view)">{{ view.ctaLabel }}</button>
+              }
+            </div>
+
+            @if (view.bullets.length > 0) {
+              <ul role="list" class="mt-7 flex flex-col gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
+                @for (bullet of view.bullets; track $index) {
+                  <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                    <sv-icon name="check" cssClass="mt-0.5 h-4 w-4 shrink-0 text-accent-700 dark:text-accent-400" [strokeWidth]="2.5" />
+                    {{ bullet }}
+                  </li>
+                }
+              </ul>
+            }
+          </article>
+        }
+      </div>
+    }
+  </div>
+}

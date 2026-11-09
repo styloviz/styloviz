@@ -1,8 +1,10 @@
 # @styloviz/timeline
 
-> 9 premium variations: horizontal, alternate zigzag, numbered stepper, check stepper, activity feed, status tracker, rich card, date-grouped and interactive (clickable rows).
+> 9 variations: horizontal, alternate zigzag, numbered stepper, check stepper, activity feed, status tracker, rich card, date-grouped and interactive (clickable rows).
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -53,6 +55,8 @@ import { SvTimelineComponent } from '@styloviz/timeline';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -62,13 +66,13 @@ export class DemoComponent {}
 | `size` | `TimelineSize` | `'md'` | Component size preset. |
 | `showConnector` | `boolean` | `true` | Show connector lines between dots. |
 | `customClass` | `string` | `''` | Additional CSS classes on the root element. |
-| `ariaLabel` | `string` | `''` | What this timeline is, e.g. `'Deployment history'` — names the list and, in the horizontal layout, the scrollable region a keyboard user tabs into. Every list here used to be hardcoded `aria-label="Timeline"`. A release page with a deploy log beside an audit trail announced both as "Timeline", which is the role restated and no help in telling them apart. Left unset, the layout's own generic name is kept. Matches `sv-timeline-pro`. |
+| `ariaLabel` | `string` | `''` | What this timeline is, e.g. `'Deployment history'` — names the list and, in the horizontal layout, the scrollable region a keyboard user tabs into. Set it whenever a page holds more than one timeline — a deploy log beside an audit trail — so they can be told apart. Left unset, the layout's own generic name is kept. Matches `sv-timeline-pro`. |
 | `dotStyle` | `TimelineDotStyle` | `'dot'` | Dot rendering style. |
 | `displayMode` | `TimelineDisplayMode` | `'default'` | Content display mode. |
 | `intent` | `TimelineIntent \| 'auto'` | `'auto'` | What the list means. `'auto'` infers it from `displayMode`. |
 | `activeIndex` | `number` | `-1` | Zero-based index of the currently active step. Items before → `complete`; this item → `active`; after → `pending`. Defaults to `-1` (uses each item's own `itemStatus`). |
-| `groupByDate` | `boolean` | `false` | Group consecutive items under the `groupDate` header they share. THE COMPONENT NEVER DERIVES A DAY FROM A TIMESTAMP, AND THAT IS THE ZONE POLICY. "Tuesday" depends on who is reading — an event at 23:30 in Berlin is Wednesday in Auckland and still Tuesday in New York — so a component that grouped by parsing a timestamp would have to pick somebody's Tuesday, and any choice is wrong for the others. `groupDate` is a LABEL the host supplies, already resolved in the zone it wants displayed, and consecutive items sharing it are grouped. That makes the zone the host's decision, which is the only place it can correctly be made. Same policy as `sv-timeline-pro`. |
-| `collapseAfter` | `number` | `0` | Show only this many items until the reader asks for the rest. `0` shows all. A LONG HISTORY IS NOT A LIST, IT IS A WALL. Five hundred entries push everything else off the page and cost a screen-reader user five hundred stops to get past. This is in the FREE tier deliberately. A timeline that becomes unusable at scale is the defect, not a smaller version of one — and without it a free host can only mitigate a long history by not receiving it. |
+| `groupByDate` | `boolean` | `false` | Group consecutive items under the `groupDate` header they share. The component never derives a day from a timestamp, and that is the zone policy. "Tuesday" depends on who is reading — an event at 23:30 in Berlin is Wednesday in Auckland and still Tuesday in New York — so a component that grouped by parsing a timestamp would have to pick somebody's Tuesday, and any choice is wrong for the others. `groupDate` is a LABEL the host supplies, already resolved in the zone it wants displayed, and consecutive items sharing it are grouped. That makes the zone the host's decision, which is the only place it can correctly be made. Same policy as `sv-timeline-pro`. |
+| `collapseAfter` | `number` | `0` | Show only this many items until the reader asks for the rest. `0` shows all. Five hundred entries push everything else off the page and cost a screen-reader user five hundred stops to get past; collapsing keeps the first entries and a control that shows the rest. |
 | `expanded` | `boolean (two-way)` | `false` | Whether the collapsed remainder is currently shown (two-way). A `model` so a host can persist it: a reader who expanded a history and navigated away should not have to expand it again. |
 | `horizontalAlign` | `TimelineHorizontalAlign` | `'alternate'` | Content placement for `layout='horizontal'`. |
 | `showVariantIcon` | `boolean` | `false` | Draw a status glyph inside `success` / `error` / `warning` / `info` dots that have no `item.icon` of their own — a tick, a cross, a triangle, an "i". The dot's meaning is already announced (see `variantLabel`), but for a sighted reader it was still a hue alone. A shape survives colour-vision deficiency, greyscale printing and a theme that happens to put two tones close together. Opt-in so existing plain dots are unchanged. |
@@ -98,4 +102,4 @@ Full API reference and live demos: https://styloviz.dev/docs/timeline
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

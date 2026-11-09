@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { untilRendered } from '../../../../src/testing/async';
 import { SvPaginationComponent } from './pagination.component';
 

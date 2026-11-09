@@ -18,7 +18,7 @@ import {
   type SvDataError,
   type SvDataQuery,
   type SvSortDirection,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
 import type { SvDataControllerOptions, SvDataSource } from './types';
 
 /**

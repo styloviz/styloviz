@@ -11,9 +11,12 @@ import {
   SvErrorShellComponent,
   SvSkeletonShellComponent,
   type SvDataError,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_TIMELINE_LABELS } from './timeline-free.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerTimelineIcons } from './timeline.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type TimelineVariant =
@@ -244,11 +247,18 @@ export interface TimelineLoadMoreEvent {
     SvSkeletonShellComponent,
     SvErrorShellComponent,
     SvEmptyShellComponent,
+    SvLabelPipe,
   ],
   templateUrl: './timeline.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvTimelineComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerTimelineIcons();
+
+  protected readonly labels = injectSvLabels('timeline', SV_TIMELINE_LABELS);
+  /** The kit's locale — picks the plural form of the expand control's label. */
+  private readonly locale = svLocale();
 
   // ── Inputs ────────────────────────────────────────────────────────────────
 
@@ -271,10 +281,9 @@ export class SvTimelineComponent {
    * What this timeline is, e.g. `'Deployment history'` — names the list and, in
    * the horizontal layout, the scrollable region a keyboard user tabs into.
    *
-   * ★ Every list here used to be hardcoded `aria-label="Timeline"`. A release
-   *   page with a deploy log beside an audit trail announced both as "Timeline",
-   *   which is the role restated and no help in telling them apart. Left unset,
-   *   the layout's own generic name is kept. Matches `sv-timeline-pro`.
+   * Set it whenever a page holds more than one timeline — a deploy log beside an
+   * audit trail — so they can be told apart. Left unset, the layout's own
+   * generic name is kept. Matches `sv-timeline-pro`.
    *
    * @default ''
    */
@@ -326,13 +335,9 @@ export class SvTimelineComponent {
   /**
    * Show only this many items until the reader asks for the rest. `0` shows all.
    *
-   * ★★ A LONG HISTORY IS NOT A LIST, IT IS A WALL. Five hundred entries push
-   *    everything else off the page and cost a screen-reader user five hundred
-   *    stops to get past.
-   *
-   * ★ This is in the FREE tier deliberately. A timeline that becomes unusable at
-   *   scale is the defect, not a smaller version of one — and without it a free
-   *   host can only mitigate a long history by not receiving it.
+   * Five hundred entries push everything else off the page and cost a
+   * screen-reader user five hundred stops to get past; collapsing keeps the
+   * first entries and a control that shows the rest.
    * @default 0
    */
   collapseAfter = input<number>(0);
@@ -379,7 +384,7 @@ export class SvTimelineComponent {
   error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No events to show' */
-  emptyMessage = input<string>('No events to show');
+  emptyMessage = input<string>(this.labels.emptyMessage);
 
   // ── Paging, in both directions ──────────────────────────────────────────────
   //
@@ -471,9 +476,9 @@ export class SvTimelineComponent {
    */
   stepStatusLabel(status: TimelineItemStatus): string {
     switch (status) {
-      case 'complete': return 'Completed';
-      case 'active':   return 'Current step';
-      default:         return 'Pending';
+      case 'complete': return this.labels.statusComplete;
+      case 'active':   return this.labels.statusActive;
+      default:         return this.labels.statusPending;
     }
   }
 
@@ -561,10 +566,10 @@ export class SvTimelineComponent {
    */
   variantLabel(item: TimelineItem): string | null {
     switch (item.variant) {
-      case 'success': return 'Success';
-      case 'error':   return 'Error';
-      case 'warning': return 'Warning';
-      case 'info':    return 'Information';
+      case 'success': return this.labels.variantSuccess;
+      case 'error':   return this.labels.variantError;
+      case 'warning': return this.labels.variantWarning;
+      case 'info':    return this.labels.variantInfo;
       default:        return null;
     }
   }
@@ -588,9 +593,9 @@ export class SvTimelineComponent {
   /** The default accessible name, which is the intent said out loud. */
   readonly intentLabel = computed<string>(() => {
     switch (this.resolvedIntent()) {
-      case 'process': return 'Progress tracker';
-      case 'feed':    return 'Activity feed';
-      default:        return 'Timeline';
+      case 'process': return this.labels.intentProcess;
+      case 'feed':    return this.labels.intentFeed;
+      default:        return this.labels.intentChronology;
     }
   });
 
@@ -667,7 +672,7 @@ export class SvTimelineComponent {
   /** The expand control's label, stating the count rather than "show more". */
   readonly expandLabel = computed(() => {
     const hidden = this.hiddenCount();
-    return hidden === 1 ? 'Show 1 more entry' : `Show ${hidden} more entries`;
+    return svFormatLabel(this.labels.showMoreEntries, { count: hidden, n: String(hidden) }, this.locale);
   });
 
   /** Toggle the collapsed remainder. */

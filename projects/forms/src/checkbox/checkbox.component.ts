@@ -10,18 +10,10 @@ import {
   forwardRef,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  createFieldError,
-  createOptimisticEdit,
-  svDescribedBy,
-  SvFieldErrorComponent,
-  svRequestKey,
-  type SvServerError,
-  svWarnOnce,
-  toSvDataError,
-  type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { createFieldError, svDescribedBy, SvFieldErrorComponent, type SvServerError } from '@styloviz/core/forms';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -163,9 +155,8 @@ export class SvCheckboxComponent implements ControlValueAccessor {
   customClass = input<string>('');
 
   /**
-   * Client-side validation message. "You must accept the terms" had nowhere to
-   * go before this: the control rendered a box and a label and nothing else, so
-   * a form could reject it with no way to say why.
+   * Client-side validation message, rendered under the box and label — e.g.
+   * "You must accept the terms".
    */
   errorMessage = input<string>('');
 
@@ -226,9 +217,9 @@ export class SvCheckboxComponent implements ControlValueAccessor {
     revision: () => this._revision(),
     selector: 'sv-checkbox',
     superseded:
-      'the checkbox has been changed again since, so putting the old value back ' +
-      'would discard the newer change. Bind [pending] so it cannot be changed ' +
-      'while the write is in flight.',
+      'the checkbox has been changed again since, so putting the old value back ' + // sv-i18n-ignore: developer message
+      'would discard the newer change. Bind [pending] so it cannot be changed ' + // sv-i18n-ignore: developer message
+      'while the write is in flight.', // sv-i18n-ignore: developer message
   });
 
   /** The failed-write message, normalized from either accepted shape. */
@@ -245,7 +236,7 @@ export class SvCheckboxComponent implements ControlValueAccessor {
   /** Shared validation-error contract — server outranks client, server expires. */
   protected readonly fieldError = createFieldError(this.checked, this.serverError, this.errorMessage);
   protected readonly errorId = computed(() => `${this.resolvedId()}-error`);
-  protected readonly writeErrorId = computed(() => `${this.resolvedId()}-write-error`);
+  protected readonly writeErrorId = computed(() => `${this.resolvedId()}-write-error`); // sv-i18n-ignore: DOM id
 
   /**
    * The checkbox may be described by its own description text, by the error, or
@@ -366,6 +357,15 @@ export class SvCheckboxComponent implements ControlValueAccessor {
     return map[this.variant()];
   });
 
+  /**
+   * The mark's colour. `currentColor` rather than a `white` stroke, so forced
+   * colours (Windows High Contrast) can repaint it as HighlightText over the
+   * Highlight box instead of leaving a white mark on a possibly white Canvas.
+   */
+  readonly iconClasses = computed<string>(
+    () => `${this.iconSize()} text-white forced-colors:text-[HighlightText]`, // sv-i18n-ignore: Tailwind classes
+  );
+
   readonly boxClasses = computed<string>(() => {
     const active = this.checked() || this.indeterminate();
     return [
@@ -373,9 +373,16 @@ export class SvCheckboxComponent implements ControlValueAccessor {
       // Visible focus ring, driven by the sibling `peer` input being focused.
       'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 peer-focus-visible:ring-offset-2',
       'dark:peer-focus-visible:ring-primary-400 dark:peer-focus-visible:ring-offset-gray-900',
+      // Forced colours (FI-06-M3): the box keeps a system-colour edge, the ring
+      // (a box-shadow, which forced colours removes) becomes a real outline.
+      'forced-colors:border-[ButtonText]', // sv-i18n-ignore: Tailwind classes
+      'forced-colors:peer-focus-visible:outline-2 forced-colors:peer-focus-visible:outline-solid', // sv-i18n-ignore: Tailwind classes
+      'forced-colors:peer-focus-visible:outline-offset-2 forced-colors:peer-focus-visible:outline-[Highlight]', // sv-i18n-ignore: Tailwind classes
       this.boxSize(),
       active
-        ? this.activeColor()
+        // Checked/mixed is a FILL, which forced colours repaints as Canvas —
+        // the state would vanish. Highlight is a system colour, so it is kept.
+        ? `${this.activeColor()} forced-colors:bg-[Highlight] forced-colors:border-[Highlight]`
         : 'border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800',
       this.resolvedDisabled()
         ? 'cursor-not-allowed opacity-50'

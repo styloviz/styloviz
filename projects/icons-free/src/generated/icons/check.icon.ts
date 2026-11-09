@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `check` icon. */
 export const checkNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const checkNodes: readonly IconNode[] = [
 export const checkSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5.6 11.9l4.3 4.3 8.4-10.3q.3-.3.6-.3.3-.1.7.2.6.6.1 1.3l-9 11q-.1 0-.1 0-.6.6-1.2 0l-5-5q-.3-.3-.3-.6 0-.3.3-.6.6-.6 1.2 0z' },
 ];
+
+/** `check` as a registrable glyph — `registerSvIcons([checkIcon])` / `provideSvIcons([checkIcon])`. */
+export const checkIcon: SvIconDef = { name: 'check', nodes: checkNodes, solid: checkSolidNodes };
 
 /** `check` — tree-shakable standalone icon. Use `<sv-check-icon />`. */
 @Component({

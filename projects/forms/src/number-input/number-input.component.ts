@@ -11,9 +11,13 @@ import {
   forwardRef,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { svCurrencyAffix, svDescribedBy, svFormatNumber, svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svDescribedBy, svNumberOr } from '@styloviz/core/forms';
+import { svCurrencyAffix, svFormatNumber, injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
+import { registerNumberInputIcons } from './number-input.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type NumberInputSize    = 'sm' | 'md' | 'lg';
@@ -23,6 +27,30 @@ export type NumberInputPreset  = 'default' | 'quantity';
 export type NumberInputClamp   = 'blur' | 'input';
 
 // ─── Component ───────────────────────────────────────────────────────────────
+
+/** Pixels per wheel `deltaMode` unit: pixels, lines, pages. */
+const WHEEL_LINE_PX = 16;
+
+/**
+ * Scroll the nearest scrollable ancestor of `el` (or the page) by a wheel
+ * delta — the scroll a cancelled wheel event would otherwise have done.
+ */
+function svScrollNearest(el: Element, dx: number, dy: number, mode: number): void {
+  const doc = el.ownerDocument;
+  const win = doc.defaultView;
+  if (!win) return;
+  const unit = mode === 1 ? WHEEL_LINE_PX : mode === 2 ? win.innerHeight : 1;
+  for (let node = el.parentElement; node && node !== doc.body && node !== doc.documentElement; node = node.parentElement) {
+    const style = win.getComputedStyle(node);
+    const scrollsY = /(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+    const scrollsX = /(auto|scroll|overlay)/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
+    if ((dy && scrollsY) || (dx && scrollsX)) {
+      node.scrollBy?.({ left: dx * unit, top: dy * unit });
+      return;
+    }
+  }
+  win.scrollBy({ left: dx * unit, top: dy * unit });
+}
 
 /**
  * NumberInput — A numeric input with increment/decrement controls.
@@ -41,7 +69,7 @@ export type NumberInputClamp   = 'blur' | 'input';
 @Component({
   selector: 'sv-number-input',
   standalone: true,
-  imports: [SvIconComponent],
+  imports: [SvIconComponent, SvLabelPipe],
   templateUrl: './number-input.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
@@ -53,6 +81,12 @@ export type NumberInputClamp   = 'blur' | 'input';
   ],
 })
 export class SvNumberInputComponent implements ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerNumberInputIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   // ── Two-way binding ───────────────────────────────────────────────────────
 
   /** Current numeric value. Use `[(value)]` for two-way binding. @default 0 */
@@ -61,10 +95,10 @@ export class SvNumberInputComponent implements ControlValueAccessor {
   // ── Config ────────────────────────────────────────────────────────────────
 
   /** Minimum allowed value. @default -Infinity */
-  min = input<number>(Number.NEGATIVE_INFINITY);
+  min = input<number, unknown>(Number.NEGATIVE_INFINITY, { transform: svNumberOr(Number.NEGATIVE_INFINITY) });
 
   /** Maximum allowed value. @default Infinity */
-  max = input<number>(Number.POSITIVE_INFINITY);
+  max = input<number, unknown>(Number.POSITIVE_INFINITY, { transform: svNumberOr(Number.POSITIVE_INFINITY) });
 
   /** Step amount for increment/decrement. @default 1 */
   step = input<number>(1);
@@ -75,28 +109,15 @@ export class SvNumberInputComponent implements ControlValueAccessor {
   /**
    * When the typed value is forced into `[min, max]` and rounded to `decimals`.
    *
-   * ── The defect this exists for (`FI-15-I1` / `FI-15-M2`) ──────────────────
-   *
-   * ★★★ CLAMPING EVERY KEYSTROKE FIGHTS THE PERSON TYPING. This component used
-   *     to clamp and round inside `input`, and `[value]` is bound to the
-   *     formatted result — so the field rewrote itself between characters. With
-   *     `min = 10`, selecting the contents and typing `50` went: `5` → clamped
-   *     to `10` → the box now reads "10" → the `0` lands after it → `100`. The
-   *     user typed two characters and got three, and nothing about the control
-   *     said why. With `decimals = 0`, `1.5` was unreachable for the same
-   *     reason: the `.` rounded away before the `5` arrived.
-   *
-   * ★★ THE ROUNDING IS THE SAME BUG AS THE CLAMPING, so both defer. An item
-   *    about "clamp timing" that left `toFixed` on every keystroke would fix the
-   *    half you can see.
-   *
    * `'blur'` (the default) lets the field hold what was typed while it is being
-   * typed, and settles it when focus leaves. That value is genuinely out of
-   * range in between — see `outOfRange`, which is why the control says so
-   * rather than pretending.
+   * typed, and clamps and rounds it when focus leaves. Clamping every keystroke
+   * fights the person typing: with `min = 10`, typing `50` into a selected
+   * field would give `5` → `10` → `100`, and with `decimals = 0` the `.` of
+   * `1.5` would round away before the `5` arrives. The value can be out of
+   * range in between — see `outOfRange`, which is why the control says so.
    *
-   * `'input'` restores the old behaviour for hosts that depend on the value
-   * never leaving range, even transiently.
+   * `'input'` clamps and rounds on every keystroke, for hosts that depend on the
+   * value never leaving range, even transiently.
    * @default 'blur'
    */
   clampOn = input<NumberInputClamp>('blur');
@@ -295,6 +316,15 @@ export class SvNumberInputComponent implements ControlValueAccessor {
   /** Autofocus the input on render. @default false */
   autofocus = input<boolean>(false);
 
+  /**
+   * Let the mouse wheel step the value while the field has focus — the native
+   * `type="number"` behaviour. Off by default (`FI-15-M4`): a user scrolling
+   * the page with the pointer over a focused field changed the number without
+   * looking at it, and nothing announced it. Off, the wheel scrolls the page
+   * instead and the value stays put. @default false
+   */
+  wheelSteps = input<boolean>(false);
+
   // ── Outputs ───────────────────────────────────────────────────────────────
 
   /** Emits the new value after each change. */
@@ -345,9 +375,10 @@ export class SvNumberInputComponent implements ControlValueAccessor {
    * `ariaLabel` counts, not just `label`: a composed control names the field that
    * way (a cart row passes "Quantity, Aurora Runner"), and falling straight
    * through to "value" gave every row in a list two buttons called "Increase
-   * value" — indistinguishable from the next row's.
+   * value" — indistinguishable from the next row's. Empty when neither is set,
+   * which picks the `decreaseValue` / `increaseValue` labels instead.
    */
-  readonly stepperTarget = computed<string>(() => this.label() || this.ariaLabel() || 'value');
+  readonly stepperTarget = computed<string>(() => this.label() || this.ariaLabel());
 
   /** Whether the compact quantity layout preset is active. */
   readonly qtyMode = computed(() => this.preset() === 'quantity');
@@ -494,8 +525,8 @@ export class SvNumberInputComponent implements ControlValueAccessor {
     this.qtyMode()
       ? 'bg-white text-gray-600 hover:bg-primary-50 hover:text-primary-600 active:bg-primary-100 ' +
         'dark:bg-gray-800/40 dark:text-gray-300 dark:hover:bg-primary-900/20 dark:hover:text-primary-300'
-      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-200 ' +
-        'dark:bg-gray-700/60 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+      : 'bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 active:bg-gray-200 active:text-gray-700 ' +
+        'dark:bg-gray-700/60 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200 dark:active:bg-gray-600 dark:active:text-gray-200'
   );
 
   /** Radius + width of the input group (compact + rounder in quantity preset). */
@@ -511,13 +542,13 @@ export class SvNumberInputComponent implements ControlValueAccessor {
   });
 
   readonly decBtnClass = computed<string>(() => {
-    const radius = this.qtyMode() ? 'rounded-l-[11px]' : 'rounded-l-[5px]';
-    return `${this._btnBase} ${radius} border-r border-gray-200 dark:border-gray-700 ${this._btnColor()} ${this.btnSize()}`;
+    const radius = this.qtyMode() ? 'rounded-s-[11px]' : 'rounded-s-[5px]';
+    return `${this._btnBase} ${radius} border-e border-gray-200 dark:border-gray-700 ${this._btnColor()} ${this.btnSize()}`;
   });
 
   readonly incBtnClass = computed<string>(() => {
-    const radius = this.qtyMode() ? 'rounded-r-[11px]' : 'rounded-r-[5px]';
-    return `${this._btnBase} ${radius} border-l border-gray-200 dark:border-gray-700 ${this._btnColor()} ${this.btnSize()}`;
+    const radius = this.qtyMode() ? 'rounded-e-[11px]' : 'rounded-e-[5px]';
+    return `${this._btnBase} ${radius} border-s border-gray-200 dark:border-gray-700 ${this._btnColor()} ${this.btnSize()}`;
   });
 
   /** Icon dimensions — a touch larger in the quantity preset. */
@@ -607,6 +638,32 @@ export class SvNumberInputComponent implements ControlValueAccessor {
     if (isNaN(num)) return;
     const settled = this.clamp(+num.toFixed(this.decimals()));
     if (settled !== this.value()) this.emit(settled);
+  }
+
+  /**
+   * The wheel policy (`FI-15-M4`).
+   *
+   * ★★★ A WHEEL OVER A FOCUSED NUMBER FIELD CHANGES ITS VALUE IN CHROMIUM —
+   *     the engine steps a focused `type="number"` on every notch, with no key
+   *     pressed and no visible cue, and the page under the pointer does not
+   *     scroll. A user who tabbed into the quantity field and then scrolled to
+   *     read on submitted a different quantity. (`e2e/number-input-wheel.spec.ts`
+   *     measures the engine on its own and this guard in Chromium and WebKit.)
+   *
+   * ★★ THE WHEEL STILL SCROLLS. Cancelling the event alone would also freeze
+   *    the page while the pointer is over the field, so the delta is handed to
+   *    the nearest scrollable ancestor (or the page) — the scroll the user
+   *    asked for, without the value change they did not.
+   *
+   * Only while THIS field is focused: an unfocused number input is not
+   * stepped by any engine, and its wheel is left entirely alone.
+   */
+  onWheel(event: WheelEvent): void {
+    if (this.wheelSteps()) return;
+    const field = event.currentTarget as HTMLInputElement | null;
+    if (!field || field.ownerDocument.activeElement !== field) return;
+    event.preventDefault();
+    svScrollNearest(field, event.deltaX, event.deltaY, event.deltaMode);
   }
 
   onKeydown(event: KeyboardEvent): void {

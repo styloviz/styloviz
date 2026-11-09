@@ -10,7 +10,8 @@ import {
   OnDestroy,
 } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { SvCheckIcon, SvCopyIcon } from '@styloviz/icons';
+import { SvCheckIcon } from '@styloviz/icons/glyph/check';
+import { SvCopyIcon } from '@styloviz/icons/glyph/copy';
 import type {
   CodeBlockDiffMode,
   CodeBlockVariant,
@@ -25,7 +26,9 @@ import type {
   TerminalLine,
 } from './code-block.types';
 import { inferLanguage, revealBidi, stripAnsi, tokenize } from './code-highlighter';
-import { svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svLocale, injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_CODE_BLOCK_LABELS } from './code-block.labels';
 
 /** One row of a side-by-side diff. Either side may be absent. */
 interface SplitRow {
@@ -57,11 +60,19 @@ const COPY_FEEDBACK_MS = 1600;
 @Component({
   selector: 'sv-code-block',
   standalone: true,
-  imports: [SvCopyIcon, SvCheckIcon, DecimalPipe],
+  imports: [SvCopyIcon, SvCheckIcon, DecimalPipe, SvLabelPipe],
   templateUrl: './code-block.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  // A block that may shrink: as a grid or flex item the default `min-width:
+  // auto` let the longest line widen the block past its column — on a phone
+  // the copy button was cut off ~100 px past the card (FL-L4-05). Shrunk, the
+  // code scrolls inside it, as it was built to.
+  host: { class: 'block min-w-0' },
 })
 export class SvCodeBlockComponent implements OnDestroy {
+  /** @internal Accessible names — English unless `provideSvLabels({ codeBlock })` says otherwise. */
+  protected readonly labels = injectSvLabels('codeBlock', SV_CODE_BLOCK_LABELS);
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-code-block');
 
@@ -73,7 +84,7 @@ export class SvCodeBlockComponent implements OnDestroy {
   /** Source text — the quickest way to render a single snippet. @default '' */
   code = input<string>('');
 
-  /** Language for `code`. Inferred from `filename` when left unset. @default 'plaintext' */
+  /** Language for `code`. Inferred from `filename` when left unset, else `'plaintext'`. @default null */
   language = input<CodeLanguage | null>(null);
 
   /** File name shown in the header and used for language inference. @default '' */
@@ -134,6 +145,9 @@ export class SvCodeBlockComponent implements OnDestroy {
 
   /** Show per-hunk accept / reject buttons in diff mode. @default false */
   reviewable = input<boolean>(false);
+
+  /** BCP 47 locale for dates and numbers. @default the kit's locale (`SV_LOCALE`) */
+  readonly locale = input<string>(svLocale());
 
   // ── Two-way state ─────────────────────────────────────────────────────────
 
@@ -361,7 +375,7 @@ export class SvCodeBlockComponent implements OnDestroy {
   });
 
   /** Target for the region's `aria-describedby`. Per-instance — see `_uid`. */
-  protected readonly diffSummaryId = `sv-diff-summary-${this._uid}`;
+  protected readonly diffSummaryId = `sv-diff-summary-${this._uid}`; // sv-i18n-ignore: element id
 
   /**
    * How big the change is, in words.
@@ -376,14 +390,16 @@ export class SvCodeBlockComponent implements OnDestroy {
   protected readonly diffSummary = computed(() => {
     const { hunks, added, removed } = this.diffStats();
     if (hunks === 0) return '';
-    const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
-    return `Diff: ${count(hunks, 'hunk')}, ${count(added, 'added line')}, ${count(removed, 'removed line')}.`;
+    return svFormatLabel(this.labels.diffSummary, { hunks, added, removed }, this.locale());
   });
 
   // ── Derived: misc ─────────────────────────────────────────────────────────
 
   protected readonly regionLabel = computed(
-    () => this.ariaLabel() || this.activeFile().name || `${this.activeLanguage()} code`,
+    () =>
+      this.ariaLabel() ||
+      this.activeFile().name ||
+      svFormatLabel(this.labels.regionCode, { language: this.activeLanguage() }, this.locale()),
   );
 
   /**
@@ -410,16 +426,16 @@ export class SvCodeBlockComponent implements OnDestroy {
     const ext = dot > 0 ? name.slice(dot + 1) : '';
     if (!ext) return '';
 
-    return `Not syntax highlighted: no rules for .${ext}. Shown as plain text.`;
+    return svFormatLabel(this.labels.highlightFallback, { ext }, this.locale());
   });
 
-  protected readonly highlightNoteId = `sv-cb-note-${this._uid}`;
+  protected readonly highlightNoteId = `sv-cb-note-${this._uid}`; // sv-i18n-ignore: element id
 
   protected readonly languageLabel = computed(() => {
     const lang = this.activeLanguage();
     if (lang !== 'plaintext') return lang;
     // A badge reading "plain text" is the visible half of `highlightNote`.
-    return this.highlightNote() ? 'plain text' : '';
+    return this.highlightNote() ? this.labels.plainText : '';
   });
 
   /**
@@ -446,19 +462,20 @@ export class SvCodeBlockComponent implements OnDestroy {
    *    already right and already tested — it was simply never stated.
    */
   protected readonly copyLabel = computed(() => {
-    if (this.copyDone()) return 'Copied to clipboard';
+    const l = this.labels;
+    if (this.copyDone()) return l.copied;
 
     switch (this.variant()) {
       case 'diff':
-        return 'Copy the updated code — additions and context, without the + and − markers';
+        return l.copyDiff;
       case 'terminal':
-        return 'Copy the transcript, without the prompt';
+        return l.copyTranscript;
       case 'tabs': {
         const name = this.activeFile().name;
-        return name ? `Copy ${name} — the open file only` : 'Copy the open file only';
+        return name ? svFormatLabel(l.copyNamedFile, { name }, this.locale()) : l.copyOpenFile;
       }
       default:
-        return this.lineNumbers() ? 'Copy code, without the line numbers' : 'Copy code';
+        return this.lineNumbers() ? l.copyCodeWithoutNumbers : l.copyCode;
     }
   });
 

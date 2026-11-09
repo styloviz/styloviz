@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import type { SvDataError } from '@styloviz/core';
+import type { SvDataError } from '@styloviz/core/data';
 import { SvResultComponent } from './result.component';
 
 /**
@@ -185,34 +185,30 @@ describe('sv-result — focusHeading in the cases the one-shot hook missed (OF-1
   });
 });
 
-describe('sv-result — public API compatibility', () => {
-  it('still exposes ngAfterViewInit (deprecated), and calling it is safe and idempotent', async () => {
+describe('sv-result — arrival focus runs from an effect', () => {
+  it('focuses once: a later input change does not steal focus back', async () => {
     const v = await setup({ focusHeading: true });
     await v.fixture.whenStable();
-    expect(typeof v.c.ngAfterViewInit).toBe('function');
-    const heading = v.host.querySelector('h2') as HTMLElement;
-    expect(document.activeElement).toBe(heading);
+    expect(document.activeElement).toBe(v.host.querySelector('h2'));
 
     const other = document.createElement('button');
     document.body.appendChild(other);
     other.focus();
-    // Already done: a manual call does not steal focus a second time.
-    v.c.ngAfterViewInit();
+    v.fixture.componentRef.setInput('title', 'Still broken');
+    v.fixture.detectChanges();
     await v.fixture.whenStable();
     expect(document.activeElement).toBe(other);
     other.remove();
   });
 
-  it('ngAfterViewInit focuses the heading when the arrival focus is still owed', async () => {
+  it('focuses the heading when focusHeading is switched on after the first render', async () => {
     TestBed.resetTestingModule();
     const view = await render(SvResultComponent, {
       inputs: { status: 'error', title: 'Boom', focusHeading: false },
     });
-    const c = view.fixture.componentInstance;
     view.fixture.componentRef.setInput('focusHeading', true);
-    c.ngAfterViewInit();
-    await view.fixture.whenStable();
     view.fixture.detectChanges();
+    await view.fixture.whenStable();
     expect(document.activeElement).toBe((view.fixture.nativeElement as HTMLElement).querySelector('h2'));
   });
 });

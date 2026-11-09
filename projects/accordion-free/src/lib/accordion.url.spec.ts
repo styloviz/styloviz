@@ -6,7 +6,7 @@ import {
   svHashNavLocation,
   svNoopNavLocation,
   svQueryParamNavLocation,
-} from '@styloviz/core';
+} from '@styloviz/core/nav';
 import { SvAccordionComponent, type AccordionItem } from './accordion.component';
 
 /**

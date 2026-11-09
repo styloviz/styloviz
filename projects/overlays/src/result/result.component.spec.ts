@@ -1,6 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import { SvResultComponent } from './result.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * A whole-page outcome. The one thing it has to get right that a screenshot
@@ -13,6 +18,7 @@ import { SvResultComponent } from './result.component';
 async function setup(inputs: Partial<ComponentInput<SvResultComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvResultComponent, {
+    providers: [HOST_ICONS],
     inputs: { title: 'All done', ...inputs } as ComponentInput<SvResultComponent>,
   });
 }
@@ -58,6 +64,7 @@ describe('SvResultComponent — what it says', () => {
   it('projects whatever the host wants to offer next', async () => {
     TestBed.resetTestingModule();
     await render('<sv-result title="Order confirmed"><button type="button">Back to shop</button></sv-result>', {
+      providers: [HOST_ICONS],
       imports: [SvResultComponent],
     });
     expect(screen.getByRole('button', { name: 'Back to shop' })).toBeTruthy();

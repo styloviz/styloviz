@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `music` icon. */
 export const musicNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const musicNodes: readonly IconNode[] = [
 export const musicSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm19.9 16q0 3.4-3.4 3.4-3.4 0-3.4-3.4 0-3.4 3.4-3.4.9 0 1.6.3v-7.8l-8.2 1.6v11.3q0 3.4-3.4 3.4-3.4 0-3.4-3.4 0-3.4 3.4-3.4.9 0 1.6.3v-8.9q0-.7.7-.9l10-2q.5 0 .7.1.3.2.4.6 0 .1 0 .2z' },
 ];
+
+/** `music` as a registrable glyph — `registerSvIcons([musicIcon])` / `provideSvIcons([musicIcon])`. */
+export const musicIcon: SvIconDef = { name: 'music', nodes: musicNodes, solid: musicSolidNodes };
 
 /** `music` — tree-shakable standalone icon. Use `<sv-music-icon />`. */
 @Component({

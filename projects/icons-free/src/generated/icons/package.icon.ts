@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `package` icon. */
 export const packageNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const packageNodes: readonly IconNode[] = [
 export const packageSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.4 2.2l8 4q.5.3.5.8v10q0 .5-.5.8l-8 4q-.4.2-.8 0l-8-4q-.5-.3-.5-.8v-10q0-.5.5-.8l8-4q.4-.2.8 0zm-7.5 6.2l6.2 3.1v8.1l.9.4.9-.4v-8.1l3.2-1.6q.3 0 .5-.2l2.5-1.3v-.9l-1.1-.5-2 1-6-3-2 1 6 3-2 1-6-3-1.1.5z' },
 ];
+
+/** `package` as a registrable glyph — `registerSvIcons([packageIcon])` / `provideSvIcons([packageIcon])`. */
+export const packageIcon: SvIconDef = { name: 'package', nodes: packageNodes, solid: packageSolidNodes };
 
 /** `package` — tree-shakable standalone icon. Use `<sv-package-icon />`. */
 @Component({

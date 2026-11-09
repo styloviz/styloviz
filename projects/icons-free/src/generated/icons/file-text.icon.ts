@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `file-text` icon. */
 export const fileTextNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const fileTextNodes: readonly IconNode[] = [
 export const fileTextSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7 2.1h7q.4 0 .6.3l5 5q.3.2.3.6v12q0 1.9-1.9 1.9h-11q-1.9 0-1.9-1.9v-16q0-1.9 1.9-1.9zm1.5 13.5q-.9 0-.9.9 0 .9.9.9h7q.9 0 .9-.9 0-.9-.9-.9zm0-3.5q-.9 0-.9.9 0 .9.9.9h7q.9 0 .9-.9 0-.9-.9-.9zm4.6-8.2v4.1q0 .9.9.9h4.1v-.5l-1.2-1.3h-2v-2l-1.3-1.2z' },
 ];
+
+/** `file-text` as a registrable glyph — `registerSvIcons([fileTextIcon])` / `provideSvIcons([fileTextIcon])`. */
+export const fileTextIcon: SvIconDef = { name: 'file-text', nodes: fileTextNodes, solid: fileTextSolidNodes };
 
 /** `file-text` — tree-shakable standalone icon. Use `<sv-file-text-icon />`. */
 @Component({

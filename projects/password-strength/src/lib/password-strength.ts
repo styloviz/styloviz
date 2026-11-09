@@ -25,6 +25,8 @@
  * here that is real evidence comes from the host, via
  * {@link PasswordBreachStatus}, because that requires a server.
  */
+import { svFormatLabel } from '@styloviz/core/i18n';
+import { SV_PASSWORD_STRENGTH_LABELS, type SvPasswordStrengthLabels } from './password-strength.labels';
 
 /**
  * How the guidance reads, 0 (weakest patterns) – 4. Deliberately a *band*, not a
@@ -75,13 +77,13 @@ export interface PasswordGuidanceOptions {
   readonly breach?: PasswordBreachStatus;
 }
 
-export const PASSWORD_STRENGTH_LABELS: readonly string[] = [
-  'Very weak',
-  'Weak',
-  'Fair',
-  'Good',
-  'Strong',
-];
+/** The band names, weakest first, from `labels`. */
+export function svPasswordStrengthBandLabels(labels: SvPasswordStrengthLabels): readonly string[] {
+  return [labels.bandVeryWeak, labels.bandWeak, labels.bandFair, labels.bandGood, labels.bandStrong];
+}
+
+/** The band names in English — `svPasswordStrengthBandLabels(SV_PASSWORD_STRENGTH_LABELS)`. */
+export const PASSWORD_STRENGTH_LABELS: readonly string[] = svPasswordStrengthBandLabels(SV_PASSWORD_STRENGTH_LABELS);
 
 /** A short list of the most commonly reused/breached passwords. Matched case-insensitively. */
 const COMMON_PASSWORDS = new Set<string>([
@@ -99,13 +101,6 @@ const SEQUENCES = [
   'asdfghjkl',
   'zxcvbnm',
 ];
-
-/**
- * The one hint worth leading with. Length is the lever that actually moves
- * guessability, and a passphrase is how people reach length without a
- * password manager.
- */
-const LENGTHEN = 'Longer is stronger — four or five unrelated words beat a short, complicated password.';
 
 function hasSequentialRun(lower: string, runLength = 4): boolean {
   for (const seq of SEQUENCES) {
@@ -130,11 +125,12 @@ function hasRepeatedRun(s: string, runLength = 4): boolean {
 function guidance(
   band: PasswordStrengthBand,
   suggestions: readonly string[],
+  labels: SvPasswordStrengthLabels,
   fromBreachCheck = false,
 ): PasswordGuidance {
   return {
     band,
-    label: PASSWORD_STRENGTH_LABELS[band],
+    label: svPasswordStrengthBandLabels(labels)[band],
     suggestions: [...new Set(suggestions)].slice(0, 3),
     fromBreachCheck,
   };
@@ -147,20 +143,24 @@ function guidance(
  * ★ A `breached` status overrides the heuristic entirely. Length and variety are
  *   guesses about guessability; "this exact string is in a breach corpus" is a
  *   fact, and it is the only thing here worth overriding everything else.
+ *
+ * `labels` supplies the band names and hints — `SV_PASSWORD_STRENGTH_LABELS`
+ * in English, or the component's translated labels.
  */
 export function evaluatePassword(
   password: string,
-  options: PasswordGuidanceOptions = {},
+  options: PasswordGuidanceOptions,
+  labels: SvPasswordStrengthLabels,
 ): PasswordGuidance {
   const minLength = options.minLength ?? 12;
   const breach = options.breach ?? 'unknown';
 
   if (breach === 'breached') {
-    return guidance(0, ['This password has appeared in a data breach. Choose a different one.'], true);
+    return guidance(0, [labels.breachBreached], labels, true);
   }
 
   if (!password) {
-    return guidance(0, ['Enter a password']);
+    return guidance(0, [labels.enterPassword], labels);
   }
 
   const suggestions: string[] = [];
@@ -169,7 +169,8 @@ export function evaluatePassword(
   // ★ Length carries the band. Three of the four points available come from
   //   here, so no amount of punctuation rescues a six-character password.
   if (password.length >= minLength) points += 1;
-  else suggestions.push(`Use at least ${minLength} characters`);
+  // A pre-formatted count keeps the English output byte-identical (no grouping).
+  else suggestions.push(svFormatLabel(labels.useAtLeast, { minLength: String(minLength) }));
   if (password.length >= minLength + 4) points += 1;
   if (password.length >= minLength + 8) points += 1;
 
@@ -181,24 +182,27 @@ export function evaluatePassword(
   const lower = password.toLowerCase();
   if (COMMON_PASSWORDS.has(lower)) {
     points = 0;
-    suggestions.unshift('This is one of the most-guessed passwords. Pick something else.');
+    suggestions.unshift(labels.commonPassword);
   } else {
     if (hasSequentialRun(lower)) {
       points -= 1;
-      suggestions.push('Avoid runs like "abcd" or "1234" — they are the first thing guessed.');
+      suggestions.push(labels.avoidSequences);
     }
     if (hasRepeatedRun(lower)) {
       points -= 1;
-      suggestions.push('Avoid repeated characters like "aaaa".');
+      suggestions.push(labels.avoidRepeats);
     }
   }
 
-  if (password.length < minLength + 8) suggestions.push(LENGTHEN);
+  // The one hint worth leading with. Length is the lever that actually moves
+  // guessability, and a passphrase is how people reach length without a
+  // password manager.
+  if (password.length < minLength + 8) suggestions.push(labels.lengthen);
 
   if (breach === 'unavailable') {
-    suggestions.push('We could not check this against known breaches right now.');
+    suggestions.push(labels.breachUnavailable);
   }
 
   const band = Math.max(0, Math.min(4, points)) as PasswordStrengthBand;
-  return guidance(band, suggestions);
+  return guidance(band, suggestions, labels);
 }

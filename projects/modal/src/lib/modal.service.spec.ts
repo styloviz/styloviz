@@ -6,7 +6,7 @@ import {
   SvModalService,
   type SvModalResult,
 } from './modal.service';
-import { svBodyScrollLockDepth, svResetBodyScrollLock } from '@styloviz/core';
+import { svBodyScrollLockDepth, svResetBodyScrollLock } from '@styloviz/core/overlay';
 
 /** A dialog that can close itself with whatever the test needs. */
 @Component({

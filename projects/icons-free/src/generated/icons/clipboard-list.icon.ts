@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `clipboard-list` icon. */
 export const clipboardListNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const clipboardListNodes: readonly IconNode[] = [
 export const clipboardListSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm8 3.1h.3q.2-.4.5-.8.7-.7 1.7-.7h3q1.9 0 2.3 1.5h.2q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-8q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm4 7q-.9 0-.9.9 0 .9.9.9h3q.9 0 .9-.9 0-.9-.9-.9zm0 4q-.9 0-.9.9 0 .9.9.9h3q.9 0 .9-.9 0-.9-.9-.9zm-3 0q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9zm0-4q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `clipboard-list` as a registrable glyph — `registerSvIcons([clipboardListIcon])` / `provideSvIcons([clipboardListIcon])`. */
+export const clipboardListIcon: SvIconDef = { name: 'clipboard-list', nodes: clipboardListNodes, solid: clipboardListSolidNodes };
 
 /** `clipboard-list` — tree-shakable standalone icon. Use `<sv-clipboard-list-icon />`. */
 @Component({

@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -17,7 +16,9 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { prefersReducedMotion, svElementSize, svRecoverFocus } from '@styloviz/core';
+import { prefersReducedMotion } from '@styloviz/core/a11y';
+import { svElementSize } from '@styloviz/core/layout';
+import { svRecoverFocus } from '@styloviz/core/overlay';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -48,6 +49,18 @@ import { prefersReducedMotion, svElementSize, svRecoverFocus } from '@styloviz/c
  *   a close/re-open. It is destroyed only with `sv-expand` itself (or when the
  *   host removes it from its own template).
  *
+ * ── Server rendering (`LU-04-I4`, FL-J3-LU-08) ──────────────────────────────
+ * ★★ THE INITIAL STATE IS A TEMPLATE BINDING. A panel that starts collapsed
+ *    renders `style="display: none"` from its first render — on the server
+ *    too — so prerendered HTML ships it hidden and hydration finds the same
+ *    value it would bind: no flash of open content, no mismatch. It used to be
+ *    written imperatively in `ngAfterViewInit`, which a server render never
+ *    serialises in time for the HTML, so a "collapsed" panel arrived open and
+ *    snapped shut once the client booted. Nothing is emitted for the initial
+ *    state: `expandedChange` reports transitions only. A collapsed non-lazy
+ *    panel's content IS in the server HTML (hidden, `inert`, `aria-hidden`); a
+ *    collapsed lazy one renders no content until first opened.
+ *
  * ── Interrupted transitions (`LU-04-I3`) ────────────────────────────────────
  * ★★ LAST WRITE WINS. Every change of `expanded` cancels the in-flight
  *    transition's settle step, starts the new transition from the height the
@@ -61,7 +74,7 @@ import { prefersReducedMotion, svElementSize, svRecoverFocus } from '@styloviz/c
   templateUrl: './expand.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SvExpandComponent implements OnChanges, AfterViewInit, OnDestroy {
+export class SvExpandComponent implements OnChanges, OnDestroy {
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Controls open/closed state. @default false */
@@ -79,7 +92,7 @@ export class SvExpandComponent implements OnChanges, AfterViewInit, OnDestroy {
 
   /**
    * Only attach content after first open. Content is RETAINED after that — a
-   * collapse hides it, it never destroys it. ⚠️ Projected components are still
+   * collapse hides it, it never destroys it. Projected components are still
    * instantiated by the host up front; wrap them in your own `@if` / `@defer`
    * to defer creation.
    * @default true
@@ -175,19 +188,24 @@ export class SvExpandComponent implements OnChanges, AfterViewInit, OnDestroy {
     });
   }
 
-  /** Set initial display state once the view is ready — no animation. */
-  ngAfterViewInit(): void {
-    const el = this.wrapperRef()?.nativeElement;
-    if (!el) return;
-    el.style.display = this.expanded() ? '' : 'none';
-  }
+  /**
+   * The wrapper's display on FIRST render — `none` for a panel that starts
+   * collapsed, nothing otherwise (`LU-04-I4`).
+   *
+   * ★ A computed with no tracked dependency: it is evaluated once, at the first
+   *   render (inputs are set by then), and never again — so the binding never
+   *   fights the transitions, which own `style.display` from then on.
+   */
+  protected readonly initialDisplay = computed<'none' | null>(() =>
+    untracked(this.expanded) ? null : 'none',
+  );
 
   ngOnChanges(changes: SimpleChanges): void {
     if ('expanded' in changes) {
       const change = changes['expanded'];
 
-      // Skip the first change: the view is not mounted yet;
-      // ngAfterViewInit sets the initial display state without animation.
+      // Skip the first change: the template's `initialDisplay` binding renders
+      // the initial state, without animation, on the server and the client alike.
       if (change.firstChange) return;
 
       const el = this.wrapperRef()?.nativeElement;
@@ -261,7 +279,7 @@ export class SvExpandComponent implements OnChanges, AfterViewInit, OnDestroy {
   /** The `transition` value for a height move of {@link motionMs}. */
   private heightTransition(): string {
     const ms = this.motionMs();
-    return ms === 0 ? 'none' : `height ${ms}ms ${this.easing()}`;
+    return ms === 0 ? 'none' : `height ${ms}ms ${this.easing()}`; // sv-i18n-ignore: CSS transition value
   }
 
   private pendingCleanup: (() => void) | null = null;

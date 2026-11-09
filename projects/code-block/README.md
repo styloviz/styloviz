@@ -1,16 +1,18 @@
 # @styloviz/code-block
 
-> Read-only source display with a zero-dependency highlighter for 9 languages. Four variants — block, multi-file tabs, diff (unified or split with per-hunk accept/reject) and terminal — plus streaming-safe rendering, line numbers, soft wrap, line highlighting, copy-to-clipboard, and a render cap for files too long to draw in full.
+> Developer components — a code block with its own highlighter for 9 languages (block, tabs, diff and terminal variants), a live terminal with ANSI colour and autoscroll that pauses when you scroll up, a diff viewer for two texts or a git patch, a stack-trace viewer for V8, Firefox and Safari traces, and a file tree.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/icons @styloviz/core @styloviz/code-block
+npm install @styloviz/icons @styloviz/core @styloviz/tree-view @styloviz/code-block
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/core` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/core`, `@styloviz/tree-view` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -59,7 +61,7 @@ export class DemoComponent {}
 | --- | --- | --- | --- |
 | `variant` | `CodeBlockVariant` | `'block'` | Layout preset. |
 | `code` | `string` | `''` | Source text — the quickest way to render a single snippet. |
-| `language` | `CodeLanguage \| null` | `null` | Language for `code`. Inferred from `filename` when left unset. |
+| `language` | `CodeLanguage \| null` | `null` | Language for `code`. Inferred from `filename` when left unset, else `'plaintext'`. |
 | `filename` | `string` | `''` | File name shown in the header and used for language inference. |
 | `files` | `readonly CodeFile[]` | `[]` | Files for the `tabs` variant. Overrides `code` / `filename` when non-empty. |
 | `hunks` | `readonly DiffHunk[]` | `[]` | Hunks for the `diff` variant. |
@@ -75,6 +77,7 @@ export class DemoComponent {}
 | `streaming` | `boolean` | `false` | Render a blinking caret after the last line, for in-flight responses. |
 | `ariaLabel` | `string` | `''` | Accessible name for the scroll region. Falls back to the file name. |
 | `reviewable` | `boolean` | `false` | Show per-hunk accept / reject buttons in diff mode. |
+| `locale` | `string` | `svLocale()` | BCP 47 locale for dates and numbers. |
 | `activeTab` | `number (two-way)` | `0` | Index of the visible tab in the `tabs` variant. |
 
 ## Outputs
@@ -92,4 +95,4 @@ Full API reference and live demos: https://styloviz.dev/docs/code-block
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

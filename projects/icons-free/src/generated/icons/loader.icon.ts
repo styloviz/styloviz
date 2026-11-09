@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `loader` icon. */
 export const loaderNodes: readonly IconNode[] = [
@@ -20,6 +21,9 @@ export const loaderNodes: readonly IconNode[] = [
 export const loaderSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3 11.1h3q.9 0 .9.9 0 .9-.9.9h-3q-.9 0-.9-.9 0-.9.9-.9zm15 0h3q.9 0 .9.9 0 .9-.9.9h-3q-.9 0-.9-.9 0-.9.9-.9zm-5.1-8.1v3q0 .9-.9.9-.9 0-.9-.9v-3q0-.9.9-.9.9 0 .9.9zm0 15v3q0 .9-.9.9-.9 0-.9-.9v-3q0-.9.9-.9.9 0 .9.9zm4-2.3l2.1 2.1q.6.6 0 1.2-.6.6-1.2 0l-2.1-2.1q-.6-.6 0-1.2.6-.6 1.2 0zm-11.9 2.1l2.1-2.1q.6-.6 1.2 0 .6.6 0 1.2l-2.1 2.1q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2zm10.7-10.7l2.1-2.1q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6l-2.1 2.1q-.6.6-1.2 0-.6-.6 0-1.2zm-9.5-2.1l2.1 2.1q.6.6 0 1.2-.6.6-1.2 0l-2.1-2.1q-.6-.6 0-1.2.6-.6 1.2 0z' },
 ];
+
+/** `loader` as a registrable glyph — `registerSvIcons([loaderIcon])` / `provideSvIcons([loaderIcon])`. */
+export const loaderIcon: SvIconDef = { name: 'loader', nodes: loaderNodes, solid: loaderSolidNodes };
 
 /** `loader` — tree-shakable standalone icon. Use `<sv-loader-icon />`. */
 @Component({

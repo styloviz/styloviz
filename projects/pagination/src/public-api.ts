@@ -1,4 +1,6 @@
 export { SvPaginationComponent } from './lib/pagination.component';
+export { SV_PAGINATION_LABELS } from './lib/pagination.labels';
+export type { SvPaginationLabels } from './lib/pagination.labels';
 export type {
   PaginationSize,
   PaginationVariant,
@@ -15,3 +17,6 @@ export type {
  */
 export { createSvCursorPager } from './lib/cursor-pager';
 export type { SvCursorPager, SvCursorTrail } from './lib/cursor-pager';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/pagination.labels.packs';

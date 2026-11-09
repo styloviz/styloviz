@@ -1,11 +1,17 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { render } from '@testing-library/angular';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+import { userIcon } from '@styloviz/icons/glyph/user';
 import { flush } from '../../../../src/testing/async';
 import {
   SvSelectDropdownComponent,
   type SelectOption,
 } from './select-dropdown.component';
+import { renderSelect } from '@testing/select-host';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 const OPTIONS = (): SelectOption[] => [
   { value: 'a', label: 'Alpha' },
@@ -14,9 +20,9 @@ const OPTIONS = (): SelectOption[] => [
 
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvSelectDropdownComponent, {
-    inputs: { options: OPTIONS(), ...inputs },
-  });
+  // Option glyphs are host-supplied names, so the host registers them (FL-B4).
+  TestBed.configureTestingModule({ providers: [provideSvIcons([starIcon, userIcon])] });
+  const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS(), ...inputs });
   return fixture;
 }
 

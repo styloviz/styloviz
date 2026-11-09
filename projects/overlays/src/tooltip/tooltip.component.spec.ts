@@ -7,11 +7,11 @@ import { SvTooltipComponent } from './tooltip.component';
 /**
  * A tooltip is judged on what it does when the pointer is not involved. It has
  * to appear on focus, be dismissible with Escape without moving focus (WCAG
- * 1.4.13), and be tied to its trigger by `aria-describedby` only while it is
- * actually showing — a description that is always present is read out whether
- * or not the tooltip is up.
+ * 1.4.13), and be tied to its trigger by `aria-describedby` — on the projected
+ * control, from the start, because that is what focus lands on and a
+ * description that arrives after focus is not read (`SR-15`).
  *
- * ★ REGRESSION GUARD — Phase 4 finding (PHASE4_OVERLAYS_FEEDBACK_AUDIT.md, P2).
+ * ★ REGRESSION GUARD — Phase 4 finding (docs/audit/PHASE4_OVERLAYS_FEEDBACK_AUDIT.md, P2).
  *   Two tests in this file exist because the defect they describe SHIPPED:
  *
  *     • "appears for a keyboard user too"  — the hover trigger once bound only
@@ -84,6 +84,27 @@ describe('SvTooltipComponent — showing and hiding', () => {
     v.fixture.detectChanges();
     expect(instance(v).visible()).toBe(false);
     expect(document.activeElement === document.body || document.activeElement === trigger()).toBe(true);
+  });
+
+  it('dismisses on Escape pressed anywhere, not only inside the trigger', async () => {
+    // ★ SR-15 (d): the listener was on the wrapper, so a hover tooltip — up
+    //   while focus is elsewhere — could not be dismissed from the keyboard.
+    const v = await setup();
+    await userEvent.hover(wrapper(v));
+    expect(instance(v).visible()).toBe(true);
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    v.fixture.detectChanges();
+    expect(instance(v).visible()).toBe(false);
+  });
+
+  it('cancels a pending delayed show on Escape', async () => {
+    const v = await setup('[delay]="300"');
+    vi.useFakeTimers();
+    instance(v).show();
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    vi.advanceTimersByTime(1_000);
+    expect(instance(v).visible()).toBe(false);
   });
 
   it('toggles on click when that is the trigger, and ignores hover', async () => {
@@ -167,16 +188,57 @@ describe('SvTooltipComponent — the delay', () => {
 });
 
 describe('SvTooltipComponent — how it is announced', () => {
-  it('describes the trigger only while it is showing', async () => {
+  it('describes the projected trigger from the start, not the wrapper', async () => {
+    // ★ SR-15 (f). It was the wrapper <div>, and only while showing: the
+    //   element focus lands on never carried the description at all.
     const v = await setup();
     const bubble = screen.getByRole('tooltip', { hidden: true });
     expect(bubble.getAttribute('aria-hidden')).toBe('true');
+    expect(trigger().getAttribute('aria-describedby')).toBe(instance(v).tooltipId);
     expect(wrapper(v).getAttribute('aria-describedby')).toBeNull();
 
     instance(v).show();
     v.fixture.detectChanges();
-    expect(wrapper(v).getAttribute('aria-describedby')).toBe(instance(v).tooltipId);
+    expect(trigger().getAttribute('aria-describedby')).toBe(instance(v).tooltipId);
+    expect(wrapper(v).getAttribute('aria-describedby')).toBeNull();
     expect(screen.getByRole('tooltip').getAttribute('aria-hidden')).toBe('false');
+  });
+
+  it('keeps the trigger\'s own description ids, and removes only its own on teardown', async () => {
+    TestBed.resetTestingModule();
+    const v = await render(
+      `<p id="hint">Cannot be undone</p>
+       <sv-tooltip text="Delete this row"><button type="button" aria-describedby="hint">Delete</button></sv-tooltip>`,
+      { imports: [SvTooltipComponent] },
+    );
+    const id = (v.fixture.debugElement.children[1].componentInstance as SvTooltipComponent).tooltipId;
+    expect(trigger().getAttribute('aria-describedby')).toBe(`hint ${id}`);
+    const button = trigger();
+    v.fixture.destroy();
+    expect(button.getAttribute('aria-describedby')).toBe('hint');
+  });
+
+  it('falls back to the wrapper, while showing, when nothing projected can take focus', async () => {
+    TestBed.resetTestingModule();
+    const v = await render(`<sv-tooltip text="Last synced 2m ago"><span>Synced</span></sv-tooltip>`, {
+      imports: [SvTooltipComponent],
+    });
+    expect(wrapper(v).getAttribute('aria-describedby')).toBeNull();
+    instance(v).show();
+    v.fixture.detectChanges();
+    expect(wrapper(v).getAttribute('aria-describedby')).toBe(instance(v).tooltipId);
+  });
+
+  it('drops the description when the text empties', async () => {
+    TestBed.resetTestingModule();
+    const v = await render(
+      `<sv-tooltip [text]="text"><button type="button">Delete</button></sv-tooltip>`,
+      { imports: [SvTooltipComponent], componentProperties: { text: 'Delete this row' } },
+    );
+    expect(trigger().getAttribute('aria-describedby')).toBeTruthy();
+    await v.rerender({ componentProperties: { text: '' } });
+    v.fixture.detectChanges();
+    expect(trigger().getAttribute('aria-describedby')).toBeNull();
   });
 
   it('gives every instance its own id', async () => {
@@ -212,10 +274,32 @@ describe('SvTooltipComponent — looks', () => {
     expect(instance(v).arrowClasses()).not.toContain('undefined');
   });
 
-  it('matches the arrow colour to the bubble', async () => {
-    const v = await setup('variant="danger"');
-    expect(instance(v).tooltipClasses()).toContain('bg-danger-600');
-    expect(instance(v).arrowClasses()).toContain('bg-danger-600');
+  it.each(['dark', 'light', 'primary', 'danger', 'success', 'warning'] as const)(
+    'matches the arrow colour to the bubble (%s)',
+    async (variant) => {
+      // ★ SR-15 (b): `success` was an accent-700 bubble with an accent-600 arrow.
+      const v = await setup(`variant="${variant}"`);
+      const bg = (cls: string) => cls.split(/\s+/).filter((c) => /^(dark:)?bg-/.test(c)).sort();
+      expect(bg(instance(v).arrowClasses())).toEqual(bg(instance(v).tooltipClasses()));
+    },
+  );
+
+  it.each([
+    ['top', 'border-r border-b'],
+    ['bottom', 'border-t border-l'],
+    ['left', 'border-t border-r'],
+    ['right', 'border-b border-l'],
+  ] as const)('outlines the light arrow on its two outer edges (%s)', async (position, edges) => {
+    // ★ SR-15 (c): the light bubble has a ring and its arrow had none.
+    // The in-place arrow: its outline classes are the ones written per side.
+    const v = await setup(`variant="light" position="${position}" [portal]="false"`);
+    expect(instance(v).tooltipClasses()).toContain('ring-gray-200');
+    expect(instance(v).arrowClasses()).toContain(`${edges} border-gray-200 dark:border-gray-700`);
+  });
+
+  it('draws no outline on an arrow whose bubble has none', async () => {
+    const v = await setup('variant="dark"');
+    expect(instance(v).arrowClasses()).not.toContain('border');
   });
 
   it('fades rather than unmounting, so the description stays addressable', async () => {
@@ -230,6 +314,23 @@ describe('SvTooltipComponent — looks', () => {
     await setup('[maxWidth]="120"');
     const bubble = screen.getByRole('tooltip', { hidden: true }) as HTMLElement;
     expect(bubble.style.maxWidth).toBe('120px');
+  });
+
+  it.each([false, true])('wraps at the maximum width rather than overflowing it (portal %s)', async (portal) => {
+    // ★ SR-15 (a): `whitespace-nowrap` made `maxWidth` a no-op — the box was
+    //   capped and the text ran out of it.
+    const v = await setup(`[maxWidth]="120" [portal]="${portal}"`);
+    const cls = instance(v).tooltipClasses().split(/\s+/);
+    expect(cls).not.toContain('whitespace-nowrap');
+    expect(cls).toEqual(expect.arrayContaining(['w-max', 'whitespace-normal', 'break-words']));
+  });
+
+  it('stays on one line, with no cap, when maxWidth is null', async () => {
+    const v = await setup('[maxWidth]="null"');
+    const bubble = screen.getByRole('tooltip', { hidden: true }) as HTMLElement;
+    expect(bubble.style.maxWidth).toBe('');
+    expect(instance(v).tooltipClasses()).toContain('whitespace-nowrap');
+    expect(instance(v).tooltipClasses()).not.toContain('w-max');
   });
 
   /**

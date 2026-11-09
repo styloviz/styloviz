@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `calendar` icon. */
 export const calendarNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const calendarNodes: readonly IconNode[] = [
 export const calendarSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6 4.1h1.1v-1.1q0-.9.9-.9.9 0 .9.9v1.1h6.2v-1.1q0-.9.9-.9.9 0 .9.9v1.1h1.1q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-12q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm-1.1 6.8h14.2v-1.8h-14.2z' },
 ];
+
+/** `calendar` as a registrable glyph — `registerSvIcons([calendarIcon])` / `provideSvIcons([calendarIcon])`. */
+export const calendarIcon: SvIconDef = { name: 'calendar', nodes: calendarNodes, solid: calendarSolidNodes };
 
 /** `calendar` — tree-shakable standalone icon. Use `<sv-calendar-icon />`. */
 @Component({

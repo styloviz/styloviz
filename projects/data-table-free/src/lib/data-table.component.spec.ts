@@ -1,6 +1,6 @@
 import { render } from '@testing-library/angular';
 import { SvDataTableComponent, type TableColumn } from './data-table.component';
-import type { SvDataQuery } from '@styloviz/core';
+import type { SvDataQuery } from '@styloviz/core/data';
 
 interface Row extends Record<string, unknown> {
   id: number;
@@ -101,16 +101,13 @@ describe('SvDataTableComponent — pagination', () => {
 });
 
 describe('SvDataTableComponent — server-side query contract', () => {
-  it('emits the kit-wide SvDataQuery alongside the legacy event', async () => {
+  it('emits the kit-wide SvDataQuery once per change', async () => {
     const c = await setup({ serverSide: true });
     const queries: SvDataQuery[] = [];
-    const legacy: unknown[] = [];
     c.queryChange.subscribe((q) => queries.push(q));
-    c.serverPageChange.subscribe((e) => legacy.push(e));
 
     c.goTo(2);
 
-    expect(legacy).toHaveLength(1);
     expect(queries).toHaveLength(1);
     expect(queries[0]).toMatchObject({ page: 2, pageSize: 2, search: '', cursor: null });
   });

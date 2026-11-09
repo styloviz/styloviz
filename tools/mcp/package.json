@@ -1,0 +1,46 @@
+{
+  "name": "@styloviz/mcp",
+  "version": "2.0.0",
+  "description": "Model Context Protocol server for the Styloviz Angular + Tailwind UI kit — docs and API search, component picker, snippets, demo variants, templates, icons and theme tokens, answered offline from the kit's own docs.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "angular",
+    "tailwind",
+    "ui-kit",
+    "styloviz",
+    "claude",
+    "cursor"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/styloviz/styloviz.git",
+    "directory": "tools/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "type": "module",
+  "bin": {
+    "styloviz-mcp": "bin/styloviz-mcp.mjs"
+  },
+  "exports": {
+    ".": "./lib/search.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "data",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,12 +1,12 @@
 <div class="w-full">
   @if (label()) {
-    <label [attr.for]="_uid + '-input'" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</label>
+    <label [attr.for]="_uid + '-input'" [class]="labelClass()">{{ label() }}</label>
   }
 
-  <div class="relative">
-    <!-- Search icon -->
-    <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-      @if (loading()) {
+  <div class="relative" [attr.data-sv-create]="pendingCreate() ? 'pending' : null">
+    <!-- Search icon — a spinner while a lookup or an awaited create is in flight -->
+    <div class="pointer-events-none absolute inset-y-0 start-3 flex items-center">
+      @if (loading() || pendingCreate()) {
         <sv-spinner-arc cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" />
       } @else {
         <sv-icon [name]="icon()" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
@@ -26,6 +26,7 @@
       [attr.aria-controls]="open() ? 'ac-panel-' + _uid : null"
       [attr.aria-activedescendant]="activeDescendantId()"
       aria-autocomplete="list"
+      [attr.aria-busy]="pendingCreate() ? 'true' : null"
       [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
       [attr.aria-describedby]="fieldError.showError() ? validationErrorId : null"
       (input)="onInputChange($any($event.target).value)"
@@ -36,8 +37,8 @@
     <!-- Clear button -->
     @if (clearable() && query()) {
       <button type="button"
-        class="absolute inset-y-0 right-2 flex items-center p-1 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none"
-        aria-label="Clear"
+        class="absolute inset-y-0 end-2 flex min-w-6 items-center justify-center p-1 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none"
+        [attr.aria-label]="labels.clear"
         [disabled]="resolvedDisabled()"
         (click)="clear()">
         <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
@@ -49,9 +50,10 @@
        ALL parent overflow:hidden and CSS transform containment. ── -->
   <ng-template #panelTpl>
 
-    @if (filtered().length > 0) {
-      <!-- Results list -->
-      <ul [id]="'ac-panel-' + _uid"
+    @if (filtered().length > 0 || canCreate()) {
+      <!-- Results list (or just the Create row when nothing matched) -->
+      <!-- sv-physical: fixed viewport coordinates — svInlineAnchor chooses the pinned edge and already mirrors it under dir=rtl -->
+      <ul [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']" svRevealFocus [id]="'ac-panel-' + _uid"
           class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-xl border border-gray-200/70
                  bg-white py-1
                  shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
@@ -63,23 +65,37 @@
           [style.top]="panelStyle()['top']"
       [style.maxHeight]="panelStyle()['maxHeight']"
           [style.bottom]="panelStyle()['bottom']"
-          [style.left]="panelStyle()['left']"
-          [style.right]="panelStyle()['right']"
       [style.maxWidth]="panelStyle()['maxWidth']"
-          [style.max-height]="'300px'"
+          [class.scroll-pb-9]="isTruncated()"
           [svStale]="stale()"
           role="listbox">
         @if (grouped()) {
-          @for (grp of groupedFiltered(); track grp.label) {
+          <!--
+            A labelled section is a real `role="group"` named by its heading
+            (`FI-01-I5`) — parity with sv-select-dropdown. A presentational
+            header row was only ever seen, never heard: a screen reader moved
+            from "Ada" in People to "Billing" in Pages with no word that the
+            section had changed.
+          -->
+          @for (grp of groupedFiltered(); track grp.label; let gi = $index) {
             @if (grp.label) {
-              <li role="presentation"
-                  class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                {{ grp.label }}
+              <li role="presentation">
+                <div [id]="groupLabelIds()[gi]"
+                     class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  {{ grp.label }}
+                </div>
+                <ul role="group" [attr.aria-labelledby]="groupLabelIds()[gi]">
+                  @for (row of grp.rows; track row.opt.value) {
+                    <ng-container [ngTemplateOutlet]="optionRow"
+                                  [ngTemplateOutletContext]="{ opt: row.opt, i: row.index }" />
+                  }
+                </ul>
               </li>
-            }
-            @for (row of grp.rows; track row.opt.value) {
-              <ng-container [ngTemplateOutlet]="optionRow"
-                            [ngTemplateOutletContext]="{ opt: row.opt, i: row.index }" />
+            } @else {
+              @for (row of grp.rows; track row.opt.value) {
+                <ng-container [ngTemplateOutlet]="optionRow"
+                              [ngTemplateOutletContext]="{ opt: row.opt, i: row.index }" />
+              }
             }
           }
         } @else {
@@ -87,6 +103,48 @@
             <ng-container [ngTemplateOutlet]="optionRow"
                           [ngTemplateOutletContext]="{ opt, i }" />
           }
+        }
+
+        <!--
+          ★★★ THE TRUNCATION, DISCLOSED (`FI-01-I2`).
+
+          `role="presentation"` and `aria-hidden`, because a bare <li> inside a
+          listbox is an unlabelled OPTION as far as assistive tech is concerned —
+          this row would otherwise announce as a ninth result that no key can
+          reach. The same sentence is announced separately through the live
+          region below the field, which is where a status belongs.
+
+          Lives inside the <ul> (was rendered after `</ul>`, which appended a
+          static 34 px <li> to the portal host and grew the page on every open —
+          `SR-01`). `sticky bottom-0` keeps it visible while the list scrolls
+          and avoids any width/height pulse while the panel re-measures itself.
+        -->
+        <!-- "Create ‹query›" (`X-13`) — an option like the rest, so ↓/Enter and
+             aria-activedescendant reach it with no extra key. -->
+        @if (canCreate()) {
+          <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+          <li role="option"
+              [id]="optionId(createIndex())"
+              [attr.aria-selected]="highlightIdx() === createIndex()"
+              data-sv-create="option"
+              class="flex cursor-pointer items-center gap-2.5 px-3 py-2 text-sm font-medium text-primary-700 transition-colors duration-100 dark:text-primary-300"
+              [class.bg-primary-50]="highlightIdx() === createIndex()"
+              [class.dark:bg-primary-900/20]="highlightIdx() === createIndex()"
+              (mouseenter)="highlightIdx.set(createIndex())"
+              (mousedown)="$event.preventDefault()"
+              (click)="create()">
+            <sv-icon name="plus" cssClass="h-4 w-4 shrink-0" [strokeWidth]="2" />
+            <span class="min-w-0 truncate">{{ createLabel() }}</span>
+          </li>
+        }
+
+        @if (isTruncated()) {
+          <li data-sv-sticky="bottom" role="presentation" aria-hidden="true"
+              class="sticky bottom-0 border-t border-gray-200/70 bg-white px-3 py-2 text-[11px] text-gray-500
+                     dark:border-gray-700/50 dark:bg-gray-900 dark:text-gray-400"
+              data-sv-state="truncated">
+            {{ truncationNote() }}
+          </li>
         }
       </ul>
 
@@ -109,57 +167,46 @@
             (mouseenter)="highlightIdx.set(i)"
             (click)="pick(opt)">
 
-          @if (opt.icon) {
-            <sv-icon [name]="opt.icon!" cssClass="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
-          }
-
-          <div class="min-w-0 flex-1">
-            <!--
-              ★★★ NO `[innerHTML]`, AND THE WHITESPACE HERE IS LOAD-BEARING.
-              `highlightSegments` returns runs of plain text; this template
-              writes the only markup involved, so a label containing `<img>` is
-              interpolated as characters rather than parsed as a tag
-              (`FI-01-I3`). The `@for` / `@if` are written closed-up against
-              their neighbours on purpose — Angular preserves the whitespace
-              between control-flow blocks, so laying this out over several
-              indented lines inserts spaces INSIDE the word being highlighted.
-            -->
-            <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-200"
-            >@for (seg of highlightSegments(opt.label); track $index) {@if (seg.match) {<mark
-                class="rounded bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300"
-              >{{ seg.text }}</mark>} @else {{{ seg.text }}}}</p>
-            @if (opt.sublabel) {
-              <p class="truncate text-[11px] text-gray-500 dark:text-gray-400">{{ opt.sublabel }}</p>
+          @if (optionTemplate(); as custom) {
+            <!-- The host's row: everything inside the option, nothing around it. -->
+            <ng-container [ngTemplateOutlet]="custom.template"
+                          [ngTemplateOutletContext]="{ $implicit: opt, active: highlightIdx() === i, selected: value() === opt.value, query: query() }" />
+          } @else {
+            @if (opt.icon) {
+              <sv-icon [name]="opt.icon!" cssClass="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
             }
-          </div>
 
-          @if (value() === opt.value) {
-            <sv-icon name="check" cssClass="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" [strokeWidth]="2.5" />
+            <div class="min-w-0 flex-1">
+              <!--
+                ★★★ NO `[innerHTML]`, AND THE WHITESPACE HERE IS LOAD-BEARING.
+                `highlightSegments` returns runs of plain text; this template
+                writes the only markup involved, so a label containing `<img>` is
+                interpolated as characters rather than parsed as a tag
+                (`FI-01-I3`). The `@for` / `@if` are written closed-up against
+                their neighbours on purpose — Angular preserves the whitespace
+                between control-flow blocks, so laying this out over several
+                indented lines inserts spaces INSIDE the word being highlighted.
+              -->
+              <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-200"
+              >@for (seg of highlightSegments(opt.label); track $index) {@if (seg.match) {<mark
+                  class="rounded bg-primary-100 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300"
+                >{{ seg.text }}</mark>} @else {<ng-container>{{ seg.text }}</ng-container>}}</p>
+              @if (opt.sublabel) {
+                <p class="truncate text-[11px] text-gray-500 dark:text-gray-400">{{ opt.sublabel }}</p>
+              }
+            </div>
+
+            @if (value() === opt.value) {
+              <sv-icon name="check" cssClass="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" [strokeWidth]="2.5" />
+            }
           }
         </li>
       </ng-template>
-
-      <!--
-        ★★★ THE TRUNCATION, DISCLOSED (`FI-01-I2`).
-
-        `role="presentation"` and `aria-hidden`, because a bare <li> inside a
-        listbox is an unlabelled OPTION as far as assistive tech is concerned —
-        this row would otherwise announce as a ninth result that no key can
-        reach. The same sentence is announced separately through the live
-        region below the field, which is where a status belongs.
-      -->
-      @if (isTruncated()) {
-        <li role="presentation" aria-hidden="true"
-            class="border-t border-gray-200/70 px-3 py-2 text-[11px] text-gray-500
-                   dark:border-gray-700/50 dark:text-gray-400"
-            data-sv-state="truncated">
-          {{ truncationNote() }}
-        </li>
-      }
     } @else if (error()) {
       <!-- A failed lookup is not "no results". Saying so sends the user hunting
            for an entry that is there. -->
-      <div [id]="'ac-panel-' + _uid"
+      <!-- sv-physical: fixed viewport coordinates — svInlineAnchor chooses the pinned edge and already mirrors it under dir=rtl -->
+      <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']" [id]="'ac-panel-' + _uid"
            class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
                   bg-white shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
                   dark:border-gray-700/50 dark:bg-gray-900"
@@ -169,14 +216,13 @@
            [style.top]="panelStyle()['top']"
            [style.maxHeight]="panelStyle()['maxHeight']"
            [style.bottom]="panelStyle()['bottom']"
-           [style.left]="panelStyle()['left']"
-           [style.right]="panelStyle()['right']"
            [style.maxWidth]="panelStyle()['maxWidth']"
            data-sv-state="error">
         <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" />
       </div>
     } @else if (belowMinChars() && query()) {
-      <div [id]="'ac-panel-' + _uid"
+      <!-- sv-physical: fixed viewport coordinates — svInlineAnchor chooses the pinned edge and already mirrors it under dir=rtl -->
+      <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']" [id]="'ac-panel-' + _uid"
            class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
                   bg-white px-4 py-6 text-center text-sm text-gray-500
                   shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
@@ -187,15 +233,14 @@
            [style.top]="panelStyle()['top']"
            [style.maxHeight]="panelStyle()['maxHeight']"
            [style.bottom]="panelStyle()['bottom']"
-           [style.left]="panelStyle()['left']"
-           [style.right]="panelStyle()['right']"
            [style.maxWidth]="panelStyle()['maxWidth']"
            data-sv-state="min-chars">
         {{ minCharsHint() }}
       </div>
     } @else if (!loading() && query()) {
       <!-- Empty state -->
-      <div [id]="'ac-panel-' + _uid"
+      <!-- sv-physical: fixed viewport coordinates — svInlineAnchor chooses the pinned edge and already mirrors it under dir=rtl -->
+      <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']" [id]="'ac-panel-' + _uid"
            class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] rounded-xl border border-gray-200/70
                   bg-white px-4 py-6 text-center
                   shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
@@ -207,8 +252,6 @@
            [style.top]="panelStyle()['top']"
       [style.maxHeight]="panelStyle()['maxHeight']"
            [style.bottom]="panelStyle()['bottom']"
-           [style.left]="panelStyle()['left']"
-           [style.right]="panelStyle()['right']"
       [style.maxWidth]="panelStyle()['maxWidth']">
         <sv-icon name="search" cssClass="mx-auto mb-2 h-8 w-8 text-gray-300 dark:text-gray-600" [strokeWidth]="1.5" />
         <p class="text-sm text-gray-500 dark:text-gray-400">{{ noResultsLabel() }}</p>
@@ -230,6 +273,12 @@
 <span class="sr-only" role="status" data-sv-state="truncation-status">
   @if (isTruncated() && open()) { {{ truncationNote() }} }
 </span>
+
+<!-- A create the host could not save (`X-13`). Announced through the shared
+     live region by the create flow; this is the visible half. -->
+@if (createError()) {
+  <p class="mt-1.5 text-xs text-danger-600 dark:text-danger-400" data-sv-create="failed">{{ createError() }}</p>
+}
 
 <!-- Form validation error (distinct from the lookup error inside the panel). -->
 <sv-field-error [id]="validationErrorId" [message]="fieldError.resolvedError()" class="mt-1.5 block" />

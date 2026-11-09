@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `alert-circle` icon. */
 export const alertCircleNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const alertCircleNodes: readonly IconNode[] = [
 export const alertCircleSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.9 12q0 4.1-2.9 7-2.9 2.9-7 2.9-4.1 0-7-2.9-2.9-2.9-2.9-7 0-4.1 2.9-7 2.9-2.9 7-2.9 4.1 0 7 2.9 2.9 2.9 2.9 7zm-9-4.5q0-.9-.9-.9-.9 0-.9.9v5.5q0 .9.9.9.9 0 .9-.9zm-.9 8.1q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `alert-circle` as a registrable glyph — `registerSvIcons([alertCircleIcon])` / `provideSvIcons([alertCircleIcon])`. */
+export const alertCircleIcon: SvIconDef = { name: 'alert-circle', nodes: alertCircleNodes, solid: alertCircleSolidNodes };
 
 /** `alert-circle` — tree-shakable standalone icon. Use `<sv-alert-circle-icon />`. */
 @Component({

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bell` icon. */
 export const bellNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const bellSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 3 a5 5 0 0 1 5 5 v2.6 l1.4 2.8 a1 1 0 0 1 -0.9 1.6 H6.5 a1 1 0 0 1 -0.9 -1.6 L7 10.6 V8 a5 5 0 0 1 5 -5 Z' },
   { tag: 'path', d: 'M9.5 19 h5 a2.5 2.5 0 0 1 -5 0 Z' },
 ];
+
+/** `bell` as a registrable glyph — `registerSvIcons([bellIcon])` / `provideSvIcons([bellIcon])`. */
+export const bellIcon: SvIconDef = { name: 'bell', nodes: bellNodes, solid: bellSolidNodes };
 
 /** `bell` — tree-shakable standalone icon. Use `<sv-bell-icon />`. */
 @Component({

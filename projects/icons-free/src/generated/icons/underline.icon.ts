@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `underline` icon. */
 export const underlineNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const underlineNodes: readonly IconNode[] = [
 export const underlineSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6.9 4v6q0 2.1 1.5 3.6 1.5 1.5 3.6 1.5 2.1 0 3.6-1.5 1.5-1.5 1.5-3.6v-6q0-.9.9-.9.9 0 .9.9v6q0 2.8-2 4.9-2.1 2-4.9 2-2.8 0-4.9-2-2-2.1-2-4.9v-6q0-.9.9-.9.9 0 .9.9zm-1.9 16.1h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `underline` as a registrable glyph — `registerSvIcons([underlineIcon])` / `provideSvIcons([underlineIcon])`. */
+export const underlineIcon: SvIconDef = { name: 'underline', nodes: underlineNodes, solid: underlineSolidNodes };
 
 /** `underline` — tree-shakable standalone icon. Use `<sv-underline-icon />`. */
 @Component({

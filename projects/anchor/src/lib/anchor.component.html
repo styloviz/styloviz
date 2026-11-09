@@ -1,24 +1,80 @@
+@if (progress()) {
+  <!-- Reading progress (`SR-29`): a transform, never a width, so a scroll
+       frame triggers no layout. -->
+  <div class="mb-2 h-0.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800" aria-hidden="true" data-sv-anchor-progress>
+    <span class="block h-full w-full origin-left bg-brand-500 transition-transform duration-150 motion-reduce:transition-none rtl:origin-right"
+          [style.transform]="'scaleX(' + readingProgress() + ')'"></span>
+  </div>
+}
 @if (orientation() === 'vertical') {
-  <nav aria-label="On this page" class="flex flex-col gap-0.5 border-l border-gray-200 dark:border-gray-800">
-    @for (item of items(); track item.id) {
-      <a
-        [href]="'#' + item.id"
-        [ngClass]="itemClass(item.id)"
-        [attr.aria-current]="item.id === activeId() ? 'true' : null"
-        (click)="$event.preventDefault(); jumpTo(item.id)">
-        {{ item.label }}
-      </a>
+  <nav #nav [attr.aria-label]="ariaLabel()" [ngClass]="navClass()" [attr.data-sv-appearance]="appearance()">
+    @if (showMarker()) {
+      <!-- ★ ONE MARKER THAT SLIDES (`SR-29`), on `transform`, measured from the
+           link it lands on — where each item's own border could only blink. -->
+      <span class="pointer-events-none absolute -start-px top-0 w-0.5 rounded-full bg-brand-500 transition-[transform,height]
+                   duration-200 ease-out motion-reduce:transition-none dark:bg-brand-400"
+            [class.opacity-0]="!markerBox().height"
+            [style.transform]="'translateY(' + markerBox().top + 'px)'"
+            [style.height.px]="markerBox().height"
+            aria-hidden="true"
+            data-sv-anchor-marker></span>
+    }
+    @for (row of viewRows(); track row.id) {
+      <div class="flex min-w-0 items-center">
+        <a
+          [href]="row.href"
+          [ngClass]="row.linkClass"
+          [attr.aria-current]="row.active ? 'true' : null"
+          [attr.data-sv-anchor-id]="row.id"
+          [attr.data-sv-depth]="row.depth"
+          (click)="onItemClick($event, row.id)"
+          (keydown)="onNavKeydown($event)">
+          @if (numbered()) {
+            <span class="shrink-0 tabular-nums text-gray-500 dark:text-gray-400" data-sv-anchor-number>{{ row.number }}</span>
+          }
+          @if (row.item.icon) {
+            <sv-icon [name]="row.item.icon" [size]="16" cssClass="block shrink-0" />
+          }
+          <!-- The label stays the link's own text, so the link's text is the label. -->
+          {{ row.item.label }}
+          @if (row.item.meta) {
+            <span class="ms-auto shrink-0 text-xs font-normal text-gray-500 dark:text-gray-400" data-sv-anchor-meta>{{ row.item.meta }}</span>
+          }
+        </a>
+        @if (row.toggleable) {
+          <button type="button"
+                  class="me-1 flex h-6 w-6 shrink-0 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700
+                         focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500
+                         dark:hover:bg-white/[0.06] dark:hover:text-gray-200"
+                  [attr.aria-expanded]="row.open"
+                  [attr.aria-label]="row.toggleText"
+                  (click)="toggle(row.id)"
+                  data-sv-anchor-toggle>
+            <span class="block transition-transform motion-reduce:transition-none rtl:[&.-rotate-90]:rotate-90" [class.-rotate-90]="!row.open">
+              <sv-icon name="chevron-down" [size]="14" cssClass="block shrink-0" />
+            </span>
+          </button>
+        }
+      </div>
     }
   </nav>
 } @else {
-  <nav aria-label="On this page" class="flex flex-wrap gap-1.5">
-    @for (item of items(); track item.id) {
+  <nav [attr.aria-label]="ariaLabel()" [ngClass]="navClass()">
+    @for (row of viewRows(); track row.id) {
       <a
-        [href]="'#' + item.id"
-        [ngClass]="itemClass(item.id)"
-        [attr.aria-current]="item.id === activeId() ? 'true' : null"
-        (click)="$event.preventDefault(); jumpTo(item.id)">
-        {{ item.label }}
+        [href]="row.href"
+        [ngClass]="row.linkClass"
+        [attr.aria-current]="row.active ? 'true' : null"
+        [attr.data-sv-anchor-id]="row.id"
+        (click)="onItemClick($event, row.id)"
+        (keydown)="onNavKeydown($event)">
+        @if (numbered()) {
+          <span class="tabular-nums" data-sv-anchor-number>{{ row.number }}</span>
+        }
+        @if (row.item.icon) {
+          <sv-icon [name]="row.item.icon" [size]="14" cssClass="block shrink-0" />
+        }
+        {{ row.item.label }}
       </a>
     }
   </nav>

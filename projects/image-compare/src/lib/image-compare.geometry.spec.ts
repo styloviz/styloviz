@@ -11,6 +11,7 @@ import {
   svPositionFromPointer,
   svPositionLabel,
 } from './image-compare.geometry';
+import { SV_IMAGE_COMPARE_LABELS } from './image-compare.labels';
 
 // ── Aspect ratio ────────────────────────────────────────────────────────────
 
@@ -29,8 +30,8 @@ describe('whether the two images are comparable at all', () => {
   it('refuses a 4:3 against a 16:9', () => {
     const a = svAspect(1600, 1200, 1920, 1080);
     expect(a.mismatched).toBe(true);
-    expect(svAspectLabel(a)).toContain('different shapes');
-    expect(svAspectLabel(a)).toContain('not the change');
+    expect(svAspectLabel(a, SV_IMAGE_COMPARE_LABELS)).toContain('different shapes');
+    expect(svAspectLabel(a, SV_IMAGE_COMPARE_LABELS)).toContain('not the change');
   });
 
   /**
@@ -78,12 +79,12 @@ describe('whether the two images are comparable at all', () => {
     ]) {
       expect(a.known).toBe(false);
       expect(a.mismatched).toBe(false);
-      expect(svAspectLabel(a)).toBe('');
+      expect(svAspectLabel(a, SV_IMAGE_COMPARE_LABELS)).toBe('');
     }
   });
 
   it('says nothing when there is nothing wrong', () => {
-    expect(svAspectLabel(svAspect(1920, 1080, 1920, 1080))).toBe('');
+    expect(svAspectLabel(svAspect(1920, 1080, 1920, 1080), SV_IMAGE_COMPARE_LABELS)).toBe('');
   });
 });
 
@@ -208,11 +209,11 @@ describe('the accessible value', () => {
   });
 
   it('names which image is showing at each end', () => {
-    expect(svPositionLabel(0, 'the original', 'the retouch')).toBe('Showing the original only.');
-    expect(svPositionLabel(1, 'the original', 'the retouch')).toBe('Showing the retouch only.');
+    expect(svPositionLabel(0, 'the original', 'the retouch', SV_IMAGE_COMPARE_LABELS)).toBe('Showing the original only.');
+    expect(svPositionLabel(1, 'the original', 'the retouch', SV_IMAGE_COMPARE_LABELS)).toBe('Showing the retouch only.');
   });
 
   it('names the split in between', () => {
-    expect(svPositionLabel(0.25, 'before', 'after')).toBe('25% after, 75% before.');
+    expect(svPositionLabel(0.25, 'before', 'after', SV_IMAGE_COMPARE_LABELS)).toBe('25% after, 75% before.');
   });
 });

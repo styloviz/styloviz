@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { provideSvIcons } from '@styloviz/icons';
+import { AUTH_ICONS } from './auth.icons';
 /**
  * Auth template routes — the complete set of pre-session screens.
  *
@@ -23,6 +25,7 @@ import { Routes } from '@angular/router';
 export const AUTH_ROUTES: Routes = [
   {
     path: '',
+    providers: [provideSvIcons(AUTH_ICONS)],
     loadComponent: () =>
       import('./auth-layout.component').then((m) => m.AuthLayoutComponent),
     children: [

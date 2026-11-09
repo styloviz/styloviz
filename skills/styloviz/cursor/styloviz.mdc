@@ -1,0 +1,27 @@
+---
+description: Styloviz Angular + Tailwind 4 component kit — imports, icons, labels, theming, forms, accessibility
+globs: ["**/*.ts", "**/*.html", "**/*.css"]
+alwaysApply: false
+---
+
+# Styloviz
+
+Standalone Angular components on Tailwind CSS 4. Free: `@styloviz/<name>`. Pro:
+`@styloviz-pro/<name>`. Docs: https://styloviz.dev/docs
+
+- Before using a component, look up its exact API with the `styloviz` MCP server
+  (`search`, then `get_component`) — or `npx -y @styloviz/mcp component <name>`.
+  Never guess input names. Add the server in `.cursor/mcp.json`:
+  `{ "mcpServers": { "styloviz": { "command": "npx", "args": ["-y", "@styloviz/mcp"] } } }`
+- Global CSS: `@import "tailwindcss"; @import "@styloviz/core/styles/styloviz.css";`
+  plus `@source "../node_modules/@styloviz";` (and `@styloviz-pro` for Pro).
+- `provideStyloviz()` in `app.config.ts`; dark mode is the `dark` class on `<html>`.
+- Standalone only: import the component class into `imports`. No NgModules.
+- Register glyph names you pass in: `provideSvIcons([bellIcon])`,
+  `import { bellIcon } from '@styloviz/icons/glyph/bell'`.
+- Form controls are ControlValueAccessors: `formControlName`, `[(ngModel)]`, `[formField]`.
+- Strings come from label packs: `provideSvLabels(SV_<PACKAGE>_LABELS_<LANG>)`, `provideSvLocale()`.
+- Use kit tokens (`bg-primary-600`, `dark:` variants), not hex.
+- Controls under 24 px: add `sv-target`. Sticky page header: `data-sv-sticky="page-top"`.
+  Scroller with sticky bands: `svRevealFocus` + `data-sv-sticky` on each band.
+  Anything draggable needs a tap alternative (WCAG 2.5.7).

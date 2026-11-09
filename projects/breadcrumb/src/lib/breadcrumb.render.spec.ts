@@ -2,6 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { render } from '@testing-library/angular';
 import { SvBreadcrumbComponent, type BreadcrumbItem } from './breadcrumb.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * ============================================================================
@@ -29,7 +34,7 @@ async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvBreadcrumbComponent, {
     inputs: { items: CRUMBS, ...inputs },
-    providers: [provideRouter([])],
+    providers: [HOST_ICONS, provideRouter([])],
   });
   fixture.detectChanges();
   return {

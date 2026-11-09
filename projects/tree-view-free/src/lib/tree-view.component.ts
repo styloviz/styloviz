@@ -10,25 +10,32 @@ import {
   output,
   signal,
   untracked,
+  type TemplateRef,
 } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import {
+  createTypeahead,
+  svCollectionTarget,
+  svIsRtl,
+  svIsTypeaheadKey,
+  svWarnUnvirtualizedCeiling,
+} from '@styloviz/core/a11y';
 import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
-  createTypeahead,
-  svAttrSelector,
-  svCollectionTarget,
   svCutHierarchyCycles,
-  svIsTypeaheadKey,
-  svRecoverFocus,
-  svSuccessorIndex,
-  svWarnUnvirtualizedCeiling,
   warnOnDuplicateItemKeys,
   type SvDataError,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { svWarn } from '@styloviz/core/dev';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { svRecoverFocus, svSuccessorIndex } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
+import { SV_TREE_VIEW_LABELS } from './tree-view.labels';
 
+import { registerTreeViewIcons } from './tree-view.component.icons';
 declare const ngDevMode: boolean | undefined;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,7 +48,21 @@ export interface TreeNode {
   readonly expanded?: boolean;
   readonly disabled?: boolean;
   readonly badge?: string;
+  /** Second line under the label in the `org` layout — a job title, say. Same name as on `sv-tree-view-pro`. */
+  readonly role?: string;
+  /** Soft chip on the box in the `org` layout. Same name as on `sv-tree-view-pro`. */
+  readonly department?: string;
 }
+
+/**
+ * How the tree is drawn.
+ *
+ * - `list` — indented rows, one under another (the default).
+ * - `org`  — top-down boxes: each parent centred over its children, joined by
+ *            orthogonal connector lines, scrolling sideways when the chart is
+ *            wider than its container.
+ */
+export type TreeViewLayout = 'list' | 'org';
 
 export interface FlatNode {
   readonly node: TreeNode;
@@ -51,9 +72,63 @@ export interface FlatNode {
   readonly isExpanded: boolean;
 }
 
+/**
+ * What an `iconTemplate` is stamped with, once per row of the `list` layout.
+ *
+ * `$implicit` is the node, so `let-node` reads it; `expanded` and `depth` are the
+ * row's state — a folder glyph that opens when its branch does needs the first.
+ */
+export interface TreeIconContext {
+  readonly $implicit: TreeNode;
+  readonly expanded: boolean;
+  readonly depth: number;
+}
+
 export interface TreeNodeClickEvent {
   readonly node: TreeNode;
   readonly depth: number;
+}
+
+/**
+ * One box of the `org` layout: a visible row, re-nested under its parent.
+ *
+ * `index` is the row's position in `visibleNodes()` — the flat order the
+ * keyboard engine walks — and `posinset` / `setsize` its place among its
+ * siblings, published as `aria-posinset` / `aria-setsize`.
+ */
+export interface TreeOrgBox {
+  readonly fn: FlatNode;
+  readonly index: number;
+  readonly posinset: number;
+  readonly setsize: number;
+  readonly children: readonly TreeOrgBox[];
+}
+
+/**
+ * Re-nest the visible rows for the `org` layout.
+ *
+ * ★ Built FROM `visibleNodes()`, never from `nodes` directly, so the org chart
+ *   cannot disagree with the keyboard engine about which boxes exist: a collapsed
+ *   branch is absent from both, and ArrowDown from a box lands on the box this
+ *   nesting put next. One pass, no recursion — the depth stack holds the latest
+ *   box seen at each level, which is the parent of anything one level deeper.
+ */
+function nestForOrg(rows: readonly FlatNode[]): TreeOrgBox[] {
+  interface Draft { fn: FlatNode; index: number; posinset: number; setsize: number; children: Draft[] }
+  const roots: Draft[] = [];
+  const groups: Draft[][] = [roots];
+  const open: Draft[] = [];
+  rows.forEach((fn, index) => {
+    const box: Draft = { fn, index, posinset: 0, setsize: 0, children: [] };
+    groups.push(box.children);
+    const siblings = fn.depth > 0 && open[fn.depth - 1] ? open[fn.depth - 1].children : roots;
+    siblings.push(box);
+    box.posinset = siblings.length;
+    open[fn.depth] = box;
+    open.length = fn.depth + 1;
+  });
+  for (const group of groups) for (const box of group) box.setsize = group.length;
+  return roots;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -71,7 +146,7 @@ export interface TreeNodeClickEvent {
  * ```
  */
 @Component({
-  imports: [SvIconComponent, SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent],
+  imports: [NgTemplateOutlet, SvIconComponent, SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent, SvLabelPipe],
   selector: 'sv-tree-view',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,13 +158,41 @@ export interface TreeNodeClickEvent {
     } @else if (error()) {
       <sv-error-shell
         [error]="error()"
-        title="Could not load this tree"
+        [title]="labels.errorTitle"
         (retry)="retry.emit()"
         data-sv-state="error"
       />
+    } @else if (layout() === 'org') {
+      @if (!visibleNodes().length) {
+        <sv-empty-shell reason="no-data" [title]="emptyText()" data-sv-state="empty" />
+      } @else {
+        <!--
+          The org layout. A wide chart scrolls sideways inside this labelled
+          region, never the page; on paper the region lets go and the whole
+          chart prints. The tree inside is the SAME tree as the list layout:
+          role tree, treeitem and group, one tab stop, one keyboard engine.
+        -->
+        <div class="sv-tree-view-org overflow-x-auto rounded-xl outline-none
+                    focus-visible:ring-2 focus-visible:ring-brandaccent-400 print:overflow-visible"
+             role="region"
+             tabindex="0"
+             data-sv-tree-layout="org"
+             [attr.aria-label]="ariaLabel().trim() || labels.orgChart">
+          <ul class="flex w-max min-w-full select-none items-start justify-center gap-8 p-4"
+              role="tree"
+              [attr.aria-label]="ariaLabel().trim() || null">
+            @for (box of orgBoxes(); track box.fn.node.id) {
+              <ng-container [ngTemplateOutlet]="orgBranch" [ngTemplateOutletContext]="{ $implicit: box }" />
+            }
+          </ul>
+        </div>
+      }
     } @else {
 
-    <div class="sv-tree-view select-none" role="tree" [attr.aria-label]="ariaLabel().trim() || null">
+    <!-- A tree must own a treeitem (axe aria-required-children, critical), so
+         with no rows it is a named group around the empty shell (FL-A8-03). -->
+    <div class="sv-tree-view select-none" [attr.role]="visibleNodes().length ? 'tree' : 'group'"
+         [attr.aria-label]="ariaLabel().trim() || null" data-sv-tree-root>
       @for (fn of visibleNodes(); track fn.node.id) {
         <div class="group flex items-center gap-1 rounded-lg px-1 outline-none transition-colors duration-100 cursor-pointer focus-visible:ring-2 focus-visible:ring-brandaccent-400"
              [class]="fn.node.disabled
@@ -117,6 +220,7 @@ export interface TreeNodeClickEvent {
           @for (d of depthArray(fn.depth); track d) {
             <span class="relative w-5 shrink-0 self-stretch" aria-hidden="true">
               @if (showLines()) {
+                <!-- sv-physical: centring — the guide line is centred in its indent cell -->
                 <span class="absolute inset-y-0 left-1/2 w-px -translate-x-1/2
                              bg-gray-200 dark:bg-gray-700/70"></span>
               }
@@ -128,19 +232,24 @@ export interface TreeNodeClickEvent {
                expand and collapse, so a 1,500-row tree stays ONE tab stop. -->
           <button type="button"
                   tabindex="-1"
-                  class="flex h-5 w-5 shrink-0 items-center justify-center rounded
+                  class="sv-target flex h-5 w-5 shrink-0 items-center justify-center rounded
                          text-gray-400 transition-all hover:text-gray-700 dark:hover:text-gray-200
                          focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brandaccent-400"
                   [class.invisible]="!fn.hasChildren"
                   (click)="toggle(fn.node); $event.stopPropagation()"
-                  [attr.aria-label]="(fn.isExpanded ? 'Collapse ' : 'Expand ') + fn.node.label">
+                  [attr.aria-label]="(fn.isExpanded ? labels.collapseNode : labels.expandNode) | svLabel: { name: fn.node.label }">
             <sv-icon name="chevron-right"
-                     [cssClass]="'h-3.5 w-3.5 transition-transform duration-150' + (fn.isExpanded ? ' rotate-90' : '')"
+                     [cssClass]="'h-3.5 w-3.5 transition-transform duration-150 rtl:-scale-x-100' + (fn.isExpanded ? ' rotate-90 rtl:-rotate-90' : '')"
                      [strokeWidth]="2" />
           </button>
 
-          <!-- Icon -->
-          @if (fn.node.icon) {
+          <!-- Icon: the host's template when given (a glyph per node), else the text icon. -->
+          @if (iconTemplate(); as iconTpl) {
+            <span class="flex shrink-0 items-center" aria-hidden="true" data-sv-tree-icon>
+              <ng-container [ngTemplateOutlet]="iconTpl"
+                            [ngTemplateOutletContext]="{ $implicit: fn.node, expanded: fn.isExpanded, depth: fn.depth }" />
+            </span>
+          } @else if (fn.node.icon) {
             <span class="shrink-0 text-sm" aria-hidden="true">{{ fn.node.icon }}</span>
           }
 
@@ -154,7 +263,7 @@ export interface TreeNodeClickEvent {
 
           <!-- Badge -->
           @if (fn.node.badge) {
-            <span class="ml-auto shrink-0 rounded-full bg-gray-100 px-1.5 py-px
+            <span class="ms-auto shrink-0 rounded-full bg-gray-100 px-1.5 py-px
                          text-[10px] font-semibold text-gray-600
                          dark:bg-gray-800 dark:text-gray-300">
               {{ fn.node.badge }}
@@ -169,9 +278,131 @@ export interface TreeNodeClickEvent {
     </div>
     }
 
+    <!--
+      One box of the org layout, and its subtree. The treeitem is the li, so
+      its group of children sits INSIDE it as the pattern requires; its name is
+      set explicitly, because a name taken from content would read out every
+      descendant below it.
+
+      Connectors are CSS borders on two half-width spans across the top of each
+      child: the start half carries the bar from the previous sibling, the end
+      half the bar to the next one plus the drop into this box. First and last
+      children leave off the outer half, an only child keeps just the drop.
+      Logical sides throughout, so RTL mirrors with no extra rule.
+    -->
+    <ng-template #orgBranch let-box>
+      @let b = orgBox(box);
+      <li class="relative flex flex-col items-center px-2 outline-none
+                 [&:focus-visible>.sv-org-card]:ring-2 [&:focus-visible>.sv-org-card]:ring-brandaccent-400"
+          [class.pt-6]="b.fn.depth > 0"
+          [class.pb-3]="b.fn.hasChildren && !b.fn.isExpanded"
+          role="treeitem"
+          [attr.data-tree-id]="b.fn.node.id"
+          [attr.tabindex]="treeTabIndex(b.fn.node.id)"
+          [attr.aria-label]="orgItemLabel(b.fn.node)"
+          [attr.aria-level]="b.fn.depth + 1"
+          [attr.aria-setsize]="b.setsize"
+          [attr.aria-posinset]="b.posinset"
+          [attr.aria-expanded]="b.fn.hasChildren ? b.fn.isExpanded : null"
+          [attr.aria-selected]="selectable() ? isSelected(b.fn.node.id) : null"
+          [attr.aria-disabled]="b.fn.node.disabled || null"
+          (click)="onOrgClick($event, b)"
+          (keydown)="onOrgKeydown($event, b)">
+
+        @if (b.fn.depth > 0) {
+          <span class="pointer-events-none absolute inset-x-0 top-0 h-6" aria-hidden="true" data-sv-org-connector>
+            <span class="absolute start-0 top-0 h-full w-1/2 border-gray-300 dark:border-gray-600"
+                  [class.border-t]="b.posinset > 1"
+                  [class.border-e]="b.setsize > 1 && b.posinset === b.setsize"
+                  [class.rounded-se-lg]="b.setsize > 1 && b.posinset === b.setsize"></span>
+            <span class="absolute end-0 top-0 h-full w-1/2 border-gray-300 dark:border-gray-600"
+                  [class.border-t]="b.posinset < b.setsize"
+                  [class.border-s]="b.posinset < b.setsize || b.setsize === 1"
+                  [class.rounded-ss-lg]="b.posinset === 1 && b.setsize > 1"></span>
+          </span>
+        }
+
+        <div class="sv-org-card relative w-52 rounded-xl border px-3 py-2.5 text-start shadow-sm
+                    transition-colors duration-100 print:break-inside-avoid print:shadow-none"
+             [class]="b.fn.node.disabled
+                        ? 'cursor-not-allowed border-gray-200 bg-white opacity-40 dark:border-gray-700 dark:bg-gray-900'
+                        : isSelected(b.fn.node.id)
+                            ? 'cursor-pointer border-brandaccent-400 bg-brandaccent-50 dark:border-brandaccent-500 dark:bg-brandaccent-950'
+                            : 'cursor-pointer border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600'"
+             data-sv-org-card>
+          <div class="flex items-center gap-2.5">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brandaccent-100
+                         text-xs font-bold text-brandaccent-700 dark:bg-brandaccent-900/40 dark:text-brandaccent-200"
+                  aria-hidden="true">{{ b.fn.node.icon || orgInitials(b.fn.node.label) }}</span>
+            <span class="flex min-w-0 flex-1 flex-col">
+              <span class="truncate text-[13px] font-semibold leading-tight"
+                    [class]="isSelected(b.fn.node.id)
+                               ? 'text-brandaccent-700 dark:text-brandaccent-300'
+                               : 'text-gray-900 dark:text-gray-100'">{{ b.fn.node.label }}</span>
+              @if (b.fn.node.role) {
+                <span class="truncate text-[11px] leading-tight text-gray-500 dark:text-gray-400">{{ b.fn.node.role }}</span>
+              }
+            </span>
+          </div>
+          @if (b.fn.node.department || b.fn.node.badge) {
+            <span class="mt-2 flex items-center gap-1.5">
+              @if (b.fn.node.department) {
+                <span class="truncate rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium
+                             text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ b.fn.node.department }}</span>
+              }
+              @if (b.fn.node.badge) {
+                <span class="ms-auto shrink-0 rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-semibold
+                             text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ b.fn.node.badge }}</span>
+              }
+            </span>
+          }
+
+          <!-- Out of the tab order like the list chevron: ArrowRight and
+               ArrowLeft on the box expand and collapse it. Collapsed, it says
+               how many boxes are folded away under it. -->
+          @if (b.fn.hasChildren) {
+            <span class="absolute inset-x-0 -bottom-3 flex justify-center">
+              <button type="button"
+                      tabindex="-1"
+                      class="sv-target flex h-6 min-w-6 items-center justify-center gap-0.5 rounded-full border
+                             border-gray-300 bg-white px-1.5 text-[10px] font-semibold text-gray-600 shadow-sm
+                             transition-colors hover:border-brandaccent-400 hover:text-brandaccent-700
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandaccent-400
+                             dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300
+                             dark:hover:border-brandaccent-400 dark:hover:text-brandaccent-300 print:hidden"
+                      data-sv-org-toggle
+                      (click)="toggle(b.fn.node); setActive(b.fn.node.id); $event.stopPropagation()"
+                      [attr.aria-label]="(b.fn.isExpanded ? labels.collapseNode : labels.expandNode) | svLabel: { name: b.fn.node.label }">
+                @if (!b.fn.isExpanded) {
+                  <span aria-hidden="true">{{ b.fn.node.children?.length }}</span>
+                }
+                <sv-icon name="chevron-right"
+                         [cssClass]="'h-3 w-3 transition-transform duration-150 ' + (b.fn.isExpanded ? '-rotate-90' : 'rotate-90')"
+                         [strokeWidth]="2.5" />
+              </button>
+            </span>
+          }
+        </div>
+
+        @if (b.children.length) {
+          <span class="h-6 w-px shrink-0 bg-gray-300 dark:bg-gray-600" aria-hidden="true" data-sv-org-stem></span>
+          <ul class="flex items-start justify-center" role="group">
+            @for (child of b.children; track child.fn.node.id) {
+              <ng-container [ngTemplateOutlet]="orgBranch" [ngTemplateOutletContext]="{ $implicit: child }" />
+            }
+          </ul>
+        }
+      </li>
+    </ng-template>
   `,
 })
 export class SvTreeViewComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerTreeViewIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ treeView })` says otherwise. */
+  protected readonly labels = injectSvLabels('treeView', SV_TREE_VIEW_LABELS);
+
   /** Tree node data (nested children, optional icons). */
   readonly nodes      = input<TreeNode[]>([]);
   /**
@@ -183,8 +414,21 @@ export class SvTreeViewComponent {
    *   by pressing Enter and getting nothing.
    */
   readonly selectable = input<boolean>(true);
-  /** Show vertical connector guide lines. @default true */
+  /**
+   * Show vertical connector guide lines in the `list` layout. The `org` layout
+   * always draws its connectors — they are what make it a chart.
+   * @default true
+   */
   readonly showLines  = input<boolean>(true);
+  /**
+   * How the tree is drawn: `list` (indented rows) or `org` (top-down boxes joined
+   * by connector lines, each parent centred over its children). Same tree, same
+   * keyboard model, same outputs — only the picture changes. `org` shows each
+   * node's `role` and `department` and scrolls sideways inside a labelled region
+   * when it is wider than its container.
+   * @default 'list'
+   */
+  readonly layout     = input<TreeViewLayout>('list');
   /**
    * What this tree is, e.g. `'Project files'` — names the `role="tree"` region.
    *
@@ -209,8 +453,19 @@ export class SvTreeViewComponent {
    */
   readonly error = input<SvDataError | string | null>(null);
 
+  /**
+   * A template for the glyph before each label in the `list` layout, drawn in
+   * place of the text `icon`. Stamped with {@link TreeIconContext} — the node as
+   * `$implicit`, plus `expanded` and `depth` — so a host can draw an icon-library
+   * glyph per node (`sv-file-tree` draws a file-type glyph this way). Decorative:
+   * the row's name is its label. The `org` layout keeps its initials avatar.
+   * Same input on `sv-tree-view-pro`.
+   * @default null
+   */
+  readonly iconTemplate = input<TemplateRef<TreeIconContext> | null>(null);
+
   /** Copy for the empty state. @default 'No items to display' */
-  readonly emptyText = input<string>('No items to display');
+  readonly emptyText = input<string>(this.labels.emptyText);
 
   /** Fires when an enabled node is clicked or activated with Enter/Space while `selectable`; payload is the node and its depth (0 for roots). */
   readonly nodeClick    = output<TreeNodeClickEvent>();
@@ -248,6 +503,11 @@ export class SvTreeViewComponent {
     warnOnDuplicateItemKeys(rows, (n) => n.node.id, 'sv-tree-view [nodes]');
     return rows;
   });
+
+  /** The visible rows re-nested as boxes, for the `org` layout only. */
+  protected readonly orgBoxes = computed<readonly TreeOrgBox[]>(() =>
+    this.layout() === 'org' ? nestForOrg(this.visibleNodes()) : [],
+  );
 
   /** Applied only on the first non-empty node set — after that the user owns it. */
   private _seededFromNodes = false;
@@ -304,7 +564,7 @@ export class SvTreeViewComponent {
       !this._warnedBindings.has('no-name')
     ) {
       this._warnedBindings.add('no-name');
-      console.warn(
+      svWarn(
         '[styloviz] sv-tree-view: the tree has no accessible name — [ariaLabel] is ' +
           'empty and the host has no aria-labelledby, so a screen reader announces only ' +
           '"tree". Pass [ariaLabel]="\'Project files\'" (or similar).',
@@ -342,7 +602,8 @@ export class SvTreeViewComponent {
       if (successor && !next?.node.disabled) successor.tabIndex = 0;
       svRecoverFocus({
         to: [successor],
-        fallback: root.querySelector('[role="tree"]'),
+        // By hook, not role: an emptied list is a `group`, not a `tree`.
+        fallback: root.querySelector('[data-sv-tree-root], [role="tree"]'),
       });
     }, 0);
   }
@@ -387,6 +648,60 @@ export class SvTreeViewComponent {
       ? preferredId
       : this._tabStopId();
     if (target) this._focus(target);
+  }
+
+  // ── The org layout ──────────────────────────────────────────────────────────
+
+  /** Types the recursive template's context, which Angular hands over untyped. */
+  protected orgBox(box: TreeOrgBox): TreeOrgBox { return box; }
+
+  /** A box's accessible name: what it shows, in reading order. */
+  protected orgItemLabel(node: TreeNode): string {
+    return [node.label, node.role, node.department, node.badge].filter(Boolean).join(', ');
+  }
+
+  /** Up to two initials for a box with no `icon`. */
+  protected orgInitials(label: string): string {
+    const parts = label.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0]?.slice(0, 2) ?? '?').toUpperCase();
+  }
+
+  /**
+   * Keys in the `org` layout — handed straight to `onKeydown`, the list's engine.
+   *
+   * ★★ THE VISUAL DIRECTION DIFFERS; THE TREE MODEL DOES NOT. Children sit BELOW
+   *    their parent here and siblings sit side by side, but the keys keep the
+   *    WAI-ARIA tree meanings: ArrowDown / ArrowUp walk the visible boxes in tree
+   *    order (depth first), ArrowRight opens a box or steps to its first child,
+   *    ArrowLeft closes it or climbs to its parent, Home / End / typeahead as in
+   *    the list. Inventing a 2-D grid would give a screen-reader user, who hears
+   *    "tree", keys that do something other than what the role promised.
+   *
+   * ★ Treeitems NEST in this layout, so a key pressed on a child box bubbles
+   *   through every ancestor's handler. Only the box that owns the focused
+   *   element answers.
+   */
+  protected onOrgKeydown(event: KeyboardEvent, box: TreeOrgBox): void {
+    if (!this._ownsOrgEvent(event)) return;
+    this.onKeydown(event, box.fn, box.index);
+  }
+
+  /**
+   * A click on a box's card selects it — the innermost box only, for the same
+   * reason, and only on the card: the treeitem also spans the whitespace around
+   * its subtree, and a click there is not a choice of the manager above it.
+   */
+  protected onOrgClick(event: MouseEvent, box: TreeOrgBox): void {
+    if (!this._ownsOrgEvent(event) || !(event.target as HTMLElement).closest('[data-sv-org-card]')) return;
+    this.select(box.fn.node, box.fn.depth);
+    this.setActive(box.fn.node.id);
+  }
+
+  /** Whether the treeitem this handler sits on is the innermost one around the event's target. */
+  private _ownsOrgEvent(event: Event): boolean {
+    const target = event.target as HTMLElement | null;
+    return target?.closest('[role="treeitem"]') === event.currentTarget;
   }
 
   /** One entry per ancestor level, for the indentation spacers. */
@@ -435,7 +750,7 @@ export class SvTreeViewComponent {
    */
   onKeydown(event: KeyboardEvent, fn: FlatNode, index: number): void {
     const list = this.visibleNodes();
-    switch (event.key) {
+    switch (this._inlineArrow(event.key)) {
       case 'ArrowDown': event.preventDefault(); this._focusStep(list, index, +1); break;
       case 'ArrowUp':   event.preventDefault(); this._focusStep(list, index, -1); break;
       case 'Home':      event.preventDefault(); this._focusFrom(list, 0, +1); break;
@@ -471,6 +786,16 @@ export class SvTreeViewComponent {
         this._typeahead(event, list, index);
         return;
     }
+  }
+
+  /**
+   * `ArrowLeft`/`ArrowRight` as the tree reads them. Under dir="rtl" the
+   * indentation spacers push children to the LEFT, so the APG treeview swaps
+   * the pair: ArrowLeft opens a branch, ArrowRight closes it (FL-B9).
+   */
+  private _inlineArrow(key: string): string {
+    if ((key !== 'ArrowLeft' && key !== 'ArrowRight') || !svIsRtl(this.host.nativeElement)) return key;
+    return key === 'ArrowLeft' ? 'ArrowRight' : 'ArrowLeft';
   }
 
   /** `X-10` typeahead over visible, enabled rows — type "re" to reach "Reports". */

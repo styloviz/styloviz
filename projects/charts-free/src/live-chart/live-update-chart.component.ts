@@ -7,7 +7,10 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { SvChartFrameComponent, type SvDataError } from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 import { NgClass } from '@angular/common';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,24 +54,24 @@ export const DEMO_LIVE_SOURCES: LiveUpdateSource[] = [
     id: '2022',
     label: '2022',
     datasets: [
-      { label: 'Revenue',  data: [120, 95, 145, 88, 130, 105, 160, 140, 115, 180, 125, 190], color: PALETTE[0] },
-      { label: 'Expenses', data: [ 80, 70, 100, 65,  90,  75, 110,  95,  85, 120,  90, 130], color: PALETTE[1] },
+      { label: 'Revenue',  data: [120, 95, 145, 88, 130, 105, 160, 140, 115, 180, 125, 190], color: PALETTE[0] }, // sv-i18n-ignore: demo sample data the host replaces
+      { label: 'Expenses', data: [ 80, 70, 100, 65,  90,  75, 110,  95,  85, 120,  90, 130], color: PALETTE[1] }, // sv-i18n-ignore: demo sample data the host replaces
     ],
   },
   {
     id: '2023',
     label: '2023',
     datasets: [
-      { label: 'Revenue',  data: [135, 110, 160, 98, 150, 120, 175, 155, 130, 200, 145, 210], color: PALETTE[0] },
-      { label: 'Expenses', data: [ 90,  78, 115, 72, 100,  83, 120, 105,  92, 132,  98, 142], color: PALETTE[1] },
+      { label: 'Revenue',  data: [135, 110, 160, 98, 150, 120, 175, 155, 130, 200, 145, 210], color: PALETTE[0] }, // sv-i18n-ignore: demo sample data the host replaces
+      { label: 'Expenses', data: [ 90,  78, 115, 72, 100,  83, 120, 105,  92, 132,  98, 142], color: PALETTE[1] }, // sv-i18n-ignore: demo sample data the host replaces
     ],
   },
   {
     id: '2024',
     label: '2024',
     datasets: [
-      { label: 'Revenue',  data: [150, 128, 178, 110, 168, 140, 195, 172, 148, 222, 165, 235], color: PALETTE[0] },
-      { label: 'Expenses', data: [ 98,  85, 128,  80, 112,  92, 133, 115, 102, 145, 108, 155], color: PALETTE[1] },
+      { label: 'Revenue',  data: [150, 128, 178, 110, 168, 140, 195, 172, 148, 222, 165, 235], color: PALETTE[0] }, // sv-i18n-ignore: demo sample data the host replaces
+      { label: 'Expenses', data: [ 98,  85, 128,  80, 112,  92, 133, 115, 102, 145, 108, 155], color: PALETTE[1] }, // sv-i18n-ignore: demo sample data the host replaces
     ],
   },
 ];
@@ -117,6 +120,7 @@ function niceMax(v: number): number {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvLiveUpdateChartComponent implements OnInit {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -131,7 +135,7 @@ export class SvLiveUpdateChartComponent implements OnInit {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -157,13 +161,13 @@ export class SvLiveUpdateChartComponent implements OnInit {
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Chart title, rendered in the header and used in the default accessible name. @default 'Revenue & Expenses' */
-  title      = input<string>('Revenue & Expenses');
+  title      = input<string>(this.labels.liveUpdateTitle);
 
   /** Accessible-name override for the chart image. @default '' */
   ariaLabel = input<string>('');
 
   /** Resolved accessible name — explicit override or a description of the stream. */
-  readonly resolvedAriaLabel = computed<string>(() => this.ariaLabel() || (this.title() + ' — live updating chart'));
+  readonly resolvedAriaLabel = computed<string>(() => this.ariaLabel() || svFormatLabel(this.labels.liveUpdatingName, { title: this.title() }));
   /** X-axis category labels; each dataset's `data[i]` is plotted against `categories[i]`. @default Jan–Dec month abbreviations */
   categories = input<string[]>(CATEGORIES);
   /**
@@ -190,6 +194,7 @@ export class SvLiveUpdateChartComponent implements OnInit {
   // ── SVG geometry ──────────────────────────────────────────────────────────
 
   readonly SVG_W = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD   = { top: 24, right: 24, bottom: 44, left: 52 };
 
   plotW = computed(() => this.SVG_W - this.PAD.left - this.PAD.right);
@@ -255,6 +260,32 @@ export class SvLiveUpdateChartComponent implements OnInit {
     );
   });
 
+  /**
+   * The active source's bars as rows — one category per row, one column per
+   * series — under a caption naming the source, because only one source is
+   * drawn at a time. Switching sources re-renders the hidden table; it is not
+   * a live region, so nothing is announced.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const src = this.activeSource();
+    if (!src) return { caption: '', columns: [], rows: [] };
+    const sets = src.datasets;
+    return {
+      caption: this.title()
+        ? svFormatLabel(this.labels.captionWithLevel, { title: this.title(), level: src.label })
+        : src.label,
+      columns: [this.labels.categoryColumn, ...sets.map((d) => d.label || this.labels.valueColumn)],
+      rows: this.categories().map((cat, ci) => ({
+        key: cat,
+        header: cat,
+        cells: sets.map((d) => {
+          const v = d.data[ci];
+          return v !== undefined && Number.isFinite(v) ? this.formatValue(v) : this.labels.noValue;
+        }),
+      })),
+    };
+  });
+
   seriesColors = computed(() =>
     (this.activeSource()?.datasets ?? []).map(
       (d, i) => d.color ?? PALETTE[i % PALETTE.length]
@@ -274,7 +305,7 @@ export class SvLiveUpdateChartComponent implements OnInit {
    * from the baseline. `y` moves up as `height` grows — they must be in sync.
    */
   barTransition = computed(() => {
-    const d = `${this.transDur()}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    const d = `${this.transDur()}ms cubic-bezier(0.4, 0, 0.2, 1)`; // sv-i18n-ignore: CSS transition value
     return `y ${d}, height ${d}`;
   });
 

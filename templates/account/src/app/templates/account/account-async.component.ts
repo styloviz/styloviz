@@ -4,7 +4,7 @@ import {
   SvSkeletonShellComponent,
   type SvDataError,
   type SvSkeletonShellVariant,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
 
 /**
  * `<sv-account-async>` — this template's page-level loading and failure frame.

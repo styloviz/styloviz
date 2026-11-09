@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import {
   SvSiteFooterComponent,
   type FooterColumn,

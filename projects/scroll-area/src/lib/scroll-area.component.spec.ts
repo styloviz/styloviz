@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { SvScrollAreaComponent } from './scroll-area.component';
@@ -146,11 +147,21 @@ describe('SvScrollAreaComponent — the thumb', () => {
 
   it('reveals the thumb on hover in the auto variant rather than always showing it', async () => {
     const f = await area({ variant: 'auto' });
-    size(f, 400, 4000).dispatchEvent(new Event('scroll'));
-    f.detectChanges();
-    const track = q(f, '[data-sv-track]') as HTMLElement;
-    expect(track.className).toContain('opacity-0');
-    expect(track.className).toContain('hover:opacity-100');
+    vi.useFakeTimers();
+    try {
+      size(f, 400, 4000).dispatchEvent(new Event('scroll'));
+      f.detectChanges();
+      const track = q(f, '[data-sv-track]') as HTMLElement;
+      // ★ `SR-28`: shown while scrolling — a touch screen has no hover —
+      expect(track.className).toContain('opacity-100');
+      // … and back to hover-only once the scroll settles.
+      vi.advanceTimersByTime(800);
+      f.detectChanges();
+      expect(track.className).toContain('opacity-0');
+      expect(track.className).toContain('hover:opacity-100');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -312,5 +323,35 @@ describe('SvScrollAreaComponent — the read-out', () => {
     const f = await area();
     const described = (q(f, '[data-sv-port]') as HTMLElement).getAttribute('aria-describedby');
     expect(described).toBe((q(f, '[data-sv-readout]') as HTMLElement).id);
+  });
+});
+
+// ── scrollIntoView reads the port, not the last scroll event ────────────────
+
+describe('SvScrollAreaComponent — scrollIntoView', () => {
+  /**
+   * ★★ During a smooth scroll the boxes move before the `scroll` event that
+   * updates the cached position arrives. Measured against the cache, a call
+   * made mid-glide aims short by the distance already travelled.
+   */
+  it('aims from the live scroll position, even before the scroll event lands', async () => {
+    const f = await area();
+    const port = size(f, 100, 1000);
+    port.dispatchEvent(new Event('scroll'));
+    f.detectChanges();
+
+    // The port has moved to 300 with no `scroll` event yet.
+    port.scrollTop = 300;
+    const item = document.createElement('div');
+    port.appendChild(item);
+    vi.spyOn(port, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 100));
+    vi.spyOn(item, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 150, 200, 20));
+    const scrollTo = vi.fn();
+    port.scrollTo = scrollTo as unknown as typeof port.scrollTo;
+
+    f.componentInstance.scrollIntoView(item);
+
+    // 300 already scrolled + 150 below the top + 20 tall − 100 visible.
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 370 }));
   });
 });

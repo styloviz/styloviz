@@ -27,21 +27,24 @@ import {
   type SvTourSchemaStale,
   type SvTourStatus,
 } from './product-tour.progress';
+import { svIsRtl } from '@styloviz/core/a11y';
+import { svWarnRestoreRefused, svLocalStorage } from '@styloviz/core/data';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
 import {
   SvOverlayStackService,
   createFocusScope,
   createPortalHost,
   type SvOverlayHandle,
   type SvPortalHost,
-  svWarnRestoreRefused,
-  svLocalStorage,
-} from '@styloviz/core';
+} from '@styloviz/core/overlay';
 
-import type { TourRouteRequest, TourVariant } from './product-tour.types';
+import type { TourRouteRequest } from './product-tour.types';
 import { type TourStep } from './product-tour.types';
+import { SV_PRODUCT_TOUR_LABELS } from './product-tour-free.labels';
 
+import { registerProductTourIcons } from './product-tour.component.icons';
 // Re-export types so consumers can import from the component file if desired.
-export type { TourVariant, TourPlacement, TourStep } from './product-tour.types';
+export type { TourPlacement, TourStep } from './product-tour.types';
 
 /**
  * SvProductTourComponent — Onboarding & product-tour overlay (Free tier).
@@ -68,25 +71,22 @@ export type { TourVariant, TourPlacement, TourStep } from './product-tour.types'
 @Component({
   selector: 'sv-product-tour',
   standalone: true,
-  imports: [SvIconComponent],
+  imports: [SvIconComponent, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './product-tour.component.html',
 })
 export class SvProductTourComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerProductTourIcons();
+
+  /** @internal Accessible names and button text — English unless `provideSvLabels({ productTour })` says otherwise. */
+  protected readonly labels = injectSvLabels('productTour', SV_PRODUCT_TOUR_LABELS);
+
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
 
   /** Step definitions. */
   steps = input<TourStep[]>([]);
-  /**
-   * Deprecated, and has no effect: the free tour renders the `modal` variant only, so this
-   * input has a single value.
-   *
-   * @deprecated Kept so 1.x templates compile; removed in 2.0. The seven other
-   * variants are Pro: `sv-product-tour-pro [variant]`.
-   * @default 'modal'
-   */
-  variant = input<TourVariant>('modal');
   /** Two-way: controls tour visibility. Set to `true` to launch the tour. */
   active = model<boolean>(false);
   /** Two-way: current step index. */
@@ -95,13 +95,13 @@ export class SvProductTourComponent implements OnDestroy {
   // ── Labels (override for i18n) ─────────────────────────────────────────────
 
   /** Text of the button that advances to the next step; the last step shows `doneLabel` instead. @default 'Next' */
-  nextLabel = input('Next');
+  nextLabel = input<string>(this.labels.next);
   /** Text of the button that returns to the previous step. @default 'Back' */
-  prevLabel = input('Back');
+  prevLabel = input<string>(this.labels.back);
   /** Text of the button that dismisses the tour before it is finished. @default 'Skip tour' */
-  skipLabel = input('Skip tour');
+  skipLabel = input<string>(this.labels.skipTour);
   /** Text of the advance button on the last step, which finishes the tour. @default 'Done' */
-  doneLabel = input('Done');
+  doneLabel = input<string>(this.labels.done);
 
   // ── Behaviour ──────────────────────────────────────────────────────────────
 
@@ -156,17 +156,14 @@ export class SvProductTourComponent implements OnDestroy {
   persistKey = input<string>('');
 
   /**
-   * What a stored, unfinished tour does on the next visit (`OF-13-I6`).
+   * What a stored, unfinished tour does on the next visit: `'step'` resumes
+   * on the stored step (the first step if it is gone), `'restart'` always
+   * starts from the first step, and `'never'` restores the ticks but not the
+   * position.
    *
-   * | Value       | Meaning                                                  |
-   * |-------------|----------------------------------------------------------|
-   * | `'step'`    | resume on the stored step (first step if it is gone)     |
-   * | `'restart'` | always from the first step                               |
-   * | `'never'`   | restore the ticks, not the position                      |
-   *
-   * ★ "resume, restart or exit" was undefined, which is the finding. It is a
-   *   per-tour decision — a five-step onboarding wants resuming, a two-step
-   *   feature announcement does not — so it is an input rather than a rule.
+   * It is a per-tour decision — a five-step onboarding wants resuming, a
+   * two-step feature announcement does not — so it is an input rather than a
+   * rule.
    */
   resume = input<'step' | 'restart' | 'never'>('step');
 
@@ -447,7 +444,7 @@ export class SvProductTourComponent implements OnDestroy {
     const blob = this._readStoredJson(key);
     if (blob === null) return;
 
-    const restored = svRestoreTourProgress(blob);
+    const restored = svRestoreTourProgress(blob, this.labels);
     if (!restored.ok) {
       svWarnRestoreRefused('sv-product-tour', restored);
       return;
@@ -613,7 +610,9 @@ export class SvProductTourComponent implements OnDestroy {
         //    the TOUR instead of the caret while the user was typing in it.
         if (this._targetOwnsArrows(e.target)) return;
         e.preventDefault();
-        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') this.goNext();
+        // FL-B9: "next" is the inline end — the right arrow in LTR, the left
+        // arrow under `dir="rtl"`, matching the mirrored arrow glyph.
+        if (e.key === (svIsRtl(this._el.nativeElement) ? 'ArrowLeft' : 'ArrowRight') || e.key === 'ArrowDown') this.goNext();
         else this.goPrev();
         break;
       case 'Escape':

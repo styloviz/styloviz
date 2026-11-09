@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { createQuery } from '@styloviz/core';
+import { createQuery } from '@styloviz/core/data';
 import { createHttpDataSource } from './http-source';
 import { pageNumberQuery } from './query-presets';
 

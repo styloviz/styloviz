@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `phone` icon. */
 export const phoneNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const phoneNodes: readonly IconNode[] = [
 export const phoneSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6 2.1h3q.6 0 .8.6l2 5q.3.7-.3 1.1l-1.8 1q1.2 2.1 3.2 3.3l.2-1.3q.2-.8 1.1-.7.1.1.1.1l5 2q.6.2.6.8v3q0 2.9-2.9 2.9-.1 0-.2 0-5.4-1.3-9.1-5.3-3.7-4-4.6-9.5 0 0 0-.1 0-2.9 2.9-2.9z' },
 ];
+
+/** `phone` as a registrable glyph — `registerSvIcons([phoneIcon])` / `provideSvIcons([phoneIcon])`. */
+export const phoneIcon: SvIconDef = { name: 'phone', nodes: phoneNodes, solid: phoneSolidNodes };
 
 /** `phone` — tree-shakable standalone icon. Use `<sv-phone-icon />`. */
 @Component({

@@ -2,15 +2,17 @@
 
 > A native `<kbd>` wrapper for rendering keyboard shortcuts and hint keys, with three visual variants and two sizes so every shortcut hint in the kit shares one styled source instead of one-off utility classes.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/kbd
+npm install @styloviz/core @styloviz/kbd
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Self-contained — no other Styloviz packages required. Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core` — listed above so no extra step is required on npm (on pnpm/yarn, list it yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -47,7 +49,7 @@ import { SvKbdComponent } from '@styloviz/kbd';
   standalone: true,
   imports: [SvKbdComponent],
   template: `
-    <sv-kbd chord="cmd+K" />
+    <sv-kbd chord="mod+K" />
   `,
 })
 export class DemoComponent {}
@@ -57,8 +59,10 @@ export class DemoComponent {}
 
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
-| `key` | `string` | `''` | The key, by name or by glyph — `cmd`, `shift`, `esc`, `⌘`, `K`. THE POINT OF THIS INPUT IS THE SPOKEN NAME. `⌘` is U+2318 PLACE OF INTEREST SIGN and a screen reader says "place of interest sign", or nothing at all; `⇧` is UPWARDS WHITE ARROW; `↵` is DOWNWARDS ARROW WITH CORNER LEFTWARDS. None of those is the name of a key, and the entire content of a shortcut hint is which keys to press — so a hint made of projected glyphs is documentation nobody can hear. Given the key, the component draws the glyph AND knows what it is called, so the symbol is hidden from assistive tech behind the word. Glyphs are accepted as well as tokens because hosts already have `⌘` hard-coded in a hundred templates, and a fix that requires rewriting all of them first is a fix that never gets adopted. |
+| `key` | `string` | `''` | The key, by name or by glyph — `cmd`, `shift`, `esc`, `⌘`, `K`. The point of this input is the spoken name. `⌘` is U+2318 place of interest sign and a screen reader says "place of interest sign", or nothing at all; `⇧` is upwards white arrow; `↵` is downwards arrow with corner leftwards. None of those is the name of a key, and the entire content of a shortcut hint is which keys to press — so a hint made of projected glyphs is documentation nobody can hear. Given the key, the component draws the glyph AND knows what it is called, so the symbol is hidden from assistive tech behind the word. Glyphs are accepted as well as tokens because hosts already have `⌘` hard-coded in a hundred templates, and a fix that requires rewriting all of them first is a fix that never gets adopted. |
 | `chord` | `string` | `''` | A whole chord — `"cmd+shift+K"` — rendered as one unbreakable group. "Ctrl +" at the end of a line and "C" at the start of the next is not a shortcut, it is two. A literal `+` is written `++`. |
+| `sequence` | `string` | `''` | A SEQUENCE — chords pressed one after another — separated by spaces: `"g i"` (Gmail's "go to inbox"), `"mod+k mod+s"`. Each step is drawn as its own unbreakable chord with "then" between them, and announced as "G then I". Takes precedence over `chord` and `key`. |
+| `platform` | `'auto' \| SvKbdPlatform` | `'auto'` | Which keyboard to draw for, which is what the `mod` token resolves by — Command (⌘) on `apple`, Control on `other`. `auto` reads the platform in the browser; on the server it answers `other`, so a prerendered `mod` reads "Ctrl" until hydration (see `svKbdPlatform`). |
 | `variant` | `KbdVariant` | `'solid'` | Visual weight. |
 | `size` | `KbdSize` | `'sm'` | Chip size. |
 | `ariaLabel` | `string` | `''` | Accessible label when the projected content is a symbol a screen reader won't say usefully on its own (e.g. `↵`, `⌘`) — announced instead of the glyph. Leave unset for plain text keys (`Esc`, `Tab`), which already read fine. |
@@ -70,4 +74,4 @@ Full API reference and live demos: https://styloviz.dev/docs/kbd
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

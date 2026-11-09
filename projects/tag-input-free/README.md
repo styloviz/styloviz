@@ -1,8 +1,10 @@
 # @styloviz/tag-input
 
-> 9 premium multi-select tag-input variants: default, avatar, grouped, creatable, colors, token limit, async search, inline and overflow.
+> 9 multi-select tag-input variants: default (free) plus avatar, grouped, creatable, colors, token limit, async search, inline and overflow (Pro).
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -62,11 +64,12 @@ export class DemoComponent {}
 | --- | --- | --- | --- |
 | `values` | `string[] (two-way)` | `[]` | Current tags (two-way). |
 | `options` | `TagOption[]` | `[]` | Suggestion options offered as the user types. |
-| `compareWith` | `((a: string, b: string) => boolean) \| null` | `null` | What "the same tag" means. Defaults to strict equality on `value`. ⚠️ FREE, NOT PRO. `check:parity` flagged it as an undeclared Pro-only member and was right to: knowing whether two values are the same tag is correctness, not a premium feature, and a free control that silently duplicates a selection is broken rather than merely basic. |
+| `compareWith` | `((a: string, b: string) => boolean) \| null` | `null` | What "the same tag" means. Defaults to strict equality on `value`. Set it when your ids are not byte-identical across the wire (`U1` vs `u1`), so the field still de-duplicates and resolves them. |
 | `size` | `TagInputSize` | `'md'` | Field size: sm, md or lg. |
 | `label` | `string` | `''` | Field label. |
 | `placeholder` | `string` | `'Add tags…'` | Placeholder shown in the input. |
 | `hint` | `string` | `''` | Helper text shown below the field. |
+| `tagValidator` | `TagValidator \| null` | `null` | Check each selected tag — the email-recipients case. A tag the validator rejects stays (the user can see and fix it) but its chip is marked, the reason is read out with it, a summary appears under the field, the input reports `aria-invalid`, and a form gets `{ invalidTags }`. |
 | `errorMessage` | `string` | `''` | Error message; sets the field to an error state when present. |
 | `serverError` | `string \| { readonly message: string } \| null` | `null` | A validation failure reported by the **server** — the 422 that comes back after submit, not something the client could have known. It is a separate input from `errorMessage` because it has a different lifetime, not because it needs a second way to show a string. A server error is a statement about *the value that was submitted*: the moment the user edits the field it stops being true, and this input expires itself rather than sitting there telling someone their new email is already taken. `errorMessage` has no such expiry — it is the host's to clear. While live it outranks `errorMessage`: it is the more specific fact, and it is the one the user has not seen yet. Typed structurally rather than as `SvDataError` so this stays dependency free — an `SvDataError` satisfies it unchanged. |
 | `disabled` | `boolean` | `false` | Disable the field. |
@@ -79,10 +82,18 @@ export class DemoComponent {}
 | `tagsChange` | `TagInputChangeEvent` | Emitted with the change (added/removed tag + full list). |
 | `valuesChange` | `string[]` | Emits the new `values` whenever it changes — the output half of `[(values)]`. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-tag-input` | ControlValueAccessor |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs/tag-input
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

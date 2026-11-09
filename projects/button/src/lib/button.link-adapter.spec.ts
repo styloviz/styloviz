@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core';
+import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core/nav';
 import { SvButtonComponent } from './button.component';
 
 /**

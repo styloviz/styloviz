@@ -8,12 +8,14 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { injectSvLabels } from '@styloviz/core/i18n';
 import {
   evaluatePassword,
   type PasswordBreachStatus,
   type PasswordGuidance,
   type PasswordStrengthBand,
 } from './password-strength';
+import { SV_PASSWORD_STRENGTH_LABELS } from './password-strength.labels';
 
 export type PasswordStrengthSize = 'sm' | 'md';
 
@@ -42,6 +44,9 @@ export type PasswordStrengthSize = 'sm' | 'md';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvPasswordStrengthComponent {
+  /** @internal English unless `provideSvLabels({ passwordStrength })` says otherwise. */
+  protected readonly labels = injectSvLabels('passwordStrength', SV_PASSWORD_STRENGTH_LABELS);
+
   /** The password to advise on — bind it to the same signal driving your text input. */
   value = input<string>('');
 
@@ -71,30 +76,28 @@ export class SvPasswordStrengthComponent {
   /** Density preset. @default 'md' */
   size = input<PasswordStrengthSize>('md');
 
-  /** Accessible group label, also used to open the announcement. */
-  label = input<string>('Password strength');
+  /** Accessible group label; it also opens the announcement. @default 'Password strength' */
+  label = input<string>(this.labels.group);
 
   /**
    * Quiet period before an announcement, in milliseconds.
    *
-   * ★ The reason this exists: the visible label used to be the live region, so
-   *   every keystroke interrupted a screen-reader user mid-word and read the
-   *   band again. Announcements now wait for typing to stop and only fire when
-   *   the band actually changed. Set 0 in tests.
+   * Announcements wait for typing to stop and fire only when the band
+   * changed, so a screen-reader user is not interrupted mid-word. Set 0 in
+   * tests.
    * @default 700
    */
   announceDelay = input<number>(700);
 
   /**
-   * The guidance changed. Renamed from `scoreChange`: it emits advice, and
-   * calling it a score invited hosts to threshold on it.
+   * The guidance changed. It emits advice, not a score to threshold on.
    */
   readonly guidanceChange = output<PasswordGuidance>();
 
   protected readonly segmentIndexes = [0, 1, 2, 3] as const;
 
   readonly guidance = computed<PasswordGuidance>(() =>
-    evaluatePassword(this.value(), { minLength: this.minLength(), breach: this.breach() }),
+    evaluatePassword(this.value(), { minLength: this.minLength(), breach: this.breach() }, this.labels),
   );
 
   /** Bars filled: 0 while empty, otherwise at least 1 so the weakest band still reads as a signal. */
@@ -103,7 +106,7 @@ export class SvPasswordStrengthComponent {
   );
 
   protected readonly displayLabel = computed(() =>
-    this.value() ? this.guidance().label : 'No password entered',
+    this.value() ? this.guidance().label : this.labels.noPasswordEntered,
   );
 
   /** What the polite live region currently holds. Empty until there is something new to say. */
@@ -115,10 +118,10 @@ export class SvPasswordStrengthComponent {
   /** One sentence about the host's breach check, or '' when it is not running one. */
   protected readonly breachNotice = computed<string>(() => {
     switch (this.breach()) {
-      case 'checking': return 'Checking this against known breaches…';
-      case 'safe': return 'Not found in the breach list we checked.';
-      case 'breached': return 'This password has appeared in a data breach. Choose a different one.';
-      case 'unavailable': return 'We could not check this against known breaches right now.';
+      case 'checking': return this.labels.breachChecking;
+      case 'safe': return this.labels.breachSafe;
+      case 'breached': return this.labels.breachBreached;
+      case 'unavailable': return this.labels.breachUnavailable;
       default: return '';
     }
   });

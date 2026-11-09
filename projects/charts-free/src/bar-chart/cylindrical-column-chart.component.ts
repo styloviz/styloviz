@@ -7,12 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  type SvDataError,
-  type SvValuePolicy,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 import type { BarChartDataset, BarChartOptions, TooltipState } from './bar-chart.types';
 import {
@@ -54,6 +53,8 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvCylindricalColumnChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export class SvCylindricalColumnChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -87,8 +88,8 @@ export class SvCylindricalColumnChartComponent {
   datasets    = input<BarChartDataset[]>([]);
   /**
    * What to do with a column this chart cannot draw — a negative value, `NaN`,
-   * `Infinity`. The axis starts at zero, so such a column used to be drawn as a
-   * silent sliver (or, for `NaN`, blank the whole plot).
+   * `Infinity`. The axis starts at zero, so such a column cannot be drawn as
+   * given, and one `NaN` would blank the whole plot.
    *
    * - `clamp` (default) — draw a marked stub at the baseline and disclose the
    *   real value under the plot.
@@ -102,7 +103,7 @@ export class SvCylindricalColumnChartComponent {
   readonly valuePolicy = input<SvValuePolicy>('clamp');
 
   /** The columns this chart can draw, and what it has to say about the rest. */
-  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-cylindrical-column-chart'));
+  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-cylindrical-column-chart', { nounCount: this.labels.valueCountBar, labels: this.labels, locale: this.locale }));
 
   /** A host error wins; otherwise a `reject` policy's refusal. */
   readonly resolvedError = computed<SvDataError | string | null>(() => this.error() ?? this.plotted().error);
@@ -123,16 +124,45 @@ export class SvCylindricalColumnChartComponent {
     if (this.ariaLabel()) return this.ariaLabel();
     const cats = this.categories();
     const sets = this.datasets();
-    const base = this.title() || 'Cylindrical column chart';
+    const base = this.title() || this.labels.chartCylindricalColumn;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
   animDuration = computed(() => { const d = this.options().animationDuration; return d != null ? d + 'ms' : null; });
+
+  /**
+   * The columns as rows — one category per row, one column per series. Cells
+   * carry the real number; a column stubbed at the baseline says so.
+   *
+   * ★ No `overview`: the SVG's name already counts the series and categories.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets    = this.datasets();
+    const plotted = this.plotted();
+    return {
+      caption: this.title() || this.labels.chartCylindricalColumn,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: this.categories().map((cat, ci) => ({
+        key: cat,
+        header: cat,
+        cells: sets.map((s, si) => {
+          const value = s.data[ci] ?? 0;
+          const text  = Number.isFinite(value) ? this.formatValue(value) : this.labels.noValue;
+          return plotted.isClamped(si, ci) ? svFormatLabel(this.labels.valueNotToScale, { value: text }) : text;
+        }),
+      })),
+    };
+  });
 
   readonly tooltip = signal<TooltipState>({ visible: false, x: 0, y: 0, label: '', items: [] });
 
   readonly SVG_WIDTH = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PADDING   = { top: 24, right: 24, bottom: 56, left: 56 };
 
   svgHeight = computed(() => this.height());

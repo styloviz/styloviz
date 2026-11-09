@@ -1,8 +1,10 @@
 # @styloviz/notification-center
 
-> 6 premium variants: dropdown, drawer, inline, activity feed, compact and grouped — with mark-as-read, dismiss, search, tab filtering and inline actions.
+> 6 variants: dropdown, drawer, inline, activity feed, compact and grouped — with mark-as-read, dismiss, search, tab filtering and inline actions.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -60,19 +62,19 @@ export class DemoComponent {}
 | `variant` | `NotificationCenterVariant` | `'dropdown'` | Presentation: dropdown, drawer, inline, feed, compact or grouped. |
 | `notifications` | `NotificationItem[]` | `[]` | The notifications to display. |
 | `maxHeight` | `string` | `'400px'` | Max height of the scrollable list (CSS length). |
-| `tabs` | `string[]` | `['All', 'Unread', 'Mentions', 'System']` | Filter tab labels. |
+| `tabs` | `string[]` | `['All', 'Unread', 'Mentions', 'System']` | Filter tab KEYS. `All`, `Unread`, `Mentions` and `System` select the built-in filters and display the package's labels (`tabText`); any other key is shown as given. |
 | `panelTitle` | `string` | `'Notifications'` | Panel heading text. |
 | `showSearch` | `boolean` | `true` | Show the search box. |
 | `animateBell` | `boolean` | `true` | Animate the bell icon on new notifications. |
-| `showViewAll` | `boolean` | `false` | Render the panel's "View all" control. Off by default, and that default is the fix. The control used to be unconditional markup with no handler on it — a link to the notifications page that went nowhere, which is worse than no link because a user who presses it concludes the page is broken rather than absent. A host that has somewhere to send them opts in and handles `viewAll`; a host that does not never shows the control. |
+| `showViewAll` | `boolean` | `false` | Render the panel's "View all" control. Off by default: a "View all" link that goes nowhere is worse than no link, because a user who presses it concludes the page is broken rather than absent. A host that has somewhere to send them opts in and handles `viewAll`; a host that does not never shows the control. |
 | `loading` | `boolean` | `false` | True while notifications are being fetched. Shows a placeholder in place of the list when there is nothing to show yet. |
 | `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
 | `unreadTotal` | `number \| null` | `null` | The server's unread total for the WHOLE feed. `null` counts the rows in hand instead. |
-| `redactedLabel` | `string` | `'This notification is no longer availab…` | What a redacted row shows instead of its title. |
+| `redactedLabel` | `string` | `'This notification is no longer available'` | What a redacted row shows instead of its title. |
 | `hasMore` | `boolean` | `false` | More notifications exist on the server. Renders the "Load more" control. A notification feed is unbounded — without this a host has to send the user's entire history to render a dropdown. |
 | `loadingMore` | `boolean` | `false` | True while the next page is being fetched. |
 | `pendingIds` | `readonly string[] \| ReadonlySet<string>` | `[]` | Ids with a write in flight. Those rows dim and stop responding, so a second click cannot race the first and leave `rollback()` ambiguous. |
-| `itemErrors` | `Readonly<Record<string, string>> \| ReadonlyMap<string, string>` | `{}` | Ids whose last write FAILED, mapped to the message to show on that row. `pendingIds` HAD NO COUNTERPART, AND THAT IS Optimistic read/dismiss rolls back correctly — the row reverts, and the user is told nothing. A notification that silently un-dismissed itself looks like the click never landed, so they click again, and again, against an endpoint that is refusing. PER ROW, not one banner. `error` above is for the FEED — "could not load notifications" — and putting a single row's failure there says the whole list is broken. The two are different facts and the audit's own reasoning for `role="alert"` vs `role="status"` applies: scope the message to what actually failed. ```ts this.itemErrors.set({ 'n-14': 'Could not mark as read.' }); ``` |
+| `itemErrors` | `Readonly<Record<string, string>> \| ReadonlyMap<string, string>` | `{}` | Ids whose last write FAILED, mapped to the message to show on that row. The counterpart of `pendingIds`. Optimistic read/dismiss rolls back correctly — the row reverts — but on its own that tells the user nothing: a notification that silently un-dismissed itself looks like the click never landed, so they click again against an endpoint that is refusing. The row named here says so, in place, with a Try again. Per row, not one banner: `error` is for the feed — "could not load notifications" — and putting a single row's failure there says the whole list is broken. ```ts this.itemErrors.set({ 'n-14': 'Could not mark as read.' }); ``` |
 | `debounceMs` | `number` | `300` | Delay before `queryChange` fires, in milliseconds. `0` emits immediately. |
 | `serverSide` | `boolean` | `false` | Filter and search on the server instead of in the component. Leaves the supplied `notifications` untouched — the host is responsible for returning only matching rows. Required for a real feed: filtering client-side can only ever search the page you already downloaded. |
 | `open` | `boolean (two-way)` | `false` | Whether the panel is open. Two-way bindable, so a host can open the centre from a route or a keyboard shortcut. Ignored by the always-visible `inline` and `feed` variants. |
@@ -102,4 +104,4 @@ Full API reference and live demos: https://styloviz.dev/docs/notification-center
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

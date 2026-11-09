@@ -15,7 +15,7 @@ export {
   svSnapModuleWidth,
   svValidate,
 } from './barcode-1d.encode';
-export type { SvEncoded } from './barcode-1d.encode';
+export type { SvBarcodeEncodeLabels, SvEncoded } from './barcode-1d.encode';
 export {
   SV_BARCODE_MIN_X_MM,
   SV_BARCODE_NOMINAL_X_MM,
@@ -23,3 +23,5 @@ export {
   svScanSize,
 } from './barcode-1d.scan';
 export type { SvBarcodeScanSize } from './barcode-1d.scan';
+export { SV_BARCODE_1D_LABELS } from './barcode-1d.labels';
+export type { SvBarcode1dLabels } from './barcode-1d.labels';

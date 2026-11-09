@@ -22,7 +22,7 @@ describe('Divider — forced-colors fallback (X-7)', () => {
     });
     const line = (fixture.nativeElement as HTMLElement).querySelector('[class*="bg-gradient"]');
     expect(line?.className).toContain('forced-colors:border-[CanvasText]');
-    expect(line?.className).toContain(orientation === 'horizontal' ? 'forced-colors:border-t' : 'forced-colors:border-l');
+    expect(line?.className).toContain(orientation === 'horizontal' ? 'forced-colors:border-t' : 'forced-colors:border-s');
   });
 
   it('leaves border variants alone — forced colors already paints borders', async () => {

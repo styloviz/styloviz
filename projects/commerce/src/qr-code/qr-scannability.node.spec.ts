@@ -16,6 +16,7 @@ import {
   svQrScannability,
   type SvQrScanCheck,
 } from './qr-scannability';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 
 const sound: SvQrScanCheck = {
   foreground: '#000000',
@@ -29,7 +30,7 @@ const sound: SvQrScanCheck = {
 };
 
 const kinds = (c: Partial<SvQrScanCheck>): string[] =>
-  svQrScannability({ ...sound, ...c }).map(w => w.kind);
+  svQrScannability({ ...sound, ...c }, SV_COMMERCE_LABELS).map(w => w.kind);
 
 describe('svParseHex', () => {
   it('reads both hex forms', () => {
@@ -61,7 +62,7 @@ describe('svQrContrast', () => {
 
 describe('svQrScannability — a code that is fine', () => {
   it('reports nothing wrong', () => {
-    expect(svQrScannability(sound)).toEqual([]);
+    expect(svQrScannability(sound, SV_COMMERCE_LABELS)).toEqual([]);
   });
 });
 
@@ -70,7 +71,7 @@ describe('svQrScannability — the payload', () => {
     // ★★★ Exceeding capacity does not fail: the encoder slices to capacity, so
     //     the code scans perfectly and yields the WRONG data. A truncated URL
     //     is still a URL.
-    const [w] = svQrScannability({ ...sound, payloadBytes: 400, capacityBytes: 250 });
+    const [w] = svQrScannability({ ...sound, payloadBytes: 400, capacityBytes: 250 }, SV_COMMERCE_LABELS);
     expect(w.kind).toBe('capacity');
     expect(w.message).toContain('would be truncated');
     expect(w.message).toContain('nothing is drawn');
@@ -79,7 +80,7 @@ describe('svQrScannability — the payload', () => {
   it('reports capacity FIRST, because it is the fatal one', () => {
     const out = svQrScannability({
       ...sound, payloadBytes: 400, capacityBytes: 250, quietZone: 0, foreground: '#eee',
-    });
+    }, SV_COMMERCE_LABELS);
     expect(out[0].kind).toBe('capacity');
     expect(out.length).toBeGreaterThan(1);
   });
@@ -91,19 +92,19 @@ describe('svQrScannability — the payload', () => {
 
 describe('svQrScannability — contrast and polarity', () => {
   it('flags a pair a camera cannot separate', () => {
-    const out = svQrScannability({ ...sound, foreground: '#bbbbbb' });
+    const out = svQrScannability({ ...sound, foreground: '#bbbbbb' }, SV_COMMERCE_LABELS);
     expect(out.some(w => w.kind === 'contrast')).toBe(true);
     expect(out.find(w => w.kind === 'contrast')!.message).toContain('look fine and may not scan');
   });
 
   it('accepts a pair at the threshold', () => {
     // Anything clearing the bar passes, whatever the hue.
-    const out = svQrScannability({ ...sound, foreground: '#1d4ed8', background: '#ffffff' });
+    const out = svQrScannability({ ...sound, foreground: '#1d4ed8', background: '#ffffff' }, SV_COMMERCE_LABELS);
     expect(out.some(w => w.kind === 'contrast')).toBe(false);
   });
 
   it('says so when it cannot check at all', () => {
-    const out = svQrScannability({ ...sound, foreground: 'var(--brand)' });
+    const out = svQrScannability({ ...sound, foreground: 'var(--brand)' }, SV_COMMERCE_LABELS);
     expect(out.find(w => w.kind === 'contrast')!.message).toContain('cannot be checked');
   });
 
@@ -111,7 +112,7 @@ describe('svQrScannability — contrast and polarity', () => {
     // ★ White on black has 21:1 contrast and still fails on many scanners,
     //   which assume dark on light. Folding it into the contrast check would
     //   hide it completely.
-    const out = svQrScannability({ ...sound, foreground: '#ffffff', background: '#000000' });
+    const out = svQrScannability({ ...sound, foreground: '#ffffff', background: '#000000' }, SV_COMMERCE_LABELS);
     expect(out.map(w => w.kind)).toContain('inverted');
     expect(out.some(w => w.kind === 'contrast')).toBe(false);
   });
@@ -135,7 +136,7 @@ describe('svQrScannability — the quiet zone', () => {
   });
 
   it('names the requirement rather than asserting a preference', () => {
-    const out = svQrScannability({ ...sound, quietZone: 2 });
+    const out = svQrScannability({ ...sound, quietZone: 2 }, SV_COMMERCE_LABELS);
     expect(out.find(w => w.kind === 'quiet-zone')!.message)
       .toContain(`requires ${SV_QR_MIN_QUIET_ZONE}`);
   });
@@ -149,7 +150,7 @@ describe('svQrScannability — a logo against the correction budget', () => {
 
   it('flags one that eats more than the level can recover', () => {
     // 100px on 200px is 25% of the area; M recovers 15%.
-    const out = svQrScannability({ ...sound, logoSize: 100, size: 200, ecLevel: 'M' });
+    const out = svQrScannability({ ...sound, logoSize: 100, size: 200, ecLevel: 'M' }, SV_COMMERCE_LABELS);
     const w = out.find(x => x.kind === 'logo')!;
     expect(w.message).toContain('25%');
     expect(w.message).toContain('recover 15%');
@@ -164,7 +165,7 @@ describe('svQrScannability — a logo against the correction budget', () => {
   });
 
   it('says what to do about it, not just that it is wrong', () => {
-    const out = svQrScannability({ ...sound, logoSize: 120, size: 200, ecLevel: 'L' });
+    const out = svQrScannability({ ...sound, logoSize: 120, size: 200, ecLevel: 'L' }, SV_COMMERCE_LABELS);
     expect(out.find(w => w.kind === 'logo')!.message)
       .toContain('Raise the correction level or shrink the logo');
   });

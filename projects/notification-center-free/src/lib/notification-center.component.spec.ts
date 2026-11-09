@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 import { SvNotificationCenterComponent } from './notification-center.component';
 import type {
   NotificationDismissEvent,
@@ -220,7 +220,11 @@ describe('SvNotificationCenterComponent — unbounded feed', () => {
     c.loadMore.subscribe((e) => events.push(e));
 
     c.onLoadMore();
-    expect(events[0]).toEqual({ loaded: 3, query: { tab: 'Unread', search: 'inv' } });
+    expect(events[0]).toEqual({
+      loaded: 3,
+      cursor: { id: 'c', timestamp: '2026-07-20T10:00:00Z' },
+      query: { tab: 'Unread', search: 'inv' },
+    });
   });
 
   it('offers the control only when more exist', async () => {

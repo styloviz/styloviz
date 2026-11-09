@@ -2,7 +2,9 @@
 
 > Single, multi-select, grouped and searchable dropdown with rich option rendering.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -56,6 +58,8 @@ import { SvSelectDropdownComponent } from '@styloviz/select-dropdown';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -71,29 +75,18 @@ export class DemoComponent {}
 | `size` | `SelectSize` | `'md'` | Field size: sm, md or lg. |
 | `variant` | `SelectVariant` | `'default'` | Visual variant. |
 | `multiple` | `boolean` | `false` | Allow selecting multiple options. |
-| `searchable` | `boolean` | `false` | Show a search box to filter options. |
-| `searchPlaceholder` | `string` | `'Search…'` | Placeholder for the search box. |
-| `loadingText` | `string` | `'Loading…'` | Panel copy while the first set of options is being fetched. |
-| `noResultsText` | `string` | `'No results found'` | Text shown when a search yields no matches. |
 | `clearable` | `boolean` | `false` | Show a clear (×) control. |
 | `disabled` | `boolean` | `false` | Disable the field. |
-| `loading` | `boolean` | `false` | Show a loading state. |
-| `stale` | `boolean` | `false` | The results on screen answer an **older** query — a newer request is still in flight. Distinct from `loading`, which cannot separate the two cases it covers: the first fetch (nothing on screen — show a skeleton) and a refinement of results already visible (keep them, and say they are provisional). Blanking the panel on the second is the most jarring thing a picker can do; showing the old list with no indication is a quiet lie. Bind `svSuggestController(...).stale` from `@styloviz/data`, or `createRequestGuard().stale` from `@styloviz/core`. The results dim and report `aria-busy` while staying fully interactive. |
+| `loading` | `boolean` | `false` | The host is still resolving the *selected* value — fetching the entity a saved id points at, say. The trigger shows a spinner, reports `aria-busy` and does not open, so a user cannot pick against a value that is about to change under them. The option list's own loading state comes from `source` (`svSelectSource` from `@styloviz/core`); the two are OR-ed in the panel. |
 | `required` | `boolean` | `false` | Mark the field as required. |
 | `optionalTag` | `boolean` | `false` | Show an "optional" tag next to the label. |
 | `maxSelected` | `number` | `0` | Max selectable options in multiple mode (0 = unlimited). |
 | `inputId` | `string` | `''` | Explicit id for the control (for external <label for>). |
 | `ariaLabel` | `string` | `''` | Accessible name for the trigger when there is no visible `label`. Use this instead of a native `aria-label` on the host element (which is not a labelable role and would be an ARIA violation). Falls back to the `placeholder` so the combobox always has an accessible name. |
 | `customClass` | `string` | `''` | Extra CSS classes for the control. |
-| `serverSide` | `boolean` | `false` | Let the server do the searching. The supplied `options` are shown exactly as given — filtering them again hides entries the server matched on fields the component cannot see, and client-side search can only ever look at the page already downloaded. |
-| `debounceMs` | `number` | `300` | Delay before `searchChange` fires, in milliseconds. `0` emits immediately. |
-| `minChars` | `number` | `0` | Characters required before a search is sent. Below this the panel says so rather than showing a misleading "No results found". |
-| `error` | `SvDataError \| string \| null` | `null` | Failure loading the options. Rendered inside the panel, so the trigger and the current selection stay put. |
-| `hasMore` | `boolean` | `false` | More options exist on the server. Renders a "Load more" row. |
-| `loadingMore` | `boolean` | `false` | True while the next page is being fetched. |
 | `selectedOption` | `SelectOption \| null` | `null` | The option matching the current `value`, for when its label lives on the server and is not in `options` yet. Without it a picker restored from a saved id shows the raw id until the user opens the panel. |
-| `loadOptions` | `SvSelectOptionSource \| null` | `null` | Let the component fetch its own options. MEASURED — what `serverSide` actually left the host holding. The six remote inputs above describe a request; none of them *makes* one. A host wiring this picker to `/api/people` had to write, by hand, in every component that uses it: a subscription to `(searchChange)`, a request-guard so a slow answer to an abandoned term cannot overwrite a newer one, an `AbortController` so the abandoned request stops costing the server, the `loading`/`stale` split so a refinement dims the list instead of blanking it, a try/catch mapping the failure onto `error`, and a `(retry)` handler re-running the last term. Six inputs and three outputs of ceremony for one URL. The guard is the part everyone skips, and skipping it looks correct in review. Hand it a function instead: ```html <sv-select-dropdown [loadOptions]="searchPeople" [selectedOption]="current()" [searchable]="true" [minChars]="2" /> ``` ```ts searchPeople = (term: string, signal: AbortSignal) => fetch(`/api/people?q=${encodeURIComponent(term)}`, { signal }) .then((r) => r.json()); ``` With a source set, `options`, `loading`, `stale` and `error` are driven by the component and the host's own values for them are OR-ed in rather than replaced — a host may still be loading the *selected* entity while the panel is idle. `serverSide` is implied: a list this component just fetched must not then be re-filtered against the same term, which would hide the entries the server matched on fields the component cannot see. ⚠️ **Pass `selectedOption` too.** The fetched list is whatever answers the current term, so a perfectly valid selection is routinely *not in it* — and without the hydration input the trigger would call it stale and read "Unavailable". The component cannot tell "not in these results" from "deleted on the server", and guessing the friendly answer would undo Dev mode warns once when a value is held and neither the results nor `selectedOption` resolve it. ⚠️ **Not compatible with `hasMore` / `loadMore`.** A source returns the whole answer for a term; there is nowhere for the component to append a page it did not ask for. Paging stays host-driven through `options`. Dev mode warns once if both are used. |
-| `source` | `SvSelectSource<SelectOption> \| null` | `null` | Where the options come from — search, paging and async state as one object. Build it with `svSelectSource({ search, pageSize, minChars, debounceMs })` from `@styloviz/core`. It replaces `loadOptions`, `serverSide`, `hasMore`, `loadingMore`, `loading`, `stale`, `error`, `(retry)` and `(loadMore)`: with a source set the component fetches on open, searches as the user types, appends pages on "Load more" and retries a failure itself. The legacy inputs are still OR-ed in, and the legacy outputs still fire. Takes precedence over `loadOptions` when both are set. |
+| `sheetOnNarrow` | `boolean` | `false` | Below 640px, open the panel as a bottom sheet — full width, clear of the home indicator and of the virtual keyboard the search box raises — instead of anchoring it to the trigger, where a phone has no room beside it. The kit's shared contract (`createSheetMode`, as `sv-dropdown-menu`). Off by default, so an existing app does not change on a phone. |
+| `source` | `SvSelectSource<SelectOption> \| null` | `null` | Where the options come from — search, paging and async state as one object. Build it with `svSelectSource({ search, pageSize, minChars, debounceMs })` from `@styloviz/core`. With a source set the component fetches on open, searches as the user types, appends pages on "Load more" and retries a failure itself — no host handler is involved. |
 
 ## Outputs
 
@@ -102,10 +95,15 @@ export class DemoComponent {}
 | `selectionChange` | `string \| string[]` | Emitted with the new selection (string or string[]). |
 | `dropdownOpen` | `void` | Emitted when the dropdown opens. |
 | `dropdownClose` | `void` | Emitted when the dropdown closes. |
-| `searchChange` | `string` | Emitted with the search query whenever it changes (for remote filtering). |
-| `retry` | `void` | The host should re-run the failed option load. |
-| `loadMore` | `void` | The user reached the end of the list and wants the next page. |
 | `valueChange` | `string \| string[]` | Emits the new `value` whenever it changes — the output half of `[(value)]`. |
+
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-select-dropdown` | ControlValueAccessor |
 
 ## Documentation
 
@@ -113,4 +111,4 @@ Full API reference and live demos: https://styloviz.dev/docs/select-dropdown
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

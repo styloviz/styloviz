@@ -93,7 +93,7 @@ Two entries earn their place by being careful about wording:
 
 ## Using these as your app's actual error pages
 
-The routes in `errors.routes.ts` are for browsing the five pages in one
+The routes in `errors.routes.ts` are for browsing the fourteen pages in one
 place; they are **not** how a real app reaches them. Wire each page where it
 actually belongs:
 

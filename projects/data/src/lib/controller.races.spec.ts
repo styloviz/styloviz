@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { createQuery, type SvPage } from '@styloviz/core';
+import { createQuery, type SvPage } from '@styloviz/core/data';
 import { quietFor, until } from '@testing/async';
 import { svDataController, type SvDataController } from './controller';
 import type { SvDataSource } from './types';

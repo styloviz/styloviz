@@ -1,8 +1,10 @@
 # @styloviz/data-table
 
-> Sortable, paginated table with row selection, badge cells and a loading skeleton — plus premium toolbar, column filters, inline editing, expandable rows and bulk actions.
+> The data table's `responsive="records"`: a table that becomes a list of records when there is no room to be a table. Below the breakpoint the markup stops claiming to be a table and becomes a list of real <dl> label/value pairs — the structure HTML already has for this — with sorting, selection and row actions rebuilt rather than lost, and nothing dropped.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -47,11 +49,13 @@ import { SvDataTableComponent } from '@styloviz/data-table';
   standalone: true,
   imports: [SvDataTableComponent],
   template: `
-    <sv-data-table [rows]="rows" rowKey="id" [selectable]="true" [paginated]="true" />
+    <sv-data-table [columns]="columns" [rows]="rows" responsive="records" recordTitleKey="name" />
   `,
 })
 export class DemoComponent {}
 ```
+
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
 
 ## Inputs
 
@@ -76,11 +80,10 @@ export class DemoComponent {}
 | `totalCount` | `number \| null` | `null` | Total row count when in server-side mode. |
 | `variant` | `TableVariant` | `'default'` | Table style variant. |
 | `density` | `TableDensity` | `'comfortable'` | Row density: comfortable, compact, etc. |
-| `compact` | `boolean` | `false` | Deprecated shorthand for compact density. |
 | `maxHeight` | `string \| null` | `null` | Max body height (CSS length) before the table scrolls. |
 | `showScrollHint` | `boolean` | `true` | Show a hint when the table is horizontally scrollable. |
 | `rowClassFn` | `((row: T) => string) \| null` | `null` | Callback returning extra Tailwind classes for a given row. |
-| `showToolbar` | `boolean \| undefined` | `undefined` | Show the toolbar strip. Left unset it DERIVES from whether the toolbar has anything to put in it — binding `tableTitle` or `[searchable]` used to render nothing at all unless you also remembered this flag, which is a silent no-op: the API accepted your input and ignored it. Set it explicitly to force the strip on (an empty bar as a spacer) or off (a title used only as the accessible name). Every existing call site passes it, so nothing changes for them. |
+| `showToolbar` | `boolean \| undefined` | `undefined` | Show the toolbar strip. Left unset it is derived from whether the toolbar has anything to put in it — binding `tableTitle` or `[searchable]` is enough to show it. Set it explicitly to force the strip on (an empty bar as a spacer) or off (a title used only as the accessible name). |
 | `tableTitle` | `string` | `''` | Title shown in the toolbar. |
 | `searchable` | `boolean` | `false` | Show a search box in the toolbar. |
 | `showColumnToggle` | `boolean` | `false` | Show the column visibility toggle. |
@@ -91,12 +94,17 @@ export class DemoComponent {}
 | `expandable` | `boolean` | `false` | Enable expandable rows. |
 | `expandRender` | `((row: T) => string) \| null` | `null` | Renderer for the expanded row detail. |
 | `showFooter` | `boolean` | `false` | Show a table footer row. |
-| `cardOnMobile` | `boolean` | `false` | Render rows as cards on small screens. |
+| `responsive` | `DataTableResponsive` | `'none'` | What the table becomes when there is no room to be a table — see `DataTableResponsive`. `'none'` keeps the table and scrolls it sideways; `'cards'` shows a compact label/value card per row below the `sm` breakpoint; `'records'` shows a list of records below `recordBreakpoint`. |
+| `recordTitleKey` | `string` | `''` | `responsive="records"`: the column that titles each record. Empty uses the first shown column. |
+| `recordBreakpoint` | `number` | `768` | `responsive="records"`: width below which the records replace the table, in px. |
+| `recordView` | `DataTableRecordView` | `'auto'` | `responsive="records"`: `'always'` shows the records at any width — a narrow panel on a wide screen. |
+| `recordExpandedIds` | `ReadonlySet<string \| number> (two-way)` | `new Set()` | `responsive="records"`: row keys whose secondary fields are open (two-way), keyed by `rowKey`, never by position, so a host can restore them. |
 | `emptyMessage` | `string` | `'No data to display.'` | Message shown when there are no rows. |
 | `customClass` | `string` | `''` | Extra CSS classes for the root element. |
 | `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. Rendered in place of the rows, above the toolbar so the user can still change the filter that caused it. |
-| `hiddenColumnKeys` | `Set<string> (two-way)` | `new Set()` | Which columns the user has hidden (two-way). A `model` rather than internal state so a saved table layout can be restored by binding it — the free tier had no other way in at all, and the Pro tier could only reach it through a whole-state snapshot. Declared here with the rest of the internal view state because that is where the column toggle lives; it is nonetheless part of the public API. |
-| `revealedColumnKeys` | `ReadonlySet<string> (two-way)` | `new Set()` | Columns declared `hidden: true` that the user has since shown from the Columns menu. `hidden` is documented as "initially hidden — the user can show it from the column-toggle panel", but the table used to filter `!col.hidden` unconditionally: the column could never come back, and its checkbox (bound to `hiddenColumnKeys` alone) sat TICKED for a column that was not on screen. Two-way, like `hiddenColumnKeys`: together the two ARE the column-visibility view, and a host that persists one without the other restores a table whose revealed columns have vanished again (`check:collection-identity`). |
+| `debounceMs` | `number` | `300` | Milliseconds typing in the search box or a text column filter waits before `queryChange` asks the server again (`serverSide` only). The rows on screen still filter on every keystroke; sorting, paging and clearing ask at once. `0` asks on every keystroke. |
+| `hiddenColumnKeys` | `Set<string> (two-way)` | `new Set()` | Which columns the user has hidden (two-way). Bind it to restore a saved set of hidden columns, and read `(hiddenColumnKeysChange)` to store what the user changes. |
+| `revealedColumnKeys` | `ReadonlySet<string> (two-way)` | `new Set()` | Columns declared `hidden: true` that the user has since shown from the Columns menu. A `hidden` column starts hidden and stays in the Columns menu, so the user can show it. Two-way, like `hiddenColumnKeys`: together the two ARE the column-visibility view, and a host that persists one without the other restores a table whose revealed columns have vanished again. |
 
 ## Outputs
 
@@ -106,22 +114,22 @@ export class DemoComponent {}
 | `selectionChange` | `Set<string \| number>` | Emitted with the set of selected row ids. |
 | `rowClick` | `T` | Emitted with the clicked row. |
 | `cellClick` | `CellClickEvent<T>` | Emitted with the clicked cell context. |
-| `editComplete` | `EditCompleteEvent<T>` | Emitted when an inline cell edit completes (Pro). |
+| `editComplete` | `EditCompleteEvent<T>` | Emitted when an inline cell edit completes. |
 | `retry` | `void` | The host should re-run the failed load. |
 | `queryChange` | `SvDataQuery` | Everything the user is asking to see, in the kit's shared shape. This is the output to wire in `serverSide` mode: one handler regardless of whether they paged, sorted, filtered or searched, and the same `SvDataQuery` every other component in the kit emits — so `@styloviz/data` and a hand-rolled fetch both take it without a translation layer. |
-| `serverPageChange` | `ServerPageEvent` | Emitted in `serverSide` mode with the page, page size, sorts, column filters, search text and request id whenever the user changes any of them. |
 | `rowExpand` | `T` | Emitted with the row when the user expands or collapses its detail panel. |
 | `bulkActionClick` | `{ action: BulkAction; selectedIds: Set<string \| number> }` | Emitted with the bulk action and the selected row ids. |
 | `selectedIdsChange` | `Set<string \| number>` | Emits the new `selectedIds` whenever it changes — the output half of `[(selectedIds)]`. |
 | `expandedRowIdsChange` | `Set<string \| number>` | Emits the new `expandedRowIds` whenever it changes — the output half of `[(expandedRowIds)]`. |
 | `pageSizeChange` | `number` | Emits the new `pageSize` whenever it changes — the output half of `[(pageSize)]`. |
+| `recordExpandedIdsChange` | `ReadonlySet<string \| number>` | Emits the new `recordExpandedIds` whenever it changes — the output half of `[(recordExpandedIds)]`. |
 | `hiddenColumnKeysChange` | `Set<string>` | Emits the new `hiddenColumnKeys` whenever it changes — the output half of `[(hiddenColumnKeys)]`. |
 | `revealedColumnKeysChange` | `ReadonlySet<string>` | Emits the new `revealedColumnKeys` whenever it changes — the output half of `[(revealedColumnKeys)]`. |
 
 ## Documentation
 
-Full API reference and live demos: https://styloviz.dev/docs/data-table
+Full API reference and live demos: https://styloviz.dev/docs/record-grid
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

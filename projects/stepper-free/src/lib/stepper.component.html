@@ -5,7 +5,7 @@
 } @else if (error()) {
   <sv-error-shell
     [error]="error()"
-    title="Could not load these steps"
+    [title]="labels.loadError"
     (retry)="retry.emit()"
     data-sv-state="error"
   />
@@ -62,9 +62,91 @@
   </div>
 }
 
-@if (variant() === 'tracker') {
+@if (variant() === 'progress-bar') {
+  <!-- ══ Progress bar (SR-37) — the current step's label over a segmented bar ══ -->
+  <div [ngClass]="customClass()" data-sv-stepper-progress>
+    <div class="flex items-baseline justify-between gap-3" [id]="progressHeadingId" aria-live="polite">
+      <span class="min-w-0 truncate font-semibold text-gray-900 dark:text-white"
+            [ngClass]="currentView()?.label ?? ''">{{ currentView()?.step?.item?.label }}</span>
+      <span class="shrink-0 text-xs font-medium tabular-nums text-gray-600 dark:text-gray-400"
+            data-sv-stepper-progress-text>{{ progressText() }}</span>
+    </div>
+    @if (showDescriptions() && currentView()?.step?.item?.description) {
+      <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-400">{{ currentView()?.step?.item?.description }}</p>
+    }
+    <ol class="mt-1 flex gap-1" [attr.aria-labelledby]="progressHeadingId">
+      @for (v of stepViews(); track v.step.item.id) {
+        <li class="min-w-0 flex-1">
+          <!-- py-2.5 makes the segment a 24px+ target around a 4–8px bar. -->
+          <button
+            [id]="'stepper-item-' + _uid + '-' + v.step.item.id"
+            type="button"
+            class="block w-full rounded py-2.5"
+            [class.cursor-pointer]="v.clickable"
+            [class.cursor-not-allowed]="!v.clickable"
+            [attr.aria-label]="v.name"
+            [attr.aria-current]="v.current ? 'step' : null"
+            [attr.aria-disabled]="!v.clickable"
+            [attr.tabindex]="v.tabIndex"
+            [attr.data-sv-step-state]="v.step.state"
+            (click)="onSelect(v.step)"
+            (keydown)="onStepKeydown($event, v.step)"
+          >
+            <span class="block rounded-full transition-colors duration-200" [ngClass]="[segmentSizeClass(), v.segment]"></span>
+          </button>
+        </li>
+      }
+    </ol>
+  </div>
+} @else if (variant() === 'card') {
+  <!-- ══ Cards (SR-37) — one box per step: indicator, title, description ══ -->
+  <ol [ngClass]="[cardGridClass(), customClass()]" data-sv-stepper-cards>
+    @for (v of stepViews(); track v.step.item.id) {
+      <li class="min-w-0">
+        <button
+          [id]="'stepper-item-' + _uid + '-' + v.step.item.id"
+          type="button"
+          class="relative flex h-full w-full items-start overflow-hidden rounded-xl border text-start transition-colors duration-200"
+          [ngClass]="[v.card, cardPadClass()]"
+          [class.cursor-pointer]="v.clickable"
+          [class.cursor-not-allowed]="!v.clickable"
+          [class.opacity-70]="!v.clickable && !v.current"
+          [attr.aria-current]="v.current ? 'step' : null"
+          [attr.aria-disabled]="!v.clickable"
+          [attr.tabindex]="v.tabIndex"
+          [attr.data-sv-step-state]="v.step.state"
+          (click)="onSelect(v.step)"
+          (keydown)="onStepKeydown($event, v.step)"
+        >
+          <span [ngClass]="v.indicator" aria-hidden="true">
+            @if (v.showIcon) {
+              <sv-icon [name]="v.icon" [size]="indicatorIconPx()" cssClass="block shrink-0" [strokeWidth]="2" />
+            } @else {
+              {{ v.text }}
+            }
+          </span>
+          <span class="min-w-0 pt-0.5">
+            <span class="block" [ngClass]="v.label">{{ v.step.item.label }}</span>
+            @if (v.badge) {
+              <span class="mt-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ v.badge }}</span>
+            }
+            @if (v.step.item.optional) {
+              <span class="mt-0.5 block text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ labels.optional }}</span>
+            }
+            @if (showDescriptions() && v.step.item.description) {
+              <span class="block" [ngClass]="v.description">{{ v.step.item.description }}</span>
+            }
+          </span>
+          @if (v.current) {
+            <span class="absolute inset-x-0 bottom-0 h-0.5 bg-primary-600 dark:bg-primary-500" aria-hidden="true"></span>
+          }
+        </button>
+      </li>
+    }
+  </ol>
+} @else if (variant() === 'tracker') {
   <!-- ══ Tracker variant — horizontal order-status tracker ══ -->
-  <ol class="flex w-full items-start" role="list" [attr.aria-label]="'Status tracker'">
+  <ol class="flex w-full items-start" role="list" [attr.aria-label]="labels.statusTracker">
     @for (step of normalizedSteps(); track step.item.id; let i = $index; let first = $first) {
       <li class="relative flex min-w-0 flex-1 flex-col items-center px-1 text-center" role="listitem"
           [attr.aria-current]="step.state === 'current' ? 'step' : null">
@@ -72,7 +154,7 @@
         <!-- Connector rail (behind the icon) -->
         @if (!first) {
           <span aria-hidden="true"
-                class="absolute right-1/2 top-5 h-0.5 w-full -translate-y-1/2 rounded-full transition-colors duration-300"
+                class="absolute end-1/2 top-5 h-0.5 w-full -translate-y-1/2 rounded-full transition-colors duration-300"
                 [ngClass]="(step.state === 'complete' || step.state === 'current') ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'"></span>
         }
 
@@ -109,7 +191,7 @@
     }
   </ol>
 } @else {
-<div [ngClass]="[rootClasses(), branchShiftClass()]" role="list" aria-label="Progress steps">
+<div [ngClass]="[rootClasses(), branchShiftClass()]" role="list" [attr.aria-label]="labels.progressSteps">
 
   @if (orientation() === 'horizontal') {
     @for (step of normalizedSteps(); track step.item.id; let last = $last) {
@@ -117,7 +199,7 @@
         <button
           [id]="'stepper-item-' + _uid + '-' + step.item.id"
           type="button"
-          class="group flex min-w-0 flex-1 flex-col items-start gap-2 text-left"
+          class="group flex min-w-0 flex-1 flex-col items-start gap-2 text-start"
           [class.cursor-pointer]="isClickable(step)"
           [class.cursor-not-allowed]="!isClickable(step)"
           [class.opacity-70]="!isClickable(step)"
@@ -132,7 +214,8 @@
             <span [ngClass]="indicatorClass(step)" aria-hidden="true">
               @if (shouldShowIcon(step)) {
                 <sv-icon [name]="stepIconName(step)"
-                         cssClass="h-[65%] w-[65%]"
+                         [size]="indicatorIconPx()"
+                         cssClass="block shrink-0"
                          [strokeWidth]="2" />
               } @else if (shouldShowText(step)) {
                 {{ indicatorText(step) }}
@@ -141,7 +224,7 @@
 
             @if (showConnectors() && !last) {
               <span
-                class="ml-3 flex-1 rounded-full"
+                class="ms-3 flex-1 rounded-full"
                 [ngClass]="[connectorClass(step), connectorSizeClass()]"
                 aria-hidden="true"
               ></span>
@@ -152,12 +235,12 @@
             <span class="min-w-0 pt-0.5">
               <span [ngClass]="labelClass(step)">{{ step.item.label }}</span>
               @if (shouldShowBadge(step)) {
-                <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span class="ms-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {{ badgeText(step) }}
                 </span>
               }
               @if (step.item.optional) {
-                <span class="ml-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Optional</span>
+                <span class="ms-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ labels.optional }}</span>
               }
               @if (showDescriptions() && step.item.description) {
                 <p [ngClass]="descriptionClass(step)">{{ step.item.description }}</p>
@@ -169,7 +252,10 @@
     }
   } @else {
     @for (step of normalizedSteps(); track step.item.id; let last = $last) {
-      <div class="relative pb-6 last:pb-0" [ngClass]="verticalRowPaddingClass()" role="listitem">
+      <!-- ★ No left gutter: the rail is positioned from the row's edge, under the
+           indicator at its start (SR-37 — the row used to be padded, which put
+           the rail 40–64px left of the circles it joins). -->
+      <div class="relative pb-6 last:pb-0" role="listitem">
         @if (showConnectors() && !last) {
           <span
             class="absolute rounded-full"
@@ -181,7 +267,7 @@
         <button
           [id]="'stepper-item-' + _uid + '-' + step.item.id"
           type="button"
-          class="group flex w-full items-start gap-3 text-left"
+          class="group flex w-full items-start gap-3 text-start"
           [class.cursor-pointer]="isClickable(step)"
           [class.cursor-not-allowed]="!isClickable(step)"
           [class.opacity-70]="!isClickable(step)"
@@ -195,7 +281,8 @@
           <span [ngClass]="indicatorClass(step)" aria-hidden="true">
             @if (shouldShowIcon(step)) {
               <sv-icon [name]="stepIconName(step)"
-                       cssClass="h-[65%] w-[65%]"
+                       [size]="indicatorIconPx()"
+                       cssClass="block shrink-0"
                        [strokeWidth]="2" />
             } @else if (shouldShowText(step)) {
               {{ indicatorText(step) }}
@@ -206,12 +293,12 @@
             <span class="min-w-0 pt-0.5">
               <span [ngClass]="labelClass(step)">{{ step.item.label }}</span>
               @if (shouldShowBadge(step)) {
-                <span class="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span class="ms-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                   {{ badgeText(step) }}
                 </span>
               }
               @if (step.item.optional) {
-                <span class="ml-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Optional</span>
+                <span class="ms-2 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ labels.optional }}</span>
               }
               @if (showDescriptions() && step.item.description) {
                 <p [ngClass]="descriptionClass(step)">{{ step.item.description }}</p>

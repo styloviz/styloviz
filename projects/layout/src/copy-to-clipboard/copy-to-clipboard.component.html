@@ -42,7 +42,7 @@
     <button
       type="button"
       [ngClass]="buttonClass()"
-      [attr.aria-label]="shown() ? 'Hide value' : 'Show value'"
+      [attr.aria-label]="shown() ? labels.hideValue : labels.showValue"
       [attr.aria-pressed]="shown()"
       data-sv-copy-reveal
       (click)="toggleShown()"
@@ -55,7 +55,13 @@
 <!-- ── Block variant ─────────────────────────────────────────────────────── -->
 @if (variant() === 'block') {
   <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800/60">
-    <span [ngClass]="textSize()" class="flex-1 truncate font-mono text-gray-700 select-all dark:text-gray-300">
+    <!-- ★ contain:inline-size — the value never sizes the box. Without it the
+         nowrap value is the row's min-content width, so in an auto grid track,
+         a table cell or a shrink-to-fit parent the block grows to the full
+         value and pushes its copy button off-screen. The 12ch floor keeps a
+         readable stub where the parent has no width of its own (a fixed length:
+         a percentage floor counts as 0 while such a parent measures). -->
+    <span [ngClass]="textSize()" class="min-w-[12ch] flex-1 truncate font-mono text-gray-700 select-all [contain:inline-size] dark:text-gray-300">
       @if (label()) { <span [attr.data-sv-masked]="masked() ? 'true' : null">{{ displayLabel() }}</span> }
       <ng-container [ngTemplateOutlet]="projected" />
     </span>

@@ -31,4 +31,8 @@ export {
   svSampleCount,
   svSampleLabel,
 } from './ai-insight-cards.evidence';
-export type { SvInsightEvidence } from './ai-insight-cards.evidence';
+export type {
+  SvInsightConfidenceLabels,
+  SvInsightEvidence,
+  SvInsightEvidenceLabels,
+} from './ai-insight-cards.evidence';

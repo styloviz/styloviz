@@ -11,9 +11,15 @@ import {
   untracked,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { SV_LINK_ADAPTER, svIsModifiedClick, svIsSafeUrl, svUniqueId, svWarnOnce } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_LINK_ADAPTER, svIsModifiedClick } from '@styloviz/core/nav';
+import { svIsSafeUrl } from '@styloviz/core/security';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_LAYOUT_LABELS } from '../layout.labels';
 
+import { registerSiteFooterIcons } from './site-footer.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface FooterLink {
@@ -52,14 +58,9 @@ export interface FooterPayment {
   /**
    * Optional icon-library NAME for the payment mark — e.g. `'visa'`,
    * `'mastercard'`, `'amex'`, `'paypal'`, `'apple-pay'`. When omitted the
-   * label renders as a text pill, which is what every consumer in this repo
-   * still does.
+   * label renders as a text pill.
    *
-   * ★ BREAKING (icon sweep): was `iconPath`, a raw `<path d="…">` drawn in a
-   * `0 0 48 32` box. It was the last raw-path field in the kit's public API and
-   * **nothing in the repo ever set it**, so no rendering changes here — but the
-   * free icon set ships all 45 card and wallet marks, and a hand-pasted logo
-   * was the exact debt this sweep exists to remove.
+   * Replaced `iconPath` (a raw `<path d="…">` in a `0 0 48 32` box) in 0.4.0.
    */
   readonly icon?: string;
 }
@@ -97,14 +98,6 @@ export interface SiteFooterResolvedLink<T> {
   readonly external: boolean;
 }
 
-/** Default live-region wording per newsletter status, used when `newsletterMessage` is empty. */
-const NEWSLETTER_DEFAULT_MESSAGES: Readonly<Record<SiteFooterNewsletterStatus, string>> = {
-  idle: '',
-  pending: 'Subscribing…',
-  success: 'Thanks — you are subscribed.',
-  error: 'That did not work. Please try again.',
-};
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -131,6 +124,11 @@ const NEWSLETTER_DEFAULT_MESSAGES: Readonly<Record<SiteFooterNewsletterStatus, s
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvSiteFooterComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerSiteFooterIcons();
+
+  protected readonly labels = injectSvLabels('layout', SV_LAYOUT_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Brand name shown in the brand block / bottom bar. @default '' */
@@ -152,16 +150,16 @@ export class SvSiteFooterComponent {
   newsletter = input<boolean>(false);
 
   /** Newsletter heading. @default 'Stay in the loop' */
-  newsletterTitle = input<string>('Stay in the loop');
+  newsletterTitle = input<string>(this.labels.footerNewsletterTitle);
 
   /** Newsletter supporting text. @default 'Subscribe for new arrivals, exclusive offers and more.' */
-  newsletterText = input<string>('Subscribe for new arrivals, exclusive offers and more.');
+  newsletterText = input<string>(this.labels.footerNewsletterText);
 
   /** Newsletter input placeholder. @default 'Enter your email' */
-  newsletterPlaceholder = input<string>('Enter your email');
+  newsletterPlaceholder = input<string>(this.labels.footerNewsletterPlaceholder);
 
   /** Newsletter submit label. @default 'Subscribe' */
-  newsletterCta = input<string>('Subscribe');
+  newsletterCta = input<string>(this.labels.footerNewsletterCta);
 
   /** Legal links in the bottom bar. @default [] */
   legalLinks = input<readonly FooterLegalLink[]>([]);
@@ -181,9 +179,9 @@ export class SvSiteFooterComponent {
    * Where the host's newsletter request is: `idle`, `pending`, `success` or
    * `error`. While `pending` the field is read-only, the button is
    * `aria-disabled` (not `disabled`, which would strand the keyboard focus the
-   * user submitted from) and a second submit is ignored; `success`/`error` are announced politely. Leave it
-   * unbound and the footer behaves exactly as before — `subscribe` fires and
-   * the field clears.
+   * user submitted from) and a second submit is ignored; `success`/`error` are
+   * announced politely. Left unbound, `subscribe` fires and the field clears
+   * at once.
    * @default 'idle'
    */
   newsletterStatus = input<SiteFooterNewsletterStatus>('idle');
@@ -201,7 +199,7 @@ export class SvSiteFooterComponent {
    * Accessible name of the `<footer>` landmark itself.
    * @default 'Site footer'
    */
-  footerLabel = input<string>('Site footer');
+  footerLabel = input<string>(this.labels.footerLandmark);
 
   /**
    * Accessible name of the link-columns `<nav>`. Every `<nav>` on a page needs a
@@ -210,14 +208,14 @@ export class SvSiteFooterComponent {
    * (unlikely) or you render two footers, rename it here.
    * @default 'Footer'
    */
-  navLabel = input<string>('Footer');
+  navLabel = input<string>(this.labels.footerNav);
 
   /**
    * Accessible name of the legal-links `<nav>`. Must differ from `navLabel`; a
    * dev-mode warning fires when they match.
    * @default 'Legal'
    */
-  legalNavLabel = input<string>('Legal');
+  legalNavLabel = input<string>(this.labels.footerLegalNav);
 
   // ── External links (`LU-08-M3`) ────────────────────────────────────────────
 
@@ -236,7 +234,7 @@ export class SvSiteFooterComponent {
    * `externalTarget` is `_blank`.
    * @default '(opens in a new tab)'
    */
-  newTabLabel = input<string>('(opens in a new tab)');
+  newTabLabel = input<string>(this.labels.footerNewTab);
 
   // ── Outputs ───────────────────────────────────────────────────────────────
 
@@ -246,7 +244,7 @@ export class SvSiteFooterComponent {
    * the app provides one) — and when a legal
    * link with no rendered `href` (none given, or dropped by the URL policy) is
    * activated, so the host can route it. A legal link WITH an href navigates
-   * natively and emits nothing, as before.
+   * natively and emits nothing.
    */
   linkSelect = output<FooterLink>();
 
@@ -278,7 +276,7 @@ export class SvSiteFooterComponent {
   private readonly links = inject(SV_LINK_ADAPTER);
   readonly headingId = `${this.uid}-heading`;
   readonly emailId = `${this.uid}-email`;
-  readonly newsletterStatusId = `${this.uid}-newsletter-status`;
+  readonly newsletterStatusId = `${this.uid}-newsletter-status`; // sv-i18n-ignore: DOM id
 
   /**
    * The address most recently handed to `subscribe`. The field clears on
@@ -304,9 +302,10 @@ export class SvSiteFooterComponent {
     const explicit = this.copyright();
     if (explicit) return explicit;
     const brand = this.brandName();
+    const year = String(this.currentYear);
     return brand
-      ? `© ${this.currentYear} ${brand}. All rights reserved.`
-      : `© ${this.currentYear}. All rights reserved.`;
+      ? svFormatLabel(this.labels.footerCopyrightBrand, { year, brand })
+      : svFormatLabel(this.labels.footerCopyright, { year });
   });
 
   readonly isPending = computed(() => this.newsletterStatus() === 'pending');
@@ -316,7 +315,11 @@ export class SvSiteFooterComponent {
   readonly newsletterAnnouncement = computed<string>(() => {
     const status = this.newsletterStatus();
     if (status === 'idle') return '';
-    return this.newsletterMessage() || NEWSLETTER_DEFAULT_MESSAGES[status] || '';
+    const fallback =
+      status === 'pending' ? this.labels.footerNewsletterPending
+      : status === 'success' ? this.labels.footerNewsletterSuccess
+      : this.labels.footerNewsletterError;
+    return this.newsletterMessage() || fallback;
   });
 
   // ── URL policy (`LU-08-M3`) ───────────────────────────────────────────────

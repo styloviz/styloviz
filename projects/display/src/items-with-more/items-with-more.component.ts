@@ -18,7 +18,10 @@ import {
   TemplateRef,
   ViewChild,
 } from '@angular/core';
-import { svStackedPopup, svUniqueId } from '@styloviz/core';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
+import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svInlineAnchor, svStackedPopup } from '@styloviz/core/overlay';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -106,7 +109,7 @@ const MARGIN = 8;
 @Component({
   selector: 'sv-items-with-more',
   standalone: true,
-  imports: [],
+  imports: [SvLabelPipe],
   templateUrl: './items-with-more.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   // position:relative contains the absolute measurement span used by the
@@ -122,6 +125,9 @@ const MARGIN = 8;
   host: { tabindex: '-1', class: 'outline-none' },
 })
 export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestroy {
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+  /** The kit's locale — picks the plural forms of the overflow names and the live notice. */
+  private readonly locale = svLocale();
   private readonly el     = inject(ElementRef<HTMLElement>);
   private readonly appRef = inject(ApplicationRef);
   private readonly ngZone = inject(NgZone);
@@ -135,7 +141,7 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
   maxVisible = input<number>(3);
 
   /** Template for the overflow indicator. Use `{n}` as placeholder. @default '+{n} more' */
-  moreLabel = input<string>('+{n} more');
+  moreLabel = input<string>(this.labels.moreCount);
 
   /** Style variant for the overflow indicator. @default 'badge' */
   moreVariant = input<MoreVariant>('badge');
@@ -147,8 +153,9 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
    * Auto-detect overflow: measure how many items fit on a single line and
    * collapse the rest. Responds to container width changes via ResizeObserver.
    *
-   * ★ `maxVisible` is **no longer ignored** when this is on — it is the split
-   * used until measurement is possible. See `_effectiveMax`.
+   * ★ `maxVisible` still applies when this is on: it is the split used until
+   * the first measurement, so a server render and the first frame are not a
+   * single unbounded line. See `_effectiveMax`.
    * @default false
    */
   autoOverflow = input<boolean>(false);
@@ -241,15 +248,7 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
    * one nobody listens to the end of, so past the cap it goes back to counting.
    */
   readonly moreAriaLabel = computed(() => {
-    const names = this.overflowItems().map((item) => this.label(item));
-    const count = names.length;
-    const plural = count === 1 ? '' : 's';
-    if (!count) return '';
-    if (count > MAX_NAMED_IN_LABEL) {
-      const named = names.slice(0, MAX_NAMED_IN_LABEL).join(', ');
-      return `Show ${count} more items: ${named}, and ${count - MAX_NAMED_IN_LABEL} others`;
-    }
-    return `Show ${count} more item${plural}: ${names.join(', ')}`;
+    return this._namedMoreLabel(this.overflowItems().map((item) => this.label(item)));
   });
 
   // ── Inline text variant ───────────────────────────────────────────────────
@@ -311,14 +310,25 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
 
   /** Names the hidden items, for the same reason {@link moreAriaLabel} does. */
   readonly inlineMoreAriaLabel = computed(() => {
-    const names = this._inlineSplit().overflow.map(i => this.label(i));
-    if (!names.length) return '';
-    if (names.length > MAX_NAMED_IN_LABEL) {
-      return `Show ${names.length} more items: ${names.slice(0, MAX_NAMED_IN_LABEL).join(', ')}, ` +
-        `and ${names.length - MAX_NAMED_IN_LABEL} others`;
-    }
-    return `Show ${names.length} more item${names.length === 1 ? '' : 's'}: ${names.join(', ')}`;
+    return this._namedMoreLabel(this._inlineSplit().overflow.map(i => this.label(i)));
   });
+
+  /** "Show 3 more items: a, b, c" — past {@link MAX_NAMED_IN_LABEL} names it counts the rest. */
+  private _namedMoreLabel(names: readonly string[]): string {
+    const count = names.length;
+    if (!count) return '';
+    const sep = this.labels.moreNamesSeparator;
+    if (count > MAX_NAMED_IN_LABEL) {
+      const others = count - MAX_NAMED_IN_LABEL;
+      return svFormatLabel(this.labels.moreNamedCapped, {
+        n: String(count),
+        names: names.slice(0, MAX_NAMED_IN_LABEL).join(sep),
+        others,
+        othersN: String(others),
+      }, this.locale);
+    }
+    return svFormatLabel(this.labels.moreNamed, { count, n: String(count), names: names.join(sep) }, this.locale);
+  }
 
   // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -436,7 +446,7 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
     this._lastFocused = null;
     host.focus?.();
     const total = this.items().length;
-    this._announce(`All ${total} item${total === 1 ? '' : 's'} now fit. The more button has gone.`);
+    this._announce(svFormatLabel(this.labels.moreAllFit, { count: total, n: String(total) }, this.locale));
   }
 
   private _announce(message: string): void {
@@ -670,7 +680,12 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
     const vh   = window.innerHeight;
 
     const above = vh - rect.bottom < PANEL_H && rect.top > vh - rect.bottom;
-    const right = rect.left + PANEL_W > vw;
+    // Start-edge alignment through the shared engine: the trigger's RIGHT edge
+    // under dir="rtl", the end edge as the fallback when it would overflow.
+    const inline = svInlineAnchor({
+      anchor: rect, panelWidth: PANEL_W, viewportWidth: vw, rtl: svIsRtl(trigger), margin: MARGIN,
+    });
+    const right = inline.edge === 'right';
 
     this.openAbove.set(above);
     this.alignRight.set(right);
@@ -691,9 +706,8 @@ export class SvItemsWithMoreComponent implements OnInit, AfterViewInit, OnDestro
     // anchor to the opposite edge. A CSS `max-w` bounds SIZE, not POSITION — so
     // without this cap a far-edge-anchored panel still renders off-screen on a
     // narrow viewport (the bug that put Mega Menu's left edge at x=-220).
-    const anchor = right ? Math.max(MARGIN, vw - rect.right) : Math.max(MARGIN, rect.left);
-    style[right ? 'right' : 'left'] = `${anchor}px`;
-    style['maxWidth'] = `${vw - anchor - MARGIN}px`;
+    style[inline.edge] = `${inline.offset}px`;
+    style['maxWidth'] = `${inline.maxWidth}px`;
 
     this.panelStyle.set(style);
   }

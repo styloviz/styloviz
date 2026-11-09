@@ -1,24 +1,52 @@
 <!-- ============================================================
      Page Header
+     ★ FL-J3-NV-09: with a breadcrumb, back/up or tabs slot in use the
+       header is ONE region landmark named by its title
+       (docs/navigation-catalog-adr.md Decision 2). Each slot's wrapper is
+       `empty:hidden`, so an unused slot adds no box and no gap.
      ============================================================ -->
 
 <div class="mb-7 flex flex-col gap-3 rounded-2xl border border-white/70 bg-white/75 px-5 py-4
-            shadow-[0_14px_32px_-24px_color-mix(in_oklab,var(--color-gray-900)_55%,transparent)] backdrop-blur-sm dark:border-gray-700/40
-            dark:bg-gray-900/62 dark:shadow-[0_18px_38px_-28px_color-mix(in_oklab,var(--color-gray-950)_95%,transparent)] sm:flex-row sm:items-center sm:justify-between">
-  <!-- Title area -->
-  <div>
-    <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-[1.35rem]">
-      {{ title() }}
-    </h1>
-    @if (subtitle()) {
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-        {{ subtitle() }}
-      </p>
-    }
+            shadow-[0_14px_32px_-24px_color-mix(in_oklab,var(--color-gray-900)_55%,transparent)] dark:border-gray-700/40
+            dark:bg-gray-900/62 dark:shadow-[0_18px_38px_-28px_color-mix(in_oklab,var(--color-gray-950)_95%,transparent)] isolate"
+     [attr.role]="composed() ? 'region' : null"
+     [attr.aria-labelledby]="composed() ? titleId : null">
+
+  <!-- Back / up and the breadcrumb trail -->
+  <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 empty:hidden" data-sv-page-header-trail><ng-content select="[svPageHeaderBack]" /><ng-content select="[svPageHeaderBreadcrumb]" /></div>
+
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <!-- Title area -->
+    <div class="min-w-0">
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 [id]="titleId" class="text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-[1.35rem]">
+          {{ title() }}
+        </h1>
+        <div class="flex flex-wrap items-center gap-2 empty:hidden" data-sv-page-header-meta><ng-content select="[svPageHeaderMeta]" /></div>
+      </div>
+      @if (subtitle()) {
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {{ subtitle() }}
+        </p>
+      }
+    </div>
+
+    <!-- Actions: the responsive row (folds into a More menu) + projected content -->
+    <div class="flex min-w-0 items-center gap-2" data-sv-page-header-actions>
+      @if (actions().length) {
+        <sv-toolbar
+          class="min-w-0"
+          variant="ghost"
+          overflow="menu"
+          [actions]="actions()"
+          [label]="actionsLabel()"
+          (actionClick)="actionClick.emit($event)"
+        />
+      }
+      <ng-content />
+    </div>
   </div>
 
-  <!-- Actions slot (projected content) -->
-  <div class="flex items-center gap-2">
-    <ng-content />
-  </div>
+  <!-- Tabs along the bottom edge -->
+  <div class="-mb-4 min-w-0 empty:hidden" data-sv-page-header-tabs><ng-content select="[svPageHeaderTabs]" /></div>
 </div>

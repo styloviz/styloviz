@@ -14,15 +14,14 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  SvSpinnerArcComponent,
-  createOptimisticEdit,
-  svRequestKey,
-  toSvDataError,
-  type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { SvAutosizeDirective } from '@styloviz/core/directives';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
+import { registerInplaceEditIcons } from './inplace-edit.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
@@ -155,11 +154,17 @@ export interface InplaceEditOption {
 @Component({
   selector: 'sv-inplace-edit',
   standalone: true,
-  imports: [NgClass, SvIconComponent, SvSpinnerArcComponent],
+  imports: [SvAutosizeDirective, NgClass, SvIconComponent, SvSpinnerArcComponent],
   templateUrl: './inplace-edit.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvInplaceEditComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerInplaceEditIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   private readonly host = inject(ElementRef<HTMLElement>);
 
   /** Instance-scoped id root, e.g. `sv-inplace-edit-3`. */
@@ -175,9 +180,9 @@ export class SvInplaceEditComponent {
     revision: () => this._revision(),
     selector: 'sv-inplace-edit',
     superseded:
-      'the field has been edited again since, so putting the old value back ' +
-      'would discard the newer edit. Bind [saving] so it cannot be re-opened ' +
-      'while the write is in flight.',
+      'the field has been edited again since, so putting the old value back ' + // sv-i18n-ignore: developer message
+      'would discard the newer edit. Bind [saving] so it cannot be re-opened ' + // sv-i18n-ignore: developer message
+      'while the write is in flight.', // sv-i18n-ignore: developer message
   });
 
   /** The editor element, once it exists. Focused and selected on open. */
@@ -223,7 +228,7 @@ export class SvInplaceEditComponent {
    *
    * - `auto` (default) — a pencil button that is **always visible on a touch
    *   screen** and appears on hover or focus on a mouse-driven one.
-   * - `click` — the value alone, with a hover underline. ⚠️ **On touch this has
+   * - `click` — the value alone, with a hover underline. **On touch this has
    *   no affordance at all**: Tailwind compiles `hover:` to
    *   `@media (hover: hover)`, so the underline never renders on a phone and
    *   nothing indicates the text can be edited. Kept because it is the right
@@ -246,19 +251,30 @@ export class SvInplaceEditComponent {
    *
    * @default 'Empty'
    */
-  readonly emptyText = input<string>('Empty');
+  readonly emptyText = input<string>(this.labels.emptyValue);
 
   /** Rows for `textarea` mode. @default 3 */
   readonly rows = input<number>(3);
+  /**
+   * With `mode="textarea"`: grow the editor with its text instead of scrolling
+   * `rows` lines — `field-sizing: content` where supported, measured elsewhere;
+   * `rows` stays the minimum and `maxRows` caps the growth. @default false
+   */
+  readonly autosize = input<boolean>(false);
+  /** With `autosize`: the most rows before the editor scrolls; `0` is no cap. @default 0 */
+  readonly maxRows = input<number>(0);
 
   /** Native `maxlength` on the editor. 0 leaves it off. @default 0 */
   readonly maxlength = input<number>(0);
+
+  /** Native `maxlength`: only a positive length is a limit. */
+  protected readonly maxlengthAttr = computed(() => (this.maxlength() > 0 ? this.maxlength() : null));
 
   /** Refuse to commit an empty value, and say why. @default false */
   readonly required = input<boolean>(false);
 
   /** Message shown when a `required` field is committed empty. */
-  readonly requiredMessage = input<string>('This field cannot be empty');
+  readonly requiredMessage = input<string>(this.labels.fieldRequired);
 
   /** Not editable — the read view renders as plain text. @default false */
   readonly disabled = input<boolean>(false);
@@ -504,9 +520,9 @@ export class SvInplaceEditComponent {
     if (!c) return '';
     const who = c.by?.trim();
     const when = c.at?.trim();
-    const subject = who ? `${who} changed this field` : 'This field was changed elsewhere';
-    return when ? `${subject} ${when}. Choose which version to keep.`
-                : `${subject}. Choose which version to keep.`;
+    const l = this.labels;
+    if (who) return svFormatLabel(when ? l.conflictByAt : l.conflictBy, { who, when });
+    return when ? svFormatLabel(l.conflictElsewhereAt, { when }) : l.conflictElsewhere;
   });
 
   /**
@@ -761,7 +777,7 @@ export class SvInplaceEditComponent {
   /** The read view. Dashed underline on hover so it reads as editable. */
   protected readonly triggerClasses = computed<string>(() =>
     [
-      'min-w-0 max-w-full truncate rounded-md text-left text-gray-900 dark:text-gray-100',
+      'min-w-0 max-w-full truncate rounded-md text-start text-gray-900 dark:text-gray-100',
       this.textScale(),
       this.padScale(),
       'hover:bg-gray-100 hover:underline hover:decoration-dashed hover:underline-offset-4',
@@ -805,5 +821,5 @@ export class SvInplaceEditComponent {
     'rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 ' +
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ' +
     'dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 ' +
-    'disabled:cursor-not-allowed disabled:opacity-50';
+    'disabled:cursor-not-allowed disabled:opacity-50'; // sv-i18n-ignore: Tailwind classes
 }

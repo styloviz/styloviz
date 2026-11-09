@@ -12,12 +12,14 @@
   <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
   <div
     [ngClass]="[
-      'fixed inset-0 flex justify-center px-4 py-6 overflow-y-auto',
+      'fixed inset-0 flex justify-center overflow-y-auto',
+      backdropPadClass(),
       'modal-backdrop',
       backdropBlur() ? 'bg-black/50 backdrop-blur-sm' : 'bg-black/40',
       alignClass()
     ]"
     [style.zIndex]="stackZ()"
+    [style.padding-bottom.px]="asSheet() ? sheetBottomPx() : null"
     (mousedown)="onBackdropPointerDown($event)"
     (click)="onBackdropClick($event)"
     (keydown)="onKeydown($event)"
@@ -28,7 +30,7 @@
       role="dialog"
       aria-modal="true"
       [attr.aria-labelledby]="title() ? titleId : null"
-      [attr.aria-label]="title() ? null : 'Dialog'"
+      [attr.aria-label]="title() ? null : labels.dialog"
       [attr.aria-describedby]="hasDescription() ? subtitleId : null"
       [attr.aria-busy]="loading() ? 'true' : null"
       [ngClass]="[
@@ -44,6 +46,8 @@
       [style.width]="panelSizeStyle()?.['width']"
       [style.height]="panelSizeStyle()?.['height']"
       [style.maxWidth]="panelSizeStyle()?.['maxWidth']"
+      [style.padding-bottom]="asSheet() ? sheetSafeArea : null"
+      [attr.data-sv-sheet]="asSheet() ? '' : null"
     >
 
       <!-- ── Accent bar (semantic variants only) ─────────────────────── -->
@@ -120,7 +124,7 @@
               (click)="toggleMaximize()"
               [disabled]="loading()"
               [attr.aria-pressed]="isMaximized()"
-              [attr.aria-label]="isMaximized() ? 'Restore dialog size' : 'Maximize dialog'"
+              [attr.aria-label]="isMaximized() ? labels.restoreDialogSize : labels.maximizeDialog"
               class="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg
                      text-gray-500 dark:text-gray-400
                      hover:bg-gray-100 dark:hover:bg-gray-700
@@ -139,7 +143,7 @@
               type="button"
               (click)="close('close-button')"
               [disabled]="closeButtonDisabled()"
-              aria-label="Close dialog"
+              [attr.aria-label]="labels.closeDialog"
               [class.relative]="loading() && !closeButtonDisabled()"
               [class.z-30]="loading() && !closeButtonDisabled()"
               class="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg
@@ -184,7 +188,7 @@
       -->
       @if (resizable() && !loading()) {
         <span
-          class="absolute bottom-0 right-0 z-20 h-4 w-4 cursor-nwse-resize touch-none"
+          class="absolute bottom-0 end-0 z-20 h-4 w-4 cursor-nwse-resize rtl:cursor-nesw-resize touch-none"
           data-sv-modal-resize
           aria-hidden="true"
           (pointerdown)="onResizeStart($event)"
@@ -192,7 +196,7 @@
           (pointerup)="onResizeEnd($event)"
           (pointercancel)="onResizeEnd($event)"
         >
-          <span class="pointer-events-none absolute bottom-1 right-1 block h-2 w-2 border-b-2 border-r-2 border-gray-400 dark:border-gray-500"></span>
+          <span class="pointer-events-none absolute bottom-1 end-1 block h-2 w-2 border-b-2 border-e-2 border-gray-400 dark:border-gray-500"></span>
         </span>
       }
 

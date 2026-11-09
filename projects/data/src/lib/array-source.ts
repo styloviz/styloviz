@@ -1,4 +1,4 @@
-import type { SvDataQuery, SvItemKey, SvPage } from '@styloviz/core';
+import type { SvDataQuery, SvItemKey, SvPage } from '@styloviz/core/data';
 import type { SvDataSource } from './types';
 
 /** How a value is matched against a filter or search term. */

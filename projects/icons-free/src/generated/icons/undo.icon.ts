@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `undo` icon. */
 export const undoNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const undoNodes: readonly IconNode[] = [
 export const undoSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm9.6 7.6l-3.5 3.5h6.9q2.8 0 4.9 2 2 2.1 2 4.9v.5q0 .9-.9.9-.9 0-.9-.9v-.5q0-2.1-1.5-3.6-1.5-1.5-3.6-1.5h-6.9l3.5 3.5q.6.6 0 1.2-.3.3-.6.3-.3 0-.6-.3l-4.8-4.8q-.3-.1-.4-.5-.1-.1-.1-.3 0-.2.1-.3.1-.4.4-.5l4.8-4.8q.3-.3.6-.3.3 0 .6.3.6.6 0 1.2z' },
 ];
+
+/** `undo` as a registrable glyph — `registerSvIcons([undoIcon])` / `provideSvIcons([undoIcon])`. */
+export const undoIcon: SvIconDef = { name: 'undo', nodes: undoNodes, solid: undoSolidNodes };
 
 /** `undo` — tree-shakable standalone icon. Use `<sv-undo-icon />`. */
 @Component({

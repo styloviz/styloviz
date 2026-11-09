@@ -66,14 +66,14 @@ function classify(v: ButtonVariant, s: ButtonStyle): ButtonCombo {
   if (v === 'link') {
     if (s === 'link') {
       return { variant: v, btnStyle: s, status: 'compiles',
-        note: 'Says "link" twice. Identical to variant="primary" btnStyle="link"; pick one axis.' };
+        note: 'Says "link" twice. Identical to variant="primary" btnStyle="link"; pick one axis.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
     }
     if (s === 'gradient' || s === 'solid') {
       return { variant: v, btnStyle: s, status: 'compiles',
-        note: 'A link-coloured fill. Renders, but a filled button that reads as a link is the thing link styling exists to avoid.' };
+        note: 'A link-coloured fill. Renders, but a filled button that reads as a link is the thing link styling exists to avoid.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
     }
     return { variant: v, btnStyle: s, status: 'compiles',
-      note: 'Restates btnStyle. Use variant="primary" with this style instead.' };
+      note: 'Restates btnStyle. Use variant="primary" with this style instead.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
   }
 
   // ── `ghost` as a VARIANT ──────────────────────────────────────────────────
@@ -83,20 +83,20 @@ function classify(v: ButtonVariant, s: ButtonStyle): ButtonCombo {
     }
     if (s === 'ghost') {
       return { variant: v, btnStyle: s, status: 'compiles',
-        note: 'Says "ghost" twice. Same render as variant="ghost" btnStyle="solid".' };
+        note: 'Says "ghost" twice. Same render as variant="ghost" btnStyle="solid".' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
     }
     if (s === 'gradient') {
       return { variant: v, btnStyle: s, status: 'compiles',
-        note: 'A gradient on the variant whose point is having no fill.' };
+        note: 'A gradient on the variant whose point is having no fill.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
     }
     return { variant: v, btnStyle: s, status: 'compiles',
-      note: 'A colourless variant under a treatment that exists to shape a colour.' };
+      note: 'A colourless variant under a treatment that exists to shape a colour.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
   }
 
   // ── Colour variants ───────────────────────────────────────────────────────
   if (s === 'gradient' && (v === 'secondary' || v === 'neutral')) {
     return { variant: v, btnStyle: s, status: 'compiles',
-      note: 'A grey-to-grey gradient. It renders; it is not a design the kit proposes.' };
+      note: 'A grey-to-grey gradient. It renders; it is not a design the kit proposes.' }; // sv-i18n-ignore: developer-facing design note for choosing props; sv-button never renders it
   }
   return { variant: v, btnStyle: s, status: 'designed' };
 }

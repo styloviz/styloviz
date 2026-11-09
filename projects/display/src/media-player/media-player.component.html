@@ -1,0 +1,465 @@
+@if (loading()) {
+  <sv-skeleton-shell variant="card" [rows]="3" [ariaLabel]="text().mediaListLoading" />
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" />
+} @else if (items().length === 0) {
+  <sv-empty-shell reason="no-data" [title]="text().mediaEmptyTitle" [message]="text().mediaEmptyMessage" />
+} @else {
+  <section
+    #root
+    role="region"
+    data-sv-media-player
+    class="@container isolate overflow-hidden border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 print:break-inside-avoid print:shadow-none"
+    [class.flex]="isFullscreen()"
+    [class.flex-col]="isFullscreen()"
+    [class.rounded-2xl]="!isFullscreen()"
+    [attr.aria-label]="regionLabel()"
+    [attr.data-kind]="kind()"
+    (keydown)="onKeydown($event)">
+    <div class="grid min-h-0 flex-1" [class]="listBeside() && !isFullscreen() ? '@3xl:grid-cols-[minmax(0,1fr)_18rem]' : ''">
+      <!-- ── The player ── -->
+      <div class="flex min-w-0 flex-col">
+        @for (entry of stage(); track entry.key) {
+          @if (kind() === 'video') {
+            <!-- ★ The picture is a tab stop so ←/→ can seek from it; clicking it plays or pauses. -->
+            <div
+              data-sv-media-stage
+              role="group"
+              tabindex="0"
+              class="relative bg-black text-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-400"
+              [class.aspect-video]="!isFullscreen()"
+              [class.flex-1]="isFullscreen()"
+              [class.min-h-0]="isFullscreen()"
+              [attr.aria-label]="title()"
+              [attr.aria-describedby]="uid + '-keys'"
+              [attr.aria-busy]="status() === 'loading' || status() === 'buffering' ? 'true' : null"
+              (click)="togglePlay()"
+              (keydown.enter)="onStageEnter($event)">
+              <video
+                #media
+                class="block h-full w-full object-contain"
+                playsinline
+                [id]="uid + '-media'"
+                [attr.poster]="poster()"
+                [attr.preload]="preload()"
+                [attr.crossorigin]="crossOrigin()"
+                [muted]="effectiveMuted()"
+                [volume]="safeVolume()"
+                [defaultPlaybackRate]="safeRate()"
+                [playbackRate]="safeRate()"
+                (loadstart)="onLoadStart()"
+                (loadedmetadata)="onLoadedMetadata(media)"
+                (durationchange)="onDurationChange(media)"
+                (timeupdate)="onTimeUpdate(media)"
+                (play)="onPlay(media)"
+                (playing)="onPlaying()"
+                (pause)="onPause(media)"
+                (waiting)="onWaiting()"
+                (canplay)="onCanPlay()"
+                (seeking)="onSeeking()"
+                (seeked)="onSeeked(media)"
+                (ended)="onEnded(media)"
+                (progress)="onProgress(media)"
+                (volumechange)="onVolumeChange(media)"
+                (ratechange)="onRateChange(media)"
+                (error)="onMediaError(media)"
+                (enterpictureinpicture)="onPictureInPicture(true)"
+                (leavepictureinpicture)="onPictureInPicture(false)">
+                @for (source of sources(); track source.src; let last = $last) {
+                  <source [src]="source.src" [attr.type]="source.type ?? null" (error)="onSourceError(media, last)" />
+                }
+                @for (track of tracks(); track track.srclang) {
+                  <track [attr.kind]="track.kind ?? 'captions'" [src]="track.src" [attr.srclang]="track.srclang" [attr.label]="track.label" />
+                }
+              </video>
+
+              @if (failure()) {
+                <div class="absolute inset-0 grid place-items-center bg-black/85 p-4 text-white">
+                  <ng-container [ngTemplateOutlet]="failureTpl" [ngTemplateOutletContext]="{ $implicit: true }" />
+                </div>
+              } @else if (status() === 'loading' || status() === 'buffering') {
+                <span aria-hidden="true" class="pointer-events-none absolute inset-0 grid place-items-center">
+                  <span class="grid h-14 w-14 place-items-center rounded-full bg-black/60 text-white">
+                    <sv-icon name="loader" [size]="26" cssClass="motion-safe:animate-spin" />
+                  </span>
+                </span>
+              } @else if (isPaused()) {
+                <span aria-hidden="true" class="pointer-events-none absolute inset-0 grid place-items-center print:hidden">
+                  <span class="grid h-16 w-16 place-items-center rounded-full bg-black/60 text-white shadow-lg ring-1 ring-white/20">
+                    <sv-icon name="play" [size]="28" weight="solid" cssClass="ms-1" />
+                  </span>
+                </span>
+              }
+            </div>
+          } @else {
+            <!-- ── Audio: artwork, title, and the active caption as text — or, compact, one row ── -->
+            <div
+              class="flex items-center"
+              [class]="compactAudio() ? 'gap-3 px-3 py-2.5' : 'gap-4 p-4'"
+              [attr.aria-busy]="status() === 'loading' || status() === 'buffering' ? 'true' : null">
+              @if (compactAudio()) {
+                <button
+                  type="button"
+                  data-sv-media-compact="play"
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-600 text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white aria-disabled:cursor-not-allowed aria-disabled:opacity-50 print:hidden dark:bg-primary-500 dark:text-gray-950 dark:hover:bg-primary-400 dark:focus-visible:ring-offset-gray-900"
+                  aria-keyshortcuts="k Space"
+                  [attr.aria-disabled]="failure() !== null ? 'true' : null"
+                  [attr.aria-label]="playLabel()"
+                  [attr.aria-controls]="uid + '-media'"
+                  (click)="togglePlay()">
+                  @if (status() === 'loading' || status() === 'buffering') {
+                    <sv-icon name="loader" [size]="18" cssClass="motion-safe:animate-spin" />
+                  } @else {
+                    <sv-icon [name]="isPaused() ? (isEnded() ? 'refresh-cw' : 'play') : 'pause'" [size]="18" weight="solid" />
+                  }
+                </button>
+              } @else if (poster(); as art) {
+                <img [src]="art" alt="" class="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-gray-900/10 dark:ring-white/10" />
+              } @else {
+                <span aria-hidden="true" class="grid h-20 w-20 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
+                  <sv-icon name="music" [size]="30" />
+                </span>
+              }
+              <div class="min-w-0 flex-1">
+                @if (compactAudio()) {
+                  @if (entry.item.title) {
+                    <p class="truncate text-xs font-medium text-gray-700 dark:text-gray-300">{{ title() }}</p>
+                  }
+                  <ng-container [ngTemplateOutlet]="seekTpl" />
+                } @else {
+                  <p class="truncate text-base font-semibold">{{ title() }}</p>
+                  @if (entry.item.subtitle) {
+                    <p class="truncate text-sm text-gray-600 dark:text-gray-400">{{ entry.item.subtitle }}</p>
+                  }
+                }
+                @if (cueText()) {
+                  <p class="mt-2 whitespace-pre-line rounded-lg bg-gray-100 px-3 py-2 text-sm leading-relaxed text-gray-800 dark:bg-gray-800 dark:text-gray-100" [attr.lang]="activeTrack()?.srclang ?? null">
+                    {{ cueText() }}
+                  </p>
+                }
+                @if (!compactAudio() && (status() === 'loading' || status() === 'buffering')) {
+                  <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                    <sv-icon name="loader" [size]="14" cssClass="motion-safe:animate-spin" />
+                    {{ status() === 'loading' ? text().mediaLoading : text().mediaBuffering }}
+                  </p>
+                }
+              </div>
+              @if (compactAudio()) {
+                <span class="shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-gray-600 dark:text-gray-400">{{ compactTimeText() }}</span>
+                <button
+                  type="button"
+                  data-sv-media-compact="speed"
+                  class="h-9 min-w-11 shrink-0 rounded-full px-2 text-xs font-semibold tabular-nums text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 print:hidden dark:text-gray-200 dark:hover:bg-gray-800"
+                  [attr.aria-label]="speedLabel()"
+                  (click)="cycleRate(1)">
+                  {{ rateText() }}
+                </button>
+              }
+              <audio
+                #media
+                class="hidden"
+                [id]="uid + '-media'"
+                [attr.preload]="preload()"
+                [attr.crossorigin]="crossOrigin()"
+                [muted]="effectiveMuted()"
+                [volume]="safeVolume()"
+                [defaultPlaybackRate]="safeRate()"
+                [playbackRate]="safeRate()"
+                (loadstart)="onLoadStart()"
+                (loadedmetadata)="onLoadedMetadata(media)"
+                (durationchange)="onDurationChange(media)"
+                (timeupdate)="onTimeUpdate(media)"
+                (play)="onPlay(media)"
+                (playing)="onPlaying()"
+                (pause)="onPause(media)"
+                (waiting)="onWaiting()"
+                (canplay)="onCanPlay()"
+                (seeking)="onSeeking()"
+                (seeked)="onSeeked(media)"
+                (ended)="onEnded(media)"
+                (progress)="onProgress(media)"
+                (volumechange)="onVolumeChange(media)"
+                (ratechange)="onRateChange(media)"
+                (error)="onMediaError(media)">
+                @for (source of sources(); track source.src; let last = $last) {
+                  <source [src]="source.src" [attr.type]="source.type ?? null" (error)="onSourceError(media, last)" />
+                }
+                @for (track of tracks(); track track.srclang) {
+                  <track [attr.kind]="track.kind ?? 'captions'" [src]="track.src" [attr.srclang]="track.srclang" [attr.label]="track.label" (cuechange)="onCueChange($event)" />
+                }
+              </audio>
+            </div>
+            @if (failure()) {
+              <div class="mx-4 mb-2 rounded-xl border border-danger-200 bg-danger-50 p-4 text-danger-900 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-100">
+                <ng-container [ngTemplateOutlet]="failureTpl" [ngTemplateOutletContext]="{ $implicit: false }" />
+              </div>
+            }
+          }
+        }
+
+        <!-- On paper: what was playing, in words. -->
+        <p class="hidden px-4 pt-3 text-sm font-semibold print:block">{{ title() }} · {{ durationText() }}</p>
+
+        @if (!compactAudio()) {
+        <!-- ── Seek: its own tab stop, above the toolbar — its arrow keys seek ── -->
+        <div class="px-4 pt-3 print:hidden">
+          <ng-container [ngTemplateOutlet]="seekTpl" />
+        </div>
+
+        <!-- ── Controls: one toolbar, one tab stop, ←/→ between controls ── -->
+        <div
+          #toolbar
+          role="toolbar"
+          aria-orientation="horizontal"
+          class="flex flex-wrap items-center gap-1 px-2 pb-2 pt-1 print:hidden"
+          [attr.aria-label]="text().mediaControls"
+          [attr.aria-controls]="uid + '-media'"
+          [attr.aria-describedby]="uid + '-keys'"
+          (focusin)="onToolbarFocusIn($event)">
+          @if (isPlaylist()) {
+            <button
+              type="button"
+              data-sv-media-control="previous"
+              (keydown)="onToolbarKeydown($event)"
+              class="grid h-10 w-10 place-items-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+              [tabindex]="tabIndexFor('previous')"
+              [attr.aria-label]="text().mediaPrevious"
+              [attr.aria-disabled]="hasPrevious() ? null : 'true'"
+              (click)="previous()">
+              <sv-icon name="skip-back" [size]="18" cssClass="rtl:-scale-x-100" />
+            </button>
+          }
+          <button
+            type="button"
+            data-sv-media-control="play"
+            (keydown)="onToolbarKeydown($event)"
+            class="grid h-10 w-10 place-items-center rounded-full bg-primary-600 text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white aria-disabled:cursor-not-allowed aria-disabled:opacity-50 dark:bg-primary-500 dark:text-gray-950 dark:hover:bg-primary-400 dark:focus-visible:ring-offset-gray-900"
+            aria-keyshortcuts="k Space"
+            [tabindex]="tabIndexFor('play')"
+            [attr.aria-disabled]="failure() !== null ? 'true' : null"
+            [attr.aria-label]="playLabel()"
+            (click)="togglePlay()">
+            <sv-icon [name]="isPaused() ? (isEnded() ? 'refresh-cw' : 'play') : 'pause'" [size]="18" weight="solid" />
+          </button>
+          @if (isPlaylist()) {
+            <button
+              type="button"
+              data-sv-media-control="next"
+              (keydown)="onToolbarKeydown($event)"
+              class="grid h-10 w-10 place-items-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 dark:text-gray-200 dark:hover:bg-gray-800"
+              [tabindex]="tabIndexFor('next')"
+              [attr.aria-label]="text().mediaNext"
+              [attr.aria-disabled]="hasNext() ? null : 'true'"
+              (click)="next()">
+              <sv-icon name="skip-forward" [size]="18" cssClass="rtl:-scale-x-100" />
+            </button>
+          }
+
+          <button
+            type="button"
+            data-sv-media-control="mute"
+            (keydown)="onToolbarKeydown($event)"
+            class="grid h-10 w-10 place-items-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-800"
+            aria-keyshortcuts="m"
+            [tabindex]="tabIndexFor('mute')"
+            [attr.aria-label]="text().mediaMute"
+            [attr.aria-pressed]="effectiveMuted()"
+            (click)="toggleMute()">
+            <sv-icon [name]="effectiveMuted() || volumePct() === 0 ? 'volume-x' : 'volume-2'" [size]="18" />
+          </button>
+          <span class="relative flex h-10 w-16 items-center sm:w-24">
+            <input
+              type="range"
+              data-sv-media-control="volume"
+              (keydown)="onToolbarKeydown($event)"
+              class="peer absolute inset-0 z-10 h-10 w-full cursor-pointer opacity-0"
+              min="0"
+              max="100"
+              step="5"
+              [tabindex]="tabIndexFor('volume')"
+              [value]="volumePct()"
+              [attr.aria-label]="text().mediaVolume"
+              [attr.aria-valuetext]="volumeValueText()"
+              (input)="onVolumeInput($event)" />
+            <span
+              aria-hidden="true"
+              class="relative h-1 w-full overflow-hidden rounded-full bg-gray-200 ring-offset-2 ring-offset-white peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 dark:bg-gray-700 dark:ring-offset-gray-900">
+              <span class="absolute inset-y-0 start-0 rounded-full bg-gray-700 dark:bg-gray-200" [style.width.%]="volumePct()"></span>
+            </span>
+            <span
+              aria-hidden="true"
+              class="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow ring-2 ring-gray-700 rtl:translate-x-1/2 dark:ring-gray-200"
+              [style.inset-inline-start.%]="volumePct()"></span>
+          </span>
+
+          <span class="ms-2 whitespace-nowrap text-xs font-medium tabular-nums text-gray-600 dark:text-gray-400">
+            {{ timeText() }} / {{ durationText() }}
+          </span>
+
+          <span class="ms-auto flex items-center gap-1">
+            <button
+              type="button"
+              data-sv-media-control="speed"
+              (keydown)="onToolbarKeydown($event)"
+              class="h-10 min-w-12 rounded-full px-2.5 text-xs font-semibold tabular-nums text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-800"
+              [tabindex]="tabIndexFor('speed')"
+              [attr.aria-label]="speedLabel()"
+              (click)="cycleRate(1)">
+              {{ rateText() }}
+            </button>
+            @if (tracks().length > 0) {
+              <button
+                type="button"
+                data-sv-media-control="captions"
+                (keydown)="onToolbarKeydown($event)"
+                class="grid h-10 w-10 place-items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                [class]="
+                  activeTrack()
+                    ? 'bg-primary-50 text-primary-700 hover:bg-primary-100 dark:bg-primary-500/15 dark:text-primary-300 dark:hover:bg-primary-500/25'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                "
+                aria-keyshortcuts="c"
+                [tabindex]="tabIndexFor('captions')"
+                [attr.aria-label]="text().mediaCaptions"
+                [attr.aria-pressed]="activeTrack() !== null"
+                [attr.title]="activeTrack()?.label ?? text().mediaCaptionsOff"
+                (click)="cycleCaptions()">
+                <sv-icon name="captions" [size]="18" />
+              </button>
+            }
+            @if (kind() === 'video' && pipSupported) {
+              <button
+                type="button"
+                data-sv-media-control="pip"
+                (keydown)="onToolbarKeydown($event)"
+                class="grid h-10 w-10 place-items-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-800"
+                [tabindex]="tabIndexFor('pip')"
+                [attr.aria-label]="isPip() ? text().mediaExitPictureInPicture : text().mediaPictureInPicture"
+                (click)="togglePictureInPicture()">
+                <sv-icon name="picture-in-picture" [size]="18" />
+              </button>
+            }
+            @if (kind() === 'video' && fullscreenSupported) {
+              <button
+                type="button"
+                data-sv-media-control="fullscreen"
+                (keydown)="onToolbarKeydown($event)"
+                class="grid h-10 w-10 place-items-center rounded-full text-gray-700 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-800"
+                aria-keyshortcuts="f"
+                [tabindex]="tabIndexFor('fullscreen')"
+                [attr.aria-label]="isFullscreen() ? text().mediaExitFullscreen : text().mediaFullscreen"
+                (click)="toggleFullscreen()">
+                <sv-icon [name]="isFullscreen() ? 'minimize' : 'maximize'" [size]="18" />
+              </button>
+            }
+          </span>
+        </div>
+        }
+      </div>
+
+      <!-- ── Playlist ── -->
+      @if (showList() && !isFullscreen()) {
+        <div
+          class="min-w-0 border-t border-gray-200 dark:border-gray-800"
+          [class]="listBeside() ? '@3xl:border-t-0 @3xl:border-s' : ''">
+          <p [id]="uid + '-list'" class="px-4 pt-3 text-[11px] font-bold uppercase tracking-[0.14em] text-gray-600 dark:text-gray-400">
+            {{ text().mediaPlaylist }}
+          </p>
+          <ol class="flex max-h-80 flex-col gap-0.5 overflow-y-auto p-2" [attr.aria-labelledby]="uid + '-list'">
+            @for (row of playlistRows(); track row.key) {
+              <li>
+                <button
+                  type="button"
+                  class="flex min-h-11 w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                  [class]="
+                    row.current
+                      ? 'bg-primary-50 text-primary-900 dark:bg-primary-500/15 dark:text-primary-100'
+                      : 'text-gray-800 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                  "
+                  [attr.aria-current]="row.current ? 'true' : null"
+                  (click)="select(row.index)">
+                  <span
+                    aria-hidden="true"
+                    class="grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-semibold tabular-nums"
+                    [class]="row.current ? 'bg-primary-600 text-white dark:bg-primary-400 dark:text-gray-950' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'">
+                    @if (row.current) {
+                      <sv-icon [name]="isPaused() ? 'pause' : 'play'" [size]="14" weight="solid" />
+                    } @else {
+                      {{ row.index + 1 }}
+                    }
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium">{{ row.title }}</span>
+                    @if (row.subtitle) {
+                      <span class="block truncate text-xs text-gray-600 dark:text-gray-400">{{ row.subtitle }}</span>
+                    }
+                  </span>
+                  @if (row.current) {
+                    <span class="sr-only">{{ text().mediaNowPlaying }}</span>
+                  }
+                  @if (row.duration) {
+                    <span class="shrink-0 text-xs tabular-nums text-gray-600 dark:text-gray-400">{{ row.duration }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ol>
+        </div>
+      }
+    </div>
+
+    <p [id]="uid + '-keys'" class="sr-only">{{ shortcutsText() }}</p>
+    <p class="sr-only" role="status">{{ announcement() }}</p>
+  </section>
+}
+
+<ng-template #failureTpl let-overlay>
+  <div role="alert" class="flex flex-col items-center gap-2 text-center">
+    <sv-icon name="alert-circle" [size]="26" [cssClass]="overlay ? 'text-danger-300' : 'text-danger-600 dark:text-danger-300'" />
+    <p class="text-sm font-semibold">{{ text().mediaErrorTitle }}</p>
+    <p class="max-w-sm text-xs leading-relaxed" [class]="overlay ? 'text-gray-200' : 'text-danger-800 dark:text-danger-200'">{{ failureMessage() }}</p>
+    @if (failure() !== 'unsafe') {
+      <button
+        type="button"
+        class="mt-1 inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2"
+        [class]="
+          overlay
+            ? 'bg-white text-gray-900 hover:bg-gray-200 focus-visible:ring-offset-black'
+            : 'bg-danger-600 text-white hover:bg-danger-700 focus-visible:ring-offset-white dark:bg-danger-500 dark:text-gray-950 dark:hover:bg-danger-400 dark:focus-visible:ring-offset-gray-900'
+        "
+        (click)="reload(); $event.stopPropagation()">
+        <sv-icon name="refresh-cw" [size]="16" />
+        {{ text().mediaRetry }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<!-- The seek slider — under the picture in the full player, inside the row in the compact one. -->
+<ng-template #seekTpl>
+  <div class="relative flex h-6 items-center print:hidden">
+    <input
+      type="range"
+      class="peer absolute inset-0 z-10 h-6 w-full cursor-pointer opacity-0 disabled:cursor-default"
+      min="0"
+      step="any"
+      [max]="seekMax()"
+      [value]="time()"
+      [disabled]="seekMax() <= 0 || failure() !== null"
+      [attr.aria-label]="text().mediaSeek"
+      [attr.aria-valuetext]="seekValueText()"
+      [attr.aria-controls]="uid + '-media'"
+      (input)="onSeekInput($event)"
+      (keydown)="onSeekKeydown($event)" />
+    <span
+      aria-hidden="true"
+      class="relative h-1.5 w-full overflow-hidden rounded-full bg-gray-200 ring-offset-2 ring-offset-white peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500 dark:bg-gray-700 dark:ring-offset-gray-900">
+      <span class="absolute inset-y-0 start-0 bg-gray-300 dark:bg-gray-600" [style.width.%]="bufferedPct()"></span>
+      <span class="absolute inset-y-0 start-0 rounded-full bg-primary-600 dark:bg-primary-400" [style.width.%]="playedPct()"></span>
+    </span>
+    <span
+      aria-hidden="true"
+      class="pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow ring-2 ring-primary-600 rtl:translate-x-1/2 dark:ring-primary-400"
+      [style.inset-inline-start.%]="playedPct()"></span>
+  </div>
+</ng-template>

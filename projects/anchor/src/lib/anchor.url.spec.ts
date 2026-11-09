@@ -1,10 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen, fireEvent } from '@testing-library/angular';
-import {
-  provideSvNavLocation,
-  svHashNavLocation,
-  svNoopNavLocation,
-} from '@styloviz/core';
+import { provideSvNavLocation, svHashNavLocation, svNoopNavLocation } from '@styloviz/core/nav';
 import { untilRendered } from '../../../../src/testing/async';
 import { SvAnchorComponent, type AnchorItem } from './anchor.component';
 

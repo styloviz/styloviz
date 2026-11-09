@@ -3,15 +3,14 @@ import {
   Component,
   computed,
   input,
+  model,
   output,
   signal,
 } from '@angular/core';
-import {
-  SvChartFrameComponent,
-  SvDataSummaryTableComponent,
-  type SvDataError,
-  type SvDataSummary,
-} from '@styloviz/core';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
+import { createSeriesEmphasis, SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 export interface RadarSeries {
   readonly name: string;
@@ -45,8 +44,8 @@ export interface RadarPointEvent {
  * wired one that is silently receiving nothing.
  */
 export const DEMO_RADAR_AXES: RadarAxis[] = [
-    { label: 'Speed' }, { label: 'Reliability' }, { label: 'Comfort' },
-    { label: 'Safety' }, { label: 'Efficiency' }, { label: 'Value' },
+    { label: 'Speed' }, { label: 'Reliability' }, { label: 'Comfort' }, // sv-i18n-ignore: demo sample data the host replaces
+    { label: 'Safety' }, { label: 'Efficiency' }, { label: 'Value' }, // sv-i18n-ignore: demo sample data the host replaces
 ];
 
 export const DEMO_RADAR_SERIES: RadarSeries[] = [
@@ -54,14 +53,19 @@ export const DEMO_RADAR_SERIES: RadarSeries[] = [
     { name: 'Model B', color: '#f59e0b', values: [60, 85, 65, 70, 90, 80] },
 ];
 
+/** The axis-label font size, in SVG units — the template's `font-size` and `frame()` share it. */
+const RADAR_LABEL_FONT_PX = 10;
+
 @Component({
   selector: 'sv-radar-chart',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvChartFrameComponent, SvDataSummaryTableComponent],
+  imports: [SvChartFrameComponent],
   templateUrl: './radar-chart.component.html',
 })
 export class SvRadarChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+
   // ── Async state ───────────────────────────────────────────────────────────
 
   /** True while the series is being fetched. @default false */
@@ -75,7 +79,7 @@ export class SvRadarChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the no-data state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /** True when the emptiness is caused by a filter rather than an empty set. */
   readonly filtered = input<boolean>(false);
@@ -94,7 +98,7 @@ export class SvRadarChartComponent {
   size   = input<number>(300);
   /** Number of concentric grid levels. @default 5 */
   levels = input<number>(5);
-  /** Global maximum used to normalise values (per-axis `max` overrides). @default 100 */
+  /** Global maximum that values are normalised against (per-axis `max` overrides). @default 100 */
   maxValue = input<number>(100);
   /** Show point markers at each value. @default true */
   showDots = input<boolean>(true);
@@ -106,6 +110,31 @@ export class SvRadarChartComponent {
   ariaLabel = input<string>('');
   /** Extra CSS classes applied to the root wrapper. */
   customClass = input<string>('');
+
+  /**
+   * Legend entries are keyboard buttons: hover or focus one and the other
+   * series fade; Enter, Space or a click hides or shows it; the arrow keys move
+   * between series. `false` keeps the static legend.
+   * @default true
+   */
+  readonly interactiveLegend = input<boolean>(true);
+
+  /**
+   * Names of the series switched off from the legend. Two-way bindable
+   * (`[(hiddenSeries)]`) so a host can persist and restore the choice; the
+   * last visible series cannot be hidden.
+   * @default []
+   */
+  readonly hiddenSeries = model<readonly string[]>([]);
+
+  /** Isolate (fade the others) and toggle — the shared series-emphasis model. */
+  readonly emphasis = createSeriesEmphasis({
+    keys: () => this.series().map((s) => s.name),
+    hidden: this.hiddenSeries,
+  });
+
+  /** Id of the legend's off-screen keyboard hint. */
+  protected readonly legendHintId = svUniqueId('sv-radar-chart-legend');
 
   // ── Outputs ─────────────────────────────────────────────────────────────────
 
@@ -189,12 +218,42 @@ export class SvRadarChartComponent {
     }))
   );
 
+  protected readonly labelFontPx = RADAR_LABEL_FONT_PX;
+
   readonly labelPoints = computed(() =>
     this.axes().map((ax, i) => {
       const p = this.axisPoint(i, 1.18);
       return { label: ax.label, x: p.x, y: p.y };
     })
   );
+
+  /**
+   * The SVG box, grown to hold the axis labels.
+   *
+   * ★ Labels sit at 1.18× the radius and run outward from their anchor, so a
+   *   side label ("Throughput" at 3 o'clock) always drew past a `0 0 size size`
+   *   viewBox. `overflow-visible` hid that until a parent clipped — a card with
+   *   less padding on a phone cut the label off. The box is measured from an
+   *   estimate of each label's extent (0.6em per character at the 10px label
+   *   size), so the whole chart scales down to fit instead.
+   */
+  readonly frame = computed(() => {
+    const size = this.size();
+    const font = RADAR_LABEL_FONT_PX;
+    let minX = 0, minY = 0, maxX = size, maxY = size;
+    for (const lp of this.labelPoints()) {
+      const w = (lp.label ?? '').length * font * 0.6;
+      const anchor = this.textAnchor(lp.x);
+      const left = anchor === 'end' ? lp.x - w : anchor === 'middle' ? lp.x - w / 2 : lp.x;
+      minX = Math.min(minX, left);
+      maxX = Math.max(maxX, left + w);
+      minY = Math.min(minY, lp.y - font / 2);
+      maxY = Math.max(maxY, lp.y + font / 2);
+    }
+    const x = Math.floor(minX), y = Math.floor(minY);
+    const width = Math.ceil(maxX) - x, height = Math.ceil(maxY) - y;
+    return { width, height, viewBox: `${x} ${y} ${width} ${height}` };
+  });
 
   textAnchor(x: number): string {
     const diff = x - this.cx();
@@ -206,14 +265,14 @@ export class SvRadarChartComponent {
   /** Generated accessible summary used when `ariaLabel` is not supplied. */
   readonly resolvedAriaLabel = computed<string>(() => {
     if (this.ariaLabel()) return this.ariaLabel();
-    const base = this.title() || 'Radar chart';
+    const base = this.title() || this.labels.chartRadar;
     const axisList = this.axes().map(a => a.label).join(', ');
     const seriesList = this.series().map(s => s.name).join(', ');
-    return `${base}. Axes: ${axisList}. Series: ${seriesList}.`;
+    return svFormatLabel(this.labels.radarSummary, { title: base, axes: axisList, series: seriesList });
   });
 
   pointAriaLabel(s: RadarSeries, axis: string, value: number): string {
-    return `${s.name}, ${axis}: ${value}`;
+    return svFormatLabel(this.labels.radarPoint, { series: s.name, axis, value: String(value) });
   }
 
   /**
@@ -233,16 +292,17 @@ export class SvRadarChartComponent {
     for (const s of this.series()) {
       axes.forEach((ax, i) => {
         const v = s.values[i];
-        const at = `${s.name} on ${ax.label}`;
+        const at = svFormatLabel(this.labels.radarAt, { series: s.name, axis: ax.label });
         if (v == null || !Number.isFinite(v)) missing.push(at);
-        else if (v > this.axisMax(i)) over.push(`${at} (${v} of ${this.axisMax(i)})`);
-        else if (v < 0) under.push(`${at} (${v})`);
+        else if (v > this.axisMax(i)) {
+          over.push(svFormatLabel(this.labels.radarOverItem, { at, value: String(v), max: String(this.axisMax(i)) }));
+        } else if (v < 0) under.push(svFormatLabel(this.labels.radarUnderItem, { at, value: String(v) }));
       });
     }
     const parts: string[] = [];
-    if (over.length) parts.push(`Above the spoke's maximum, drawn at the rim: ${over.join(', ')}.`);
-    if (under.length) parts.push(`Below zero, drawn at the centre: ${under.join(', ')}.`);
-    if (missing.length) parts.push(`No value, drawn at the centre as 0: ${missing.join(', ')}.`);
+    if (over.length) parts.push(svFormatLabel(this.labels.radarAbove, { items: over.join(', ') }));
+    if (under.length) parts.push(svFormatLabel(this.labels.radarBelow, { items: under.join(', ') }));
+    if (missing.length) parts.push(svFormatLabel(this.labels.radarMissing, { items: missing.join(', ') }));
     return parts.length ? parts.join(' ') : null;
   });
 
@@ -291,22 +351,17 @@ export class SvRadarChartComponent {
         labels.push(ax.label);
         byMax.set(this.axisMax(i), labels);
       });
-      const maxima = [...byMax].map(([max, labels]) => `${labels.join(', ')} out of ${max}`).join('; ');
-      parts.push(
-        `Spokes are normalised against different maxima (${maxima}), so equal `
-          + 'distance from the centre is not an equal value.',
-      );
+      const maxima = [...byMax]
+        .map(([max, axisLabels]) => svFormatLabel(this.labels.radarMaxGroup, { axes: axisLabels.join(', '), max: String(max) }))
+        .join('; ');
+      parts.push(svFormatLabel(this.labels.radarMixedMaxima, { maxima }));
     }
 
     const offScale = this.offScaleNote();
     if (offScale) parts.push(offScale);
 
     if (axes.length > 2) {
-      parts.push(
-        'The shape and the area depend on the order of the axes: the same numbers '
-          + 'in a different order draw a different figure, so the area is not a '
-          + 'quantity. Compare vertices along a spoke, not outlines.',
-      );
+      parts.push(this.labels.radarOrderNote);
     }
 
     return parts.length ? parts.join(' ') : null;
@@ -337,8 +392,8 @@ export class SvRadarChartComponent {
     const sets = this.series();
     const mixed = this.mixedAxisMax();
     return {
-      caption: this.title() || 'Radar chart',
-      columns: ['Axis', ...sets.map((s) => s.name), ...(mixed ? ['Axis maximum'] : [])],
+      caption: this.title() || this.labels.chartRadar,
+      columns: [this.labels.axisColumn, ...sets.map((s) => s.name), ...(mixed ? [this.labels.axisMaximumColumn] : [])],
       // Keyed by position: two spokes can share a label, and a duplicate key is
       // NG0955 in the shared table.
       rows: this.axes().map((ax, i) => ({
@@ -364,6 +419,8 @@ export class SvRadarChartComponent {
   hoverPoint(s: RadarSeries, axis: string, value: number): void {
     const ev = this.toEvent(s, axis, value);
     this.hoveredPoint.set(ev);
+    // A vertex in focus puts its polygon in front (CH-13-M4).
+    this.emphasis.emphasize(s.name);
     this.pointHover.emit(ev);
   }
 
@@ -371,5 +428,8 @@ export class SvRadarChartComponent {
     this.pointSelect.emit(this.toEvent(s, axis, value));
   }
 
-  clearHover(): void { this.hoveredPoint.set(null); }
+  clearHover(): void {
+    this.hoveredPoint.set(null);
+    this.emphasis.emphasize(null);
+  }
 }

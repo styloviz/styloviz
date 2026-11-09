@@ -169,10 +169,31 @@ export interface NotificationQuery {
   readonly search: string;
 }
 
+/**
+ * Where the loaded list ends, for keyset pagination (FL-J3-OF-12, `OF-10-M3`):
+ * the last notification in hand.
+ */
+export interface NotificationCursor {
+  /** The last loaded notification's id. */
+  readonly id: string;
+  /** Its `timestamp`, exactly as supplied. */
+  readonly timestamp: string;
+}
+
 /** Asking for the next page of an unbounded notification list. */
 export interface NotificationLoadMoreEvent {
-  /** Notifications already rendered — the offset to fetch from. */
+  /**
+   * Notifications already rendered — the offset to fetch from.
+   *
+   * ⚠️ An offset skips rows when newer notifications are inserted at the top
+   * between pages (`OF-10-I4`). Prefer `cursor`.
+   */
   readonly loaded: number;
+  /**
+   * The last notification in hand — "the page after this one". Stable under
+   * insertions, unlike `loaded`. `null` when nothing has loaded yet.
+   */
+  readonly cursor: NotificationCursor | null;
   /** The query the next page should honour. */
   readonly query: NotificationQuery;
 }

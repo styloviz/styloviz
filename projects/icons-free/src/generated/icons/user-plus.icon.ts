@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `user-plus` icon. */
 export const userPlusNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const userPlusNodes: readonly IconNode[] = [
 export const userPlusSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm13.9 8q0 2-1.5 3.4-1.4 1.5-3.4 1.5-2 0-3.4-1.5-1.5-1.4-1.5-3.4 0-2 1.5-3.4 1.4-1.5 3.4-1.5 2 0 3.4 1.5 1.5 1.4 1.5 3.4zm-12.7 11.7q1.5-5.1 6.9-5.5 5.4-.4 7.7 4.4.2.4.1.7-.1.3-.5.5-.4.2-.7.1-.3-.1-.5-.5-1.8-3.8-6-3.5-4.1.4-5.4 4.4-.1.4-.4.5-.2.2-.7 0-.8-.2-.5-1.1zm18.7-11.7v2.1h2.1q.9 0 .9.9 0 .9-.9.9h-2.1v2.1q0 .9-.9.9-.9 0-.9-.9v-2.1h-2.1q-.9 0-.9-.9 0-.9.9-.9h2.1v-2.1q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `user-plus` as a registrable glyph — `registerSvIcons([userPlusIcon])` / `provideSvIcons([userPlusIcon])`. */
+export const userPlusIcon: SvIconDef = { name: 'user-plus', nodes: userPlusNodes, solid: userPlusSolidNodes };
 
 /** `user-plus` — tree-shakable standalone icon. Use `<sv-user-plus-icon />`. */
 @Component({

@@ -1,5 +1,5 @@
 import { computed, signal, type Signal } from '@angular/core';
-import { svWarnOnce } from '@styloviz/core';
+import { svWarnOnce } from '@styloviz/core/dev';
 
 /**
  * ============================================================================

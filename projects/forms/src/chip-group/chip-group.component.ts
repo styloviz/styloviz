@@ -7,7 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { svRovingTarget } from '@styloviz/core';
+import { svRovingTarget } from '@styloviz/core/a11y';
 import { SvChipComponent } from '../chip/chip.component';
 import { SV_CHIP_GROUP, type SvChipGroupContext } from './chip-group.token';
 

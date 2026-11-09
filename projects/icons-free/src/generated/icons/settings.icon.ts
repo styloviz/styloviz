@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `settings` icon. */
 export const settingsNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const settingsNodes: readonly IconNode[] = [
 export const settingsSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 16.1h.8c.3-.9 1.2-1.5 2.2-1.5 1 0 1.9.6 2.2 1.5h10.8q.9 0 .9.9 0 .9-.9.9h-10.8c-.3.9-1.2 1.5-2.2 1.5-1 0-1.9-.6-2.2-1.5h-.8q-.9 0-.9-.9 0-.9.9-.9zm0-5h8.8c.3-.9 1.2-1.5 2.2-1.5 1 0 1.9.6 2.2 1.5h2.8q.9 0 .9.9 0 .9-.9.9h-2.8c-.3.9-1.2 1.5-2.2 1.5-1 0-1.9-.6-2.2-1.5h-8.8q-.9 0-.9-.9 0-.9.9-.9zm0-5h2.8c.3-.9 1.2-1.5 2.2-1.5 1 0 1.9.6 2.2 1.5h8.8q.9 0 .9.9 0 .9-.9.9h-8.8c-.3.9-1.2 1.5-2.2 1.5-1 0-1.9-.6-2.2-1.5h-2.8q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `settings` as a registrable glyph — `registerSvIcons([settingsIcon])` / `provideSvIcons([settingsIcon])`. */
+export const settingsIcon: SvIconDef = { name: 'settings', nodes: settingsNodes, solid: settingsSolidNodes };
 
 /** `settings` — tree-shakable standalone icon. Use `<sv-settings-icon />`. */
 @Component({

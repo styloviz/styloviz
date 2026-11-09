@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `search` icon. */
 export const searchNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const searchNodes: readonly IconNode[] = [
 export const searchSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm18.9 11q0 2.8-1.7 4.9l3.9 4q.6.6 0 1.2-.6.6-1.2 0l-4-3.9q-2.1 1.7-4.9 1.7-3.3 0-5.6-2.3-2.3-2.3-2.3-5.6 0-3.3 2.3-5.6 2.3-2.3 5.6-2.3 3.3 0 5.6 2.3 2.3 2.3 2.3 5.6z' },
 ];
+
+/** `search` as a registrable glyph — `registerSvIcons([searchIcon])` / `provideSvIcons([searchIcon])`. */
+export const searchIcon: SvIconDef = { name: 'search', nodes: searchNodes, solid: searchSolidNodes };
 
 /** `search` — tree-shakable standalone icon. Use `<sv-search-icon />`. */
 @Component({

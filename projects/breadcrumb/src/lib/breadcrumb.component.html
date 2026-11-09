@@ -36,7 +36,7 @@
 <ng-template #separatorTpl>
   @if (isSvgSeparator()) {
     <sv-icon [name]="separatorIcon()!"
-                 [cssClass]="separatorClass() + ' shrink-0 text-gray-300 dark:text-gray-600'"
+                 [cssClass]="separatorClass() + ' shrink-0 text-gray-300 rtl:-scale-x-100 dark:text-gray-600'"
                  [strokeWidth]="2" />
   } @else {
     <span
@@ -53,13 +53,13 @@
     <button
       type="button"
       data-trigger
-      class="flex items-center rounded p-0.5 text-gray-500 transition-colors hover:text-gray-700
+      class="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition-colors hover:text-gray-700
              focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
              focus-visible:ring-offset-1 dark:text-gray-400 dark:hover:text-gray-200"
       aria-haspopup="menu"
       [attr.aria-expanded]="openMenuIndex() === idx"
       [attr.aria-controls]="menuPanelId"
-      [attr.aria-label]="'Switch page under ' + item.label"
+      [attr.aria-label]="labels.switchPageUnder | svLabel: { name: item.label }"
       (click)="toggleMenu(idx, $event)"
     >
       <sv-icon [name]="menuCaretIcon"
@@ -70,7 +70,7 @@
 </ng-template>
 
 <!-- ── Sibling-menu panel — rendered into document.body via a true body portal
-     (dropdown-instruction.md §1) so it always escapes ancestor overflow/transform
+     (docs/dropdown-instruction.md §1) so it always escapes ancestor overflow/transform
      clipping. Never rendered in place; only instantiated on open by toggleMenu(). ── -->
 <ng-template #menuPanelTpl>
   @if (openMenuItem(); as item) {
@@ -78,11 +78,11 @@
          arrow/Home/End/Escape for the role="menuitem" anchors below, each of
          which carries tabindex="-1" and is focused programmatically (roving
          focus). A tabindex on the container would add a dead tab stop. -->
-    <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
-    <div
+    <!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -- sv-physical: viewport px from getBoundingClientRect (a physical frame); _calcMenuPos picks the side by direction -->
+    <div [style.left]="menuPanelStyle()['left']" [style.right]="menuPanelStyle()['right']"
       [id]="menuPanelId"
       role="menu"
-      [attr.aria-label]="item.label + ' pages'"
+      [attr.aria-label]="labels.pagesUnder | svLabel: { name: item.label }"
       class="overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl
              dark:border-gray-800 dark:bg-gray-900"
       [style.position]="menuPanelStyle()['position']"
@@ -90,8 +90,6 @@
       [style.minWidth]="menuPanelStyle()['minWidth']"
       [style.top]="menuPanelStyle()['top']"
       [style.bottom]="menuPanelStyle()['bottom']"
-      [style.left]="menuPanelStyle()['left']"
-      [style.right]="menuPanelStyle()['right']"
       (keydown)="onMenuKeydown($event)"
     >
       @for (mi of item.menu; track mi.label) {
@@ -146,7 +144,7 @@
       bar laid over it, so the bar can be any height without deciding the row's.
     -->
     <div role="status" aria-live="polite" aria-busy="true">
-      <span class="sr-only">Loading breadcrumb…</span>
+      <span class="sr-only">{{ labels.loadingBreadcrumb }}</span>
       <ol
         role="list"
         [ngClass]="['flex flex-wrap items-center gap-1', textClass()]"
@@ -174,7 +172,7 @@
                   <span class="invisible" [style.width.ch]="crumb.width">&#8203;</span>
                 }
                 <span
-                  class="absolute left-0 right-0 top-1/2 h-[1em] -translate-y-1/2 animate-pulse
+                  class="absolute start-0 end-0 top-1/2 h-[1em] -translate-y-1/2 animate-pulse
                          rounded bg-gray-200 dark:bg-gray-700"
                 ></span>
               </span>
@@ -262,9 +260,7 @@
                        focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
                        focus-visible:ring-offset-1"
                 [attr.aria-expanded]="isExpanded()"
-                [attr.aria-label]="isExpanded()
-                  ? 'Hide ' + toggleCount() + ' page' + (toggleCount() === 1 ? '' : 's')
-                  : 'Show ' + toggleCount() + ' hidden page' + (toggleCount() === 1 ? '' : 's')"
+                [attr.aria-label]="(isExpanded() ? labels.hidePages : labels.showHiddenPages) | svLabel: { count: toggleCount() }"
                 (click)="toggleCollapse()"
               >
                 @if (isExpanded()) {
@@ -280,7 +276,7 @@
                 data-sv-crumb-ellipsis
                 class="flex items-center gap-0.5 text-gray-500 dark:text-gray-400"
                 role="img"
-                aria-label="More pages"
+                [attr.aria-label]="labels.morePages"
               >
                 <span class="h-1 w-1 rounded-full bg-current"></span>
                 <span class="h-1 w-1 rounded-full bg-current"></span>

@@ -46,7 +46,7 @@
           />
           <!-- Step count badge over image -->
           @if (showStepCount() && steps().length > 1) {
-            <span class="absolute top-3 right-3 rounded-full bg-black/50 px-2.5 py-1
+            <span data-sv-glass="over-media" class="absolute top-3 end-3 rounded-full bg-black/50 px-2.5 py-1
                          text-[11px] font-medium text-white backdrop-blur-sm">
               {{ stepIndex() + 1 }} / {{ steps().length }}
             </span>
@@ -74,7 +74,7 @@
           @if (allowSkip()) {
             <button
               type="button"
-              aria-label="Skip tour"
+              [attr.aria-label]="labels.skipTour"
               (click)="skipTour()"
               class="flex items-center justify-center w-7 h-7 rounded-full
                      text-gray-500 dark:text-gray-400 hover:text-gray-600 hover:bg-gray-100
@@ -123,9 +123,9 @@
             @for (s of steps(); track s.id; let i = $index) {
               <button
                 type="button"
-                [attr.aria-label]="'Go to step ' + (i + 1)"
+                [attr.aria-label]="labels.goToStepNumber | svLabel: { step: i + 1 }"
                 (click)="goToStep(i)"
-                class="rounded-full transition-all duration-200
+                class="sv-target rounded-full transition-colors duration-200 motion-reduce:transition-none
                        {{ i === stepIndex()
                          ? 'w-5 h-2 bg-primary-500'
                          : 'w-2 h-2 bg-gray-200 dark:bg-gray-700 hover:bg-primary-300' }}"
@@ -164,7 +164,7 @@
             >
               {{ isLastStep() ? doneLabel() : nextLabel() }}
               @if (!isLastStep()) {
-                <sv-icon name="arrow-right" cssClass="w-3.5 h-3.5" [strokeWidth]="2.5" />
+                <sv-icon name="arrow-right" cssClass="w-3.5 h-3.5 rtl:-scale-x-100" [strokeWidth]="2.5" />
               }
             </button>
           </div>

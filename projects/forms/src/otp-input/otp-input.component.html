@@ -46,7 +46,7 @@
         [attr.maxlength]="length()"
         [value]="codeText()"
         [disabled]="resolvedDisabled()"
-        [attr.aria-label]="label() ? null : 'One-time code'"
+        [attr.aria-label]="label() ? null : labels.oneTimeCode"
         [attr.aria-invalid]="status() === 'error' || fieldError.showError() || null"
         [attr.aria-describedby]="describedBy()"
         class="absolute inset-0 h-full w-full cursor-text bg-transparent text-center
@@ -62,7 +62,7 @@
   <!-- Digit cells -->
   <div class="flex items-center gap-2" role="group"
        [attr.aria-labelledby]="label() ? labelId : null"
-       [attr.aria-label]="label() ? null : 'One-time code'"
+       [attr.aria-label]="label() ? null : labels.oneTimeCode"
        [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
        [attr.aria-describedby]="describedBy()">
     @for (i of slots(); track i) {
@@ -90,7 +90,7 @@
         (paste)="onPaste($event)"
         (focus)="onFocus(i)"
         (blur)="onBlur()"
-        [attr.aria-label]="'Digit ' + (i + 1) + ' of ' + length()" />
+        [attr.aria-label]="labels.digitOf | svLabel: { index: i + 1, total: length() }" />
     }
   </div>
   }
@@ -112,7 +112,7 @@
   @if (status() === 'loading') {
     <p class="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
       <sv-spinner-arc cssClass="h-3 w-3" />
-      Verifying…
+      {{ labels.verifying }}
     </p>
   }
   @if (status() === 'idle' && hint()) {

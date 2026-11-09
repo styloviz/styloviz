@@ -7,14 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  SvDataSummaryTableComponent,
-  type SvDataError,
-  type SvDataSummary,
-  type SvValuePolicy,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { injectSvChartSync, SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 import type {
   BarChartDataset,
@@ -65,12 +62,13 @@ export type { BarChartVariant } from './bar-chart.types';
     NgClass,
     SvChartAnimDirective,
     SvChartFrameComponent,
-    SvDataSummaryTableComponent,
   ],
   templateUrl: './bar-chart.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvBarChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -85,7 +83,7 @@ export class SvBarChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -135,7 +133,7 @@ export class SvBarChartComponent {
    * a single `NaN` in the data made `Math.max` — and therefore the whole axis and
    * every bar on it — `NaN`.
    */
-  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-bar-chart'));
+  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-bar-chart', { nounCount: this.labels.valueCountBar, labels: this.labels, locale: this.locale }));
 
 
   /** Chart orientation. @default 'vertical' */
@@ -177,13 +175,13 @@ export class SvBarChartComponent {
   readonly chartDescription = computed<string>(() => {
     const cats = this.categories();
     const sets = this.datasets();
-    const base = this.title() || 'Bar chart';
+    const base = this.title() || this.labels.chartBar;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    const seriesPart = sets.length === 1
-      ? (names ? `series ${names}` : '1 series')
-      : `${sets.length} series${names ? ` (${names})` : ''}`;
-    return `${base}: ${seriesPart} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    const template = !names
+      ? this.labels.seriesSummary
+      : sets.length === 1 ? this.labels.seriesSummaryOneNamed : this.labels.seriesSummaryNamed;
+    return svFormatLabel(template, { title: base, series: sets.length, names, categories: cats.length }, this.locale);
   });
 
   /** Resolved accessible name — explicit override or the generated summary. */
@@ -201,7 +199,7 @@ export class SvBarChartComponent {
     const value = this.datasets()[seriesIndex]?.data[catIndex] ?? 0;
     const text  = this.formatValue(value);
     return this.plotted().isClamped(seriesIndex, catIndex)
-      ? `${text} (not drawn to scale)`
+      ? svFormatLabel(this.labels.valueNotToScale, { value: text })
       : text;
   }
 
@@ -215,8 +213,8 @@ export class SvBarChartComponent {
   protected readonly a11ySummary = computed<SvDataSummary>(() => {
     const sets = this.datasets();
     return {
-      caption: this.title() || 'Bar chart',
-      columns: ['Category', ...sets.map((s) => s.label)],
+      caption: this.title() || this.labels.chartBar,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label)],
       rows: this.categories().map((cat, ci) => ({
         key: cat,
         header: cat,
@@ -239,6 +237,7 @@ export class SvBarChartComponent {
 
   readonly SVG_WIDTH  = 600;
   /** The base margins. `left` grows for horizontal bars to fit their labels — read `padding()`. */
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PADDING    = { top: 24, right: 24, bottom: 56, left: 56 };
 
   /**
@@ -375,7 +374,7 @@ export class SvBarChartComponent {
    */
   formatValue(v: number | string): string {
     if (typeof v === 'string') return v;
-    return Number.isFinite(v) ? formatChartValue(v) : 'no value';
+    return Number.isFinite(v) ? formatChartValue(v) : this.labels.noValue;
   }
 
   /** Build a rounded-top rect path for vertical bars. */
@@ -411,6 +410,7 @@ export class SvBarChartComponent {
       label: cat,
       items: [{ color, series: seriesLabel, value }],
     });
+    this.sync?.publishHover(this.categories().indexOf(cat));
   }
 
   /**
@@ -430,19 +430,30 @@ export class SvBarChartComponent {
       label: cat,
       items: [{ color, series: seriesLabel, value }],
     });
+    this.sync?.publishHover(this.categories().indexOf(cat));
   }
 
   hideTooltip(): void {
     this.tooltip.update(t => ({ ...t, visible: false }));
+    this.sync?.publishHover(null);
   }
+
+  /** `svChartSync`: another chart's hovered category, whose bars stay bright while the rest dim. */
+  protected readonly syncedCategory = signal<string | null>(null);
+
+  private readonly sync = injectSvChartSync({
+    categories: () => this.categories(),
+    hover: (ci) => this.syncedCategory.set(ci === null ? null : this.categories()[ci] ?? null),
+  });
 
   /** Accessible name for one bar's focus target. */
   barAriaLabel(cat: string, seriesLabel: string, value: number, clamped = false): string {
-    const base = `${seriesLabel ? `${seriesLabel}, ` : ''}${cat}: ${this.formatValue(value)}`;
+    const point = { series: seriesLabel, category: cat, value: this.formatValue(value) };
+    const base = svFormatLabel(seriesLabel ? this.labels.barPoint : this.labels.barPointUnnamed, point);
     // A clamped bar is a stub the same size whatever the value was, so the name
     // has to carry what the geometry cannot. Without this a listener heard "-50"
     // and had no way to know the bar in front of them did not represent it.
-    return clamped ? `${base}, not drawn to scale — this chart cannot plot it` : base;
+    return clamped ? svFormatLabel(this.labels.barNotToScale, { name: base }) : base;
   }
 
   /** Enter or Space activates a focused bar, exactly as a click does. */

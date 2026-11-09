@@ -3,6 +3,7 @@
   [attr.aria-label]="hostAriaLabel()"
   [attr.role]="hostRole()"
   [attr.aria-live]="live() ? 'polite' : null"
+  [attr.data-sv-badge-unnamed]="unnamed() ? '' : null"
 >
   @if (dot()) {
     <span
@@ -51,11 +52,11 @@
       class="inline-flex shrink-0 items-center justify-center rounded-full transition-colors
              duration-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
       [ngClass]="[
-        size() === 'sm' ? 'h-3 w-3 -mr-0.5' : size() === 'lg' ? 'h-4.5 w-4.5 -mr-0.5' : 'h-3.5 w-3.5 -mr-0.5',
+        size() === 'sm' ? 'h-3 w-3 -me-0.5' : size() === 'lg' ? 'h-4.5 w-4.5 -me-0.5' : 'h-3.5 w-3.5 -me-0.5',
         dismissColorClass()
       ]"
       (click)="onDismiss($event)"
-      [attr.aria-label]="'Remove ' + (label() || ariaLabel() || 'badge')"
+      [attr.aria-label]="(label() || ariaLabel() ? labels.removeBadge : labels.removeUnnamedBadge) | svLabel: { name: label() || ariaLabel() }"
     >
       <sv-icon name="close" cssClass="h-full w-full" [strokeWidth]="2" />
     </button>

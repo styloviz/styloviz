@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `inbox` icon. */
 export const inboxNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const inboxNodes: readonly IconNode[] = [
 export const inboxSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3.2 12.8l2.2-7.5q.4-1.4 1.8-1.4h9.6q1.4 0 1.8 1.3l2.2 7.6q.1.1.1.2v5q0 1.9-1.9 1.9h-14q-1.9 0-1.9-1.9v-5q0-.1.1-.2zm1.7.3v.8h3.6l1.2 2.5q.3.5.8.5h3q.5 0 .8-.5l1.2-2.5h3.6v-.8l-.3-1h-3.8q-.5 0-.8.5l-1.2 2.5h-2l-1.2-2.5q-.3-.5-.8-.5h-3.8z' },
 ];
+
+/** `inbox` as a registrable glyph — `registerSvIcons([inboxIcon])` / `provideSvIcons([inboxIcon])`. */
+export const inboxIcon: SvIconDef = { name: 'inbox', nodes: inboxNodes, solid: inboxSolidNodes };
 
 /** `inbox` — tree-shakable standalone icon. Use `<sv-inbox-icon />`. */
 @Component({

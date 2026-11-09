@@ -1,4 +1,21 @@
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvBarcode1dLabels } from './barcode-1d.labels';
 import type { BarcodeModule, BarcodeSymbology } from './barcode-1d.types';
+
+/** The label templates the encoder's refusal reasons and summary line are built from. */
+export type SvBarcodeEncodeLabels = Pick<
+  SvBarcode1dLabels,
+  | 'nothingToEncode'
+  | 'code128OutOfRange'
+  | 'digitsOnly'
+  | 'wrongCheckDigit'
+  | 'wrongLength'
+  | 'cannotEncode'
+  | 'checkCharacter'
+>;
+
+const symbologyName = (symbology: BarcodeSymbology): string =>
+  symbology === 'code128' ? 'Code 128' : symbology === 'ean13' ? 'EAN-13' : 'EAN-8';
 
 /**
  * `sv-barcode-1d` — barcodes that scan.
@@ -198,28 +215,43 @@ export function svGtinCheckDigit(payload: string): number {
  * ships an unscannable label to a warehouse; one that says "EAN-13 needs 12 or
  * 13 digits, this has 11" gets fixed before it is printed.
  */
-export function svValidate(value: string, symbology: BarcodeSymbology): string | null {
-  if (value.length === 0) return 'Nothing to encode.';
+export function svValidate(
+  value: string,
+  symbology: BarcodeSymbology,
+  labels: SvBarcodeEncodeLabels,
+): string | null {
+  if (value.length === 0) return labels.nothingToEncode;
 
   if (symbology === 'code128') {
     for (let i = 0; i < value.length; i++) {
       if (!inSubsetB(value.charCodeAt(i))) {
-        return `Code 128 here covers printable ASCII only; “${value[i]}” at position ${i + 1} is outside it.`;
+        return svFormatLabel(labels.code128OutOfRange, { char: value[i], position: String(i + 1) });
       }
     }
     return null;
   }
 
   const want = symbology === 'ean13' ? 12 : 7;
-  if (!/^\d+$/.test(value)) return `${symbology === 'ean13' ? 'EAN-13' : 'EAN-8'} is digits only.`;
+  const name = symbologyName(symbology);
+  if (!/^\d+$/.test(value)) return svFormatLabel(labels.digitsOnly, { name });
   if (value.length === want) return null;
   if (value.length === want + 1) {
     const expected = svGtinCheckDigit(value.slice(0, want));
     return Number(value[want]) === expected
       ? null
-      : `The check digit is wrong: ${value} ends in ${value[want]}, but ${value.slice(0, want)} checks to ${expected}. A scanner would read this as a different article number, or as nothing.`;
+      : svFormatLabel(labels.wrongCheckDigit, {
+          value,
+          last: value[want],
+          payload: value.slice(0, want),
+          expected: String(expected),
+        });
   }
-  return `${symbology === 'ean13' ? 'EAN-13' : 'EAN-8'} needs ${want} digits (or ${want + 1} including the check digit); this has ${value.length}.`;
+  return svFormatLabel(labels.wrongLength, {
+    name,
+    want: String(want),
+    withCheck: String(want + 1),
+    actual: String(value.length),
+  });
 }
 
 // ── Encoding to modules ─────────────────────────────────────────────────────
@@ -316,8 +348,12 @@ function encodeEan(value: string, symbology: 'ean13' | 'ean8'): SvEncoded {
 }
 
 /** Encode a value, or report why it cannot be encoded. */
-export function svEncode(value: string, symbology: BarcodeSymbology): SvEncoded {
-  const error = svValidate(value, symbology);
+export function svEncode(
+  value: string,
+  symbology: BarcodeSymbology,
+  labels: SvBarcodeEncodeLabels,
+): SvEncoded {
+  const error = svValidate(value, symbology, labels);
   if (error) {
     return {
       modules: [], moduleCount: 0,
@@ -373,10 +409,11 @@ export function svIsGuardModule(encoded: SvEncoded, m: BarcodeModule): boolean {
 }
 
 /** `EAN-13 · 5901234123457 · check digit 7` */
-export function svEncodingLabel(encoded: SvEncoded): string {
-  const name = encoded.symbology === 'code128' ? 'Code 128' : encoded.symbology === 'ean13' ? 'EAN-13' : 'EAN-8';
-  if (encoded.error) return `${name} · cannot encode`;
-  return `${name} · ${encoded.text}${encoded.check === null ? '' : ` · check ${encoded.check}`}`;
+export function svEncodingLabel(encoded: SvEncoded, labels: SvBarcodeEncodeLabels): string {
+  const name = symbologyName(encoded.symbology);
+  if (encoded.error) return svFormatLabel(labels.cannotEncode, { name });
+  const check = encoded.check === null ? '' : svFormatLabel(labels.checkCharacter, { check: String(encoded.check) });
+  return `${name} · ${encoded.text}${check}`;
 }
 
 /** How many symbol characters the encoder used, and how many it saved with subset C. */

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `camera` icon. */
 export const cameraNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const cameraNodes: readonly IconNode[] = [
 export const cameraSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3.1 8q0-2.9 2.9-2.9h1.1l1.2-1.6q.3-.4.7-.4h6q.4 0 .7.4l1.2 1.6h1.1q2.9 0 2.9 2.9v9q0 1.9-1.9 1.9h-14q-1.9 0-1.9-1.9zm13.3 4.5q0-1.8-1.3-3.1-1.3-1.3-3.1-1.3-1.8 0-3.1 1.3-1.3 1.3-1.3 3.1 0 1.8 1.3 3.1 1.3 1.3 3.1 1.3 1.8 0 3.1-1.3 1.3-1.3 1.3-3.1zm-1.8 0q0 2.6-2.6 2.6-2.6 0-2.6-2.6 0-2.6 2.6-2.6 2.6 0 2.6 2.6z' },
 ];
+
+/** `camera` as a registrable glyph — `registerSvIcons([cameraIcon])` / `provideSvIcons([cameraIcon])`. */
+export const cameraIcon: SvIconDef = { name: 'camera', nodes: cameraNodes, solid: cameraSolidNodes };
 
 /** `camera` — tree-shakable standalone icon. Use `<sv-camera-icon />`. */
 @Component({

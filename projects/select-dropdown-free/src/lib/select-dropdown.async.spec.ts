@@ -1,7 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { render, screen } from '@testing-library/angular';
+import { screen } from '@testing-library/angular';
 import { SvSelectDropdownComponent } from './select-dropdown.component';
 import type { SelectOption } from './select-dropdown.component';
+import { svSelectSource, type SvSelectSourceSearch } from '@styloviz/core/data';
+import { renderSelect } from '@testing/select-host';
+import { until } from '@testing/async';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 const options = (): SelectOption[] => [
   { value: 'a', label: 'Alpha' },
@@ -11,9 +17,7 @@ const options = (): SelectOption[] => [
 /** Resets TestBed so a single test can render more than once. */
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvSelectDropdownComponent, {
-    inputs: { options: options(), searchable: true, ...inputs },
-  });
+  const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: options(), searchable: true, ...inputs });
   return fixture;
 }
 
@@ -23,10 +27,7 @@ describe('SvSelectDropdownComponent — remote search', () => {
     try {
       TestBed.resetTestingModule();
       const seen: string[] = [];
-      const { fixture } = await render(SvSelectDropdownComponent, {
-        inputs: { options: options(), searchable: true, debounceMs: 300 },
-        on: { searchChange: (t: string) => seen.push(t) },
-      });
+      const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: options(), searchable: true, debounceMs: 300 }, { searchChange: (t: string) => seen.push(t) });
 
       for (const term of ['a', 'al', 'alp']) {
         fixture.componentInstance.setSearch(term);
@@ -48,10 +49,7 @@ describe('SvSelectDropdownComponent — remote search', () => {
     try {
       TestBed.resetTestingModule();
       const seen: string[] = [];
-      const { fixture } = await render(SvSelectDropdownComponent, {
-        inputs: { options: options(), searchable: true, debounceMs: 0, minChars: 3 },
-        on: { searchChange: (t: string) => seen.push(t) },
-      });
+      const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: options(), searchable: true, debounceMs: 0, minChars: 3 }, { searchChange: (t: string) => seen.push(t) });
 
       fixture.componentInstance.setSearch('al');
       fixture.detectChanges();
@@ -71,10 +69,7 @@ describe('SvSelectDropdownComponent — remote search', () => {
     try {
       TestBed.resetTestingModule();
       const seen: string[] = [];
-      const { fixture } = await render(SvSelectDropdownComponent, {
-        inputs: { options: options(), searchable: true, debounceMs: 0, minChars: 3 },
-        on: { searchChange: (t: string) => seen.push(t) },
-      });
+      const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: options(), searchable: true, debounceMs: 0, minChars: 3 }, { searchChange: (t: string) => seen.push(t) });
       fixture.componentInstance.setSearch('alp');
       fixture.detectChanges();
       fixture.componentInstance.setSearch('');
@@ -120,22 +115,34 @@ describe('SvSelectDropdownComponent — panel states', () => {
     return f;
   };
 
-  it('shows a failure with a retry, not an empty list', async () => {
-    const f = await open({ options: [] as SelectOption[], error: 'Lookup service down' });
-    let retried = 0;
-    f.componentInstance.retry.subscribe(() => retried++);
+  /** A source answering from `search`, handed over after render (it needs the test injector). */
+  const withSource = async (search: SvSelectSourceSearch<SelectOption>, pageSize = 0) => {
+    const f = await setup({ options: [] as SelectOption[] });
+    f.componentRef.setInput('source', TestBed.runInInjectionContext(() => svSelectSource({ search, pageSize })));
+    f.componentInstance.openDropdown();
+    f.detectChanges();
+    return f;
+  };
+
+  it('shows a failure with a retry, not an empty list — and the retry re-runs the search', async () => {
+    let calls = 0;
+    const f = await withSource(async () => { calls++; throw new Error('Lookup service down'); });
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Lookup service down');
     (alert.querySelector('button') as HTMLButtonElement).click();
-    expect(retried).toBe(1);
+    await until(() => calls === 2, { label: 'the retry ran the search again' });
+    f.detectChanges();
   });
 
-  it('offers the next page when the server has more', async () => {
-    const f = await open({ hasMore: true });
-    let asked = 0;
-    f.componentInstance.loadMore.subscribe(() => asked++);
+  it('offers the next page when the server has more, and asks for it', async () => {
+    const offsets: number[] = [];
+    await withSource(async (_term, _signal, page) => {
+      offsets.push(page.offset);
+      return { items: [{ value: `v${page.offset}`, label: `Row ${page.offset}` }], hasMore: page.offset === 0 };
+    }, 1);
     (await screen.findByRole('button', { name: 'Load more' })).click();
-    expect(asked).toBe(1);
+    await until(() => offsets.length === 2, { label: 'the next page was requested' });
+    expect(offsets).toEqual([0, 1]);
   });
 
   it('hides the load-more row when the list is complete', async () => {
@@ -187,9 +194,25 @@ describe('SvSelectDropdownComponent — value hydration', () => {
  * treatment shared by every picker in the kit.
  */
 describe('SvSelectDropdownComponent — stale options', () => {
+  /**
+   * `true`: the first term answers, then a refinement is left in flight, so the
+   * list on screen answers the term before last. `false`: the first answer only.
+   */
   const openStale = async (stale: boolean) => {
-    const f = await setup({ stale });
+    const pending: ((rows: readonly SelectOption[]) => void)[] = [];
+    const f = await setup({ options: [] as SelectOption[], searchable: true, debounceMs: 0 });
+    f.componentRef.setInput('source', TestBed.runInInjectionContext(() =>
+      svSelectSource<SelectOption>({ search: () => new Promise((resolve) => pending.push(resolve)) })));
     f.componentInstance.openDropdown();
+    f.detectChanges();
+    await until(() => pending.length === 1, { label: 'the open fetch went out' });
+    pending[0](options());
+    await until(() => f.componentInstance.effectiveOptions().length === 2, { label: 'the first answer landed' });
+    if (stale) {
+      f.componentInstance.setSearch('al');
+      f.detectChanges();
+      await until(() => pending.length === 2, { label: 'the refinement went out' });
+    }
     f.detectChanges();
     await new Promise((r) => setTimeout(r, 0));
     f.detectChanges();

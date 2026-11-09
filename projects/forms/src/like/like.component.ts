@@ -10,16 +10,13 @@ import {
   inject,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  createOptimisticEdit,
-  prefersReducedMotion,
-  svRequestKey,
-  svUniqueId,
-  toSvDataError,
-  type SvDataError,
-} from '@styloviz/core';
+import { prefersReducedMotion, svUniqueId } from '@styloviz/core/a11y';
+import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, svFormatCount, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerLikeIcons } from './like.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type LikeVariant = 'heart' | 'thumbs-up' | 'star' | 'clap';
@@ -72,11 +69,16 @@ export interface LikeToggleEvent {
 @Component({
   selector: 'sv-like',
   standalone: true,
-  imports: [SvIconComponent, NgClass],
+  imports: [SvIconComponent, NgClass, SvLabelPipe],
   templateUrl: './like.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvLikeComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerLikeIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /**
@@ -92,15 +94,12 @@ export class SvLikeComponent {
   /**
    * Whether the current user has reacted (two-way: `[(liked)]`).
    *
-   * ★ Bind it two-way, not one-way. The button flips the state itself, and being
-   * a `model` is what pushes that back into YOUR signal, so the two never drift
-   * and a later correction is always a real change. It used to be a plain input
-   * mirrored into a `linkedSignal`, which only re-runs when its source
-   * **changes** — so a host undoing a rejected like by re-asserting
-   * `[liked]="false"` set it to the value it already held, nothing re-ran, and
-   * the like stayed on screen permanently. A one-way `[liked]` has the same
-   * flaw for the same reason: Angular skips a binding whose expression has not
-   * changed.
+   * Bind it two-way, not one-way. The button flips the state itself, and being
+   * a `model` is what pushes that back into your signal, so the two never drift
+   * and a later correction is always a real change. With a one-way `[liked]`, a
+   * host undoing a rejected like by re-asserting `[liked]="false"` changes
+   * nothing — Angular skips a binding whose expression has not changed — and
+   * the like stays on screen.
    * @default false
    */
   readonly liked = model<boolean>(false);
@@ -113,6 +112,18 @@ export class SvLikeComponent {
 
   /** Show the count next to the icon. @default true */
   readonly showCount = input<boolean>(true);
+
+  /**
+   * How the visible count is written: `'compact'` — "1.2K", "12K", "1.2M" in
+   * the locale's own compact form — or `'standard'` — "1,234". The accessible
+   * name always carries the FULL number, grouped for the locale, so "1.2K"
+   * never reaches a screen reader as the count. Under 1,000 both read the same.
+   * @default 'compact'
+   */
+  readonly countNotation = input<'compact' | 'standard'>('compact');
+
+  /** BCP 47 locale for the count. @default the kit's locale (`SV_LOCALE`) */
+  readonly locale = input<string>(svLocale());
 
   /** Disabled state. @default false */
   readonly disabled = input<boolean>(false);
@@ -172,8 +183,8 @@ export class SvLikeComponent {
     revision: () => this._toggleSeq,
     selector: 'sv-like',
     superseded:
-      'the reaction has been toggled again since. Writing the old value back would ' +
-      'revert that. Bind [pending] so it cannot be toggled while the write is in flight.',
+      'the reaction has been toggled again since. Writing the old value back would ' + // sv-i18n-ignore: developer message
+      'revert that. Bind [pending] so it cannot be toggled while the write is in flight.', // sv-i18n-ignore: developer message
   });
 
   // ── Computed ──────────────────────────────────────────────────────────────
@@ -210,9 +221,20 @@ export class SvLikeComponent {
    */
   readonly ariaLabel = computed<string>(() => {
     const parts = [this.reactionVerb()];
-    if (this.showCount()) parts.push(String(this.count()));
-    if (this.errorMessage()) parts.push('not saved');
+    if (this.showCount()) parts.push(svFormatCount(this.count(), this.locale()) || String(this.count()));
+    if (this.errorMessage()) parts.push(this.labels.likeNotSavedState);
     return parts.join(', ');
+  });
+
+  /** The count as drawn — compact or standard, per `countNotation`, in `locale`. */
+  readonly displayCount = computed<string>(() => {
+    const n = this.count();
+    if (this.countNotation() === 'standard') return svFormatCount(n, this.locale()) || String(n);
+    try {
+      return new Intl.NumberFormat(this.locale() || undefined, { notation: 'compact' }).format(n);
+    } catch {
+      return String(n);
+    }
   });
 
   readonly buttonSize = computed<string>(() => {

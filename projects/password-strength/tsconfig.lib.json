@@ -5,17 +5,13 @@
     "declaration": true,
     "declarationMap": true,
     "inlineSources": true,
-    "types": []
+    "types": [],
+    "paths": {
+      "@styloviz/core": ["../../dist/@styloviz/core/types/styloviz-core.d.ts"],
+      "@styloviz/core/*": ["../../dist/@styloviz/core/types/styloviz-core-*.d.ts"]
+    }
   },
   "exclude": [
     "**/*.spec.ts"
-  ],
-  "angularCompilerOptions": {
-    "extendedDiagnostics": {
-      "checks": {
-        "nullishCoalescingNotNullable": "suppress",
-        "optionalChainNotNullable": "suppress"
-      }
-    }
-  }
+  ]
 }

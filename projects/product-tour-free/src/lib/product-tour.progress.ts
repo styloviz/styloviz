@@ -2,8 +2,9 @@ import {
   svPersistState,
   svRestoreState,
   type SvPersistedState,
+  type SvRestoreLabels,
   type SvRestoreSpec,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
 
 /** Who owns a `persistKey` blob. Namespaced by selector. */
 export const SV_TOUR_PROGRESS_KIND = 'sv-product-tour/progress';
@@ -118,7 +119,12 @@ export function svSerializeTourProgress(
   return svPersistState(SV_TOUR_PROGRESS_KIND, SV_TOUR_PROGRESS_VERSION, progress);
 }
 
-/** Read a `persistKey` blob back, or say why it cannot be. */
-export function svRestoreTourProgress(blob: unknown) {
-  return svRestoreState(blob, PROGRESS_SCHEMA);
+/**
+ * Read a `persistKey` blob back, or say why it cannot be.
+ *
+ * @param labels The refusal `detail` templates — the component passes its own
+ *   (translated) labels; English when omitted.
+ */
+export function svRestoreTourProgress(blob: unknown, labels?: SvRestoreLabels) {
+  return svRestoreState(blob, PROGRESS_SCHEMA, labels);
 }

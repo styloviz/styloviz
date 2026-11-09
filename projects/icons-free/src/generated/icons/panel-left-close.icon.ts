@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `panel-left-close` icon. */
 export const panelLeftCloseNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const panelLeftCloseNodes: readonly IconNode[] = [
 export const panelLeftCloseSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 3.1h14q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm3.1 16h1.8v-14.2h-1.8zm8.5-9.5q.3-.3.3-.6 0-.3-.3-.6-.6-.6-1.2 0l-3 3q-.3.3-.3.6 0 .3.3.6l3 3q.6.6 1.2 0 .3-.3.3-.6 0-.3-.3-.6l-2.4-2.4z' },
 ];
+
+/** `panel-left-close` as a registrable glyph — `registerSvIcons([panelLeftCloseIcon])` / `provideSvIcons([panelLeftCloseIcon])`. */
+export const panelLeftCloseIcon: SvIconDef = { name: 'panel-left-close', nodes: panelLeftCloseNodes, solid: panelLeftCloseSolidNodes };
 
 /** `panel-left-close` — tree-shakable standalone icon. Use `<sv-panel-left-close-icon />`. */
 @Component({

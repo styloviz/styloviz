@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `clipboard-check` icon. */
 export const clipboardCheckNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const clipboardCheckNodes: readonly IconNode[] = [
 export const clipboardCheckSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm8 3.1h.3q.2-.4.5-.8.7-.7 1.7-.7h3q1.9 0 2.3 1.5h.2q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-8q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm1.6 9.3q-.6-.6-1.2 0-.3.3-.3.6 0 .3.3.6l2 2q.6.6 1.2 0l4-4q.6-.6 0-1.2-.6-.6-1.2 0l-3.4 3.4z' },
 ];
+
+/** `clipboard-check` as a registrable glyph — `registerSvIcons([clipboardCheckIcon])` / `provideSvIcons([clipboardCheckIcon])`. */
+export const clipboardCheckIcon: SvIconDef = { name: 'clipboard-check', nodes: clipboardCheckNodes, solid: clipboardCheckSolidNodes };
 
 /** `clipboard-check` — tree-shakable standalone icon. Use `<sv-clipboard-check-icon />`. */
 @Component({

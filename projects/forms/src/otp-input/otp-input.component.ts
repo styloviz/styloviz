@@ -20,21 +20,18 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import type { OtpInputVariant, OtpInputSize, OtpInputStatus, OtpInputMode } from './otp-input.types';
-import {
-  createFieldError,
-  svDescribedBy,
-  SvFieldErrorComponent,
-  SvSpinnerArcComponent,
-  type SvServerError,
-  svDigitsOnly,
-  svUniqueId,
-} from '@styloviz/core';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { createFieldError, svDescribedBy, SvFieldErrorComponent, type SvServerError } from '@styloviz/core/forms';
+import { svDigitsOnly, injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
+import { registerOtpInputIcons } from './otp-input.component.icons';
 @Component({
   selector: 'sv-otp-input',
   standalone: true,
-  imports: [SvIconComponent, SvFieldErrorComponent, SvSpinnerArcComponent],
+  imports: [SvIconComponent, SvFieldErrorComponent, SvSpinnerArcComponent, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './otp-input.component.html',
   providers: [
@@ -46,6 +43,12 @@ import { SvIconComponent } from '@styloviz/icons';
   ],
 })
 export class SvOtpInputComponent implements AfterViewInit, OnDestroy, ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerOtpInputIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   // ── Inputs ──
   /** Number of code cells. @default 6 */
   length   = input<4 | 5 | 6>(6);
@@ -241,7 +244,7 @@ export class SvOtpInputComponent implements AfterViewInit, OnDestroy, ControlVal
 
   /** Whether to expose the status region as an error/alert vs a polite status. */
   readonly statusMessage = computed<string>(() => {
-    if (this.status() === 'loading') return 'Verifying…';
+    if (this.status() === 'loading') return this.labels.verifying;
     return this.hint();
   });
 
@@ -306,12 +309,14 @@ export class SvOtpInputComponent implements AfterViewInit, OnDestroy, ControlVal
         this.emitChange(d);
         this.focusAt(i - 1);
       }
-    } else if (e.key === 'ArrowLeft' && i > 0) {
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      // The cells sit in a row that mirrors under dir="rtl": there the NEXT
+      // cell is to the left, so ArrowLeft moves forward.
+      const forward = (e.key === 'ArrowRight') !== svIsRtl(this._host.nativeElement);
+      const to = forward ? i + 1 : i - 1;
+      if (to < 0 || to > this.length() - 1) return;
       e.preventDefault();
-      this.focusAt(i - 1);
-    } else if (e.key === 'ArrowRight' && i < this.length() - 1) {
-      e.preventDefault();
-      this.focusAt(i + 1);
+      this.focusAt(to);
     } else if (e.key === 'Delete') {
       const d = [...this.digits()];
       d[i] = '';
@@ -430,7 +435,7 @@ export class SvOtpInputComponent implements AfterViewInit, OnDestroy, ControlVal
     //   a screen-reader user hears the rejection and has no idea their input
     //   is gone, so they carry on believing they are editing it. The visible
     //   error says what was wrong; this says what happened to the value.
-    this._clearedNotice.set('Code cleared. Enter the code again.');
+    this._clearedNotice.set(this.labels.otpCleared);
 
     // Only if the user was already here. A rejection can land while they have
     // tabbed away to "Resend" or "Use another method", and yanking focus back
@@ -454,7 +459,7 @@ export class SvOtpInputComponent implements AfterViewInit, OnDestroy, ControlVal
     const v: Record<OtpInputVariant, string> = {
       default: 'rounded-md border-2 bg-white dark:bg-gray-900',
       filled:  'rounded-md border-2 bg-gray-100 dark:bg-gray-800',
-      underline: 'rounded-none border-b-2 border-t-0 border-l-0 border-r-0 bg-transparent',
+      underline: 'rounded-none border-b-2 border-t-0 border-s-0 border-e-0 bg-transparent',
       ghost:   'rounded-md border-2 bg-transparent',
     };
     return v[this.variant()];

@@ -13,16 +13,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  svFirstFocusableWithin,
-  svIsFocusable,
-  svRecoverFocus,
-  svRequestKey,
-  toSvDataError,
-  type SvDataError,
-} from '@styloviz/core';
+import { svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svFirstFocusableWithin, svIsFocusable, svRecoverFocus } from '@styloviz/core/overlay';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerFileDisplayIcons } from './file-display.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type FileStatus  = 'idle' | 'uploading' | 'success' | 'error';
@@ -99,12 +96,28 @@ function focusTarget(el: Element | null): HTMLElement | null {
   return svIsFocusable(el) ? el : svFirstFocusableWithin(el);
 }
 
-/** Bytes as a short human string. Shared by the size line and the resume label. */
-function formatBytes(size: number): string {
-  if (size < 1024)       return `${size} B`;
-  if (size < 1048576)    return `${(size / 1024).toFixed(1)} KB`;
-  if (size < 1073741824) return `${(size / 1048576).toFixed(1)} MB`;
-  return `${(size / 1073741824).toFixed(1)} GB`;
+/**
+ * Bytes as a short human string, in the reader's locale — "1.5 kB", "1,5 ko",
+ * "12,3 MB". Shared by the size line and the resume label.
+ *
+ * ★ `Intl.NumberFormat` with `style: 'unit'` writes the decimal separator AND
+ *   the unit the way the locale does (French says "ko", not "KB"). The steps
+ *   stay binary (1024), as every file manager counts them. Whole bytes use the
+ *   long unit name ("512 bytes"), because the short one does not pluralise.
+ */
+export function svFormatBytes(size: number, locale = ''): string {
+  const tag = locale || undefined;
+  const fmt = (value: number, unit: string, display: 'short' | 'long', digits: number): string => {
+    try {
+      return new Intl.NumberFormat(tag, { style: 'unit', unit, unitDisplay: display, minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
+    } catch {
+      return `${value.toFixed(digits)} ${unit}`;
+    }
+  };
+  if (size < 1024)       return fmt(size, 'byte', 'long', 0);
+  if (size < 1048576)    return fmt(size / 1024, 'kilobyte', 'short', 1);
+  if (size < 1073741824) return fmt(size / 1048576, 'megabyte', 'short', 1);
+  return fmt(size / 1073741824, 'gigabyte', 'short', 1);
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -123,11 +136,18 @@ function formatBytes(size: number): string {
 @Component({
   selector: 'sv-file-display',
   standalone: true,
-  imports: [SvIconComponent, NgClass],
+  imports: [SvIconComponent, NgClass, SvLabelPipe],
   templateUrl: './file-display.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvFileDisplayComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerFileDisplayIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ commerce })` says otherwise. */
+  protected readonly labels = injectSvLabels('commerce', SV_COMMERCE_LABELS);
+  private readonly locale = svLocale();
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** File name including extension. */
@@ -211,8 +231,7 @@ export class SvFileDisplayComponent {
   /**
    * Ask before deleting.
    *
-   * ★ Defaults to ON, and the previous behaviour was a single click that emitted
-   *   straight through. Deleting a file is not undoable by anything the
+   * On by default. Deleting a file is not undoable by anything the
    *   component can offer — see {@link FileRemoveEvent} — and the button is a
    *   28px × next to a download button of the same size, so the guard is the
    *   only thing standing between a misplaced click and a lost upload. Turn it
@@ -360,7 +379,20 @@ export class SvFileDisplayComponent {
 
   readonly formattedSize = computed(() => {
     const size = this.fileSize();
-    return size === undefined ? '' : formatBytes(size);
+    return size === undefined ? '' : svFormatBytes(size, this.locale);
+  });
+
+  /**
+   * The name split for display: the stem truncates, the extension never does.
+   * "quarterly-board-report-final-v3.pdf" in a narrow card shows
+   * "quarterly-board-rep….pdf", not "quarterly-board-report-fi…" — the part
+   * that says what the file IS is the part that used to be cut. A leading-dot
+   * name (".env") or a name with no dot is all stem.
+   */
+  readonly nameParts = computed<{ readonly stem: string; readonly ext: string }>(() => {
+    const name = this.fileName();
+    const idx = name.lastIndexOf('.');
+    return idx > 0 && idx < name.length - 1 ? { stem: name.slice(0, idx), ext: name.slice(idx) } : { stem: name, ext: '' };
   });
 
   readonly fileExtension = computed(() => {
@@ -467,11 +499,11 @@ export class SvFileDisplayComponent {
   /** Why the download is withheld — empty when it is not. */
   readonly downloadBlockedReason = computed<string>(() => {
     if (!this.downloadable()) return '';
-    if (this.status() === 'uploading') return 'Still uploading.';
-    if (this.status() === 'error') return 'The upload failed, so there is nothing to download yet.';
-    if (this.scan() === 'pending') return 'Being checked for threats. Download opens when the check finishes.';
+    if (this.status() === 'uploading') return this.labels.downloadBlockedUploading;
+    if (this.status() === 'error') return this.labels.downloadBlockedFailed;
+    if (this.scan() === 'pending') return this.labels.downloadBlockedScanning;
     if (this.scan() === 'flagged' && !this.allowUnsafeDownload()) {
-      return this.scanNote() || 'Flagged as unsafe, so it cannot be downloaded.';
+      return this.scanNote() || this.labels.downloadBlockedUnsafe;
     }
     return '';
   });
@@ -503,10 +535,10 @@ export class SvFileDisplayComponent {
 
   readonly scanLabel = computed<string>(() => {
     switch (this.scan()) {
-      case 'clean':   return 'Checked — no threats found';
-      case 'pending': return 'Checking for threats…';
-      case 'flagged': return this.scanNote() || 'Flagged as unsafe';
-      default:        return 'Not checked for threats';
+      case 'clean':   return this.labels.scanClean;
+      case 'pending': return this.labels.scanPending;
+      case 'flagged': return this.scanNote() || this.labels.scanFlagged;
+      default:        return this.labels.scanUnscanned;
     }
   });
 
@@ -581,7 +613,9 @@ export class SvFileDisplayComponent {
    */
   readonly retryLabel = computed<string>(() => {
     const from = this.resumeFrom();
-    return from > 0 ? `Resume from ${formatBytes(from)}` : 'Retry from the start';
+    return from > 0
+      ? svFormatLabel(this.labels.resumeFrom, { size: svFormatBytes(from, this.locale) }, this.locale)
+      : this.labels.retryFromStart;
   });
 
   onRetryUpload(): void {

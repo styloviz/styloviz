@@ -1,0 +1,31 @@
+<!--
+  A named list, not a row of loose images: the group says what it is and how
+  many people are in it, each avatar is one item, and the overflow says who it
+  is hiding — in its name for a screen reader and its tooltip for a mouse.
+  Logical margins, so the stack overlaps the right way in right-to-left.
+-->
+<ul role="list" class="flex items-center" [attr.aria-label]="groupName()" data-sv-avatar-group>
+  @for (m of visible(); track memberKey(m); let first = $first) {
+    <li class="ring-2 ring-white dark:ring-gray-900" [class]="roundClass()" [class.-ms-2]="!first" data-sv-avatar-group-member>
+      <sv-avatar [name]="m.name" [src]="m.src ?? ''" [color]="m.color ?? 'auto'" [status]="m.status ?? 'none'" [size]="size()" [shape]="shape()" />
+    </li>
+  }
+  @if (hidden().length) {
+    <li class="-ms-2" data-sv-avatar-group-overflow>
+      @if (overflowAction()) {
+        <button type="button"
+                class="sv-target inline-flex items-center justify-center bg-gray-100 px-1.5 font-semibold text-gray-700 ring-2 ring-white hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-primary-500 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-900 dark:hover:bg-gray-700"
+                [class]="chipClass()"
+                [attr.aria-label]="overflowName()"
+                [attr.title]="overflowTitle()"
+                (click)="overflowClick.emit(hidden())">{{ labels.avatarGroupOverflow | svLabel: { count: hidden().length } }}</button>
+      } @else {
+        <span role="img"
+              class="inline-flex items-center justify-center bg-gray-100 px-1.5 font-semibold text-gray-700 ring-2 ring-white dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-900"
+              [class]="chipClass()"
+              [attr.aria-label]="overflowName()"
+              [attr.title]="overflowTitle()">{{ labels.avatarGroupOverflow | svLabel: { count: hidden().length } }}</span>
+      }
+    </li>
+  }
+</ul>

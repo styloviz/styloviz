@@ -1,4 +1,11 @@
+<!--
+  The accessible alternative to the SVG: one semantic table saying what the
+  picture says. Renders nothing when there are no rows, so it needs no guard.
+  The CSS trap this shared component exists to close is written up in
+  `core/src/lib/a11y/data-summary-table.component.css`.
+-->
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
@@ -18,8 +25,8 @@
     <!-- `group`, not `img`: the shapes below are focusable, and `img` is
          children-presentational — it would drop every one of them from the
          accessibility tree while leaving them in the tab order. -->
-    <svg [attr.width]="size()" [attr.height]="size()"
-         [attr.viewBox]="'0 0 ' + size() + ' ' + size()"
+    <svg [attr.width]="frame().width" [attr.height]="frame().height"
+         [attr.viewBox]="frame().viewBox"
          class="h-auto max-w-full overflow-visible" role="group"
          [attr.aria-label]="resolvedAriaLabel()">
 
@@ -39,8 +46,14 @@
               stroke="var(--color-gray-200)" class="dark:stroke-gray-700" stroke-width="1"/>
       }
 
-      <!-- Series -->
+      <!-- Series — a hidden one is not drawn; behind an emphasised one it
+           fades (FL-J3-CH-03). Opacity only, so the fade is compositor-cheap. -->
       @for (s of series(); track s.name) {
+        @if (!emphasis.isHidden(s.name)) {
+        <g [attr.opacity]="emphasis.opacity(s.name)"
+           [attr.data-sv-series]="s.name"
+           [attr.data-sv-dimmed]="emphasis.isDimmed(s.name) ? '' : null"
+           class="transition-opacity duration-200 motion-reduce:transition-none">
         @if (filled()) {
           <polygon [attr.points]="seriesPolygon(s)"
                    [attr.fill]="s.color + '30'"
@@ -73,6 +86,8 @@
                     (keydown.space)="selectPoint(s, dot.axis, dot.value); $event.preventDefault()"/>
           }
         }
+        </g>
+        }
       }
 
       <!-- Axis labels -->
@@ -80,7 +95,7 @@
         <text [attr.x]="lp.x" [attr.y]="lp.y"
               [attr.text-anchor]="textAnchor(lp.x)"
               dominant-baseline="middle"
-              font-size="10" font-weight="600"
+              [attr.font-size]="labelFontPx" font-weight="600"
               fill="var(--color-gray-500)"
               class="dark:fill-gray-400">
           {{ lp.label }}
@@ -90,6 +105,7 @@
 
     <!-- Tooltip -->
     @if (hoveredPoint(); as hp) {
+      <!-- sv-physical: centring -->
       <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <p class="text-xs font-semibold text-gray-800 dark:text-white">{{ hp.series }}</p>
         <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ hp.axis }}: {{ hp.value }}</p>
@@ -97,23 +113,46 @@
     }
   </div>
 
-  <!--
-    The accessible alternative to the SVG: one semantic table saying what the
-    picture says. Renders nothing when there are no rows, so it needs no guard.
-    The CSS trap this shared component exists to close is written up in
-    `core/src/lib/a11y/data-summary-table.component.css`.
-  -->
-  <sv-data-summary-table [summary]="a11ySummary()" />
-
-  <!-- Legend -->
-  <div class="flex flex-wrap items-center gap-4">
-    @for (s of series(); track s.name) {
-      <div class="flex items-center gap-1.5">
-        <span class="h-2.5 w-5 rounded-full" [style.background]="s.color"></span>
-        <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">{{ s.name }}</span>
-      </div>
-    }
-  </div>
+  <!-- Legend — FL-J3-CH-03. Interactive by default: a toolbar of toggle
+       buttons with ONE tab stop. Hover or focus an entry and the other series
+       fade; Enter, Space or a click hides or shows it. Arrow keys move between
+       series. `interactiveLegend` false keeps the static key. -->
+  @if (interactiveLegend()) {
+    <div class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+         role="toolbar"
+         [attr.aria-label]="emphasis.legendLabel"
+         [attr.aria-describedby]="legendHintId">
+      @for (s of series(); track s.name; let i = $index) {
+        <button type="button"
+                class="inline-flex min-h-6 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-gray-600 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:bg-gray-800"
+                [attr.aria-pressed]="!emphasis.isHidden(s.name)"
+                [attr.tabindex]="emphasis.tabIndex(i)"
+                [attr.data-sv-series-index]="i"
+                (keydown)="emphasis.onLegendKeydown($event)"
+                (click)="emphasis.toggle(s.name)"
+                (focus)="emphasis.focusEntry(i)"
+                (blur)="emphasis.emphasize(null)"
+                (mouseenter)="emphasis.emphasize(s.name)"
+                (mouseleave)="emphasis.emphasize(null)">
+          <span aria-hidden="true"
+                class="h-2.5 w-5 rounded-full border-2"
+                [style.border-color]="s.color"
+                [style.background]="emphasis.isHidden(s.name) ? 'transparent' : s.color"></span>
+          <span [class.line-through]="emphasis.isHidden(s.name)">{{ s.name }}</span>
+        </button>
+      }
+    </div>
+    <p class="sr-only" [id]="legendHintId">{{ emphasis.legendHint }}</p>
+  } @else {
+    <div class="flex flex-wrap items-center gap-4">
+      @for (s of series(); track s.name) {
+        <div class="flex items-center gap-1.5">
+          <span class="h-2.5 w-5 rounded-full" [style.background]="s.color"></span>
+          <span class="text-[11px] font-medium text-gray-600 dark:text-gray-400">{{ s.name }}</span>
+        </div>
+      }
+    </div>
+  }
 </div>
 
 </sv-chart-frame>

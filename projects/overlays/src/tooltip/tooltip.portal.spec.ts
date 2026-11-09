@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
-import { SvOverlayStackService } from '@styloviz/core';
+import { vi } from 'vitest';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { SvTooltipComponent, type TooltipPosition } from './tooltip.component';
 import { stubFixedOrigin } from '@testing/fixed-origin';
 
@@ -76,9 +77,17 @@ afterEach(() => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('sv-tooltip — the in-place default is unchanged', () => {
+describe('sv-tooltip — portalled by default (SR-35, flipped before launch)', () => {
+  it('moves the bubble into a body portal with no [portal] binding at all', async () => {
+    await shown('position="top"');
+    expect(portalHost()).toBeTruthy();
+    expect(portalHost()!.contains(bubble())).toBe(true);
+  });
+});
+
+describe('sv-tooltip — [portal]="false" keeps the in-place bubble', () => {
   it('keeps the bubble inside the trigger wrapper', async () => {
-    const v = await shown('position="top"');
+    const v = await shown('position="top" [portal]="false"');
     const wrap = (v.fixture.nativeElement as HTMLElement)
       .querySelector('sv-tooltip > div') as HTMLElement;
 
@@ -87,7 +96,7 @@ describe('sv-tooltip — the in-place default is unchanged', () => {
   });
 
   it('still places by CSS class, and writes no coordinates', async () => {
-    const v = await shown('position="top"');
+    const v = await shown('position="top" [portal]="false"');
     const node = bubble();
     expect(node.className).toContain('absolute');
     expect(node.className).toContain('bottom-full');
@@ -122,6 +131,43 @@ describe('sv-tooltip — [portal]="true" escapes the clip (OF-20-I1)', () => {
     const wrap = (v.fixture.nativeElement as HTMLElement)
       .querySelector('sv-tooltip > div') as HTMLElement;
     expect(wrap.contains(bubble())).toBe(true);
+  });
+
+  it('fades out IN the portal, and only then puts the bubble back (SR-15 e)', async () => {
+    // ★ Teardown used to run first, so the still-opaque bubble faded out back
+    //   inside the wrapper — where a `fixed` child of a transformed ancestor
+    //   is placed against that ancestor, and the last frames jumped.
+    const v = await shown('[portal]="true"');
+    bubble().style.transitionDuration = '150ms';
+    vi.useFakeTimers();
+    try {
+      instance(v).hide();
+      v.fixture.detectChanges();
+      expect(instance(v).visible()).toBe(false);
+      expect(bubble().className).toContain('opacity-0');
+      expect(portalHost()?.contains(bubble())).toBe(true);
+
+      vi.advanceTimersByTime(150);
+      expect(portalHost()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the portal when shown again mid-fade', async () => {
+    const v = await shown('[portal]="true"');
+    bubble().style.transitionDuration = '150ms';
+    vi.useFakeTimers();
+    try {
+      instance(v).hide();
+      instance(v).show();
+      v.fixture.detectChanges();
+      vi.advanceTimersByTime(1_000);
+      expect(instance(v).visible()).toBe(true);
+      expect(portalHost()?.contains(bubble())).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('leaves nothing in <body> when destroyed while visible', async () => {

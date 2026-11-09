@@ -24,8 +24,41 @@ export interface SourceRef {
   readonly locator?: string;
   /** Retrieval score, when the source came from a retriever. */
   readonly score?: number;
+  /**
+   * When the passage was retrieved — how fresh the evidence is (`AI-16-M3`).
+   *
+   * ★★ Pass an ISO 8601 timestamp (`2026-10-24T09:41:00Z`): it renders as a
+   *    relative age ("retrieved 3 days ago") inside a `<time datetime>` whose
+   *    title is the absolute date. Text that does not parse as a date
+   *    ("09:41", "last sync") is rendered verbatim rather than guessed at.
+   */
   readonly retrievedAt?: string;
+  /**
+   * Whether the reader can actually open the source (`AI-16-M4`).
+   *
+   * ★★★ A PAYWALLED, DEAD OR PERMISSION-DENIED SOURCE IS NOT A LINK. Rendering
+   *     it as one sends the reader to a login wall or a 404 and teaches them
+   *     the citation was fabricated when it was not. Anything but `'available'`
+   *     renders a named state, with the address as text, instead of a link.
+   *     Availability is the host's to report — this component never fetches the
+   *     source, because doing so would tell the world what the reader is reading.
+   * @default 'available'
+   */
+  readonly access?: SourceAccess;
 }
+
+/**
+ * Whether a source can be opened. `available` is the default and renders a link;
+ * the other three render a named state instead of a broken one.
+ */
+export type SourceAccess =
+  | 'available'
+  /** Behind a paywall or subscription. */
+  | 'paywalled'
+  /** The address no longer resolves (404, gone, retracted). */
+  | 'dead'
+  /** The reader lacks permission (private drive, another tenant, revoked share). */
+  | 'denied';
 
 /**
  * One citation: a span of the ANSWER, and the passage of the SOURCE it rests on.

@@ -1,8 +1,10 @@
 import {
   ApplicationRef,
+  DestroyRef,
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   untracked,
   linkedSignal,
   ElementRef,
@@ -19,18 +21,16 @@ import {
   ViewChild,
   forwardRef,
 } from '@angular/core';
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import {
-  svStackedPopup,
-  svApplyPastedList,
-  svDescribedBy,
-  svPasteListSummary,
-  svSplitPastedList,
-  type SvPasteListResult,
-  svUniqueId,
-} from '@styloviz/core';
+import { type ControlValueAccessor, NG_VALUE_ACCESSOR, NG_VALIDATORS, type Validator, type AbstractControl, type ValidationErrors } from '@angular/forms';
+import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
+import { svApplyPastedList, svPasteListSummary, svSplitPastedList, type SvPasteListResult } from '@styloviz/core/data';
+import { svDescribedBy } from '@styloviz/core/forms';
+import { svFormatCount, svFormatLabel, injectSvLabels, SvLabelPipe, svLocale } from '@styloviz/core/i18n';
+import { createPortalHost, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_TAG_INPUT_LABELS } from './tag-input-free.labels';
 
+import { registerTagInputIcons } from './tag-input.component.icons';
 export type TagInputSize = 'sm' | 'md' | 'lg';
 
 export interface TagOption {
@@ -54,6 +54,13 @@ export interface TagInputChangeEvent {
 }
 
 /**
+ * Checks one selected tag (`FI-26-M4`): return why it is not valid — shown on
+ * the chip and summarised under the field — or `null` when it is.
+ * @example (tag) => EMAIL.test(tag.value) ? null : 'not an email address'
+ */
+export type TagValidator = (tag: TagOption) => string | null;
+
+/**
  * SvTagInputComponent (Free) — Default variant only.
  * Upgrade to @styloviz-pro/tag-input for 8 variants including with-avatar,
  * grouped, creatable, with-colors, token-limit, async-search, and inline.
@@ -66,26 +73,31 @@ export interface TagInputChangeEvent {
 @Component({
   selector: 'sv-tag-input',
   standalone: true,
-  imports: [SvIconComponent],
+  imports: [SvIconComponent, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './tag-input.component.html',
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SvTagInputComponent), multi: true },
+    { provide: NG_VALIDATORS, useExisting: forwardRef(() => SvTagInputComponent), multi: true },
   ],
 })
-export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAccessor {
+export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAccessor, Validator {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerTagInputIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ tagInput })` says otherwise. */
+  protected readonly labels = injectSvLabels('tagInput', SV_TAG_INPUT_LABELS);
+  private readonly labelLocale = svLocale();
+
 
   /** Current tags (two-way). */
   values      = model<string[]>([]);
   /** Suggestion options offered as the user types. */
   options     = input<TagOption[]>([]);
   /**
-   * What "the same tag" means. Defaults to strict equality on `value`.
-   *
-   * ⚠️ FREE, NOT PRO (`FI-26-M1`). `check:parity` flagged it as an undeclared
-   *    Pro-only member and was right to: knowing whether two values are the
-   *    same tag is correctness, not a premium feature, and a free control that
-   *    silently duplicates a selection is broken rather than merely basic.
+   * What "the same tag" means. Defaults to strict equality on `value`. Set it
+   * when your ids are not byte-identical across the wire (`U1` vs `u1`), so the
+   * field still de-duplicates and resolves them.
    */
   compareWith = input<((a: string, b: string) => boolean) | null>(null);
   /** Field size: sm, md or lg. @default 'md' */
@@ -93,9 +105,17 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
   /** Field label. */
   label       = input('');
   /** Placeholder shown in the input. @default 'Add tags…' */
-  placeholder = input('Add tags…');
+  placeholder = input<string>(this.labels.placeholder);
   /** Helper text shown below the field. */
   hint        = input('');
+  /**
+   * Check each selected tag (`FI-26-M4`) — the email-recipients case. A tag the
+   * validator rejects stays (the user can see and fix it) but its chip is
+   * marked, the reason is read out with it, a summary appears under the field,
+   * the input reports `aria-invalid`, and a form gets `{ invalidTags }`.
+   * @default null
+   */
+  tagValidator = input<TagValidator | null>(null);
   /** Error message; sets the field to an error state when present. */
   errorMessage = input('');
 
@@ -213,12 +233,69 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
     svDescribedBy({
       hint: !this.resolvedError() && !!this.hint() && this.hintId,
       error: !!this.resolvedError() && this.errorId,
-      extra: this.pasteMessage() ? [this.pasteId] : [],
+      extra: [
+        ...(this.pasteMessage() ? [this.pasteId] : []),
+        ...(this.invalidSummary() ? [this.invalidId] : []),
+      ],
     }),
   );
 
   /** id of the partial-paste report. */
   protected readonly pasteId = `${this._baseId}-paste`;
+
+  // ── Per-tag validation (`FI-26-M4`) ───────────────────────────────────────
+
+  /** A rejected chip: danger tint and ring, both themes. */
+  protected readonly INVALID_CHIP = 'bg-danger-50 text-danger-700 ring-1 ring-danger-300 dark:bg-danger-900/30 dark:text-danger-300 dark:ring-danger-700'; // sv-i18n-ignore: Tailwind classes
+
+  /** id of the invalid-tags summary under the field. */
+  protected readonly invalidId = `${this._baseId}-invalid`;
+
+  /** Selected tags the `tagValidator` rejects: value → reason. */
+  readonly invalidTags = computed<ReadonlyMap<string, string>>(() => {
+    const check = this.tagValidator();
+    const out = new Map<string, string>();
+    if (!check) return out;
+    for (const tag of this.selectedTags()) {
+      const reason = check(tag);
+      if (reason) out.set(tag.value, reason);
+    }
+    return out;
+  });
+
+  /** Why each rejected tag is not valid, by value — what the chips read (no call per row). */
+  readonly invalidByValue = computed<Readonly<Record<string, string>>>(() => Object.fromEntries(this.invalidTags()));
+
+  /** "2 entries are not valid: bob@, carol@example" — under the field, in `aria-describedby`. */
+  readonly invalidSummary = computed(() => {
+    const bad = this.selectedTags().filter((t) => this.invalidTags().has(t.value));
+    if (!bad.length) return '';
+    return svFormatLabel(
+      this.labels.invalidTagsSummary,
+      { count: bad.length, n: svFormatCount(bad.length, this.labelLocale), list: bad.map((t) => this.tagDisplay(t)).join(', ') },
+      this.labelLocale,
+    );
+  });
+
+  /** Forms: `{ invalidTags: { values } }` while any selected tag is rejected. */
+  validate(_control: AbstractControl): ValidationErrors | null {
+    const values = [...this.invalidTags().keys()];
+    return values.length ? { invalidTags: { values } } : null;
+  }
+
+  /** The shared live regions — the summary is announced when it grows, never from a region of our own. */
+  private readonly _live = inject(SvLiveAnnouncer).scoped();
+
+  /** Announce the summary when a newly rejected tag arrives (not on removal). */
+  private watchInvalidTags(): void {
+    let previous = 0;
+    effect(() => {
+      const count = this.invalidTags().size;
+      const text = this.invalidSummary();
+      if (count > previous && text) this._live.announce(text, { key: `${this._baseId}-invalid` });
+      previous = count;
+    });
+  }
   /** id of the active option, or null when nothing is highlighted. */
   readonly activeDescendantId = computed<string | null>(() =>
     this.isOpen() && this.activeIndex() >= 0 ? this.optionId(this.activeIndex()) : null
@@ -233,10 +310,12 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
   readonly panelMaxHeight = signal(320);
 
   private readonly host   = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly appRef = inject(ApplicationRef);
 
   // ── Portal state ─────────────────────────────────────────────────────────────
-  private portalEl:   HTMLDivElement | null           = null;
+  private portalEl:   HTMLElement | null              = null;
+  private portalHost: SvPortalHost | null             = null;
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
    * this popup sits in stays "topmost", and one Escape closes both.
@@ -365,6 +444,10 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
       }
     });
   };
+
+  constructor() {
+    this.watchInvalidTags();
+  }
 
   ngOnInit(): void {
     // ★ SSR: this hook runs during a prerender, where there is no `window`
@@ -497,7 +580,7 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
   /** The sentence shown and announced after a partial paste. */
   readonly pasteMessage = computed<string>(() => {
     const r = this.pasteReport();
-    return r ? svPasteListSummary(r, 'tag') : '';
+    return r ? svPasteListSummary(r, 'tag', this.labels, this.labelLocale) : '';
   });
 
   /** Clear the partial-paste report. It describes a past event, not a state. */
@@ -591,8 +674,16 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
   // ── Portal lifecycle ─────────────────────────────────────────────────────────
   private _attachPortal(): void {
     if (this.portalEl || !this.panelTpl) return;
-    const el = document.createElement('div');
-    el.className = 'sv-tag-input-portal';
+    // Context-carrying host: dir, lang and a locally scoped theme reach the
+    // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+    const host = createPortalHost({
+      origin: this.host.nativeElement,
+      className: 'sv-tag-input-portal',
+      label: 'tag-input',
+      destroyRef: this.destroyRef,
+    });
+    const el = host.element;
+    this.portalHost = host;
     this.portalEl = el;
 
     const view = this.panelTpl.createEmbeddedView({});
@@ -604,7 +695,7 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
     // scripts/fix-portal-insertion-order.mjs.
     view.detectChanges();
     (view.rootNodes as Node[]).forEach(n => el.appendChild(n));
-    document.body.appendChild(el);
+    host.attach();
   }
 
   private _detachPortal(): void {
@@ -613,7 +704,8 @@ export class SvTagInputComponent implements OnInit, OnDestroy, ControlValueAcces
       this.portalView.destroy();
       this.portalView = null;
     }
-    this.portalEl?.remove();
+    this.portalHost?.destroy();
+    this.portalHost = null;
     this.portalEl = null;
   }
 

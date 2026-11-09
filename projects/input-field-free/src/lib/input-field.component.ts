@@ -21,15 +21,22 @@ import {
   AbstractControl,
   ValidationErrors,
 } from '@angular/forms';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { SvAutosizeDirective } from '@styloviz/core/directives';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import {
   createFieldError,
   svDescribedBy,
   SvAutofillDirective,
-  SvSpinnerArcComponent,
-  svCompilePattern,
-  svUniqueId,
-} from '@styloviz/core';
+  svBoundOrNull,
+  svNumberOr,
+  svPatternAttr,
+} from '@styloviz/core/forms';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { svCompilePattern } from '@styloviz/core/security';
+import { SV_INPUT_FIELD_LABELS } from './input-field-free.labels';
 
+import { registerInputFieldIcons } from './input-field.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type InputType =
@@ -77,7 +84,7 @@ export interface InputOption {
 @Component({
   selector: 'sv-input-field',
   standalone: true,
-  imports: [NgClass, SvIconComponent, SvSpinnerArcComponent, SvAutofillDirective],
+  imports: [SvAutosizeDirective, NgClass, SvIconComponent, SvSpinnerArcComponent, SvAutofillDirective],
   templateUrl: './input-field.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
@@ -94,6 +101,12 @@ export interface InputOption {
   ],
 })
 export class SvInputFieldComponent implements AfterViewInit, ControlValueAccessor, Validator {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerInputFieldIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ inputField })` says otherwise. */
+  protected readonly labels = injectSvLabels('inputField', SV_INPUT_FIELD_LABELS);
+
   /**
    * `autofocus` is an input that used to do nothing.
    *
@@ -119,6 +132,14 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
 
   /** Renders a `<textarea>` instead of `<input>`. @default false */
   multiline = input<boolean>(false);
+  /**
+   * With `multiline`: grow the textarea with its text instead of scrolling a
+   * fixed box — `field-sizing: content` where the engine supports it, measured
+   * elsewhere (WebKit, Firefox). `maxRows` caps the growth. @default false
+   */
+  autosize = input<boolean>(false);
+  /** With `autosize`: the most rows before the textarea scrolls; `0` is no cap. @default 0 */
+  maxRows = input<number>(0);
 
   /**
    * When set, renders a `<select>` element.
@@ -211,11 +232,6 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
 
   /**
    * Icon-library NAME for the leading (left) icon — e.g. `'mail'`.
-   *
-   * ★ BREAKING (icon sweep): was `leadingIconPath`, a raw SVG `d` string.
-   * Every showcase call site wrote it as a STATIC attribute, which Angular
-   * silently ignores once the input is renamed — so the old name cannot be
-   * left behind as a deprecated alias without the two quietly disagreeing.
    */
   leadingIcon  = input<string>('');
 
@@ -243,7 +259,7 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
    * Maximum character count shown as a counter below the input.
    * Set to 0 to disable. @default 0
    */
-  maxLength = input<number>(0);
+  maxLength = input(0, { transform: svNumberOr(0) });
 
   // ── State ─────────────────────────────────────────────────────────────────
 
@@ -255,6 +271,14 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
 
   /** Show a loading spinner in the trailing position. @default false */
   loading   = input<boolean>(false);
+  /**
+   * Show a clear (×) button while the field holds text — a real, labelled
+   * `<button>` that empties the value, notifies the form and returns focus to
+   * the field (the same pattern as Autocomplete and Tree Select). Not offered on
+   * a `<select>` or a password field, which have their own trailing control.
+   * @default false
+   */
+  clearable = input<boolean>(false);
 
   /** id forwarded to the native input — required for external `<label for>`. */
   inputId   = input<string>('');
@@ -296,16 +320,20 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
   inputMode = input<InputMode | ''>('');
 
   /** Native validation regex (without anchors — anchored automatically). */
-  pattern = input<string>('');
+  pattern = input('', { transform: svPatternAttr });
 
   /** Minimum length used by the built-in Validator and native `minlength`. @default 0 */
-  minLength = input<number>(0);
+  minLength = input(0, { transform: svNumberOr(0) });
+
+  /** Native `maxlength` / `minlength`: only a positive length is a constraint. */
+  protected readonly maxLengthAttr = computed(() => (this.maxLength() > 0 ? this.maxLength() : null));
+  protected readonly minLengthAttr = computed(() => (this.minLength() > 0 ? this.minLength() : null));
 
   /** Native `min` for number/date/range types. */
-  min = input<string | number | null>(null);
+  min = input<string | number | null, unknown>(null, { transform: svBoundOrNull });
 
   /** Native `max` for number/date/range types. */
-  max = input<string | number | null>(null);
+  max = input<string | number | null, unknown>(null, { transform: svBoundOrNull });
 
   /** Native `step` for number/date/range types. */
   step = input<string | number | null>(null);
@@ -328,6 +356,8 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
 
   /** Emits when Enter is pressed. */
   submitted    = output<string>();
+  /** Emits after the clear button empties the field. */
+  cleared      = output<void>();
 
   // ── Internal state ────────────────────────────────────────────────────────
 
@@ -445,6 +475,20 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
     const val = (event.target as HTMLInputElement).value;
     this.value.set(val);   // model().set() auto-emits valueChange
     this._onChange(val);
+  }
+
+  /** Whether the clear button is on screen right now. */
+  readonly showClear = computed(() =>
+    this.clearable() && !!this.value() && !this.resolvedDisabled() && !this.readonly()
+    && !this.isSelect() && !this.isPassword() && !this.loading());
+
+  /** Empty the field, tell the form, and hand focus back to the field. */
+  clear(): void {
+    if (this.resolvedDisabled() || this.readonly()) return;
+    this.value.set('');
+    this._onChange('');
+    this.cleared.emit();
+    this.inputRef()?.nativeElement.focus();
   }
 
   onFocus(e: FocusEvent): void {
@@ -573,8 +617,8 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
     const focused = this.isFocused();
 
     // When leading icon/addon present, offset label so it doesn't overlap
-    const notFloatedLeft = this.hasLeading() ? 'left-10' : 'left-3.5';
-    const floatedLeft = this.hasLeading() ? 'left-8' : 'left-3';
+    const notFloatedLeft = this.hasLeading() ? 'start-10' : 'start-3.5';
+    const floatedLeft = this.hasLeading() ? 'start-8' : 'start-3';
     const left = floated ? floatedLeft : notFloatedLeft;
 
     // For multiline, label sits near the top (not vertical-center) when not floated
@@ -602,12 +646,12 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
     }
 
     const position = floated
-      ? `${left} -top-px -translate-y-1/2`
+      ? `${left} -top-px -translate-y-1/2` // sv-i18n-ignore: Tailwind class list
       : `${left} ${notFloatedTop} ${notFloatedTranslate}`.trim();
 
     return [
       'absolute z-10 pointer-events-none select-none',
-      'transition-[top,left,font-size,color,padding,background-color] duration-200 ease-in-out',
+      'transition-[top,left,right,font-size,color,padding,background-color] duration-200 ease-in-out',
       position,
       textSize,
       bg,
@@ -693,8 +737,8 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
 
   /** The native `<input>`, `<textarea>` or `<select>` element. */
   nativeInputClasses = computed<string>(() => {
-    const padL = this.hasLeading() ? 'pl-0' : this.sidepadding();
-    const padR = this.hasTrailing() ? 'pr-0' : this.sidepadding();
+    const padL = this.hasLeading() ? 'ps-0' : this.sidepadding();
+    const padR = this.hasTrailing() ? 'pe-0' : this.sidepadding();
     const multi = this.multiline();
 
     return [
@@ -756,11 +800,11 @@ export class SvInputFieldComponent implements AfterViewInit, ControlValueAccesso
   );
 
   leadingAddonClasses = computed<string>(() =>
-    `${this.addonClasses()} pl-3.5 border-r border-gray-200 dark:border-gray-700 mr-3.5 pr-3`
+    `${this.addonClasses()} ps-3.5 border-e border-gray-200 dark:border-gray-700 me-3.5 pe-3`
   );
 
   trailingAddonClasses = computed<string>(() =>
-    `${this.addonClasses()} pr-3.5 border-l border-gray-200 dark:border-gray-700 ml-3.5 pl-3`
+    `${this.addonClasses()} pe-3.5 border-s border-gray-200 dark:border-gray-700 ms-3.5 ps-3`
   );
 
   iconClass = computed<string>(() => {

@@ -10,15 +10,15 @@ Include the package and its version, your Angular version, what an attacker can 
 
 | Version | Supported |
 | --- | --- |
-| 1.x (latest: 1.0.2) | Yes — fixes ship as patch releases |
-| Earlier | No — upgrade to the latest 1.x |
+| 2.x (latest: 2.0.0) | Yes — fixes ship as patch releases |
+| Earlier | No — upgrade to the latest 2.x |
 
 Angular >=21.0.0 <23.0.0 is supported.
 
 ## What the packages do and do not do
 
 - No package declares a third-party runtime dependency.
-- Only `@styloviz/data` can make a network request, and only to the URL or HttpClient your app gives it. No analytics, no telemetry, no update checks.
+- Only `@styloviz/data`, `@styloviz/file-upload` can make a network request, and only to the URL or HttpClient your app gives it. No analytics, no telemetry, no update checks.
 - No package loads a remote asset (fonts, images, scripts).
 - No package bypasses Angular's HTML sanitizer.
 

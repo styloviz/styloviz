@@ -1,22 +1,21 @@
 # Styloviz Auth Template
 
-A standalone **forgot-password / reset-password** flow — the two auth pages
-every app needs and that don't belong to any one product template. It is a
-**self-contained folder** you can copy into your own app: its own shell,
-theme, routes, and mock/live data switch.
+The screens before a session exists — sign in, register, two-step verification,
+single sign-on, a lock screen, forgot password, reset password and a signed-in
+end page. It is a **self-contained folder** you can copy into your own app: its
+own shell, theme, routes, and mock/live data switch.
 
 Mounted at **`/templates/auth`**, themed with an **indigo / sky** identity, and laid out
 as a split screen: a brand panel that explains what is happening to the account
 beside the form that does it.
 
-## Why only these two pages
+## Why a separate template
 
-`auth-login`, `auth-register` and `auth-otp` already ship inside the store
-template (`src/app/templates/store/pages/auth`) — a full sign-in flow makes
-sense bundled with a storefront that has accounts to sign into. Forgot/reset
-password is different: it is reached from an email link, often *before* the
-visitor has any session with the app, so it is packaged here on its own for
-buyers who want just this piece next to whatever auth they already have.
+The store template ships its own `auth-login`, `auth-register` and `auth-otp`
+inside `src/app/templates/store/pages/auth`, bundled with a storefront that has
+accounts to sign into. This template is the same job for any other product: the
+full set of pre-session screens on its own, for buyers who want just this piece
+next to whatever app they already have.
 
 ## What's inside
 
@@ -24,16 +23,24 @@ buyers who want just this piece next to whatever auth they already have.
 auth/
   auth-layout.component.*   split shell: brand panel + form column + footer
   auth.config.ts            AUTH_BRAND · AUTH_PANEL · AUTH_SUPPORT ·
-                            AUTH_PASSWORD_POLICY · AUTH_API (single edit point)
-  auth.data.ts              authRequestReset / authConfirmReset,
-                            passwordRules / passwordMeetsPolicy, maskEmail
+                            AUTH_PASSWORD_POLICY · AUTH_API · AUTH_SSO_* ·
+                            AUTH_OTP_LENGTH · AUTH_LOCKED_USER (single edit point)
+  auth.data.ts              every request (sign-in, register, verify, unlock,
+                            reset), passwordRules / passwordMeetsPolicy, maskEmail,
+                            ssoOrganisationFor
   auth.routes.ts            AUTH_ROUTES (lazy child routes)
   pages/
+    login.component.*            providers or email + password → two-step when required
+    register.component.*         name, email, password with the live policy checklist
+    two-factor.component.*       6-digit code or a recovery code, resend cooldown
+    sso.component.*              organisation found from the email domain
+    lock-screen.component.*      the locked session's owner, unlock or switch account
     forgot-password.component.*  email → "check your inbox" (masked, with resend)
     reset-password.component.*   token + new password → confirmation
+    signed-in.component.*        where every flow ends in the demo
 ```
 
-## What these pages do
+## What the reset flow does
 
 | Surface | What it is for |
 | --- | --- |
@@ -80,8 +87,14 @@ than on the children, and flex blockifies its items on the way past. **Use
 
 | Route | Page |
 |---|---|
+| `/templates/auth/login` | Sign in with a provider, SSO, or email and password |
+| `/templates/auth/register` | Create an account against the password policy |
+| `/templates/auth/two-factor` | Enter a 6-digit code or a recovery code |
+| `/templates/auth/sso` | Find the organisation's single sign-on from a work email |
+| `/templates/auth/lock` | Unlock a locked session, or sign in as someone else |
 | `/templates/auth/forgot-password` | Request a reset link by email |
 | `/templates/auth/reset-password?token=…` | Set a new password against that token |
+| `/templates/auth/signed-in` | The demo's end page — replace it with a redirect in your app |
 
 ## Mounting it
 

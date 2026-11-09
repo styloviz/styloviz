@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { SV_LINK_ADAPTER, type MenuGroup, type SvLinkAdapter } from '@styloviz/core';
+import { type MenuGroup } from '@styloviz/core/models';
+import { SV_LINK_ADAPTER, type SvLinkAdapter } from '@styloviz/core/nav';
 import { SvSidebarNavComponent } from './sidebar-nav.component';
 
 /**

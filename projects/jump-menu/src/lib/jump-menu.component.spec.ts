@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { provideSvLinkAdapter, svResetWarnOnce, type SvLinkTarget } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core/nav';
 import {
   SvJumpMenuComponent,
   type JumpMenuChangeEvent,

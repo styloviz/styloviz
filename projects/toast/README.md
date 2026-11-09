@@ -2,7 +2,9 @@
 
 > Imperative toast stack with 4 variants, 6 anchor positions, action callbacks and an auto-dismiss timer.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -62,7 +64,7 @@ export class DemoComponent {}
 | --- | --- | --- | --- |
 | `position` | `ToastPosition` | `'top-right'` | Where the stack is anchored on screen. |
 | `maxVisible` | `number` | `5` | Maximum number of toasts visible simultaneously. |
-| `portal` | `boolean` | `false` | Move the region to `<body>` so it stays usable above a modal. `inert` IS INHERITED AND CANNOT BE UNDONE BY A DESCENDANT. A modal makes the page behind it inert, and a host mounted inside the app shell is part of that page: its toasts are still announced (speech goes through the shared announcer) but an "Undo" button on one cannot be pressed until the dialog closes. Portalled, the region is a `<body>` child the stack keeps live at any depth. Off by default because it moves the region's DOM (and its `data-sv-toast-*` hooks) out of the host. |
+| `portal` | `boolean` | `false` | Move the region to `<body>` so it stays usable above a modal. `inert` is inherited and cannot be undone by a descendant. A modal makes the page behind it inert, and a host mounted inside the app shell is part of that page: its toasts are still announced (speech goes through the shared announcer) but an "Undo" button on one cannot be pressed until the dialog closes. Portalled, the region is a `<body>` child the stack keeps live at any depth. Off by default because it moves the region's DOM (and its `data-sv-toast-*` hooks) out of the host. |
 
 ## Documentation
 
@@ -70,4 +72,4 @@ Full API reference and live demos: https://styloviz.dev/docs/toast
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

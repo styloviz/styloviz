@@ -36,11 +36,13 @@ describe('SvFileDisplayComponent — reading the file', () => {
   });
 
   it.each([
-    [0, '0 B'],
-    [512, '512 B'],
-    [1023, '1023 B'],
-    [1024, '1.0 KB'],
-    [1_048_575, '1024.0 KB'],
+    // FL-J3-DD-37: Intl unit formatting in the kit's locale (en-US here), so
+    // the separators and the unit names follow the reader's language.
+    [0, '0 bytes'],
+    [512, '512 bytes'],
+    [1023, '1,023 bytes'],
+    [1024, '1.0 kB'],
+    [1_048_575, '1,024.0 kB'],
     [1_048_576, '1.0 MB'],
     [5_242_880, '5.0 MB'],
     [1_073_741_824, '1.0 GB'],

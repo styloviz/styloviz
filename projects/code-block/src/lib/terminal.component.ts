@@ -10,12 +10,38 @@ import {
   input,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
+import { NgTemplateOutlet, isPlatformBrowser } from '@angular/common';
+import { SvArrowDownIcon } from '@styloviz/icons/glyph/arrow-down';
+import { SvCheckIcon } from '@styloviz/icons/glyph/check';
+import { SvCopyIcon } from '@styloviz/icons/glyph/copy';
 import type { TerminalLine } from './code-block.types';
-import type { TerminalCommand, TerminalRanEvent, TerminalResult } from './terminal.types';
-import { svUniqueId } from '@styloviz/core';
+import type { TerminalCommand, TerminalLive, TerminalRanEvent, TerminalResult } from './terminal.types';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_CODE_BLOCK_LABELS } from './code-block.labels';
+import { svParseAnsi, svAnsiPlainText, type SvAnsiColor, type SvAnsiSegment } from './ansi';
+import { svIsScrolledToEnd } from './terminal-scroll';
+import { svWriteClipboard } from './clipboard';
+
+/** One styled run of a line, with its classes worked out once. */
+interface RenderedSegment {
+  readonly text: string;
+  readonly color: SvAnsiColor | null;
+  readonly cls: string;
+}
+
+/** One line as the template draws it: its kind, its classes and its segments. */
+interface RenderedLine {
+  readonly kind: TerminalLine['kind'];
+  readonly cls: string;
+  readonly segments: readonly RenderedSegment[];
+}
+
+/** How long the copy button shows its tick (or its failure). */
+const COPY_FEEDBACK_MS = 2000;
 
 /**
  * ============================================================
@@ -55,6 +81,14 @@ import { svUniqueId } from '@styloviz/core';
  *    asks otherwise, in which case they print immediately. The content is
  *    identical either way.
  *
+ *  ★★ IT IS ALSO A LOG VIEWER. `[lines]` is an append-only stream the host
+ *     owns — a build, a deploy, an agent's tool run — printed as it grows, with
+ *     the ANSI colour subset honoured (SGR 30–37, 90–97, bold; everything else
+ *     dropped, never rendered as markup). `[interactive]="false"` removes the
+ *     prompt. Autoscroll follows the output only while the reader is at the
+ *     bottom; scrolling up to read an error pauses it and shows "jump to
+ *     latest" with a count of what arrived meanwhile.
+ *
  *  Usage:
  *
  *    <sv-terminal
@@ -63,12 +97,15 @@ import { svUniqueId } from '@styloviz/core';
  *      prompt="visitor@styloviz:~$"
  *      (ran)="onRan($event)"
  *    />
+ *
+ *    <sv-terminal [lines]="buildLog()" [interactive]="false" title="build #4812" />
  * ============================================================
  */
 @Component({
   selector: 'sv-terminal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [NgTemplateOutlet, SvArrowDownIcon, SvCheckIcon, SvCopyIcon],
   templateUrl: './terminal.component.html',
   host: {
     // ★★ ON THE HOST, NOT ON AN INNER DIV. Clicking anywhere in the terminal
@@ -82,6 +119,7 @@ import { svUniqueId } from '@styloviz/core';
   },
 })
 export class SvTerminalComponent {
+  protected readonly labels = injectSvLabels('codeBlock', SV_CODE_BLOCK_LABELS);
   private readonly uid = svUniqueId('sv-term');
 
   // ── Inputs ──────────────────────────────────────────────────────────────────
@@ -96,7 +134,7 @@ export class SvTerminalComponent {
   readonly prompt = input<string>('$');
 
   /** Accessible label for the prompt input. */
-  readonly inputLabel = input<string>('Terminal input');
+  readonly inputLabel = input<string>(this.labels.terminalInput);
 
   /** Max height of the scrollback. */
   readonly maxHeight = input<string>('22rem');
@@ -137,18 +175,106 @@ export class SvTerminalComponent {
   /** Milliseconds per character while typing the intro. */
   readonly typeSpeedMs = input<number>(18);
 
+  /**
+   * Output the host owns — a build log, a deploy stream, an agent's tool run.
+   *
+   * ★ APPEND-ONLY. Lines added to the end are printed as they arrive, after
+   *   whatever is already on screen. A SHORTER array means a new run: the
+   *   screen clears and the new array prints from the top. Pass a new array
+   *   each time (signals do), never a mutated one.
+   *
+   * While this is non-empty the intro prints at once rather than typing, so a
+   * log is never held back behind an animation.
+   * @default []
+   */
+  readonly lines = input<readonly TerminalLine[]>([]);
+
+  /**
+   * Show the prompt. `false` makes a read-only log viewer: no input, no
+   * history, no click-to-focus — `[lines]` and `intro` are all it shows.
+   * @default true
+   */
+  readonly interactive = input<boolean>(true);
+
+  /**
+   * Honour the ANSI colour subset in line text: SGR 0 / 1 / 22 / 39, 30–37 and
+   * 90–97. Other sequences (cursor moves, erase, OSC titles) are always removed.
+   * `stderr` keeps its own colour — an escape code cannot paint an error green —
+   * but may still be bold. `false` strips every sequence and colours by `kind`
+   * only.
+   * @default true
+   */
+  readonly ansi = input<boolean>(true);
+
+  /**
+   * Follow new output to the bottom — but only while the reader is already
+   * there. Scrolling up pauses it and shows "jump to latest"; `false` never
+   * scrolls on its own (submitting a command still does).
+   * @default true
+   */
+  readonly autoScroll = input<boolean>(true);
+
+  /** Show a button that copies the whole scrollback as plain text, escape codes removed. @default true */
+  readonly copyable = input<boolean>(true);
+
+  /**
+   * How the log announces new lines. `polite` (the `role="log"` default) reads
+   * each line as it arrives; `off` is for a fast stream a screen reader could
+   * never keep up with — the reader moves into the log to read it.
+   * @default 'polite'
+   */
+  readonly live = input<TerminalLive>('polite');
+
+  /** Accessible name of the scrollback region. @default 'Terminal output' */
+  readonly logLabel = input<string>(this.labels.terminalLog);
+
   // ── Outputs ─────────────────────────────────────────────────────────────────
 
   /** Fired after every submitted line, matched or not. */
   readonly ran = output<TerminalRanEvent>();
 
+  /** Emits the copied text after a successful clipboard write. */
+  readonly copied = output<string>();
+
   // ── State ───────────────────────────────────────────────────────────────────
 
   private readonly scrollback = signal<readonly TerminalLine[]>([]);
-  protected readonly lines = this.scrollback.asReadonly();
 
   protected readonly value = signal('');
   protected readonly busy = signal(false);
+
+  /** True while the reader is at the bottom, so new output is followed. */
+  protected readonly following = signal(true);
+  /** Lines that arrived while autoscroll was paused — the count on "jump to latest". */
+  protected readonly unseen = signal(0);
+  protected readonly copyState = signal<'idle' | 'done' | 'failed'>('idle');
+  private copyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Host lines already printed, so the next change prints only the tail. */
+  private consumed = 0;
+  /** Once true the intro is on screen in full and is never re-printed by `settleIntro`. */
+  private introSettled = false;
+  /** Parsed segments per line object: a push re-renders the list, not every parse. */
+  private readonly parsed = new WeakMap<TerminalLine, readonly SvAnsiSegment[]>();
+
+  /** The scrollback as the template draws it. */
+  protected readonly rendered = computed<readonly RenderedLine[]>(() => {
+    const ansi = this.ansi();
+    return this.scrollback().map((line) => ({
+      kind: line.kind,
+      cls: this.lineClass(line.kind),
+      segments: this.segmentsOf(line, ansi).map((segment) => ({
+        text: segment.text,
+        color: segment.color,
+        cls: this.segmentClass(line.kind, segment),
+      })),
+    }));
+  });
+
+  protected readonly jumpLabel = computed(() => {
+    const count = this.unseen();
+    return count ? svFormatLabel(this.labels.terminalJumpNew, { count }) : this.labels.terminalJumpToLatest;
+  });
 
   /** Submitted lines, newest last. Drives ↑/↓. */
   private readonly history = signal<readonly string[]>([]);
@@ -202,24 +328,75 @@ export class SvTerminalComponent {
   constructor() {
     // A destroyed terminal stops typing: `typeOut` checks `typeRun` after every
     // character, so bumping it ends the loop instead of writing into a dead view.
-    inject(DestroyRef).onDestroy(() => this.typeRun++);
+    inject(DestroyRef).onDestroy(() => {
+      this.typeRun++;
+      if (this.copyTimer !== null) clearTimeout(this.copyTimer);
+    });
 
     // Print the intro whenever it changes identity — a host swapping the intro
     // for a different persona should not have to destroy the component.
     effect(() => {
       const intro = this.intro();
+      const typeIntro = this.typeIntro();
+      const maxLines = this.maxLines();
       const run = ++this.typeRun;
-      this.scrollback.set([]);
-      if (!intro.length) return;
-      // ★★ On the server the intro is printed whole: typing it schedules one
-      //    timer per character, which a zone-based SSR render waits out
-      //    (1.0 audit, H2) — and the HTML it sends should be the finished text.
-      if (this.typeIntro() && !this.prefersReducedMotion() && this.isBrowser) {
-        void this.typeOut(intro, run);
-      } else {
-        this.scrollback.set(intro.slice(-this.maxLines()));
-      }
+      // ★ The host stream is read untracked: its own effect below prints what
+      //   is new, and re-running this one on every appended line would clear
+      //   the screen each time.
+      untracked(() => {
+        this.scrollback.set([]);
+        this.consumed = 0;
+        this.introSettled = intro.length === 0;
+        const hostLines = this.lines();
+        if (intro.length) {
+          // ★★ On the server the intro is printed whole: typing it schedules one
+          //    timer per character, which a zone-based SSR render waits out
+          //    (1.0 audit, H2) — and the HTML it sends should be the finished text.
+          //    A host log on screen also prints it whole: output must not wait.
+          if (typeIntro && !this.prefersReducedMotion() && this.isBrowser && !hostLines.length) {
+            void this.typeOut(intro, run);
+          } else {
+            this.scrollback.set(intro.slice(-maxLines));
+            this.introSettled = true;
+          }
+        }
+        this.printHostLines(hostLines);
+      });
     });
+
+    // The host's stream: print what is new; a shorter array is a new run.
+    effect(() => {
+      const hostLines = this.lines();
+      untracked(() => {
+        if (hostLines.length < this.consumed) {
+          this.consumed = 0;
+          this.settleIntro();
+          this.scrollback.set(this.intro().slice(-this.maxLines()));
+          this.following.set(true);
+          this.unseen.set(0);
+        }
+        this.printHostLines(hostLines);
+      });
+    });
+  }
+
+  /** Print the host lines not yet on screen. */
+  private printHostLines(hostLines: readonly TerminalLine[]): void {
+    if (hostLines.length <= this.consumed) return;
+    const fresh = hostLines.slice(this.consumed);
+    this.consumed = hostLines.length;
+    this.settleIntro();
+    this.push(fresh);
+  }
+
+  private segmentsOf(line: TerminalLine, ansi: boolean): readonly SvAnsiSegment[] {
+    if (!ansi) return [{ text: svAnsiPlainText(line.text), color: null, bright: false, bold: false }];
+    let segments = this.parsed.get(line);
+    if (!segments) {
+      segments = svParseAnsi(line.text);
+      this.parsed.set(line, segments);
+    }
+    return segments;
   }
 
   /**
@@ -230,6 +407,11 @@ export class SvTerminalComponent {
    *   just ran is the single most irritating thing an animated prompt can do.
    */
   private settleIntro(): void {
+    // ★ Once settled, never again: after Ctrl+L or a `clear` the scrollback is
+    //   shorter than the intro, and "re-print the intro" would bring back the
+    //   very lines the visitor just cleared.
+    if (this.introSettled) return;
+    this.introSettled = true;
     if (this.typeRun === 0) return;
     const intro = this.intro();
     if (!intro.length) return;
@@ -244,7 +426,13 @@ export class SvTerminalComponent {
   private push(lines: readonly TerminalLine[]): void {
     if (!lines.length) return;
     this.scrollback.update((all) => [...all, ...lines].slice(-this.maxLines()));
-    this.scrollToEnd();
+    if (this.autoScroll() && this.following()) {
+      this.scrollToEnd();
+    } else {
+      // ★ Paused: the reader is somewhere above, reading. Count what they are
+      //   missing instead of yanking them down to it.
+      this.unseen.update((n) => n + lines.length);
+    }
   }
 
   private scrollToEnd(): void {
@@ -254,6 +442,43 @@ export class SvTerminalComponent {
       const el = this.scrollEl()?.nativeElement;
       if (el) el.scrollTop = el.scrollHeight;
     });
+  }
+
+  /**
+   * The log box scrolled — by the reader, or by `scrollToEnd`.
+   *
+   * ★ Decided from WHERE the box is, not from who moved it: a programmatic
+   *   scroll to the end lands at the end and reads as "following", and a wheel
+   *   or a drag that leaves the bottom reads as "paused". No flag to keep in
+   *   step with the browser's own scroll events.
+   */
+  protected onScroll(): void {
+    const el = this.scrollEl()?.nativeElement;
+    if (!el) return;
+    const atEnd = svIsScrolledToEnd(el);
+    this.following.set(atEnd);
+    if (atEnd) this.unseen.set(0);
+  }
+
+  /** "Jump to latest": back to the bottom, and following again. */
+  jumpToLatest(): void {
+    this.following.set(true);
+    this.unseen.set(0);
+    this.scrollToEnd();
+  }
+
+  /** Copy the scrollback as plain text — escape codes removed — and confirm it. */
+  protected async copy(): Promise<void> {
+    const text = this.scrollback().map((l) => svAnsiPlainText(l.text)).join('\n');
+    if (!text) return;
+    const ok = await svWriteClipboard(text);
+    this.copyState.set(ok ? 'done' : 'failed');
+    if (ok) this.copied.emit(text);
+    if (this.copyTimer !== null) clearTimeout(this.copyTimer);
+    this.copyTimer = setTimeout(() => {
+      this.copyState.set('idle');
+      this.copyTimer = null;
+    }, COPY_FEEDBACK_MS);
   }
 
   /** Type the intro out, one character at a time. */
@@ -278,8 +503,10 @@ export class SvTerminalComponent {
           return next;
         });
       }
-      this.scrollToEnd();
+      if (this.autoScroll() && this.following()) this.scrollToEnd();
     }
+    // Typed out in full: from here on nothing re-prints it.
+    if (run === this.typeRun) this.introSettled = true;
   }
 
   private prefersReducedMotion(): boolean {
@@ -312,6 +539,10 @@ export class SvTerminalComponent {
   protected async submit(): Promise<void> {
     this.settleIntro();
     const input = this.value().trim();
+    // ★ Somebody who just pressed Return wants to see the answer: a submit
+    //   always follows, even from a paused log.
+    this.following.set(true);
+    this.unseen.set(0);
 
     // Echo the prompt line even when it is empty — a bare Return should move
     // the cursor down, as it does in any shell.
@@ -331,8 +562,8 @@ export class SvTerminalComponent {
 
     if (!command) {
       this.push([
-        { kind: 'stderr', text: `${word}: command not found` },
-        { kind: 'stdout', text: `Type \`help\` to see what this terminal knows.` },
+        { kind: 'stderr', text: svFormatLabel(this.labels.commandNotFound, { command: word }) },
+        { kind: 'stdout', text: this.labels.commandHelpHint },
       ]);
       this.ran.emit({ input, command: null, result: null, unknown: true });
       return;
@@ -346,7 +577,7 @@ export class SvTerminalComponent {
       // ★ A handler that throws prints an error rather than taking the page
       //   down. The host's own bug is not the visitor's problem, and a dead
       //   prompt with no explanation is the worst version of it.
-      this.push([{ kind: 'stderr', text: `${command.name}: command failed` }]);
+      this.push([{ kind: 'stderr', text: svFormatLabel(this.labels.commandFailed, { command: command.name }) }]);
       this.ran.emit({ input, command, result: null, unknown: false });
       this.busy.set(false);
       return;
@@ -473,6 +704,7 @@ export class SvTerminalComponent {
    *   most want to copy.
    */
   protected focusPrompt(): void {
+    if (!this.interactive()) return;
     if (typeof window !== 'undefined') {
       const selection = window.getSelection?.();
       if (selection && !selection.isCollapsed) return;
@@ -488,11 +720,51 @@ export class SvTerminalComponent {
         return 'text-danger-600 dark:text-danger-400';
       case 'exit':
         return 'text-warning-700 dark:text-warning-400';
+      case 'info':
+        return 'italic text-info-700 dark:text-info-300';
       default:
         return 'text-gray-600 dark:text-gray-400';
     }
   }
+
+  /**
+   * The classes for one segment. Colour comes from the kit's tokens, one step
+   * darker in light mode than in dark, so every ANSI colour keeps its contrast
+   * on the terminal's own surface in both themes. `stderr` ignores the colour.
+   */
+  protected segmentClass(kind: TerminalLine['kind'], segment: SvAnsiSegment): string {
+    const bold = segment.bold ? 'font-bold' : '';
+    if (!segment.color || kind === 'stderr') return bold;
+    const palette = segment.bright ? ANSI_BRIGHT : ANSI_NORMAL;
+    return `${palette[segment.color]} ${bold}`.trim();
+  }
 }
+
+/**
+ * ANSI colour → token classes. `white` and `black` map to the gray ramp so a
+ * "white" segment is still visible on the light theme's white surface.
+ */
+const ANSI_NORMAL: Readonly<Record<SvAnsiColor, string>> = {
+  black: 'text-gray-900 dark:text-gray-400',
+  red: 'text-danger-700 dark:text-danger-400',
+  green: 'text-accent-700 dark:text-accent-400',
+  yellow: 'text-warning-700 dark:text-warning-400',
+  blue: 'text-primary-700 dark:text-primary-400',
+  magenta: 'text-brand-700 dark:text-brand-400',
+  cyan: 'text-info-700 dark:text-info-400',
+  white: 'text-gray-600 dark:text-gray-200',
+};
+
+const ANSI_BRIGHT: Readonly<Record<SvAnsiColor, string>> = {
+  black: 'text-gray-700 dark:text-gray-300',
+  red: 'text-danger-600 dark:text-danger-300',
+  green: 'text-accent-700 dark:text-accent-300',
+  yellow: 'text-warning-700 dark:text-warning-300',
+  blue: 'text-primary-600 dark:text-primary-300',
+  magenta: 'text-brand-600 dark:text-brand-300',
+  cyan: 'text-info-700 dark:text-info-300',
+  white: 'text-gray-500 dark:text-gray-50',
+};
 
 /** Longest prefix shared by every entry. `''` when they share nothing. */
 function commonPrefix(values: readonly string[]): string {

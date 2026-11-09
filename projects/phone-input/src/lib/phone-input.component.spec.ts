@@ -101,6 +101,91 @@ describe('SvPhoneInputComponent', () => {
   });
 });
 
+describe('SvPhoneInputComponent — label position (SR-03)', () => {
+  // The country button used to be aligned with the field's `<label>` because
+  // `sv-input-mask` rendered the label INSIDE the flex item. Now sv-phone-input
+  // owns the visible label and shares its accessible name with both controls.
+  it('renders a single label above the row, not inside the flex item', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const host = fixture.nativeElement as HTMLElement;
+    // The visible label is a <span> (compound control) — see the template
+    // comment for why a <label for=...> is the wrong element here.
+    const label = host.querySelector('span#' + fixture.componentInstance.labelId)!;
+    expect(label).not.toBeNull();
+    const row = host.querySelector('.flex.items-start.gap-0')!;
+    // The label is a sibling BEFORE the row, not a child of it.
+    expect(row.contains(label)).toBe(false);
+    expect(label.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('names the country button with the field label + selected country', async () => {
+    await render(SvPhoneInputComponent, {});
+    const button = screen.getByRole('button', { name: /Phone number: United States/ });
+    expect(button).not.toBeNull();
+  });
+
+  it('names the number input via aria-label, not a redundant <label>', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    expect(input.getAttribute('aria-label')).toBe('Phone number');
+    // No visible <label> inside the mask — its label is suppressed and the
+    // name comes from the phone input's own outer span.
+    expect(fixture.nativeElement.querySelectorAll('label').length).toBe(0);
+  });
+});
+
+describe('SvPhoneInputComponent — seam cosmetics (SR-05)', () => {
+  /**
+   * ★★ ONE COUNTRY MEANS NO PICKER. With a single allowed country there is
+   *    nothing to choose, so the chevron would be a lie. A static flag +
+   *    dial code + ISO badge keeps the seam honest and is `aria-hidden`
+   *    so it does not steal the named-control's accessible name.
+   */
+  it('hides the picker when only one country is allowed', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, { inputs: { countries: ['GB'] } });
+    // The trigger is a div, not a button — no chevron, no listbox to open.
+    expect(screen.queryByRole('button', { name: /United Kingdom/ })).toBeNull();
+    // The flag + dial code + ISO are still visible so the user can read
+    // which country the value belongs to.
+    expect(screen.getByText('+44')).toBeTruthy();
+    expect(screen.getByText('GB')).toBeTruthy();
+    // And it is NOT exposed as a focusable / nameable control.
+    const host = fixture.nativeElement as HTMLElement;
+    const staticBox = host.querySelector(`#${fixture.componentInstance.buttonId}`)!;
+    expect(staticBox.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  /**
+   * ★★ The flag is decorative. The button's accessible name is the field
+   *    label + the country; the flag should not re-announce the country.
+   */
+  it('marks the inline flag as aria-hidden inside the picker button', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const flag = fixture.nativeElement.querySelector('button sv-phone-flag')!;
+    expect(flag.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  /**
+   * ★★ The seam follows the READING DIRECTION. `rounded-s-md` (logical, not
+   *    `l-`) puts the inner corners on the start edge in both LTR and RTL,
+   *    and the mask is told the same via `[&_input]:rounded-s-none` (mirrors
+   *    `sv-split-button`'s "logical, not positional" rule).
+   */
+  it('uses logical border/radius classes that follow the reading direction', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const button = screen.getByRole('button', { name: /United States/ });
+    expect(button.className).toContain('rounded-s-md');
+    expect(button.className).toContain('border-e-0');
+    expect(button.className).not.toContain('border-s-0');
+    expect(button.className).not.toMatch(/\brounded-[lr]-(?:md|none)\b/);
+    expect(button.className).not.toMatch(/\bborder-[lr]-0\b/);
+    // The mask wrapper carries the seam-flatten rule, exactly as sv-split-button
+    // carries its inner-seam rule.
+    const mask = fixture.nativeElement.querySelector('sv-input-mask')!;
+    expect(mask.className).toContain('[&_input]:rounded-s-none');
+  });
+});
+
 /**
  * The value a backend should actually store.
  *
@@ -332,7 +417,10 @@ describe('SvPhoneInputComponent — type-to-select in the country listbox (DD-26
 
   it('works from the trigger button, where focus stays while the list is open', async () => {
     const fixture = await openList();
-    fireEvent.keyDown(screen.getByRole('button', { name: /Country/ }), { key: 'g' });
+    // The country button's accessible name now combines the field label with
+    // the selected country — `SR-03` — so a screen reader announces the
+    // picker as part of the field, not as a separate "Country" control.
+    fireEvent.keyDown(screen.getByRole('button', { name: /United States/ }), { key: 'g' });
     fixture.detectChanges();
     expect(activeName()).toContain('Germany');
     fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Enter' });
@@ -358,5 +446,118 @@ describe('SvPhoneInputComponent — host-supplied plans (DD-26-I3)', () => {
     fixture.detectChanges();
     expect((fixture.nativeElement as HTMLElement).querySelector('[data-sv-length-hint]')).toBeNull();
     expect(fixture.componentInstance.e164()).toBe('+64211234567');
+  });
+});
+
+describe('SvPhoneInputComponent — body portaled listbox (SR-04)', () => {
+  // The country picker used to live inside `div.relative` as `position: absolute`
+  // and was clipped by every showcase card's `isolate overflow-hidden`. It is
+  // now rendered into `document.body` via `createPortalHost`, so it escapes
+  // any transform / overflow containment.
+
+  /** The portal host sits under `<body>` and carries the data-sv-portal marker. */
+  const portal = () => document.querySelector<HTMLElement>('[data-sv-portal="phone-input"]');
+
+  afterEach(() => portal()?.remove());
+
+  it('renders the open listbox into document.body, not the component host', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const host = fixture.nativeElement as HTMLElement;
+
+    fireEvent.click(screen.getByRole('button', { name: /United States/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+
+    // The listbox is NOT a descendant of the sv-phone-input host — it lives
+    // inside the body-portaled host instead.
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+    const inBody = portal()?.querySelector('[role="listbox"]');
+    expect(inBody).not.toBeNull();
+  });
+
+  it('positions the panel with position: fixed', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    fireEvent.click(screen.getByRole('button', { name: /United States/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+
+    const listbox = portal()!.querySelector<HTMLElement>('[role="listbox"]')!;
+    // The portal panel is `position: fixed` (was `absolute` — that put it
+    // inside the trigger's `div.relative` and let `isolate overflow-hidden`
+    // on a showcase card clip the picker after two rows, `SR-04`).
+    expect(listbox.style.position).toBe('fixed');
+    // In jsdom the viewport is 0×0, so the numbers come out of the helper —
+    // we just assert the panel IS positioned (a px-suffixed string was set).
+    const top = listbox.style.top;
+    expect(top.endsWith('px') || top === '').toBe(true);
+  });
+
+  it('closes (and removes the portal) when the user selects a country', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    fireEvent.click(screen.getByRole('button', { name: /United States/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+    expect(portal()).not.toBeNull();
+
+    fireEvent.click(screen.getByRole('option', { name: /Germany/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') === null);
+    // The portal host is taken down with the listbox.
+    expect(portal()).toBeNull();
+  });
+
+  it('keeps an outside click inside the portal from closing it', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    fireEvent.click(screen.getByRole('button', { name: /United States/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+
+    // A pointerdown on an option inside the portal must not be treated as
+    // "outside" — that is how a click selects an option. `PointerEvent` is
+    // not in jsdom, so we use a generic Event the document handler reads
+    // the same way.
+    const option = portal()!.querySelector('[role="option"]')!;
+    option.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+    fixture.detectChanges();
+    expect(screen.queryByRole('listbox')).not.toBeNull();
+  });
+});
+
+describe('SvPhoneInputComponent — label re-check (SR-03)', () => {
+  it('names the whole control as a group labelled by the visible label', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const group = screen.getByRole('group', { name: 'Phone number' });
+    expect(group.getAttribute('aria-labelledby')).toBe(fixture.componentInstance.labelId);
+  });
+
+  it('renders no stray "Custom Mask" label when the label is cleared', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, { inputs: { label: '' } });
+    const host = fixture.nativeElement as HTMLElement;
+    expect(host.textContent).not.toContain('Custom Mask');
+    expect(host.querySelectorAll('label').length).toBe(0);
+    expect(host.querySelector('input')!.getAttribute('aria-label')).toBe('Phone number');
+    expect(screen.queryByRole('group')).toBeNull();
+  });
+});
+
+describe('SvPhoneInputComponent — portal re-check (SR-04)', () => {
+  const portal = () => document.querySelector<HTMLElement>('[data-sv-portal="phone-input"]');
+  afterEach(() => portal()?.remove());
+
+  it('hangs the panel from its bottom edge when it opens above the trigger', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    const button = screen.getByRole('button', { name: /United States/ });
+    const vh = window.innerHeight;
+    button.getBoundingClientRect = () =>
+      ({ top: vh - 40, bottom: vh - 0, left: 20, right: 120, width: 100, height: 40, x: 20, y: vh - 40, toJSON: () => ({}) }) as DOMRect;
+    fireEvent.click(button);
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+    const listbox = portal()!.querySelector<HTMLElement>('[role="listbox"]')!;
+    expect(listbox.style.bottom).toBe(`${40 + 4}px`);
+    expect(listbox.style.top).toBe('');
+  });
+
+  it('keeps the panel open and re-anchored on a window resize', async () => {
+    const { fixture } = await render(SvPhoneInputComponent, {});
+    fireEvent.click(screen.getByRole('button', { name: /United States/ }));
+    await untilRendered(fixture, () => screen.queryByRole('listbox') !== null);
+    window.dispatchEvent(new Event('resize'));
+    fixture.detectChanges();
+    expect(screen.queryByRole('listbox')).not.toBeNull();
   });
 });

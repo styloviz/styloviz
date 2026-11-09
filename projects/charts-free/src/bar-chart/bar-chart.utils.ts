@@ -2,8 +2,9 @@ import {
   svApplyValuePolicy,
   svIsPlottableShare,
   type SvDataError,
+  type SvShareWording,
   type SvValuePolicy,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
 import type { BarChartDataset } from './bar-chart.types';
 
 // ─── Color palettes ───────────────────────────────────────────────────────────
@@ -110,6 +111,7 @@ export function resolveBarValues(
   datasets: readonly BarChartDataset[],
   policy: SvValuePolicy,
   selector: string,
+  wording: Required<SvShareWording>,
 ): BarValuePolicyResult {
   const flat = datasets.flatMap((d) => d.data);
   const resolved = svApplyValuePolicy(flat, {
@@ -120,6 +122,7 @@ export function resolveBarValues(
     fallback: 'clamp',
     selector,
     noun: 'bar',
+    ...wording,
   });
 
   if (resolved.error) {
@@ -188,7 +191,7 @@ export function resolveOmittedBars<P>(
     readonly noun: string;
     /** Why an omitted point cannot be drawn on this chart. */
     readonly reason: string;
-  },
+  } & Required<SvShareWording>,
 ): BarOmitPolicyResult {
   const cells = datasets.flatMap((d, si) => d.data.map((point, ci) => ({ si, ci, point })));
   const drawable = options.plottable ?? ((p: P) => svIsPlottableShare(options.value(p)));
@@ -204,6 +207,9 @@ export function resolveOmittedBars<P>(
     fallback: 'omit',
     selector: options.selector,
     noun: options.noun,
+    nounCount: options.nounCount,
+    labels: options.labels,
+    locale: options.locale,
     plottable: (v) => svIsPlottableShare(v),
     omitReason: () => options.reason,
   });

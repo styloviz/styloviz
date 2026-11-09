@@ -1,4 +1,6 @@
-import type { AnswerClaim, CitationSpan, SourceRef } from './citation-sources.types';
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { AnswerClaim, CitationSpan, SourceAccess, SourceRef } from './citation-sources.types';
+import type { SvCitationAttributionLabels, SvCitationSourcesLabels } from './citation-sources.labels';
 
 /**
  * `sv-citation-sources` — what an answer is actually resting on.
@@ -217,26 +219,28 @@ export function svPlaceCitations(
  * citations were computed — which is the actual fault, and the only thing that
  * points an integrator at their own pipeline.
  */
-export function svPlacementLabel(placements: SvCitationPlacements): string {
+export function svPlacementLabel(
+  placements: SvCitationPlacements,
+  labels: Pick<
+    SvCitationAttributionLabels,
+    'placementMissingClaims' | 'placementLost' | 'placementDrifted' | 'placementJoin' | 'placementSummary'
+  >,
+): string {
   const { unplaced, drifted } = placements;
   const missingClaims = Math.min(Math.max(placements.missingClaims ?? 0, 0), unplaced.length);
   if (unplaced.length === 0 && drifted === 0) return '';
   const parts: string[] = [];
   if (missingClaims > 0) {
-    parts.push(
-      `${missingClaims} citation${missingClaims === 1 ? '' : 's'} ${missingClaims === 1 ? 'names a claim' : 'name claims'} that ${missingClaims === 1 ? 'is' : 'are'} not in this answer`,
-    );
+    parts.push(svFormatLabel(labels.placementMissingClaims, { count: missingClaims }));
   }
   const lost = unplaced.length - missingClaims;
   if (lost > 0) {
-    parts.push(`${lost} citation${lost === 1 ? '' : 's'} could not be located in this answer`);
+    parts.push(svFormatLabel(labels.placementLost, { count: lost }));
   }
   if (drifted > 0) {
-    parts.push(
-      `${drifted} ${drifted === 1 ? 'was' : 'were'} re-anchored to ${drifted === 1 ? 'its' : 'their'} quoted text`,
-    );
+    parts.push(svFormatLabel(labels.placementDrifted, { count: drifted }));
   }
-  return `${parts.join(', and ')} — the answer was changed after the citations were computed.`;
+  return svFormatLabel(labels.placementSummary, { findings: parts.join(labels.placementJoin) });
 }
 
 /** Citations with impossible or empty ranges dropped, clipped to the answer. */
@@ -420,18 +424,16 @@ export function svRefLabel(refs: readonly number[]): string {
  * source; and 60 % with four uncited sentences is a specific, actionable
  * complaint. The words carry what the number cannot.
  */
-export function svCoverageLabel(coverage: SvCitationCoverage): string {
-  if (coverage.totalChars === 0) return 'Nothing to attribute.';
+export function svCoverageLabel(
+  coverage: SvCitationCoverage,
+  labels: Pick<SvCitationAttributionLabels, 'coverageEmpty' | 'unsourced' | 'coverageFull' | 'coveragePartial'>,
+): string {
+  if (coverage.totalChars === 0) return labels.coverageEmpty;
   if (coverage.sources === 0) {
-    return 'Nothing in this answer is attributed to a source.';
+    return labels.unsourced;
   }
-  const pct = Math.round(coverage.citedPct);
-  const src = `${coverage.sources} source${coverage.sources === 1 ? '' : 's'}`;
-  if (coverage.uncited.length === 0) {
-    return `${pct}% of this answer is attributed, across ${src}.`;
-  }
-  const n = coverage.uncited.length;
-  return `${pct}% of this answer is attributed, across ${src}. ${n} passage${n === 1 ? '' : 's'} rest${n === 1 ? 's' : ''} on nothing — those are the ones to read.`;
+  const params = { pct: String(Math.round(coverage.citedPct)), sources: coverage.sources, uncited: coverage.uncited.length };
+  return svFormatLabel(coverage.uncited.length === 0 ? labels.coverageFull : labels.coveragePartial, params);
 }
 
 // ── Link safety ──────────────────────────────────────────────────────────────
@@ -481,7 +483,8 @@ export interface SvSourceLink {
  */
 export function svSourceLink(
   url: string | undefined,
-  allowed: readonly string[] = SV_SOURCE_URL_PROTOCOLS,
+  allowed: readonly string[],
+  labels: Pick<SvCitationAttributionLabels, 'linkIncomplete' | 'linkSchemeRefused'>,
 ): SvSourceLink {
   const raw = (url ?? '').trim();
   if (raw === '') return { href: null, protocol: '', reason: '' };
@@ -493,7 +496,7 @@ export function svSourceLink(
     return {
       href: null,
       protocol: '',
-      reason: 'This source has no usable address — the link was not a complete URL.',
+      reason: labels.linkIncomplete,
     };
   }
 
@@ -503,8 +506,104 @@ export function svSourceLink(
     return {
       href: null,
       protocol,
-      reason: `This source's address uses "${protocol}", which is not linked here. Read it below and check it yourself.`,
+      reason: svFormatLabel(labels.linkSchemeRefused, { protocol }),
     };
   }
   return { href: raw, protocol, reason: '' };
+}
+
+/** How fresh a source's evidence is, ready to render (`AI-16-M3`). */
+export interface SvSourceFreshness {
+  /** ISO 8601 for `<time datetime>`, or `null` when `retrievedAt` is free text. */
+  readonly datetime: string | null;
+  /** "3 days ago" in the locale — or the free text, verbatim. */
+  readonly relative: string;
+  /** The absolute date and time in the locale, for the tooltip; `''` for free text. */
+  readonly absolute: string;
+}
+
+/** Only an ISO 8601 date (`2026-10-24…`) or epoch milliseconds count as a timestamp. */
+const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}([T ][\d:.]+)?(Z|[+-]\d{2}:?\d{2})?|\d{10,})$/;
+
+/**
+ * `retrievedAt`, as something a reader can judge.
+ *
+ * ★★★ A SOURCE RETRIEVED LAST YEAR IS EVIDENCE ABOUT LAST YEAR. The passage is
+ *     what the source said when the retriever read it; a pricing page or a
+ *     policy can have changed since, and the age is the only thing that tells
+ *     the reader whether to go and look again.
+ *
+ * ★★ FREE TEXT IS RENDERED, NOT PARSED. `Date.parse` accepts "09:41" in some
+ *    engines and refuses it in others, and a guessed date is worse than the
+ *    host's own words — so only an ISO 8601 date or epoch milliseconds becomes a
+ *    relative age; anything else is shown as given.
+ *
+ * `locale` `''` lets the runtime pick (core's convention elsewhere means plain
+ * digits, but a relative age has no locale-free form). `now` is injectable for
+ * tests and SSR snapshots.
+ */
+export function svSourceFreshness(
+  retrievedAt: string | undefined,
+  locale: string,
+  now: number = Date.now(),
+): SvSourceFreshness | null {
+  const raw = (retrievedAt ?? '').trim();
+  if (raw === '') return null;
+  const ms = TIMESTAMP.test(raw) ? (/^\d+$/.test(raw) ? Number(raw) : Date.parse(raw)) : NaN;
+  if (!Number.isFinite(ms)) return { datetime: null, relative: raw, absolute: '' };
+
+  const loc = locale || undefined;
+  const seconds = (ms - now) / 1000;
+  const abs = Math.abs(seconds);
+  const [value, unit]: [number, Intl.RelativeTimeFormatUnit] =
+    abs < 60 ? [seconds, 'second']
+    : abs < 3600 ? [seconds / 60, 'minute']
+    : abs < 86_400 ? [seconds / 3600, 'hour']
+    : abs < 86_400 * 30 ? [seconds / 86_400, 'day']
+    : abs < 86_400 * 365 ? [seconds / (86_400 * 30), 'month']
+    : [seconds / (86_400 * 365), 'year'];
+  let relative: string;
+  let absolute: string;
+  try {
+    relative = new Intl.RelativeTimeFormat(loc, { numeric: 'auto' }).format(Math.round(value), unit);
+    absolute = new Intl.DateTimeFormat(loc, { dateStyle: 'medium', timeStyle: 'short' }).format(ms);
+  } catch {
+    relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(Math.round(value), unit);
+    absolute = new Date(ms).toISOString();
+  }
+  return { datetime: new Date(ms).toISOString(), relative, absolute };
+}
+
+/** A source the reader cannot open, named (`AI-16-M4`). */
+export interface SvSourceAccessState {
+  readonly access: Exclude<SourceAccess, 'available'>;
+  /** The chip: "Paywalled", "Link dead", "No access". */
+  readonly label: string;
+  /** The sentence rendered in place of the link. */
+  readonly note: string;
+}
+
+/**
+ * Whether a source renders as a link or as a named state.
+ *
+ * ★★★ `null` MEANS "LINK IT" — including for an undeclared `access`, because a
+ *     host that has not migrated has not told us anything is wrong, and turning
+ *     every link off on upgrade would be a silent regression. An unknown value
+ *     cast in from a string is treated as `denied`: the safe reading of "the
+ *     host says something is wrong and we do not know what" is not a link.
+ */
+export function svSourceAccess(
+  source: SourceRef,
+  labels: Pick<
+    SvCitationSourcesLabels,
+    'accessPaywalled' | 'accessDead' | 'accessDenied' | 'accessPaywalledNote' | 'accessDeadNote' | 'accessDeniedNote'
+  >,
+): SvSourceAccessState | null {
+  const access = source.access ?? 'available';
+  switch (access) {
+    case 'available': return null;
+    case 'paywalled': return { access, label: labels.accessPaywalled, note: labels.accessPaywalledNote };
+    case 'dead':      return { access, label: labels.accessDead, note: labels.accessDeadNote };
+    default:          return { access: 'denied', label: labels.accessDenied, note: labels.accessDeniedNote };
+  }
 }

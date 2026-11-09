@@ -1,6 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { SvInputFieldComponent, type InputOption, type InputSize, type InputVariant } from './input-field.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { alertTriangleIcon } from '@styloviz/icons/glyph/alert-triangle';
+import { calendarIcon } from '@styloviz/icons/glyph/calendar';
+import { checkCircleIcon } from '@styloviz/icons/glyph/check-circle';
+import { mailIcon } from '@styloviz/icons/glyph/mail';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([alertTriangleIcon, calendarIcon, checkCircleIcon, mailIcon]);
 
 /**
  * Which element this renders, what sits either side of it, and which of the
@@ -15,6 +23,7 @@ import { SvInputFieldComponent, type InputOption, type InputSize, type InputVari
 async function setup(inputs: Partial<ComponentInput<SvInputFieldComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvInputFieldComponent, {
+    providers: [HOST_ICONS],
     inputs: inputs as ComponentInput<SvInputFieldComponent>,
   });
 }
@@ -379,12 +388,12 @@ describe('SvInputFieldComponent — appearance class maps', () => {
 
   it('drops the native padding on whichever side has a slot', async () => {
     const bare = await setup({});
-    expect(bare.fixture.componentInstance.nativeInputClasses()).not.toContain('pl-0');
+    expect(bare.fixture.componentInstance.nativeInputClasses()).not.toContain('ps-0');
 
     const both = await setup({ leadingAddon: '$', trailingAddon: 'USD' });
     const classes = both.fixture.componentInstance.nativeInputClasses();
-    expect(classes).toContain('pl-0');
-    expect(classes).toContain('pr-0');
+    expect(classes).toContain('ps-0');
+    expect(classes).toContain('pe-0');
   });
 
   it('gives a colour input its own box', async () => {
@@ -437,8 +446,8 @@ describe('SvInputFieldComponent — appearance class maps', () => {
     // element that consumes it is gated off. Exercise its arms directly.
     const plain = await setup({ label: 'Email' });
     const withIcon = await setup({ label: 'Email', leadingAddon: '$' });
-    expect(plain.fixture.componentInstance.floatingLabelClasses()).toContain('left-3.5');
-    expect(withIcon.fixture.componentInstance.floatingLabelClasses()).toContain('left-10');
+    expect(plain.fixture.componentInstance.floatingLabelClasses()).toContain('start-3.5');
+    expect(withIcon.fixture.componentInstance.floatingLabelClasses()).toContain('start-10');
 
     for (const state of ['error', 'success', 'warning', 'default'] as const) {
       const rest = await setup({ label: 'Email', state, value: 'x' });

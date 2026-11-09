@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `file-audio` icon. */
 export const fileAudioNodes: readonly IconNode[] = [
@@ -17,6 +18,9 @@ export const fileAudioNodes: readonly IconNode[] = [
 export const fileAudioSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm13 2.1q.4 0 .6.3l5 5q.3.2.3.6v12q0 1.9-1.9 1.9h-10q-1.9 0-1.9-1.9v-16q0-1.9 1.9-1.9zm-.6 10.9q0-.9-.9-.9-.9 0-.9.9v6q0 .9.9.9.9 0 .9-.9zm.2-9.1h-.5v4.1q0 .9.9.9h4.1v-.5l-1.2-1.3h-2v-2zm2.3 10.6q0-.9-.9-.9-.9 0-.9.9v3q0 .9.9.9.9 0 .9-.9zm-5 .5q0-.9-.9-.9-.9 0-.9.9v2q0 .9.9.9.9 0 .9-.9z' },
 ];
+
+/** `file-audio` as a registrable glyph — `registerSvIcons([fileAudioIcon])` / `provideSvIcons([fileAudioIcon])`. */
+export const fileAudioIcon: SvIconDef = { name: 'file-audio', nodes: fileAudioNodes, solid: fileAudioSolidNodes };
 
 /** `file-audio` — tree-shakable standalone icon. Use `<sv-file-audio-icon />`. */
 @Component({

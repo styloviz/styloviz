@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `mail` icon. */
 export const mailNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const mailNodes: readonly IconNode[] = [
 export const mailSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 4.1h14q2.9 0 2.9 2.9v10q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-10q0-2.9 2.9-2.9zm-.5 2.2q-.1-.1-.3-.2-.3.3-.3.9v1l7.6 5.7q.5.4 1 0l7.6-5.7v-1q0-.6-.3-.9-.2.1-.3.2l-7.5 5.6z' },
 ];
+
+/** `mail` as a registrable glyph — `registerSvIcons([mailIcon])` / `provideSvIcons([mailIcon])`. */
+export const mailIcon: SvIconDef = { name: 'mail', nodes: mailNodes, solid: mailSolidNodes };
 
 /** `mail` — tree-shakable standalone icon. Use `<sv-mail-icon />`. */
 @Component({

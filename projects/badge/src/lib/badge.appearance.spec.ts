@@ -81,10 +81,10 @@ describe('SvBadgeComponent — shape', () => {
 describe('SvBadgeComponent — dismiss control colour', () => {
   /**
    * On a filled badge the background is the variant colour, so a variant-coloured
-   * dismiss glyph would be invisible against it. The filled arm is the only
-   * place that ignores `variant` entirely.
+   * dismiss glyph would be invisible against it. The filled arm uses white on
+   * the dark fills and dark ink only on the light (amber) one.
    */
-  it('uses white-on-fill for the dismiss glyph in filled style, ignoring variant', async () => {
+  it('uses white-on-fill for the dismiss glyph in filled style on a dark fill', async () => {
     const { fixture } = await setup({
       label: 'Filter',
       dismissible: true,
@@ -92,7 +92,7 @@ describe('SvBadgeComponent — dismiss control colour', () => {
       variant: 'danger',
     });
     const btn = root(fixture).querySelector('button') as HTMLElement;
-    expect(btn.className).toContain('text-white/70');
+    expect(btn.className).toContain('text-white/80');
     expect(btn.className).not.toContain('text-danger-500');
   });
 
@@ -105,7 +105,19 @@ describe('SvBadgeComponent — dismiss control colour', () => {
     });
     const btn = root(fixture).querySelector('button') as HTMLElement;
     expect(btn.className).toContain('text-danger-500');
-    expect(btn.className).not.toContain('text-white/70');
+    expect(btn.className).not.toContain('text-white/80');
+  });
+
+  it('uses dark ink for the dismiss glyph on the light amber filled fill', async () => {
+    const { fixture } = await setup({
+      label: 'Filter',
+      dismissible: true,
+      badgeStyle: 'filled',
+      variant: 'warning',
+    });
+    const btn = root(fixture).querySelector('button') as HTMLElement;
+    expect(btn.className).toContain('text-gray-900/70');
+    expect(btn.className).not.toContain('text-white/80');
   });
 
   it('names the dismiss control from the aria-label when there is no visible label', async () => {

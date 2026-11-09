@@ -12,23 +12,20 @@ import {
   signal,
   untracked,
 } from '@angular/core';
+import { svUniqueId, svIsRtl, SvLiveAnnouncer } from '@styloviz/core/a11y';
 import {
   SvErrorShellComponent,
   SvSkeletonShellComponent,
-  createCloseGuard,
-  svAttrSelector,
-  svNavParam,
-  svNavRecorder,
-  svRecoverFocus,
-  svWarnOnce,
   svWarnRestoreRefused,
-  svUniqueId,
-  type SvCloseReason,
   type SvDataError,
-  type SvNavIntent,
   type SvUnresolvedValue,
   svLocalStorage,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svNavParam, svNavRecorder, type SvNavIntent } from '@styloviz/core/nav';
+import { createCloseGuard, svRecoverFocus, type SvCloseReason } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
 import {
   svRestoreStepperResume,
   svSerializeStepperResume,
@@ -47,12 +44,14 @@ import {
 const SELECTOR = 'sv-stepper';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_STEPPER_LABELS } from './stepper-free.labels';
 
+import { registerStepperIcons } from './stepper.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type StepperOrientation = 'horizontal' | 'vertical';
-export type StepperVariant = 'default' | 'pill' | 'minimal' | 'icon' | 'dot' | 'line' | 'tracker';
-export type StepperSize = 'sm' | 'md' | 'lg';
+export type StepperVariant = 'default' | 'pill' | 'minimal' | 'icon' | 'dot' | 'line' | 'tracker' | 'card' | 'progress-bar';
+export type StepperSize = 'xs' | 'sm' | 'md' | 'lg';
 export type StepperMode = 'standard' | 'branch';
 
 /**
@@ -266,14 +265,38 @@ interface NormalizedStep {
   lifecycle: StepperStepLifecycle;
 }
 
+/**
+ * One step as the `card` and `progress-bar` variants draw it (`SR-37`) —
+ * every class and flag decided once per change in `stepViews`, not once per
+ * step per check in the template.
+ */
+interface StepperStepView {
+  readonly step: NormalizedStep;
+  readonly current: boolean;
+  readonly clickable: boolean;
+  readonly tabIndex: number;
+  readonly indicator: string;
+  readonly label: string;
+  readonly description: string;
+  readonly showIcon: boolean;
+  readonly icon: string;
+  readonly text: string;
+  readonly badge: string;
+  readonly name: string | null;
+  readonly card: string;
+  readonly segment: string;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
  * Stepper — multi-step progress and workflow navigation component.
  *
  * Features:
- * - 7 variants: six wizard styles (default, pill, minimal, icon, dot, line)
- *   plus `tracker`, a non-interactive progress display — see {@link variant}
+ * - 9 variants: eight wizard styles (default, pill, minimal, icon, dot, line,
+ *   card, progress-bar) plus `tracker`, a non-interactive progress display —
+ *   see {@link variant}
+ * - Four sizes, `xs` to `lg`
  * - Horizontal and vertical orientation
  * - Branch mode for conditional workflows (`mode="branch"`, `activeBranch`)
  * - Validation states: complete, current, warning, error, disabled
@@ -316,6 +339,15 @@ export interface StepperChangeRequest {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvStepperComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerStepperIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ stepper })` says otherwise. */
+  protected readonly labels = injectSvLabels('stepper', SV_STEPPER_LABELS);
+  /** The kit's locale — fills the optional step's composed name. */
+  private readonly locale = svLocale();
+  private readonly announcer = inject(SvLiveAnnouncer);
+
   /** Per-instance suffix for every id this component puts in the document. */
   /*
    * ★ `svUniqueId`, not a module-level counter — `X-10` / `T0-2`.
@@ -363,6 +395,10 @@ export class SvStepperComponent {
    * nothing in it can be clicked, focused or arrowed through and `stepClick` /
    * `stepChangeRequest` never fire from it.
    *
+   * `'card'` boxes each step (indicator, title, description) and stacks them on
+   * a phone; `'progress-bar'` is a segmented bar under the current step's label,
+   * for a narrow screen — both are wizard styles.
+   *
    * ★ Two axes share this one input — look and interactivity. Choose `tracker`
    *   to show where something IS, not to let the user move it; for a wizard's
    *   look without its navigation, keep a wizard style and set
@@ -371,8 +407,15 @@ export class SvStepperComponent {
    * @default 'default'
    */
   variant = input<StepperVariant>('default');
-  /** Step size: sm, md or lg. @default 'md' */
+  /** Step size: xs (a table row or a toolbar), sm, md or lg. @default 'md' */
   size = input<StepperSize>('md');
+
+  /**
+   * The position text the `progress-bar` variant shows — `{current}`
+   * and `{total}` are filled in. Translate it here.
+   * @default 'Step {current} of {total}'
+   */
+  progressLabel = input<string>(this.labels.progress);
   /** Navigation mode: standard sequence, or branch (conditional paths via `activeBranch`). @default 'standard' */
   mode = input<StepperMode>('standard');
 
@@ -388,6 +431,25 @@ export class SvStepperComponent {
 
   /** Enables advanced keyboard shortcuts for rapid step navigation. */
   enableHotkeys = input<boolean>(false);
+
+  /*
+   * ── Rationale, deliberately NOT a JSDoc (FL-J3-NV-05, `NV-05-I4`) ───────────
+   * `stepBlocked` carried a reason and nothing said it: a screen-reader user's
+   * Next did nothing, silently. The refusal is now spoken through the kit's
+   * one live region (`SvLiveAnnouncer`) — the step it refused and why, from
+   * this component's labels for the built-in reasons, or the host's own text
+   * when `deny('…')` passed one. A host that moves focus to its own error
+   * summary on `(stepBlocked)` — which a screen reader then reads — can turn
+   * this off so the reader is not told twice.
+   */
+
+  /**
+   * Announce a refused move (and why) to screen readers through the shared live
+   * region. Turn it off when the host already moves focus to its own message on
+   * `(stepBlocked)`.
+   * @default true
+   */
+  announceBlocked = input<boolean>(true);
 
 
   /** Active branch key used in `mode='branch'`. Supports two-way binding. */
@@ -510,9 +572,8 @@ export class SvStepperComponent {
    * What returning to an earlier step does to the steps after it. See
    * {@link StepperRevisitPolicy}.
    *
-   * ★ `'preserve'` IS TODAY'S BEHAVIOUR, and that is why it is the default:
-   *   before this input there was no defined effect at all, so anything else
-   *   would start invalidating work in wizards that never asked for it.
+   * The default, `'preserve'`, invalidates nothing, so a wizard only loses
+   * completed steps when it asks for that.
    *
    * @default 'preserve' — a revisit invalidates nothing
    */
@@ -536,12 +597,10 @@ export class SvStepperComponent {
   /**
    * Is there unsaved work in the step the user is on?
    *
-   * ★★★ `NV-05-I8`: A WIZARD STEP'S FORM COULD BE ABANDONED BY ONE CLICK ON
-   *     ANOTHER STEP, with no warning and no undo. Set this and the stepper
-   *     ASKS instead of moving — from `createCloseGuard`, the same primitive
-   *     Modal, Drawer and Confirm Dialog use, so the prompt behaves identically
-   *     in all four and the order of the questions is decided once (`X-11`,
-   *     `docs/close-policy-adr.md`).
+   * Set this and a click on another step asks before leaving, instead of
+   * abandoning the step's form with no warning and no undo. The prompt comes
+   * from `createCloseGuard`, the same primitive Modal, Drawer and Confirm
+   * Dialog use, so it behaves identically in all four.
    *
    * @default false
    */
@@ -567,16 +626,16 @@ export class SvStepperComponent {
   showUnsavedPrompt = input<boolean>(true);
 
   /** Heading of the unsaved-changes prompt. */
-  unsavedTitle = input<string>('Leave this step?');
+  unsavedTitle = input<string>(this.labels.unsavedTitle);
 
   /** Body of the unsaved-changes prompt. */
-  unsavedMessage = input<string>('This step has changes that have not been saved.');
+  unsavedMessage = input<string>(this.labels.unsavedMessage);
 
   /** Label of the button that leaves and loses the changes. */
-  discardLabel = input<string>('Discard');
+  discardLabel = input<string>(this.labels.discard);
 
   /** Label of the button that stays on the step. */
-  keepEditingLabel = input<string>('Keep editing');
+  keepEditingLabel = input<string>(this.labels.keepEditing);
 
   // ── Loading the definition ──────────────────────────────────────────────────
 
@@ -654,7 +713,7 @@ export class SvStepperComponent {
     readonly to: StepperStepLifecycle;
   }>();
 
-  /** The revisit policy says these steps are no longer done. See {@link StepperInvalidationEvent}. */
+  /** The revisit policy has marked these steps not done. See {@link StepperInvalidationEvent}. */
   stepsInvalidated = output<StepperInvalidationEvent>();
 
   /** `complete` and `valid`, reported separately — see {@link StepperFlowStatus}. */
@@ -895,7 +954,7 @@ export class SvStepperComponent {
       const blob = this.readStoredJson(key);
       if (blob === null) return;
 
-      const restored = svRestoreStepperResume(blob);
+      const restored = svRestoreStepperResume(blob, this.labels);
       if (!restored.ok) {
         // A restore that silently falls back to defaults is right for the user
         // and indistinguishable, during development, from one never wired up.
@@ -1126,6 +1185,29 @@ export class SvStepperComponent {
     return null;
   }
 
+  /**
+   * FL-J3-NV-05: say that a move was refused, and why. A built-in reason is
+   * this component's label; any other reason is the host's own text (from
+   * `deny('…')`) and is spoken as given. `force`, because a second press of the
+   * same refused step is a second question that deserves an answer.
+   */
+  private announceRefusal(step: StepperItem, reason: StepperBlockReason): void {
+    if (!this.announceBlocked()) return;
+    this.announcer.announce(
+      svFormatLabel(this.labels.stepBlocked, { label: step.label, reason: this.blockedReasonText(reason) }, this.locale),
+      { force: true },
+    );
+  }
+
+  /** The spoken reason for a refusal — see {@link announceRefusal}. */
+  blockedReasonText(reason: StepperBlockReason): string {
+    switch (reason) {
+      case 'disabled': return this.labels.blockedDisabled;
+      case 'validation': return this.labels.blockedValidation;
+      default: return reason;
+    }
+  }
+
   onSelect(step: NormalizedStep): void {
     // A second click while the server is still validating would start a
     // parallel request and make the outcome undefined.
@@ -1147,6 +1229,7 @@ export class SvStepperComponent {
     const reason = this.blockReason(step);
     if (reason) {
       this.stepBlocked.emit({ index: step.index, step: step.item, reason });
+      this.announceRefusal(step.item, reason);
       // ★★ A refusal leaves no other trace anywhere. The user pressed a step,
       //    nothing moved, and no page view was recorded — so a wizard whose
       //    gate is misconfigured is invisible to conventional analytics. This
@@ -1191,6 +1274,7 @@ export class SvStepperComponent {
           settled = true;
           const refused: StepperBlockReason = reason ?? 'validation';
           this.stepBlocked.emit({ index: step.index, step: step.item, reason: refused });
+          this.announceRefusal(step.item, refused);
           this.recordNav('blocked', step, refused);
         },
       });
@@ -1340,8 +1424,8 @@ export class SvStepperComponent {
   private focusBeforePrompt: HTMLElement | null = null;
 
   /** Per-instance ids so two steppers on one page do not share a prompt label. */
-  readonly unsavedTitleId = `stepper-unsaved-title-${this._uid}`;
-  readonly unsavedMessageId = `stepper-unsaved-message-${this._uid}`;
+  readonly unsavedTitleId = `stepper-unsaved-title-${this._uid}`; // sv-i18n-ignore: DOM id
+  readonly unsavedMessageId = `stepper-unsaved-message-${this._uid}`; // sv-i18n-ignore: DOM id
 
   /**
    * May the user leave the step they are on? `false` means either the host
@@ -1499,7 +1583,7 @@ export class SvStepperComponent {
 
   /** The id of the step whose button holds focus, or `null`. */
   private focusedStepId(): string | null {
-    const prefix = `stepper-item-${this._uid}-`;
+    const prefix = `stepper-item-${this._uid}-`; // sv-i18n-ignore: DOM id
     const id = this.activeElement()?.id ?? '';
     return id.startsWith(prefix) ? id.slice(prefix.length) : null;
   }
@@ -1554,13 +1638,19 @@ export class SvStepperComponent {
     }
 
     const isVertical = this.orientation() === 'vertical';
+    // FL-J3-NV-01: a horizontal row mirrors under `dir="rtl"`, so the arrow
+    // that points at the NEXT step is ArrowLeft. Read from the host so a
+    // `dir="rtl"` ancestor (or a stylesheet `direction`) is followed.
+    const rtl = !isVertical && svIsRtl(this._host.nativeElement as HTMLElement);
+    const forwardKey = isVertical ? 'ArrowDown' : rtl ? 'ArrowLeft' : 'ArrowRight';
+    const backKey = isVertical ? 'ArrowUp' : rtl ? 'ArrowRight' : 'ArrowLeft';
     let target: NormalizedStep | undefined;
 
-    if ((isVertical && key === 'ArrowDown') || (!isVertical && key === 'ArrowRight')) {
+    if (key === forwardKey) {
       target = list[Math.min(list.length - 1, step.index + 1)];
     }
 
-    if ((isVertical && key === 'ArrowUp') || (!isVertical && key === 'ArrowLeft')) {
+    if (key === backKey) {
       target = list[Math.max(0, step.index - 1)];
     }
 
@@ -1574,6 +1664,98 @@ export class SvStepperComponent {
     }
   }
 
+  // ── Card and progress-bar (`SR-37`) ───────────────────────────────────────
+
+  /** The steps as the card and progress-bar variants draw them. */
+  readonly stepViews = computed<readonly StepperStepView[]>(() =>
+    this.normalizedSteps().map((step) => ({
+      step,
+      current: step.index === this.clampedActiveIndex(),
+      clickable: this.isClickable(step),
+      tabIndex: step.index === this.clampedActiveIndex() ? 0 : -1,
+      indicator: this.indicatorClass(step),
+      label: this.labelClass(step),
+      description: this.descriptionClass(step),
+      showIcon: this.shouldShowIcon(step),
+      icon: this.stepIconName(step),
+      text: this.shouldShowText(step) ? this.indicatorText(step) : '',
+      badge: this.shouldShowBadge(step) ? this.badgeText(step) : '',
+      name: this.stepAriaLabel(step),
+      card: this.cardClass(step),
+      segment: this.segmentClass(step),
+    })));
+
+  /** The current step's view, for the progress bar's heading. */
+  readonly currentView = computed<StepperStepView | null>(() =>
+    this.stepViews().find((v) => v.current) ?? null);
+
+  /** `progressLabel` with `{current}` and `{total}` filled in. */
+  readonly progressText = computed(() => {
+    const total = this.normalizedSteps().length;
+    const current = total ? this.clampedActiveIndex() + 1 : 0;
+    return this.progressLabel()
+      .replace(/\{current\}/g, String(current))
+      .replace(/\{total\}/g, String(total));
+  });
+
+  /** Id of the progress bar's heading, which names its list of segments. */
+  readonly progressHeadingId = `stepper-progress-${this._uid}`; // sv-i18n-ignore: DOM id
+
+  /** The `card` variant's grid: stacked on a phone, one row of cards from `sm` up. */
+  readonly cardGridClass = computed(() =>
+    this.orientation() === 'vertical'
+      ? 'grid grid-cols-1 gap-2'
+      : 'grid grid-cols-1 gap-2 sm:auto-cols-fr sm:grid-flow-col sm:gap-3');
+
+  /** Height of a progress-bar segment. */
+  readonly segmentSizeClass = computed(() => {
+    const size = this.size();
+    return size === 'lg' ? 'h-2' : size === 'md' ? 'h-1.5' : 'h-1';
+  });
+
+  /** Padding of a card: tighter for the small sizes. */
+  readonly cardPadClass = computed(() => {
+    const size = this.size();
+    return size === 'xs' ? 'gap-2 p-2' : size === 'sm' ? 'gap-2.5 p-2.5' : size === 'lg' ? 'gap-3.5 p-4' : 'gap-3 p-3';
+  });
+
+  /**
+   * A card's border and fill by state. ★ The current card is told apart by its
+   * border AND a bottom bar, never by colour alone.
+   */
+  cardClass(step: NormalizedStep): string {
+    switch (step.state) {
+      case 'current':
+        return 'border-primary-300 bg-primary-50/60 dark:border-primary-500/60 dark:bg-primary-500/10';
+      case 'error':
+        return 'border-danger-200 bg-white dark:border-danger-500/40 dark:bg-gray-900';
+      case 'warning':
+        return 'border-warning-300 bg-white dark:border-warning-500/40 dark:bg-gray-900';
+      case 'complete':
+        return 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-gray-600';
+      default:
+        return 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900/60';
+    }
+  }
+
+  /** A progress-bar segment's fill by state. */
+  segmentClass(step: NormalizedStep): string {
+    switch (step.state) {
+      case 'complete':
+        return 'bg-accent-600 dark:bg-accent-500';
+      case 'current':
+        return 'bg-primary-600 dark:bg-primary-500';
+      case 'error':
+        return 'bg-danger-600 dark:bg-danger-500';
+      case 'warning':
+        return 'bg-warning-500';
+      case 'skipped':
+        return 'bg-gray-400 dark:bg-gray-500';
+      default:
+        return 'bg-gray-200 dark:bg-gray-700';
+    }
+  }
+
   // ── Class helpers ─────────────────────────────────────────────────────────
 
   indicatorClass(step: NormalizedStep): string {
@@ -1581,7 +1763,7 @@ export class SvStepperComponent {
     const variant = this.variant();
 
     const base = [
-      'inline-flex shrink-0 items-center justify-center font-semibold transition-colors duration-200',
+      'inline-flex shrink-0 items-center justify-center font-semibold leading-none transition-colors duration-200',
       size,
       this.shapeClass(variant),
     ];
@@ -1642,17 +1824,15 @@ export class SvStepperComponent {
     return this.variant() === 'line' ? 'h-1' : 'h-px';
   }
 
-  verticalRowPaddingClass(): string {
-    if (this.size() === 'sm') return 'pl-11';
-    if (this.size() === 'lg') return 'pl-16';
-    return 'pl-14';
-  }
-
   verticalConnectorLayoutClass(): string {
-    const width = this.variant() === 'line' ? 'w-1' : 'w-0.5';
-    if (this.size() === 'sm') return `left-[13px] top-7 h-[calc(100%-1rem)] ${width}`;
-    if (this.size() === 'lg') return `left-[19px] top-10 h-[calc(100%-1.35rem)] ${width}`;
-    return `left-[15px] top-8 h-[calc(100%-1.15rem)] ${width}`;
+    // ★ The rail's CENTRE sits on the indicator's: `line`'s 4px rail starts a
+    //   pixel further left than the 2px hairline (`SR-37` — it was 1px right).
+    const line = this.variant() === 'line';
+    const width = line ? 'w-1' : 'w-0.5';
+    if (this.size() === 'xs') return `${line ? 'start-[10px]' : 'start-[11px]'} top-6 h-[calc(100%-0.85rem)] ${width}`;
+    if (this.size() === 'sm') return `${line ? 'start-[12px]' : 'start-[13px]'} top-7 h-[calc(100%-1rem)] ${width}`;
+    if (this.size() === 'lg') return `${line ? 'start-[18px]' : 'start-[19px]'} top-10 h-[calc(100%-1.35rem)] ${width}`;
+    return `${line ? 'start-[14px]' : 'start-[15px]'} top-8 h-[calc(100%-1.15rem)] ${width}`;
   }
 
   /**
@@ -1670,8 +1850,11 @@ export class SvStepperComponent {
    *    papering over all of them.
    */
   stepAriaLabel(step: NormalizedStep): string | null {
-    if (this.variant() !== 'dot') return null;
-    return step.item.optional ? `${step.item.label} (optional)` : step.item.label;
+    // ★ A progress-bar segment is a bar and nothing else — same gap (`SR-37`).
+    if (this.variant() !== 'dot' && this.variant() !== 'progress-bar') return null;
+    return step.item.optional
+      ? svFormatLabel(this.labels.optionalStepName, { label: step.item.label }, this.locale)
+      : step.item.label;
   }
 
   labelClass(step: NormalizedStep): string {
@@ -1728,27 +1911,48 @@ export class SvStepperComponent {
     }
   }
 
+  /**
+   * Glyph size inside the indicator, in px (`SR-09`).
+   *
+   * ★★ AN ABSOLUTE SIZE, NOT A PERCENTAGE. This used to be `h-[65%] w-[65%]`
+   *    on the `<svg>`, but `cssClass` lands inside `<sv-icon>`, whose host is
+   *    sized by its content — so 65 % resolved against the icon's own 20 px
+   *    (13 px), not the circle, and the glyph sat 3 px left of centre in every
+   *    variant. Each size is ~half the indicator it sits in (see
+   *    `indicatorSizeClass`).
+   */
+  readonly indicatorIconPx = computed<number>(() => {
+    const size = this.size();
+    const variant = this.variant();
+    if (variant === 'dot' || variant === 'minimal') {
+      return size === 'xs' ? 6 : size === 'sm' ? 7 : size === 'lg' ? 10 : 8;
+    }
+    return size === 'xs' ? 12 : size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
+  });
+
   private indicatorSizeClass(): string {
     const size = this.size();
     const variant = this.variant();
 
     if (variant === 'dot' || variant === 'minimal') {
-      return size === 'sm' ? 'h-2.5 w-2.5' : size === 'lg' ? 'h-4 w-4' : 'h-3 w-3';
+      return size === 'xs' ? 'h-2 w-2' : size === 'sm' ? 'h-2.5 w-2.5' : size === 'lg' ? 'h-4 w-4' : 'h-3 w-3';
     }
 
     if (variant === 'pill') {
-      return size === 'sm' ? 'h-7 min-w-7 text-xs' : size === 'lg' ? 'h-10 min-w-10 text-base' : 'h-8 min-w-8 text-sm';
+      return size === 'xs' ? 'h-6 min-w-6 px-2 text-[11px]' : size === 'sm' ? 'h-7 min-w-7 text-xs' : size === 'lg' ? 'h-10 min-w-10 text-base' : 'h-8 min-w-8 text-sm';
     }
 
-    return size === 'sm' ? 'h-7 w-7 text-xs' : size === 'lg' ? 'h-10 w-10 text-base' : 'h-8 w-8 text-sm';
+    return size === 'xs' ? 'h-6 w-6 text-[11px]' : size === 'sm' ? 'h-7 w-7 text-xs' : size === 'lg' ? 'h-10 w-10 text-base' : 'h-8 w-8 text-sm';
   }
 
   private labelSizeClass(): string {
-    return this.size() === 'sm' ? 'text-xs' : this.size() === 'lg' ? 'text-base' : 'text-sm';
+    const size = this.size();
+    return size === 'xs' || size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm';
   }
 
   private descriptionSizeClass(): string {
-    return this.size() === 'sm' ? 'text-[11px]' : 'text-xs';
+    const size = this.size();
+    return size === 'xs' || size === 'sm' ? 'text-[11px]' : 'text-xs';
   }
 
   // ── Icon/text helpers ─────────────────────────────────────────────────────
@@ -1764,7 +1968,7 @@ export class SvStepperComponent {
       step.state === 'warning' ||
       step.state === 'skipped'
     ) return true;
-    return this.variant() === 'icon' && !!step.item.icon;
+    return (this.variant() === 'icon' || this.variant() === 'card') && !!step.item.icon;
   }
 
   /**

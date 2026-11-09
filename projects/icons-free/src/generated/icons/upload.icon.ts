@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `upload` icon. */
 export const uploadNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const uploadNodes: readonly IconNode[] = [
 export const uploadSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm11.1 15v-8.9l-3.5 3.5q-.6.6-1.2 0-.3-.3-.3-.6 0-.3.3-.6l4.8-4.8q.1-.3.5-.4.1-.1.3-.1.2 0 .3.1.4.1.5.4l4.8 4.8q.3.3.3.6 0 .3-.3.6-.6.6-1.2 0l-3.5-3.5v8.9q0 .9-.9.9-.9 0-.9-.9zm-5.2 2v2q0 .1.1.1h12q.1 0 .1-.1v-2q0-.9.9-.9.9 0 .9.9v2q0 1.9-1.9 1.9h-12q-1.9 0-1.9-1.9v-2q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `upload` as a registrable glyph — `registerSvIcons([uploadIcon])` / `provideSvIcons([uploadIcon])`. */
+export const uploadIcon: SvIconDef = { name: 'upload', nodes: uploadNodes, solid: uploadSolidNodes };
 
 /** `upload` — tree-shakable standalone icon. Use `<sv-upload-icon />`. */
 @Component({

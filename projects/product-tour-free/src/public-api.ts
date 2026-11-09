@@ -1,6 +1,5 @@
 export { SvProductTourComponent } from './lib/product-tour.component';
 export type {
-  TourVariant,
   TourPlacement,
   TourStep,
   TourRouteRequest,
@@ -19,3 +18,8 @@ export type {
   SvTourProgressRestored,
   SvTourSchemaStale,
 } from './lib/product-tour.progress';
+export { SV_PRODUCT_TOUR_LABELS } from './lib/product-tour-free.labels';
+export type { SvProductTourLabels } from './lib/product-tour-free.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/product-tour-free.labels.packs';

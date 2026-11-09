@@ -31,6 +31,9 @@
       "@styloviz/affix": [
         "./projects/affix/src/public-api.ts"
       ],
+      "@styloviz/ai": [
+        "./projects/ai/src/public-api.ts"
+      ],
       "@styloviz/ai-insight-cards": [
         "./projects/ai-insight-cards/src/public-api.ts"
       ],
@@ -67,8 +70,14 @@
       "@styloviz/commerce": [
         "./projects/commerce/src/public-api.ts"
       ],
+      "@styloviz/cookie-consent": [
+        "./projects/cookie-consent/src/public-api.ts"
+      ],
       "@styloviz/core": [
         "./projects/core/src/public-api.ts"
+      ],
+      "@styloviz/core/*": [
+        "./projects/core/*/public-api.ts"
       ],
       "@styloviz/data": [
         "./projects/data/src/public-api.ts"
@@ -89,7 +98,13 @@
         "./projects/forms/src/public-api.ts"
       ],
       "@styloviz/icons": [
-        "./projects/icons-free/src/public-api.ts"
+        "./projects/icons-free/src/api.ts"
+      ],
+      "@styloviz/icons/glyph/*": [
+        "./projects/icons-free/src/generated/icons/*.icon.ts"
+      ],
+      "@styloviz/icons/registry": [
+        "./projects/icons-free/src/generated/registry.ts"
       ],
       "@styloviz/image-compare": [
         "./projects/image-compare/src/public-api.ts"
@@ -189,8 +204,10 @@
     "strictInputAccessModifiers": true,
     "strictTemplates": true,
     "extendedDiagnostics": {
+      "defaultCategory": "error",
       "checks": {
-        "interpolatedSignalNotInvoked": "error"
+        "nullishCoalescingNotNullable": "suppress",
+        "optionalChainNotNullable": "suppress"
       }
     }
   }

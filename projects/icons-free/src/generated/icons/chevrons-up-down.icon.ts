@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `chevrons-up-down` icon. */
 export const chevronsUpDownNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const chevronsUpDownNodes: readonly IconNode[] = [
 export const chevronsUpDownSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7.6 14.4l4.4 4.4 4.4-4.4q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6l-5 5q-.6.6-1.2 0l-5-5q-.3-.3-.3-.6 0-.3.3-.6.6-.6 1.2 0zm-1.2-6l5-5q.3-.3.6-.3.3 0 .6.3l5 5q.3.3.3.6 0 .3-.3.6-.6.6-1.2 0l-4.4-4.4-4.4 4.4q-.6.6-1.2 0-.3-.3-.3-.6 0-.3.3-.6z' },
 ];
+
+/** `chevrons-up-down` as a registrable glyph — `registerSvIcons([chevronsUpDownIcon])` / `provideSvIcons([chevronsUpDownIcon])`. */
+export const chevronsUpDownIcon: SvIconDef = { name: 'chevrons-up-down', nodes: chevronsUpDownNodes, solid: chevronsUpDownSolidNodes };
 
 /** `chevrons-up-down` — tree-shakable standalone icon. Use `<sv-chevrons-up-down-icon />`. */
 @Component({

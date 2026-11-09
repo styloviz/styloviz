@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { SvOverlayRouteService, SvOverlayStackService, svResetBodyScrollLock } from '@styloviz/core';
+import { SvOverlayRouteService, SvOverlayStackService, svResetBodyScrollLock } from '@styloviz/core/overlay';
 import { SvModalComponent, type ModalCloseReason } from './modal.component';
 import { SvModalRef, SvModalService } from './modal.service';
 import { until } from '../../../../src/testing/async';

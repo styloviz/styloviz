@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `moon` icon. */
 export const moonNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const moonNodes: readonly IconNode[] = [
 export const moonSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M20 13 A8 8 0 1 1 11 4 A6 6 0 0 0 20 13 Z' },
 ];
+
+/** `moon` as a registrable glyph — `registerSvIcons([moonIcon])` / `provideSvIcons([moonIcon])`. */
+export const moonIcon: SvIconDef = { name: 'moon', nodes: moonNodes, solid: moonSolidNodes };
 
 /** `moon` — tree-shakable standalone icon. Use `<sv-moon-icon />`. */
 @Component({

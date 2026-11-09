@@ -33,7 +33,7 @@ const backdrop = () => panel().parentElement!;
 afterEach(() => {
   document.querySelectorAll('[data-sv-modal-portal]').forEach((n) => n.remove());
   document.body.style.overflow = '';
-  document.body.style.paddingRight = '';
+  document.body.style.paddingInlineEnd = '';
 });
 
 describe('SvModalComponent — size and position', () => {

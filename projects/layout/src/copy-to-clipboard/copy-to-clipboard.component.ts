@@ -10,13 +10,12 @@ import {
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  injectSvSensitivePrivacy,
-  svMaskTail,
-  type SvSensitiveCopyEvent,
-} from '@styloviz/core';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { injectSvSensitivePrivacy, svMaskTail, type SvSensitiveCopyEvent } from '@styloviz/core/security';
 import { SV_CLIPBOARD, SvClipboardError, type SvClipboardFailureReason } from './clipboard.adapter';
+import { SV_LAYOUT_LABELS } from '../layout.labels';
 
+import { registerCopyToClipboardIcons } from './copy-to-clipboard.component.icons';
 /** Default for `copyTimeout`: a write still pending after this long is abandoned. */
 export const SV_COPY_TIMEOUT_MS = 10_000;
 
@@ -63,8 +62,22 @@ export type CopySensitiveReveal = 'masked' | 'revealable' | 'visible';
   imports: [SvIconComponent, NgClass, NgTemplateOutlet],
   templateUrl: './copy-to-clipboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    // The block variant FILLS the width it is given and never sets it: a block
+    // host that grows in a flex row, shrinkable, never wider than its parent.
+    '[class.block]': 'isBlock()', // sv-i18n-ignore: Angular host-binding key/expression
+    '[class.min-w-0]': 'isBlock()', // sv-i18n-ignore: Angular host-binding key/expression
+    '[class.max-w-full]': 'isBlock()', // sv-i18n-ignore: Angular host-binding key/expression
+    '[class.grow]': 'isBlock()', // sv-i18n-ignore: Angular host-binding key/expression
+  },
 })
 export class SvCopyToClipboardComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerCopyToClipboardIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ layout })` says otherwise. */
+  protected readonly labels = injectSvLabels('layout', SV_LAYOUT_LABELS);
+
   private readonly clipboard = inject(SV_CLIPBOARD);
   readonly #sessionPrivacy = injectSvSensitivePrivacy();
 
@@ -74,13 +87,15 @@ export class SvCopyToClipboardComponent implements OnDestroy {
   text = input<string>('');
 
   /** Label shown after successful copy. @default 'Copied!' */
-  successLabel = input<string>('Copied!');
+  successLabel = input<string>(this.labels.copied);
 
   /** Duration in ms before reverting to default state. @default 2000 */
   successDuration = input<number>(2000);
 
   /** Display variant. @default 'inline' */
   variant = input<CopyVariant>('inline');
+  /** The block variant fills its parent's width; see the host bindings. */
+  protected readonly isBlock = computed(() => this.variant() === 'block');
 
   /** Component size. @default 'md' */
   size = input<CopySize>('md');
@@ -93,7 +108,7 @@ export class SvCopyToClipboardComponent implements OnDestroy {
    * `label`, which may be the (sensitive) value itself.
    * @default 'Copy to clipboard'
    */
-  ariaLabel = input<string>('Copy to clipboard');
+  ariaLabel = input<string>(this.labels.copyToClipboard);
 
   /**
    * Treat the value as a secret — an API key, a recovery code, a token.
@@ -113,7 +128,7 @@ export class SvCopyToClipboardComponent implements OnDestroy {
   sensitiveField = input<string>('value');
 
   /** Announced (and shown in the block variant) after a sensitive copy. @default 'Copied. This value is secret — do not paste it anywhere shared.' */
-  sensitiveWarning = input<string>('Copied. This value is secret — do not paste it anywhere shared.');
+  sensitiveWarning = input<string>(this.labels.copiedSensitive);
 
   /**
    * Whether revealing a `sensitiveReveal="revealable"` value needs the host's
@@ -221,10 +236,10 @@ export class SvCopyToClipboardComponent implements OnDestroy {
   /** What the live region says after a failed copy — specific enough to act on. */
   readonly failureMessage = computed(() => {
     switch (this.failureReason()) {
-      case 'denied': return 'Copy blocked by the browser. Select the text and copy it manually.';
-      case 'insecure-context': return 'Copying needs a secure (HTTPS) page. Select the text and copy it manually.';
-      case 'unavailable': return 'Clipboard unavailable. Select the text and copy it manually.';
-      case 'failed': return 'Copy failed';
+      case 'denied': return this.labels.copyDenied;
+      case 'insecure-context': return this.labels.copyInsecureContext;
+      case 'unavailable': return this.labels.copyUnavailable;
+      case 'failed': return this.labels.copyFailed;
       default: return '';
     }
   });

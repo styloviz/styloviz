@@ -1,8 +1,10 @@
 # @styloviz/phone-input
 
-> A phone number field with a country selector (local flag assets, no remote images) that drives @styloviz/forms' sv-input-mask phone-us/phone-intl presets. Ships alongside sv-phone-flag, the picker's standalone flag-glyph component.
+> A phone number field with a country selector (local flag assets, no remote images) that drives @styloviz/forms' sv-input-mask with a per-country mask for the national number — the country code stays in the picker. Ships alongside sv-phone-flag, the picker's standalone flag-glyph component.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -59,10 +61,18 @@ export class DemoComponent {}
 | --- | --- | --- | --- |
 | `code` | `PhoneCountryCode \| string` | `'US'` | ISO 3166-1 alpha-2 country code. Unrecognized values render a neutral placeholder. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-phone-input` | ControlValueAccessor |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

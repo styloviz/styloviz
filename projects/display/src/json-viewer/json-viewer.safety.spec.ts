@@ -9,6 +9,7 @@ import {
   secretKeyRedactor,
   type JsonCopyEvent,
 } from './json-viewer.types';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 
 /**
  * The three things a JSON viewer can do that have nothing to do with rendering
@@ -195,13 +196,13 @@ describe('json-viewer — childrenOf() does not run the value', () => {
     expect(children.items.map((c) => c.key)).toEqual(['shown']);
     expect(children.nonEnumerable).toBe(1);
     expect(children.symbolKeys).toBe(1);
-    expect(omissionNote(children)).toBe(
+    expect(omissionNote(children, SV_DISPLAY_LABELS)).toBe(
       '+ 1 non-enumerable, 1 symbol-keyed own properties not shown',
     );
   });
 
   it('says nothing when there is nothing hidden', () => {
-    expect(omissionNote(childrenOf({ a: 1 }, 'object', false))).toBe('');
+    expect(omissionNote(childrenOf({ a: 1 }, 'object', false), SV_DISPLAY_LABELS)).toBe('');
   });
 
   it('sorts by key on request, accessors included', () => {

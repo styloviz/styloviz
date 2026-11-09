@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `chevrons-left` icon. */
 export const chevronsLeftNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const chevronsLeftNodes: readonly IconNode[] = [
 export const chevronsLeftSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm18.6 6.6l-5.4 5.4 5.4 5.4q.6.6 0 1.2-.6.6-1.2 0l-6-6q-.3-.3-.3-.6 0-.3.3-.6l6-6q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6zm-6 0l-5.4 5.4 5.4 5.4q.6.6 0 1.2-.3.3-.6.3-.3 0-.6-.3l-6-6q-.6-.6 0-1.2l6-6q.3-.3.6-.3.3 0 .6.3.6.6 0 1.2z' },
 ];
+
+/** `chevrons-left` as a registrable glyph — `registerSvIcons([chevronsLeftIcon])` / `provideSvIcons([chevronsLeftIcon])`. */
+export const chevronsLeftIcon: SvIconDef = { name: 'chevrons-left', nodes: chevronsLeftNodes, solid: chevronsLeftSolidNodes };
 
 /** `chevrons-left` — tree-shakable standalone icon. Use `<sv-chevrons-left-icon />`. */
 @Component({

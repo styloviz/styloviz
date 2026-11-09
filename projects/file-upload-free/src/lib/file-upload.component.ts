@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   ElementRef,
   inject,
   input,
@@ -9,23 +10,38 @@ import {
   output,
   PLATFORM_ID,
   signal,
+  untracked,
   viewChild,
   forwardRef,
 } from '@angular/core';
-import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import {
+  type AbstractControl,
+  type ControlValueAccessor,
+  NG_VALIDATORS,
+  NG_VALUE_ACCESSOR,
+  type ValidationErrors,
+  type Validator,
+} from '@angular/forms';
 import { isPlatformBrowser, NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { SvFieldErrorComponent, createFieldError, svDescribedBy, type SvServerError } from '@styloviz/core/forms';
+import { injectSvLabels, svLocale } from '@styloviz/core/i18n';
+import { svRecoverFocus, svSuccessorIndex } from '@styloviz/core/overlay';
+import { SV_FILE_UPLOAD_TRIGGER_LABELS } from './file-upload.labels';
 import {
-  SvFieldErrorComponent,
-  SvSpinnerArcComponent,
-  createFieldError,
-  svDescribedBy,
-  svRecoverFocus,
-  svSuccessorIndex,
-  type SvServerError,
-  svUniqueId,
-} from '@styloviz/core';
+  svDemoFails,
+  svFileUploadLabels,
+  svFileUploadErrors,
+  svStableUnit,
+  svValidatorMessage,
+  type SvFileUploadLabels,
+  type SvFileValidator,
+  type SvStoredFile,
+} from './file-upload.extras';
 
+import { registerFileUploadIcons } from './file-upload.component.icons';
 export type FileUploadVariant = 'button';
 export type FileUploadSize    = 'sm' | 'md' | 'lg';
 export type UploadFileStatus  = 'pending' | 'uploading' | 'success' | 'error';
@@ -68,6 +84,15 @@ export interface UploadFile {
   remoteId?: string;
   /** URL the server stored the file at, once the upload succeeded. */
   url?: string;
+  /**
+   * Already on the server when the form opened (`initialFiles`). Its `file`
+   * is an empty placeholder: it is never re-sent and never in the form value.
+   */
+  stored?: boolean;
+  /** The upload itself failed (not an intake refusal), so Retry can fix it. Cleared on retry. */
+  retryable?: boolean;
+  /** Held while an async `validate` decides. Never uploaded until it clears. */
+  checking?: boolean;
 }
 
 // ─── Upload transport ─────────────────────────────────────────────────────────
@@ -187,14 +212,41 @@ const BADGE_COLOR: Record<string, string> = {
 };
 
 /** Turn a rejection into something safe to show next to the file name. */
-function uploadErrorMessage(reason: unknown): string {
+/** How `addFiles` treats a file already in the queue — see `duplicates`. */
+export type FileUploadDuplicates = 'allow' | 'skip' | 'replace';
+
+/**
+ * What `intakeSkipped` reports.
+ *
+ * `reason` is absent for the original two causes — junk or `accept`-filtered
+ * files in a folder drop, and the folder scan limit (`truncated`) — so a host
+ * written against `{ skipped, truncated }` keeps working unchanged.
+ */
+export interface SvIntakeSkipped {
+  readonly skipped: number;
+  readonly truncated: boolean;
+  /** `'max-files'`: the queue was full. `'duplicate'`: already queued, under `duplicates="skip"`. */
+  readonly reason?: 'max-files' | 'duplicate';
+}
+
+/** Same file, as far as a browser can tell without reading it. */
+function svFileKey(file: File): string {
+  return `${file.name}\u0000${file.size}\u0000${file.lastModified}`;
+}
+
+/** A size limit in MB, for people: `10 MB`, `4.9 GB` — never `5000 MB`. */
+function svFormatLimitMb(mb: number): string {
+  return mb < 1024 ? `${mb} MB` : `${+(mb / 1024).toFixed(1)} GB`;
+}
+
+function uploadErrorMessage(reason: unknown, fallback: string): string {
   if (typeof reason === 'string' && reason.trim()) return reason.trim();
   if (reason instanceof Error && reason.message.trim()) return reason.message.trim();
   if (reason && typeof reason === 'object') {
     const message = (reason as { message?: unknown }).message;
     if (typeof message === 'string' && message.trim()) return message.trim();
   }
-  return 'Upload failed.';
+  return fallback;
 }
 
 @Component({
@@ -205,9 +257,19 @@ function uploadErrorMessage(reason: unknown): string {
   templateUrl: './file-upload.component.html',
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SvFileUploadComponent), multi: true },
+    { provide: NG_VALIDATORS, useExisting: forwardRef(() => SvFileUploadComponent), multi: true },
   ],
 })
-export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
+export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor, Validator {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerFileUploadIcons();
+
+  /** Registry text (`provideSvLabels({ fileUpload })`); `labels` is the per-instance input below. */
+  protected readonly registryLabels = injectSvLabels('fileUpload', SV_FILE_UPLOAD_TRIGGER_LABELS);
+  private readonly locale = svLocale();
+  /** The registry's templates as the function-shaped labels, in the kit's locale. */
+  private readonly registryText = svFileUploadLabels(this.registryLabels, this.locale);
+
   private static idCounter = 0;
   private readonly platformId = inject(PLATFORM_ID);
   private readonly _host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -228,7 +290,7 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   }
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
-  /** Trigger style: button or drag-and-drop dropzone. @default 'button' */
+  /** Trigger style. Free ships the button; the dropzone and compact variants are `sv-file-upload-pro`. @default 'button' */
   variant = input<FileUploadVariant>('button');
   /** Control size: sm, md or lg. @default 'md' */
   size         = input<FileUploadSize>('md');
@@ -250,7 +312,7 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
    *   of the queue. Both are about the honest user's experience, which is the
    *   whole job.
    *
-   * ⚠️ **Validate the type on the server, from the bytes, at the point of
+   * **Validate the type on the server, from the bytes, at the point of
    *    storage** — with a size limit the client cannot raise and a malware
    *    scan. `markScanned` is how the verdict gets back here.
    */
@@ -259,6 +321,13 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   multiple     = input(true);
   /** Maximum number of files. @default 10 */
   maxFiles     = input(10);
+  /**
+   * What to do with a file that is already in the queue — same name, size and
+   * modification time. `'skip'` leaves it out and reports it through
+   * `intakeSkipped` (`reason: 'duplicate'`); `'replace'` removes the queued
+   * one first. @default 'allow'
+   */
+  duplicates   = input<FileUploadDuplicates>('allow');
   /** Per-file size limit in MB. @default 10 */
   maxSizeMb    = input(10);                  // per-file max in MB
   /** Disable the uploader. @default false */
@@ -292,12 +361,96 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
    * @default false
    */
   demoMode     = input(false);
+  /**
+   * In `demoMode`, the share of files that fail — chosen by hashing the file,
+   * so the same files fail on every run (`SR-27b`). @default 0.08
+   */
+  readonly demoFailureRate = input<number>(0.08);
   /** Trigger/label text. @default 'Upload files' */
-  label        = input('Upload files');
+  label        = input<string>(this.registryLabels.uploadFiles);
   /** Helper text shown under the trigger. */
   hint         = input('');
   /** Extra CSS classes for the root. */
   customClass  = input('');
+
+  /**
+   * Files the server already has — the attachments of the record being
+   * edited. Shown as uploaded rows, never re-sent, never in the form value;
+   * removing one fires `fileRemoved` with its `id`. Replacing the array
+   * replaces those rows and keeps anything the user added. @default []
+   */
+  readonly initialFiles = input<readonly SvStoredFile[]>([]);
+
+  /** Every word the component says, merged over the registry's `fileUpload` labels (English: `SV_FILE_UPLOAD_LABELS`). @default {} */
+  readonly labels = input<Partial<SvFileUploadLabels>>({});
+
+  /**
+   * A host's own check on each added file: return a message to refuse it,
+   * `null` to accept. May be async; the file waits at "Checking…" and is not
+   * uploaded until it clears. @default null
+   */
+  readonly validator = input<SvFileValidator | null>(null);
+
+  /**
+   * The control needs at least one file (`{ required: true }`); also sets
+   * `aria-required`. With a form control Angular's own `RequiredValidator`
+   * runs too, and it reads the value — which never holds `initialFiles` — so
+   * for "an attachment, already there or new" use `[minFiles]="1"`, which
+   * counts them. @default false
+   */
+  readonly required = input(false);
+  /** The control needs at least this many usable files (`{ minFiles }`). @default 0 */
+  readonly minFiles = input(0);
+  /** Per-file minimum in MB; a smaller file is refused at intake. 0 sets none. @default 0 */
+  readonly minSizeMb = input(0);
+  /**
+   * Cap on all files together, in MB. A file that would push the total over
+   * is refused at intake, and the control reports `{ maxTotalSize }`. 0 sets
+   * none. @default 0
+   */
+  readonly maxTotalSizeMb = input(0);
+
+  /**
+   * The Upload all / Cancel all / Retry failed row. `'auto'` shows it when
+   * files are collected first (`autoUpload` off) and something can send them
+   * (`uploader` or `demoMode`). @default 'auto'
+   */
+  readonly actions = input<'auto' | 'show' | 'hide'>('auto');
+
+  /** `labels` over the defaults. */
+  readonly text = computed<SvFileUploadLabels>(() => ({ ...this.registryText, ...this.labels() }));
+
+  /**
+   * The row strings, resolved once per change of the list or the labels —
+   * not once per row on every check.
+   */
+  protected readonly rowText = computed(() => {
+    const t = this.text();
+    return new Map(this.files().map((f) => [f.id, {
+      uploading: t.uploadingFile(f.name),
+      retry: t.retryFile(f.name),
+      cancel: t.cancelFile(f.name),
+      remove: t.removeFile(f.name),
+      open: t.openFile(f.name),
+    }]));
+  });
+
+  protected readonly showActions = computed(() => {
+    const mode = this.actions();
+    if (mode === 'hide' || !this.hasFiles()) return false;
+    return mode === 'show' || (!this.autoUpload() && (this.uploader() !== null || this.demoMode()));
+  });
+  protected readonly pendingCount = computed(() => this.files().filter((f) => f.status === 'pending' && !f.checking).length);
+  /** Rows whose upload failed — what Retry failed would send again. */
+  protected readonly failedUploadCount = computed(() => this.files().filter((f) => f.status === 'error' && f.retryable).length);
+  protected readonly actionClass =
+    'inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm ' +
+    'transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 ' +
+    'disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700';
+  protected readonly actionPrimaryClass =
+    'inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ' +
+    'transition-colors hover:bg-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 ' +
+    'disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-500 dark:hover:bg-primary-400';
 
   // ── Outputs ────────────────────────────────────────────────────────────────
   /** Emitted with the full file list whenever it changes. */
@@ -322,17 +475,17 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
    */
   scanChange      = output<UploadFile>();
 
+  /**
+   * Files an intake left out, and why: the queue was full (`'max-files'`), or
+   * the file was already queued under `duplicates="skip"` (`'duplicate'`).
+   * Fires once per cause per intake, so nothing is dropped silently.
+   */
+  intakeSkipped   = output<SvIntakeSkipped>();
+
   // ── Internal state ─────────────────────────────────────────────────────────
-  files      = signal<UploadFile[]>([]);
-  isDragOver = signal(false);
+  files = signal<UploadFile[]>([]);
 
   private fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
-  /**
-   * `ReturnType<typeof setTimeout>`, not `number`: the DOM overload returns a
-   * number but the Node one returns a `Timeout`, so a bare `number[]` only
-   * type-checks while @types/node is out of scope. This is the portable form.
-   */
-  private timers: ReturnType<typeof setTimeout>[] = [];
 
   // ── ControlValueAccessor ─────────────────────────────────────────────────
   // ★ The docs and the gallery have always bound the FREE upload with
@@ -352,11 +505,70 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
 
   writeValue(value: File[] | null): void {
     const incoming = Array.isArray(value) ? value : [];
-    this.files.set(incoming.map((file) => this.entryFromFile(file)));
+    // Stored rows are not in the value, so a write must not wipe them.
+    const stored = this.files().filter((f) => f.stored);
+    this.files.set([...stored, ...incoming.map((file) => this.entryFromFile(file))]);
   }
   registerOnChange(fn: (value: File[]) => void): void { this._onChange = fn; }
   registerOnTouched(fn: () => void): void { this._onTouched = fn; }
   setDisabledState(isDisabled: boolean): void { this._formDisabled.set(isDisabled); }
+
+  // ── Validator (`SR-27`) ─────────────────────────────────────────────────
+  private _onValidatorChange: () => void = () => { /* replaced by registerOnValidatorChange */ };
+
+  /** `required`, `minFiles` and `maxTotalSizeMb`, over the usable rows (stored ones included). */
+  validate(_control: AbstractControl): ValidationErrors | null {
+    return svFileUploadErrors(this.files(), {
+      required: this.required(),
+      minFiles: this.minFiles(),
+      maxTotalBytes: this.maxTotalSizeMb() * 1024 * 1024,
+    });
+  }
+  registerOnValidatorChange(fn: () => void): void { this._onValidatorChange = fn; }
+
+  constructor() {
+    // A change of the rules re-validates the control; a change of the list
+    // already does, through the value.
+    effect(() => {
+      this.required();
+      this.minFiles();
+      this.maxTotalSizeMb();
+      untracked(() => this._onValidatorChange());
+    });
+
+    /**
+     * ★★ `initialFiles` REPLACES ITS OWN ROWS, NOTHING ELSE. A host that
+     *    loads the record after the user already picked a new file must not
+     *    lose that pick; and a re-sent array must not duplicate the rows.
+     */
+    effect(() => {
+      const stored = this.initialFiles();
+      untracked(() => {
+        const rows = stored.map((s) => this.entryFromStored(s));
+        this.files.update((list) => [...rows, ...list.filter((f) => !f.stored)]);
+        this.filesChange.emit(this.files());
+        this._onValidatorChange();
+      });
+    });
+  }
+
+  /** A file the server already has, as an uploaded row with a placeholder `File`. */
+  private entryFromStored(s: SvStoredFile): UploadFile {
+    const type = s.type ?? '';
+    return {
+      id: s.id,
+      file: new File([], s.name, { type }),
+      name: s.name,
+      size: s.size,
+      type,
+      status: 'success',
+      progress: 100,
+      stored: true,
+      remoteId: s.id,
+      url: s.url,
+      preview: s.preview,
+    };
+  }
 
   /** A File supplied through the form value, as a completed entry. */
   private entryFromFile(file: File): UploadFile {
@@ -372,13 +584,14 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   private notifyChange(): void {
     const files = this.files();
     this.filesChange.emit(files);
-    this._onChange(files.filter((f) => f.scan !== 'flagged').map((f) => f.file));
+    this._onChange(files.filter((f) => f.scan !== 'flagged' && !f.stored).map((f) => f.file));
     this._onTouched();
   }
 
   // ── Computed helpers ───────────────────────────────────────────────────────
   hasFiles     = computed(() => this.files().length > 0);
-  canAddMore   = computed(() => this.files().length < this.maxFiles());
+  /** Single mode always takes another file — it replaces the one there (`SR-17` FU-3). */
+  canAddMore   = computed(() => !this.multiple() || this.files().length < this.maxFiles());
   /**
    * Uploaded files nothing has held back. A file the host reported as
    * `'pending'` or `'unscanned'` is not counted — "1 uploaded" beside a row
@@ -414,49 +627,34 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
     const all = this.files();
     if (!all.length) return '';
     const up = this.uploadingCount();
-    if (up > 0) return `Uploading ${up} file${up === 1 ? '' : 's'}, ${this.overallProgress()} percent`;
-    const parts = [`${all.length} file${all.length === 1 ? '' : 's'} selected`];
-    if (this.successCount()) parts.push(`${this.successCount()} uploaded`);
+    const t = this.text();
+    if (up > 0) return t.statusUploading(up, this.overallProgress());
+    const parts = [t.statusSelected(all.length)];
+    if (this.successCount()) parts.push(t.uploadedCount(this.successCount()));
     /**
      * ★★ ANNOUNCED SEPARATELY FROM "FAILED", and before it. A screen reader
      *    user hearing "1 failed" about a file the scanner rejected would
      *    reasonably retry it — a failed upload and a quarantined one need
      *    different actions, so they need different words.
      */
-    if (this.flaggedCount()) parts.push(`${this.flaggedCount()} blocked by a security scan`);
-    if (this.scanningCount()) parts.push(`${this.scanningCount()} awaiting a security scan`);
-    if (this.errorCount())   parts.push(`${this.errorCount()} failed`);
+    if (this.flaggedCount()) parts.push(t.statusBlocked(this.flaggedCount()));
+    if (this.scanningCount()) parts.push(t.statusAwaitingScan(this.scanningCount()));
+    if (this.errorCount())   parts.push(t.failedCount(this.errorCount()));
     return parts.join(', ');
   });
 
-  // ── Zone classes ───────────────────────────────────────────────────────────
-  zoneClasses = computed(() => {
-    const drag = this.isDragOver();
-    const dis  = this.resolvedDisabled();
-    const base = [
-      'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed',
-      'transition-all duration-200 cursor-pointer outline-none',
-      'focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2',
-    ];
-    const sizes: Record<FileUploadSize, string> = {
-      sm: 'gap-2 px-6 py-8',
-      md: 'gap-3 px-8 py-12',
-      lg: 'gap-4 px-10 py-16',
-    };
-    base.push(sizes[this.size()]);
-    if (dis) {
-      base.push('border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800/40');
-    } else if (drag) {
-      base.push('border-primary-400 bg-primary-50/60 dark:border-primary-500 dark:bg-primary-900/20 scale-[1.01]');
-    } else {
-      base.push('border-gray-300 bg-gray-50/50 hover:border-primary-400 hover:bg-primary-50/30 dark:border-gray-700 dark:bg-gray-800/30 dark:hover:border-primary-500 dark:hover:bg-primary-900/10');
-    }
-    return base.join(' ');
-  });
-
-  iconSize = computed(() => ({ sm: 'h-8 w-8', md: 'h-10 w-10', lg: 'h-12 w-12' })[this.size()]);
-  labelClass = computed(() => ({ sm: 'text-sm', md: 'text-base', lg: 'text-lg' })[this.size()]);
-  hintClass  = computed(() => ({ sm: 'text-xs', md: 'text-sm',  lg: 'text-base' })[this.size()]);
+  // ── Trigger classes ───────────────────────────────────────────────────────
+  /**
+   * `size` on the button trigger, which is what the free tier renders. `md` is
+   * the button as it has always looked.
+   */
+  readonly triggerSizeClass = computed(() => ({
+    sm: 'gap-1.5 px-3 py-1.5 text-xs',
+    md: 'gap-2 px-4 py-2 text-sm',
+    lg: 'gap-2.5 px-5 py-2.5 text-base',
+  })[this.size()]);
+  readonly triggerIconPx = computed(() => ({ sm: 14, md: 16, lg: 20 })[this.size()]);
+  readonly hintSizeClass = computed(() => ({ sm: 'text-xs', md: 'text-sm', lg: 'text-base' })[this.size()]);
 
   // ── Public helpers used in template ───────────────────────────────────────
   /** File → icon-library NAME (was a raw `d` string). */
@@ -479,11 +677,20 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   formatSize(bytes: number): string {
     if (bytes < 1024)       return `${bytes} B`;
     if (bytes < 1024 ** 2)  return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+    if (bytes < 1024 ** 3)  return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+    return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   }
+
+  /** `maxSizeMb` as a person reads it — `10 MB`, `4.9 GB` (`SR-17` FU-11). */
+  readonly maxSizeLabel = computed(() => svFormatLimitMb(this.maxSizeMb()));
 
   isImage(file: UploadFile): boolean {
     return file.type.startsWith('image/') && !!file.preview;
+  }
+
+  /** Bytes the usable rows already take, for `maxTotalSizeMb`. */
+  private usedBytes(): number {
+    return this.files().filter((f) => f.status !== 'error' && f.scan !== 'flagged').reduce((s, f) => s + f.size, 0);
   }
 
   // ── File input / drag ─────────────────────────────────────────────────────
@@ -494,31 +701,10 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
 
   onFileInputChange(e: Event): void {
     const input = e.target as HTMLInputElement;
-    if (input.files) this.addFiles(Array.from(input.files));
+    // A disabled field takes nothing — not even a change fired at its input by
+    // script, or one already queued when a form control disabled it.
+    if (input.files && !this.resolvedDisabled()) this.addFiles(Array.from(input.files));
     input.value = '';
-  }
-
-  onDragOver(e: DragEvent): void {
-    e.preventDefault();
-    if (!this.resolvedDisabled()) this.isDragOver.set(true);
-  }
-
-  onDragLeave(e: DragEvent): void {
-    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
-      this.isDragOver.set(false);
-    }
-  }
-
-  onDrop(e: DragEvent): void {
-    e.preventDefault();
-    this.isDragOver.set(false);
-    if (this.resolvedDisabled()) return;
-    const dropped = Array.from(e.dataTransfer?.files ?? []);
-    this.addFiles(dropped);
-  }
-
-  onZoneKeydown(e: KeyboardEvent): void {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openFilePicker(); }
   }
 
   /** Whether a file matches the `accept` filter (mime, mime/*, or .ext). */
@@ -537,11 +723,70 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   }
 
   // ── Core file logic ────────────────────────────────────────────────────────
+  /**
+   * Fit an intake to the queue: duplicates, single mode, `maxFiles`.
+   *
+   * ★★ NOTHING IS DROPPED WITHOUT SAYING SO (`SR-17` FU-4). Files past
+   *    `maxFiles` used to vanish — `slice(0, remaining)` and no event — which
+   *    is exactly what `intakeSkipped` promises does not happen. They are now
+   *    reported with `reason: 'max-files'`.
+   *
+   * ★★ SINGLE MODE REPLACES (FU-3). `multiple=false` kept one file per pick
+   *    but appended it, so ten picks made ten "single" avatars. It now swaps
+   *    the queued file out, as every single-file picker does.
+   */
+  private fitIntake<T extends { file: File }>(incoming: readonly T[]): T[] {
+    let list = [...incoming];
+    const mode = this.duplicates();
+    if (mode !== 'allow') {
+      const queued = new Map(this.files().map((f) => [svFileKey(f.file), f.id]));
+      const seen = new Set<string>();
+      const replaced: string[] = [];
+      let skipped = 0;
+      list = list.filter(({ file }) => {
+        const key = svFileKey(file);
+        if (seen.has(key)) { skipped++; return false; }
+        seen.add(key);
+        const hit = queued.get(key);
+        if (hit === undefined) return true;
+        if (mode === 'skip') { skipped++; return false; }
+        replaced.push(hit);
+        return true;
+      });
+      for (const id of replaced) this.dropEntry(id);
+      if (skipped) this.intakeSkipped.emit({ skipped, truncated: false, reason: 'duplicate' });
+    }
+
+    const room = this.multiple() ? Math.max(0, this.maxFiles() - this.files().length) : 1;
+    const overflow = list.length - room;
+    if (overflow > 0) {
+      this.intakeSkipped.emit({ skipped: overflow, truncated: false, reason: 'max-files' });
+      list = list.slice(0, room);
+    }
+    if (!this.multiple() && list.length) {
+      for (const f of this.files()) this.dropEntry(f.id);
+    }
+    return list;
+  }
+
+  /** Take one entry out — its upload aborted, its slot freed — without the UI side of `removeFile`. */
+  private dropEntry(id: string): void {
+    this.controllers.get(id)?.abort();
+    this.controllers.delete(id);
+    this.queue = this.queue.filter((q) => q !== id);
+    this.files.update((list) => list.filter((f) => f.id !== id));
+    this.fileRemoved.emit(id);
+  }
+
   private addFiles(rawFiles: File[]): void {
-    const remaining = this.maxFiles() - this.files().length;
-    const toAdd = this.multiple() ? rawFiles.slice(0, remaining) : rawFiles.slice(0, 1);
+    const toAdd = this.fitIntake(rawFiles.map((file) => ({ file }))).map((x) => x.file);
 
     const newEntries: UploadFile[] = [];
+    const t = this.text();
+    const totalCap = this.maxTotalSizeMb() * 1024 * 1024;
+    let used = this.usedBytes();
+    const validator = this.validator();
+    const checks: { id: string; result: Promise<string | null> }[] = [];
 
     for (const file of toAdd) {
       const sizeMb = file.size / 1024 / 1024;
@@ -555,16 +800,28 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
         progress: 0,
       };
 
-      if (sizeMb > this.maxSizeMb()) {
+      const refusal =
+        sizeMb > this.maxSizeMb() ? t.tooLarge(this.maxSizeLabel())
+        : !this.isAccepted(file) ? t.typeNotAllowed
+        : this.minSizeMb() > 0 && sizeMb < this.minSizeMb() ? t.tooSmall(svFormatLimitMb(this.minSizeMb()))
+        : totalCap > 0 && used + file.size > totalCap ? t.totalTooLarge(svFormatLimitMb(this.maxTotalSizeMb()))
+        : null;
+      if (refusal) {
         entry.status  = 'error';
-        entry.errorMsg = `File exceeds ${this.maxSizeMb()} MB limit`;
+        entry.errorMsg = refusal;
         entry.progress = 0;
         this.uploadError.emit(entry);
-      } else if (!this.isAccepted(file)) {
-        entry.status  = 'error';
-        entry.errorMsg = 'File type not allowed';
-        entry.progress = 0;
-        this.uploadError.emit(entry);
+      } else {
+        used += file.size;
+        const verdict = validator ? this.runValidator(validator, file) : null;
+        if (typeof verdict === 'string') {
+          entry.status = 'error';
+          entry.errorMsg = verdict;
+          this.uploadError.emit(entry);
+        } else if (verdict) {
+          entry.checking = true;
+          checks.push({ id: entry.id, result: verdict });
+        }
       }
 
       // Generate preview for images
@@ -578,11 +835,49 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
     const startable = this.autoUpload() && (this.uploader() !== null || this.demoMode());
     for (const entry of newEntries) {
       this.fileAdded.emit(entry);
-      // A file rejected by validation never reaches the server.
-      if (entry.status !== 'error' && startable) this.enqueue(entry.id);
+      // A file rejected by validation never reaches the server, and one still
+      // being checked waits for the verdict.
+      if (entry.status !== 'error' && !entry.checking && startable) this.enqueue(entry.id);
     }
-    if (startable) this.pump();
+    // ★ Unconditional: a replaced file may have held a slot a queued one wants.
+    this.pump();
 
+    this.notifyChange();
+    for (const check of checks) void this.settleCheck(check.id, check.result);
+  }
+
+  /** Run the host's validator; a sync answer is returned as-is, an async one as a promise. */
+  private runValidator(validator: SvFileValidator, file: File): string | null | Promise<string | null> {
+    try {
+      const out = validator(file);
+      if (out && typeof (out as Promise<string | null>).then === 'function') {
+        return Promise.resolve(out as Promise<string | null>).then(
+          (r) => r || null,
+          (e: unknown) => svValidatorMessage(e, this.text().typeNotAllowed),
+        );
+      }
+      return (out as string | null) || null;
+    } catch (e) {
+      return svValidatorMessage(e, this.text().typeNotAllowed);
+    }
+  }
+
+  /** Apply an async verdict to a row that may since have been removed. */
+  private async settleCheck(id: string, result: Promise<string | null>): Promise<void> {
+    const message = await result;
+    const entry = this.files().find((f) => f.id === id);
+    if (!entry || !entry.checking) return;
+    if (message) {
+      this.patch(id, { checking: false, status: 'error', errorMsg: message });
+      const failed = this.files().find((f) => f.id === id);
+      if (failed) this.uploadError.emit(failed);
+    } else {
+      this.patch(id, { checking: false });
+      if (this.autoUpload() && (this.uploader() !== null || this.demoMode())) {
+        this.enqueue(id);
+        this.pump();
+      }
+    }
     this.notifyChange();
   }
 
@@ -609,9 +904,17 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   uploadAll(): void {
     if (this.resolvedDisabled()) return;
     for (const entry of this.files()) {
-      if (entry.status === 'pending') this.enqueue(entry.id);
+      if (entry.status === 'pending' && !entry.checking) this.enqueue(entry.id);
     }
     this.pump();
+  }
+
+  /** Send every failed upload again. A file refused at intake is not retried — nothing about it has changed. */
+  retryFailed(): void {
+    if (this.resolvedDisabled()) return;
+    for (const entry of this.files()) {
+      if (entry.status === 'error' && entry.retryable) this.retryFile(entry.id);
+    }
   }
 
   /** Cancel one upload. The entry stays in the list, reset to `pending`. */
@@ -777,7 +1080,7 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   private failUpload(id: string, controller: AbortController, reason: unknown): void {
     if (controller.signal.aborted) return;
     this.controllers.delete(id);
-    this.patch(id, { status: 'error', errorMsg: uploadErrorMessage(reason) });
+    this.patch(id, { status: 'error', retryable: true, errorMsg: uploadErrorMessage(reason, this.labels().uploadFailed ?? this.registryLabels.uploadFailedMessage) });
     const failed = this.files().find((f) => f.id === id);
     if (failed) this.uploadError.emit(failed);
     this.settle();
@@ -819,54 +1122,55 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
     // Skip simulation in SSR environments where setTimeout is unreliable.
     if (!isPlatformBrowser(this.platformId)) return;
 
-    this.files.update(list =>
-      list.map(f => f.id === id ? { ...f, status: 'uploading' as const } : f)
-    );
+    /**
+     * ★★★ THE FAKE UPLOAD IS RUN LIKE A REAL ONE (`SR-17` FU-1, FU-2). It used
+     *     to be a bare timer chain that rewrote its row on every tick whatever
+     *     the row said: ✕ reset the row to Pending and the next tick carried it
+     *     on to Success, in every demo. And it held no controller, so `pump()`
+     *     — which counts controllers — saw nothing in flight and `concurrency`
+     *     did nothing either. It now holds a controller like `startUpload`, a
+     *     cancel or removal aborts it, the abort clears the pending tick, and it
+     *     finishes through `finishUpload` / `failUpload`, which free the slot.
+     */
+    const controller = new AbortController();
+    this.controllers.set(id, controller);
     this.completionOwed = true;
+    this.patch(id, { status: 'uploading', progress: 0, errorMsg: undefined });
 
-    const duration = 1200 + Math.random() * 1800;
+    // ★ Decided by the file, not by `Math.random()` (`SR-27b`): the same files
+    //   fail, at the same point, on every run.
+    const demoEntry = this.files().find((f) => f.id === id);
+    const unit = demoEntry ? svStableUnit(`${demoEntry.name}\u0000${demoEntry.size}`) : 0.5;
+    const fails = demoEntry ? svDemoFails(demoEntry.file, this.demoFailureRate()) : false;
+    const duration = 1200 + unit * 1800;
     const interval = 80;
     const steps    = Math.round(duration / interval);
     let   step     = 0;
+    let   timer: ReturnType<typeof setTimeout> | null = null;
+    controller.signal.addEventListener('abort', () => {
+      if (timer !== null) clearTimeout(timer);
+    });
 
     const tick = () => {
+      timer = null;
+      if (controller.signal.aborted) return;
       step++;
       const progress = Math.min(100, Math.round((step / steps) * 100));
       const isDone   = step >= steps;
-      const hasErr   = Math.random() < 0.08 && progress > 40 && !isDone; // 8% random error
+      const hasErr   = fails && progress > 40 + Math.round(unit * 40) && !isDone;
 
-      this.files.update(list =>
-        list.map(f => {
-          if (f.id !== id) return f;
-          if (hasErr)  return { ...f, status: 'error'   as const, progress, errorMsg: 'Upload failed — server error' };
-          if (isDone)  return { ...f, status: 'success' as const, progress: 100 };
-          return { ...f, progress };
-        })
-      );
-
-      if (hasErr) {
-        const errFile = this.files().find(f => f.id === id);
-        if (errFile) this.uploadError.emit(errFile);
-        this.reportCompletionIfDone();
-        return;
-      }
-
-      if (isDone) {
-        this.reportCompletionIfDone();
-        return;
-      }
-
-      const t = setTimeout(tick, interval);
-      this.timers.push(t);
+      if (hasErr) { this.failUpload(id, controller, this.registryLabels.demoServerError); return; }
+      if (isDone) { this.finishUpload(id, controller); return; }
+      this.patch(id, { progress });
+      timer = setTimeout(tick, interval);
     };
 
-    const t0 = setTimeout(tick, interval);
-    this.timers.push(t0);
+    timer = setTimeout(tick, interval);
   }
 
   retryFile(id: string): void {
     if (this.resolvedDisabled()) return;
-    this.patch(id, { status: 'pending', progress: 0, errorMsg: undefined });
+    this.patch(id, { status: 'pending', progress: 0, errorMsg: undefined, retryable: undefined });
     if (this.uploader() || this.demoMode()) {
       this.enqueue(id);
       this.pump();
@@ -930,7 +1234,6 @@ export class SvFileUploadComponent implements OnDestroy, ControlValueAccessor {
   }
 
   ngOnDestroy(): void {
-    this.timers.forEach(t => clearTimeout(t));
     // An upload outliving its component writes progress into a destroyed view.
     for (const controller of this.controllers.values()) controller.abort();
     this.controllers.clear();

@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { until } from '@testing/async';
-import { SvOverlayStackService, svResetBodyScrollLock, SV_OVERLAY_Z_FLOOR } from '@styloviz/core';
+import { SvOverlayStackService, svResetBodyScrollLock, SV_OVERLAY_Z_FLOOR } from '@styloviz/core/overlay';
 import { SvModalComponent } from '@styloviz/modal';
 import { SvTimePickerComponent } from './time-picker.component';
 

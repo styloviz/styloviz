@@ -4,32 +4,131 @@ import {
   Component,
   computed,
   afterRenderEffect,
+  DestroyRef,
+  DOCUMENT,
+  effect,
+  ElementRef,
   inject,
   input,
+  model,
   output,
+  PLATFORM_ID,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
-import {
-  svElementSize,
-  svNavParam,
-  svRecoverFocus,
-  svWarnOnce,
-  type SvNavWriteMode,
-  type SvUnresolvedValue,
-  svAttrSelector,
-} from '@styloviz/core';
+import { isPlatformBrowser, NgClass } from '@angular/common';
+import { SvIconComponent } from '@styloviz/icons';
+import { type SvUnresolvedValue } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { svElementSize } from '@styloviz/core/layout';
+import { svNavParam, type SvNavWriteMode, svIsModifiedClick, svFragmentHref } from '@styloviz/core/nav';
+import { svRecoverFocus } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
+import { SV_ANCHOR_LABELS, type SvAnchorLabels } from './anchor.labels';
 import { createScrollSpy, type ScrollSpySection } from './scroll-spy';
 import type { AnchorActivation } from './activation-strategy';
 
+import { registerAnchorIcons } from './anchor.component.icons';
 /** One entry in the nav — `id` must match the `id` attribute of the section it points to. */
 export interface AnchorItem {
   readonly id: string;
   readonly label: string;
+  /** Sub-sections, listed indented under this one and tracked too (`SR-29`). */
+  readonly children?: readonly AnchorItem[];
+  /**
+   * Indent depth in a FLAT list — 1 for an `<h3>` under an `<h2>`. Ignored
+   * inside `children`, where the nesting says it. A jump of more than one
+   * level is clamped to one.
+   */
+  readonly level?: number;
+  /** An `@styloviz/icons` name drawn before the label. */
+  readonly icon?: string;
+  /** Short trailing text — a reading time, a status. */
+  readonly meta?: string;
 }
 
 export type AnchorOrientation = 'vertical' | 'horizontal';
+
+/**
+ * The vertical list's look (`SR-29`): `'rail'` a bordered side rail,
+ * `'compact'` the same, tighter; `'minimal'` no rail, the active item in bold;
+ * `'card'` a raised card with a filled active item.
+ */
+export type AnchorAppearance = 'rail' | 'minimal' | 'card' | 'compact';
+
+/**
+ * How the rail marks the active item: `'slide'` one marker that moves between
+ * items on `transform`; `'border'` each item's own border, as before.
+ */
+export type AnchorMarker = 'slide' | 'border';
+
+/** Reflect the section being read into `location.hash` with no app provider (`SR-29`). */
+export type AnchorHashSync = 'off' | 'auto';
+
+export { SV_ANCHOR_LABELS, type SvAnchorLabels } from './anchor.labels';
+
+/** One item, flattened, with where it sits in the tree. */
+export interface SvAnchorRow {
+  readonly item: AnchorItem;
+  readonly id: string;
+  readonly depth: number;
+  /** `'2.1'` — the item's outline number. */
+  readonly number: string;
+  readonly parentId: string | null;
+  /** Ids of every ancestor, outermost first. */
+  readonly ancestors: readonly string[];
+  readonly hasChildren: boolean;
+}
+
+/**
+ * Flatten nested `children` and flat `level`s into one document-order list
+ * with depths, outline numbers and ancestors (`SR-29`).
+ */
+export function svFlattenAnchorItems(items: readonly AnchorItem[]): SvAnchorRow[] {
+  const out: { -readonly [K in keyof SvAnchorRow]: SvAnchorRow[K] }[] = [];
+  const counters: number[] = [];
+  const stack: string[] = [];
+  let prev = -1;
+  const visit = (item: AnchorItem, wanted: number): void => {
+    const depth = Math.max(0, Math.min(wanted, prev + 1));
+    prev = depth;
+    counters.length = depth + 1;
+    counters[depth] = (counters[depth] ?? 0) + 1;
+    stack.length = depth;
+    if (out.length && out[out.length - 1].depth < depth) out[out.length - 1].hasChildren = true;
+    out.push({
+      item,
+      id: item.id,
+      depth,
+      number: counters.join('.'),
+      parentId: stack.at(-1) ?? null,
+      ancestors: [...stack],
+      hasChildren: false,
+    });
+    stack.push(item.id);
+    for (const child of item.children ?? []) visit(child, depth + 1);
+  };
+  for (const item of items) visit(item, Number.isFinite(item.level) ? Math.trunc(item.level ?? 0) : 0);
+  return out;
+}
+
+/** A row as the template draws it. */
+interface AnchorViewRow extends SvAnchorRow {
+  readonly active: boolean;
+  /** An ancestor of the active item. */
+  readonly trail: boolean;
+  readonly open: boolean;
+  /** Whether a toggle is drawn — never on the active trail, which stays open. */
+  readonly toggleable: boolean;
+  readonly linkClass: string;
+  readonly toggleText: string;
+  /** The page path + `#id` — see `svFragmentHref`. */
+  readonly href: string;
+}
+
+const INDENT = ['', 'ps-6', 'ps-9', 'ps-12', 'ps-14'] as const;
 
 /**
  * SvAnchorComponent — an "on this page" navigation list that highlights
@@ -55,11 +154,19 @@ export type AnchorOrientation = 'vertical' | 'horizontal';
 @Component({
   selector: 'sv-anchor',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, SvIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './anchor.component.html',
+  // An inline host has no box of its own to lay out in a side rail (`SR-11`).
+  host: { class: 'block' },
 })
 export class SvAnchorComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAnchorIcons();
+
+  /** The app's labels (`provideSvLabels({ anchor })`) over the English defaults; the `labels` input overrides per instance. */
+  private readonly registryLabels = injectSvLabels('anchor', SV_ANCHOR_LABELS);
+
   /** The sections to list and track, in document order. */
   readonly items = input.required<readonly AnchorItem[]>();
 
@@ -68,6 +175,13 @@ export class SvAnchorComponent {
 
   /** Layout axis. @default 'vertical' */
   readonly orientation = input<AnchorOrientation>('vertical');
+
+  /**
+   * Accessible name of the `<nav>` landmark. Two rails on one page need two
+   * names, or a screen reader's landmark list shows "On this page" twice.
+   * @default 'On this page'
+   */
+  readonly ariaLabel = input<string>(this.registryLabels.onThisPage);
 
   /**
    * Extra pixels kept between a jumped-to section and the top of the
@@ -214,6 +328,61 @@ export class SvAnchorComponent {
    */
   readonly urlWriteMode = input<SvNavWriteMode>('replace');
 
+  /**
+   * The list's look. Vertical: `'rail'`, `'compact'`, `'minimal'`, `'card'`.
+   * Horizontal: `'minimal'` draws plain text tabs instead of pills.
+   * @default 'rail'
+   */
+  readonly appearance = input<AnchorAppearance>('rail');
+
+  /** How the rail marks the active item. @default 'slide' */
+  readonly marker = input<AnchorMarker>('slide');
+
+  /** Prefix each item with its outline number — 1, 1.1, 1.2, 2. @default false */
+  readonly numbered = input<boolean>(false);
+
+  /**
+   * Show sub-sections only under the section being read, plus any the reader
+   * opened with the toggle. @default false — every level always shown
+   */
+  readonly collapsible = input<boolean>(false);
+
+  /**
+   * With `collapsible`, the parents the reader opened. The active trail is
+   * always open on top of these. @default []
+   */
+  readonly expandedIds = model<readonly string[]>([]);
+
+  /** A reading-progress bar above the list. @default false */
+  readonly progress = input<boolean>(false);
+
+  /**
+   * Where a section counts as being read, in px from the top of the scroll
+   * container — the activation line, set apart from the jump's `offset`. Null
+   * uses the same number as the jump.
+   * @default null
+   */
+  readonly activationOffset = input<number | null>(null);
+
+  /**
+   * `'auto'` reflects the section being read into `location.hash`, and jumps
+   * to the hash on load, with no `provideSvNavLocation()` — `urlKey` wins when
+   * both are set. @default 'off'
+   */
+  readonly hashSync = input<AnchorHashSync>('off');
+
+  /**
+   * Horizontal only: wrap the items onto more lines. `false` keeps one line,
+   * for a bar that scrolls sideways (`SR-29`). @default true
+   */
+  readonly wrap = input<boolean>(true);
+
+  /** Every string the anchor renders. */
+  readonly labels = input<Partial<SvAnchorLabels>>({});
+
+  /** How far the container has scrolled, 0–1, whenever it changes. */
+  readonly progressChange = output<number>();
+
   /** Emits whenever the active section changes, including on click-to-jump. */
   readonly activeIdChange = output<string | null>();
 
@@ -249,6 +418,25 @@ export class SvAnchorComponent {
   readonly unresolved = output<SvUnresolvedValue<string>>();
 
   private readonly resolved = signal<readonly ScrollSpySection[]>([]);
+
+  /** Every item, nested or not, in document order. */
+  readonly rows = computed(() => svFlattenAnchorItems(this.items()));
+
+  private readonly doc = inject(DOCUMENT);
+
+  /** The browser's window; null on the server, where nothing scrolls. */
+  private readonly view = isPlatformBrowser(inject(PLATFORM_ID)) ? this.doc.defaultView : null;
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly navEl = viewChild<ElementRef<HTMLElement>>('nav');
+
+  /** Reading progress of the scroll container, 0–1. */
+  readonly readingProgress = signal(0);
+
+  /** Where the sliding marker sits, relative to the list. */
+  protected readonly markerBox = signal({ top: 0, height: 0 });
+
+  /** The section the hash named on load, until it has been jumped to. */
+  private hashTarget: string | null = null;
 
   /** The sticky header's live height, or `{0,0}` when none was named. */
   private readonly headerSize = svElementSize(() => this.offsetFrom());
@@ -308,8 +496,16 @@ export class SvAnchorComponent {
    * exactly the moments a heading crosses that line.
    */
   private readonly rootMargin = computed(
-    () => `-${Math.round(this.resolvedOffset())}px 0px -68% 0px`,
+    () => `-${Math.round(this.activationLine())}px 0px -68% 0px`,
   );
+
+  /**
+   * The activation line: `activationOffset` when given, else the jump's
+   * offset. ★ One number by default, as before — a second only for the host
+   * that wants the highlight to change somewhere other than where a jump
+   * lands (`SR-29`).
+   */
+  private readonly activationLine = computed(() => this.activationOffset() ?? this.resolvedOffset());
 
   protected readonly spy = createScrollSpy({
     sections: this.resolved,
@@ -318,10 +514,78 @@ export class SvAnchorComponent {
     strategy: this.activation,
     // One offset, three consumers: the jump, the observer's band, and now the
     // activation line the strategies measure against.
-    offset: this.resolvedOffset,
+    offset: this.activationLine,
   });
 
   protected readonly activeId = computed(() => this.spy.activeId());
+
+  private readonly text = computed<SvAnchorLabels>(() => ({ ...this.registryLabels, ...this.labels() }));
+
+  /** Ids of the active item's ancestors. */
+  private readonly trailIds = computed<readonly string[]>(() => {
+    const active = this.activeId();
+    return this.rows().find(row => row.id === active)?.ancestors ?? [];
+  });
+
+  /** Whether the vertical list draws the sliding marker. */
+  protected readonly showMarker = computed(
+    () =>
+      this.orientation() === 'vertical' &&
+      this.marker() === 'slide' &&
+      (this.appearance() === 'rail' || this.appearance() === 'compact'),
+  );
+
+  /**
+   * The rows the template draws, with their classes — memoised here so the
+   * `@for` block calls nothing.
+   *
+   * Horizontal lists show the top level only; a child being read lights its
+   * top-level pill.
+   */
+  protected readonly viewRows = computed<readonly AnchorViewRow[]>(() => {
+    const active = this.activeId();
+    const trail = new Set(this.trailIds());
+    const expanded = new Set(this.expandedIds());
+    const collapsible = this.collapsible();
+    const horizontal = this.orientation() === 'horizontal';
+    const isOpen = (id: string): boolean => !collapsible || trail.has(id) || expanded.has(id);
+    const out: AnchorViewRow[] = [];
+    for (const row of this.rows()) {
+      if (horizontal ? row.depth > 0 : !row.ancestors.every(isOpen)) continue;
+      const lit = row.id === active || (horizontal && trail.has(row.id));
+      out.push({
+        ...row,
+        active: lit,
+        trail: trail.has(row.id),
+        open: isOpen(row.id),
+        toggleable: collapsible && !horizontal && row.hasChildren && !trail.has(row.id) && row.id !== active,
+        linkClass: this.linkClass(row, lit, trail.has(row.id)),
+        // The page's own path + `#id`, never a bare `#id`: under the app's
+        // `<base href="/">` a bare fragment resolves to the root, so a reader
+        // without JavaScript (a prerendered page before hydration) left the page.
+        href: svFragmentHref(this.doc, row.id),
+        toggleText: this.text().toggle.replace('{label}', row.item.label),
+      });
+    }
+    return out;
+  });
+
+  protected readonly navClass = computed(() => {
+    if (this.orientation() === 'horizontal') {
+      if (this.appearance() === 'minimal') return this.wrap() ? 'flex flex-wrap' : 'flex';
+      return this.wrap() ? 'flex flex-wrap gap-1.5' : 'flex gap-1.5';
+    }
+    switch (this.appearance()) {
+      case 'minimal':
+        return 'relative flex flex-col gap-0.5';
+      case 'card':
+        return 'relative flex flex-col gap-0.5 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900';
+      case 'compact':
+        return 'relative flex flex-col border-s border-gray-200 dark:border-gray-800';
+      default:
+        return 'relative flex flex-col gap-0.5 border-s border-gray-200 dark:border-gray-800';
+    }
+  });
 
   // ── URL synchronisation ─────────────────────────────────────────────────────
 
@@ -353,7 +617,7 @@ export class SvAnchorComponent {
       incoming !== null &&
       incoming !== this.lastWritten &&
       !this.noted.has(incoming) &&
-      this.items().some(item => item.id === incoming)
+      this.rows().some(row => row.id === incoming)
     );
   }
 
@@ -364,7 +628,7 @@ export class SvAnchorComponent {
     // drop it from tracking until the *next* unrelated change detection pass
     // happened to re-run this.
     afterRenderEffect(() => {
-      const list = this.items();
+      const list = this.rows();
       // ★ `NV-02-I8`: a dependency with no other purpose. Fonts, images and
       //   `@defer` blocks all change the container's size when they settle, so
       //   reading it here is what makes a section that appeared late get tracked
@@ -419,6 +683,98 @@ export class SvAnchorComponent {
       }
 
       this.resolved.set(next);
+    });
+
+    // ★ The sliding marker is measured after render, from the link the
+    //   template just drew — never from a guess at row heights, which a
+    //   wrapped label or a different font would make wrong.
+    afterRenderEffect(() => {
+      const active = this.activeId();
+      this.viewRows();
+      if (!this.showMarker()) return;
+      untracked(() => {
+        const nav = this.navEl()?.nativeElement;
+        const link = active ? nav?.querySelector<HTMLElement>(`a${svAttrSelector('data-sv-anchor-id', active)}`) : null;
+        const next = link && active ? { top: link.offsetTop, height: link.offsetHeight } : { top: 0, height: 0 };
+        const box = this.markerBox();
+        if (box.top !== next.top || box.height !== next.height) this.markerBox.set(next);
+      });
+    });
+
+    // Reading progress (`SR-29`): one passive listener on the container,
+    // read at most once a frame.
+    effect(onCleanup => {
+      const want = this.progress();
+      const root = this.root();
+      const view = this.view;
+      if (!view) return;
+      untracked(() => {
+        let frame = 0;
+        const read = (): void => {
+          frame = 0;
+          const el = root ?? this.doc.documentElement;
+          const max = el.scrollHeight - el.clientHeight;
+          const top = root ? root.scrollTop : view.scrollY;
+          const value = max > 0 ? Math.round(Math.min(1, Math.max(0, top / max)) * 1000) / 1000 : 0;
+          if (value !== this.readingProgress()) {
+            this.readingProgress.set(value);
+            this.progressChange.emit(value);
+          }
+        };
+        const onScroll = (): void => {
+          if (!frame) frame = view.requestAnimationFrame(read);
+        };
+        const target: EventTarget = root ?? view;
+        target.addEventListener('scroll', onScroll, { passive: true });
+        if (want) read();
+        onCleanup(() => {
+          target.removeEventListener('scroll', onScroll);
+          if (frame) view.cancelAnimationFrame(frame);
+        });
+      });
+    });
+
+    // Hash sync without an app provider (`SR-29`): read once, then jump to it
+    // once its section resolves — and write nothing until then, or the first
+    // section's id would replace the link the reader arrived with.
+    const view = this.view;
+    if (view) {
+      const raw = view.location.hash.slice(1);
+      try {
+        this.hashTarget = raw ? decodeURIComponent(raw) : null;
+      } catch {
+        this.hashTarget = raw || null;
+      }
+      const onHash = (): void => {
+        if (this.hashSync() !== 'auto' || this.urlKey() !== null) return;
+        const id = decodeURIComponent(view.location.hash.slice(1));
+        if (id && id !== this.activeId() && this.rows().some(row => row.id === id)) this.jumpTo(id, 'replace', false);
+      };
+      view.addEventListener('hashchange', onHash);
+      this.destroyRef.onDestroy(() => view.removeEventListener('hashchange', onHash));
+      this.destroyRef.onDestroy(() => this.stopSettle?.());
+    }
+    afterRenderEffect(() => {
+      const sections = this.resolved();
+      const current = this.activeId();
+      // Tracked: switching hash sync on writes where the reader is at once.
+      const mode = this.hashSync();
+      untracked(() => {
+        if (mode !== 'auto' || this.urlKey() !== null || !view) return;
+        const wanted = this.hashTarget;
+        if (wanted !== null) {
+          if (!this.rows().some(row => row.id === wanted)) {
+            this.hashTarget = null;
+          } else {
+            if (sections.some(section => section.id === wanted)) {
+              this.hashTarget = null;
+              this.jumpTo(wanted, 'replace', false);
+            }
+            return;
+          }
+        }
+        if (current !== null && view.location.hash !== `#${current}`) this.writeHash(current, 'replace');
+      });
     });
 
     let previous: string | null = null;
@@ -489,6 +845,17 @@ export class SvAnchorComponent {
   }
 
   /**
+   * A rail link was clicked. A plain click is taken over so the jump honours
+   * `offset`; a ⌘/Ctrl/Shift/Alt or middle click is the browser's own gesture
+   * (open in a new tab or window) and is left alone (`SR-11`).
+   */
+  protected onItemClick(event: MouseEvent, id: string): void {
+    if (svIsModifiedClick(event)) return;
+    event.preventDefault();
+    this.jumpTo(id);
+  }
+
+  /**
    * Scroll `id` into view, honouring `offset` and `prefers-reduced-motion`.
    *
    * Called from a nav link's click handler and from the location reader. The
@@ -512,6 +879,9 @@ export class SvAnchorComponent {
     if (this.sectionParam.addressable() && this.sectionParam.value() !== id) {
       this.lastWritten = id;
       this.sectionParam.set(id, mode);
+    } else if (this.hashSync() === 'auto' && this.urlKey() === null) {
+      this.hashTarget = null;
+      this.writeHash(id, mode);
     }
 
     const reduceMotion =
@@ -519,17 +889,118 @@ export class SvAnchorComponent {
     const behavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth';
     const container = this.root();
 
-    if (container) {
-      const top =
-        el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - this.resolvedOffset();
-      container.scrollTo({ top: Math.max(0, top), behavior });
-    } else {
-      const top = el.getBoundingClientRect().top + window.scrollY - this.resolvedOffset();
-      window.scrollTo({ top: Math.max(0, top), behavior });
-    }
+    (container ?? window).scrollTo({ top: this.landingTop(el, container), behavior });
+    this.settleJump(id);
 
     if (moveFocus) this.moveFocusTo(el);
   }
+
+  /**
+   * Where the scroller must be for `el` to sit on the line, below `offset`.
+   *
+   * ★ Rounded UP to the device pixel (FL-L5-01). The browser rounds a scroll
+   *   position, and rounding it down left the heading a fraction of a pixel
+   *   BELOW the line — WebKit landed 288.97 at 287, 1.97px under, past the
+   *   spy's 1px tolerance, so the rail named the section before the one
+   *   clicked. Rounding up puts it at most one device pixel above the line,
+   *   which is "passed" and invisible.
+   */
+  private landingTop(el: HTMLElement, container: HTMLElement | null, offset = this.resolvedOffset()): number {
+    const raw = container
+      ? el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop - offset
+      : el.getBoundingClientRect().top + window.scrollY - offset;
+    const dpr = this.view?.devicePixelRatio || 1;
+    return Math.max(0, Math.ceil(raw * dpr) / dpr);
+  }
+
+  /** Stops watching the jump in flight, if there is one. */
+  private stopSettle: (() => void) | null = null;
+
+  /**
+   * Finish a jump the browser did not (FL-L5-01).
+   *
+   * ★★ A SMOOTH SCROLL CAN STOP SHORT, AND NOTHING SAYS SO. With a sticky
+   *    header that grows once the panel scrolls — the demo's, and a common
+   *    pattern — WebKit ended the animated scroll early in about one jump in
+   *    five under load (at 149, 225 of 289 px), with no other script scrolling;
+   *    the rail then correctly named the section the panel had stopped on,
+   *    which was not the one clicked. And a header that changes height after
+   *    the scroll ends moves the line out from under a landing that was right.
+   *
+   *    So once scrolling has been idle for {@link SvAnchorComponent.SETTLE_MS},
+   *    the landing is measured again, against the CURRENT offset, and an
+   *    instant scroll closes any gap — re-checked the same way, up to
+   *    {@link SvAnchorComponent.MAX_CORRECTIONS} times. The reader comes first: a wheel, touch,
+   *    key or pointer press during the jump means they have taken over, and
+   *    nothing is corrected.
+   *
+   * ★ THE HEADER IS WATCHED TOO, AND READ LIVE (FL-A8-06). A header that grows
+   *   with a transition is still growing after the last scroll event, and
+   *   `resolvedOffset` follows it a frame or more behind (`svElementSize`
+   *   coalesces per frame). On a loaded CI runner WebKit's check ran inside
+   *   that gap, found the landing right against the old height, and stopped —
+   *   and the header then finished growing over the section, 25 px of it. So
+   *   the header's own resizes re-arm the check like a scroll does, and the
+   *   check measures the header itself rather than the signal.
+   */
+  private settleJump(id: string): void {
+    this.stopSettle?.();
+    const view = this.view;
+    if (!view) return;
+    const container = this.root();
+    const scroller: HTMLElement | Window = container ?? view;
+    const USER = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let corrections = 0;
+    const header = this.offsetFrom();
+    const headerWatch =
+      header && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => arm()) : null;
+
+    const stop = (): void => {
+      if (timer !== null) clearTimeout(timer);
+      headerWatch?.disconnect();
+      scroller.removeEventListener('scroll', arm);
+      for (const type of USER) view.removeEventListener(type, stop, true);
+      if (this.stopSettle === stop) this.stopSettle = null;
+    };
+    const check = (): void => {
+      timer = null;
+      const el = this.doc.getElementById(id);
+      const box = container ?? this.doc.scrollingElement;
+      if (!el || !box) return stop();
+      const max = box.scrollHeight - box.clientHeight;
+      const offset = header ? header.getBoundingClientRect().height : this.resolvedOffset();
+      const want = Math.min(this.landingTop(el, container, offset), Math.max(0, max));
+      const now = container ? container.scrollTop : view.scrollY;
+      if (corrections < SvAnchorComponent.MAX_CORRECTIONS && Math.abs(want - now) > 1) {
+        corrections++;
+        scroller.scrollTo({ top: want, behavior: 'auto' });
+        return arm();
+      }
+      stop();
+    };
+    function arm(): void {
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(check, SvAnchorComponent.SETTLE_MS);
+    }
+
+    scroller.addEventListener('scroll', arm, { passive: true });
+    if (header) headerWatch?.observe(header);
+    for (const type of USER) view.addEventListener(type, stop, { capture: true, passive: true });
+    arm();
+    this.stopSettle = stop;
+  }
+
+  /** How long scrolling must be idle before a jump's landing is checked. */
+  private static readonly SETTLE_MS = 200;
+
+  /**
+   * How many times one jump may be finished. More than one, because the
+   * correction itself can move the line: an instant scroll past a header's
+   * trigger grows the header after it lands. A few, never unbounded — a page
+   * that keeps moving must not hold the scroller.
+   */
+  private static readonly MAX_CORRECTIONS = 3;
 
   /*
    * ── `NV-02-M7`: the page moves and the keyboard does not ────────────────────
@@ -570,6 +1041,11 @@ export class SvAnchorComponent {
       // Made focusable for as long as it holds focus — `svRecoverFocus` borrows
       // and returns the `tabindex` rather than leaving it marked forever.
       fallback: heading ?? section,
+      // ★★ `jumpTo` has already started a smooth scroll that honours `offset`.
+      //    A scrolling `focus()` cancels it wherever it has got to — on a
+      //    narrow screen that left the last section short of the line and the
+      //    rail reporting the one before (`SR-11`).
+      preventScroll: true,
     });
   }
 
@@ -614,20 +1090,77 @@ export class SvAnchorComponent {
     });
   }
 
-  protected itemClass(id: string): string {
-    const base =
-      this.orientation() === 'vertical'
-        ? 'block rounded-md px-3 py-1.5 text-sm font-medium border-l-2 -ml-px transition-colors'
-        : 'inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium transition-colors';
+  /** Open or close a parent's sub-sections (`collapsible`). */
+  toggle(id: string): void {
+    const now = this.expandedIds();
+    this.expandedIds.set(now.includes(id) ? now.filter(x => x !== id) : [...now, id]);
+  }
 
-    if (id === this.activeId()) {
-      return this.orientation() === 'vertical'
-        ? `${base} border-brand-500 text-brand-700 dark:text-brand-400`
-        : `${base} bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400`;
+  /**
+   * ★ Up/Down (Left/Right when horizontal, mirrored in RTL), Home and End
+   *   move focus between the links (`SR-29`). Tab still walks them in order;
+   *   this is the shortcut a long outline needs.
+   */
+  protected onNavKeydown(event: KeyboardEvent): void {
+    const nav = (event.currentTarget as HTMLElement).closest('nav');
+    if (!nav) return;
+    const links = Array.from(nav.querySelectorAll<HTMLElement>('a[data-sv-anchor-id]'));
+    const at = links.indexOf(event.target as HTMLElement);
+    if (at < 0) return;
+    const horizontal = this.orientation() === 'horizontal';
+    const rtl = horizontal && getComputedStyle(nav).direction === 'rtl';
+    const next = horizontal ? (rtl ? 'ArrowLeft' : 'ArrowRight') : 'ArrowDown';
+    const back = horizontal ? (rtl ? 'ArrowRight' : 'ArrowLeft') : 'ArrowUp';
+    let to = -1;
+    if (event.key === next) to = Math.min(links.length - 1, at + 1);
+    else if (event.key === back) to = Math.max(0, at - 1);
+    else if (event.key === 'Home') to = 0;
+    else if (event.key === 'End') to = links.length - 1;
+    if (to < 0) return;
+    event.preventDefault();
+    links[to].focus();
+  }
+
+  private writeHash(id: string, mode: SvNavWriteMode): void {
+    const view = this.view;
+    if (!view) return;
+    const url = `${view.location.pathname}${view.location.search}#${encodeURIComponent(id)}`;
+    if (mode === 'push') view.history.pushState(view.history.state, '', url);
+    else view.history.replaceState(view.history.state, '', url);
+  }
+
+  private linkClass(row: SvAnchorRow, active: boolean, trail: boolean): string {
+    if (this.orientation() === 'horizontal' && this.appearance() === 'minimal') {
+      const base = 'inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors';
+      return active
+        ? `${base} text-brand-700 dark:text-brand-400`
+        : `${base} text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200`;
     }
-
-    return this.orientation() === 'vertical'
-      ? `${base} border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200`
-      : `${base} text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200`;
+    if (this.orientation() === 'horizontal') {
+      const base = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors';
+      return active
+        ? `${base} bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400`
+        : `${base} text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.06] dark:hover:text-gray-200`;
+    }
+    const appearance = this.appearance();
+    const indent = INDENT[Math.min(row.depth, INDENT.length - 1)];
+    const pad = appearance === 'compact' ? 'py-1 text-xs' : 'py-1.5 text-sm';
+    const rail = appearance === 'rail' || appearance === 'compact';
+    const base = `flex min-w-0 flex-1 items-center gap-2 rounded-md px-3 ${indent} ${pad} font-medium transition-colors${rail ? ' border-s-2 -ms-px' : ''}`;
+    const idle = trail
+      ? 'text-gray-800 dark:text-gray-200'
+      : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200';
+    if (appearance === 'card') {
+      return active
+        ? `${base} bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400`
+        : `${base} ${idle} hover:bg-gray-50 dark:hover:bg-white/[0.04]`;
+    }
+    if (appearance === 'minimal') {
+      return active ? `${base} font-semibold text-brand-700 dark:text-brand-400` : `${base} ${idle}`;
+    }
+    // Rail: the sliding marker draws the active edge, so every border is clear.
+    const border = active && this.marker() === 'border' ? 'border-brand-500' : 'border-transparent';
+    return active ? `${base} ${border} text-brand-700 dark:text-brand-400` : `${base} ${border} ${idle}`;
   }
 }
+

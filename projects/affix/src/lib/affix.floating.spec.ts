@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SV_FLOATING_ORDER, SvFloatingLayerService } from '@styloviz/core';
+import { SV_FLOATING_ORDER, SvFloatingLayerService } from '@styloviz/core/layout';
 import { SvAffixComponent } from './affix.component';
 
 /**

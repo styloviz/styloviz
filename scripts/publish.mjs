@@ -5,8 +5,8 @@
  * as scripts/publish.mjs by stage-public-mirror.mjs.
  *
  *   • The tag must name the version in package.json, so a stray tag publishes nothing.
- *   • @styloviz/core first, then every other package, then the @styloviz/all
- *     bundle last: the bundle pins every member at this exact version.
+ *   • @styloviz/core first, then every other package, then @styloviz/mcp, then
+ *     the @styloviz/all bundle last: the bundle pins every member at this exact version.
  *   • A version already on npm is skipped, so a failed run is re-run as is.
  *
  * `--dry` packs instead of publishing (no auth, no tag needed).
@@ -32,6 +32,8 @@ if (!existsSync(root)) {
 const dirs = readdirSync(root)
   .map((name) => join(root, name))
   .sort((a, b) => Number(b.endsWith('/core')) - Number(a.endsWith('/core')));
+// @styloviz/mcp (FL-B6) and @styloviz/schematics (FL-B7) ship as source — no build — at the same version.
+for (const tool of ['mcp', 'schematics']) if (existsSync(join('tools', tool, 'package.json'))) dirs.push(join('tools', tool));
 dirs.push(join('bundle', 'free'));
 
 const published = (name) => {

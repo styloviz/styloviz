@@ -255,6 +255,38 @@ describe('SvItemsWithMoreComponent — where the panel goes', () => {
     expect(style['maxWidth']).toBe(`${1024 - 34 - 8}px`);
   });
 
+  /**
+   * FL-B9 — under dir="rtl" the panel lines up on the trigger's START edge,
+   * which is its RIGHT edge, so it opens toward the trigger rather than away.
+   */
+  describe('under dir="rtl"', () => {
+    afterEach(() => document.documentElement.removeAttribute('dir'));
+
+    it('right-anchors on the trigger\'s right edge (its inline start)', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup({ maxVisible: 3, moreDropdown: true });
+      stubTriggerRect(f, { top: 40, bottom: 60, left: 500, right: 600 });
+      open(f);
+
+      const style = f.componentInstance.panelStyle();
+      expect(f.componentInstance.alignRight()).toBe(true);
+      expect(style['right']).toBe(`${1024 - 600}px`);
+      expect(style['left']).toBeUndefined();
+    });
+
+    it('falls back to the left edge when the start side has no room', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup({ maxVisible: 3, moreDropdown: true });
+      stubTriggerRect(f, { top: 40, bottom: 60, left: 20, right: 100 });
+      open(f);
+
+      const style = f.componentInstance.panelStyle();
+      expect(f.componentInstance.alignRight()).toBe(false);
+      expect(style['left']).toBe('20px');
+      expect(style['right']).toBeUndefined();
+    });
+  });
+
   it('keeps a minimum usable height even with almost no room', async () => {
     const f = await setup({ maxVisible: 3, moreDropdown: true });
     stubTriggerRect(f, { top: 750, bottom: 760, left: 20, right: 100 });

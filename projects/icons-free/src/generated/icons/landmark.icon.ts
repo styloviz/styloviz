@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `landmark` icon. */
 export const landmarkNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const landmarkNodes: readonly IconNode[] = [
 export const landmarkSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm2.5 9.3l9-6q.5-.4 1 0l9 6q.7.5.2 1.2-.2.4-.7.4h-.6v7.1q0 .9-.9.9-.9 0-.9-.9v-7.1h-3.2v7.1q0 .9-.9.9-.9 0-.9-.9v-7.1h-3.2v7.1q0 .9-.9.9-.9 0-.9-.9v-7.1h-3.2v7.1q0 .9-.9.9-.9 0-.9-.9v-7.1h-.6q-.9 0-.9-.9 0-.5.4-.7zm.5 10.8h18q.9 0 .9.9 0 .9-.9.9h-18q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `landmark` as a registrable glyph — `registerSvIcons([landmarkIcon])` / `provideSvIcons([landmarkIcon])`. */
+export const landmarkIcon: SvIconDef = { name: 'landmark', nodes: landmarkNodes, solid: landmarkSolidNodes };
 
 /** `landmark` — tree-shakable standalone icon. Use `<sv-landmark-icon />`. */
 @Component({

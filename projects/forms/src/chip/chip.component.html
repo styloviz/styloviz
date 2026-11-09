@@ -39,7 +39,7 @@
 
   <!-- Selected checkmark -->
   @if (isFilter() && isSelected()) {
-    <sv-icon name="check" [cssClass]="'shrink-0 ml-0.5 ' + iconSize()" [strokeWidth]="2" />
+    <sv-icon name="check" [cssClass]="'shrink-0 ms-0.5 ' + iconSize()" [strokeWidth]="2" />
   }
 
   <!-- Remove button -->
@@ -52,12 +52,12 @@
       type="button"
       [attr.tabindex]="removeTabIndex()"
       (focus)="onFocus()"
-      class="shrink-0 ml-0.5 rounded-full p-0.5 opacity-70 transition-all duration-100
+      class="sv-target shrink-0 ms-0.5 rounded-full p-0.5 opacity-70 transition-all duration-100
              hover:opacity-100 hover:bg-black/10 dark:hover:bg-white/10 disabled:cursor-not-allowed
              focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
       [disabled]="disabled()"
       (click)="onRemove($event)"
-      [attr.aria-label]="'Remove ' + (resolvedAriaLabel() || 'item')"
+      [attr.aria-label]="(resolvedAriaLabel() ? labels.removeChip : labels.removeItem) | svLabel: { name: resolvedAriaLabel() }"
     >
       <sv-icon name="close" [cssClass]="iconSize()" [strokeWidth]="1.75" />
     </button>

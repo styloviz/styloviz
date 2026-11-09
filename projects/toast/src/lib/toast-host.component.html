@@ -3,8 +3,9 @@
   #region
   [ngClass]="['fixed flex gap-3 pointer-events-none', positionClass()]"
   [style.zIndex]="stackZ"
+  [style.bottom]="bottomOffset()"
   role="region"
-  aria-label="Notifications"
+  [attr.aria-label]="labels.notifications"
   (mouseleave)="onPointerLeave()"
 >
   <!-- Container-level mouseleave as well as the per-toast one: a toast removed
@@ -29,6 +30,8 @@
   @for (toast of toasts(); track trackById($index, toast)) {
     <div
       [attr.id]="toast.id"
+      [attr.aria-busy]="toast.pending ? 'true' : null"
+      [attr.data-sv-toast-pending]="toast.pending ? '' : null"
       (mouseenter)="onPointerEnter()"
       (mouseleave)="onPointerLeave()"
       (focusin)="onFocusIn()"
@@ -44,11 +47,16 @@
       <!-- ── Main row: icon + content + dismiss ─────────────────────── -->
       <div class="flex items-start gap-3 p-4">
 
-        <!-- Variant icon -->
-        <span [ngClass]="['mt-0.5 shrink-0', iconClass(toast)]">
-          <sv-icon [name]="iconName(toast)"
-                   cssClass="h-5 w-5"
-                   [strokeWidth]="2" />
+        <!-- Variant icon — a spinner while a `promise()` toast is pending
+             (FL-J3-OF-07); the variant icon arrives with the outcome. -->
+        <span [ngClass]="['mt-0.5 shrink-0', toast.pending ? 'text-primary-600 dark:text-primary-400' : iconClass(toast)]">
+          @if (toast.pending) {
+            <sv-spinner-arc cssClass="h-5 w-5" />
+          } @else {
+            <sv-icon [name]="iconName(toast)"
+                     cssClass="h-5 w-5"
+                     [strokeWidth]="2" />
+          }
         </span>
 
         <!-- Title + message -->
@@ -74,7 +82,7 @@
                    the label and axe reports it as serious — and "times two"
                    read from "×2" is not something to leave to chance. -->
               <span
-                class="ml-1 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700
+                class="ms-1 inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700
                        px-1.5 text-[0.6875rem] font-semibold tabular-nums align-middle
                        text-gray-600 dark:text-gray-300"
                 data-sv-toast-count
@@ -102,8 +110,8 @@
           <button
             type="button"
             (click)="dismiss(toast)"
-            aria-label="Dismiss notification"
-            class="shrink-0 -mt-0.5 -mr-1 inline-flex h-6 w-6 items-center justify-center
+            [attr.aria-label]="labels.dismissNotification"
+            class="shrink-0 -mt-0.5 -me-1 inline-flex h-6 w-6 items-center justify-center
                    rounded-md text-gray-500 dark:text-gray-400
                    hover:bg-gray-100 dark:hover:bg-gray-700
                    hover:text-gray-600 dark:hover:text-gray-300

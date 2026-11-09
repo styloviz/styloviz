@@ -14,7 +14,7 @@
         [attr.data-seg]="opt.value"
         [class]="swatchClass(opt)"
         [attr.aria-checked]="value() === opt.value"
-        [attr.aria-label]="opt.label + (isSoldOut(opt) ? ' (sold out)' : '')"
+        [attr.aria-label]="isSoldOut(opt) ? (labels.soldOutOption | svLabel: { name: opt.label }) : opt.label"
         [attr.title]="opt.label"
         [attr.tabindex]="segTabIndex(opt)"
         [disabled]="opt.disabled || opt.soldOut || resolvedDisabled()"
@@ -23,7 +23,8 @@
         (blur)="onBlur()">
 
         @if (opt.color) {
-          <span class="h-full w-full rounded-full" [style.background-color]="opt.color"></span>
+          <!-- The colour IS the option: kept as authored under forced colours. -->
+          <span class="h-full w-full rounded-full forced-colors:forced-color-adjust-none" [style.background-color]="opt.color"></span>
         } @else {
           <span>{{ opt.label }}</span>
         }

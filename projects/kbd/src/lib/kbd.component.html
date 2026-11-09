@@ -1,4 +1,26 @@
-@if (keys().length > 1) {
+@if (steps().length) {
+  <!--
+    A SEQUENCE: chords pressed one after another. Each step is its own
+    unbreakable group, the word between them is drawn (it is the instruction)
+    and hidden, and the whole thing is named once: "G then I".
+  -->
+  <kbd class="inline-flex flex-wrap items-center gap-1 align-middle" data-sv-kbd-sequence>
+    <span class="sr-only">{{ spokenLabel() }}</span>
+    @for (step of steps(); track $index) {
+      @if (!$first) {
+        <span aria-hidden="true" class="text-[0.9em] text-gray-500 dark:text-gray-400">{{ labels.then }}</span>
+      }
+      <span class="inline-flex items-center gap-1 whitespace-nowrap" aria-hidden="true">
+        @for (key of step; track $index) {
+          @if (!$first) {
+            <span class="text-[0.9em] text-gray-500 dark:text-gray-400">+</span>
+          }
+          <kbd [ngClass]="classes()">{{ key.glyph }}</kbd>
+        }
+      </span>
+    }
+  </kbd>
+} @else if (keys().length > 1) {
   <!--
     ★★ A CHORD IS ONE THING AND MUST BREAK LIKE ONE. "Ctrl +" at the end of a
     line and "C" at the start of the next is not a shortcut, it is two. The

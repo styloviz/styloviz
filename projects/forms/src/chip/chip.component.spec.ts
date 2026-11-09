@@ -1,8 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 import { SvChipComponent } from './chip.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * A chip is a `<span>`, so everything that makes it operable is opt-in: the
@@ -15,6 +20,7 @@ import { SvChipComponent } from './chip.component';
 async function setup(inputs: Partial<ComponentInput<SvChipComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvChipComponent, {
+    providers: [HOST_ICONS],
     inputs: { label: 'Design', ...inputs } as ComponentInput<SvChipComponent>,
   });
 }

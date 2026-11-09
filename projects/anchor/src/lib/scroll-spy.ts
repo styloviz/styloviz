@@ -4,6 +4,7 @@ import {
   svPickActiveSection,
   svSectionSnapshot,
   type AnchorActivation,
+  type SvPickContext,
   type SvSectionSnapshot,
   type SvVerticalRect,
 } from './activation-strategy';
@@ -105,10 +106,14 @@ export function createScrollSpy(options: ScrollSpyOptions): ScrollSpy {
   /** The observer's last verdict per id. Survives with no layout; see the strategy file. */
   const visible = new Map<string, boolean>();
   let observer: IntersectionObserver | null = null;
+  /** Scroll listener for the end-of-scroll case; see `setup`. */
+  let removeScroll: (() => void) | null = null;
 
   const teardown = (): void => {
     observer?.disconnect();
     observer = null;
+    removeScroll?.();
+    removeScroll = null;
     visible.clear();
   };
 
@@ -127,6 +132,21 @@ export function createScrollSpy(options: ScrollSpyOptions): ScrollSpy {
     const rect = el?.getBoundingClientRect();
     const viewport = typeof window === 'undefined' ? 0 : window.innerHeight;
     return { top: (rect?.top ?? 0) + pad, height: (rect?.height ?? viewport) - pad };
+  };
+
+  /**
+   * Whether the root is scrolled to its end (`SR-11`). The root element, or the
+   * document's scrolling element when the root is the viewport.
+   *
+   * ★ "At the end" requires that it scrolls at all — content that fits is
+   *   trivially at its end, and would hand every short page to its last section.
+   */
+  const measureContext = (): SvPickContext => {
+    const el = untracked(root) ?? (typeof document === 'undefined' ? null : document.scrollingElement);
+    if (!el) return {};
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    const scrolls = scrollHeight > clientHeight + 1;
+    return { atEnd: scrolls && scrollTop + clientHeight >= scrollHeight - 1 };
   };
 
   /**
@@ -150,12 +170,18 @@ export function createScrollSpy(options: ScrollSpyOptions): ScrollSpy {
       sections.map((s) => s.id),
       snapshots,
       untracked(strategy),
+      measureContext(),
     );
     if (next !== null) activeId.set(next);
   };
 
-  const setup = (sections: readonly ScrollSpySection[]): void => {
+  const setup = (all: readonly ScrollSpySection[]): void => {
     teardown();
+    // A section whose element is not there yet (a host that looked it up
+    // before it rendered) is left out rather than handed to `observe()`, which
+    // throws on anything that is not an Element. It joins when the host's
+    // signal changes and hands in the element.
+    const sections = all.filter((s) => s.el != null && typeof s.el.getBoundingClientRect === 'function');
     if (typeof IntersectionObserver === 'undefined' || sections.length === 0) {
       activeId.set(null);
       return;
@@ -179,6 +205,29 @@ export function createScrollSpy(options: ScrollSpyOptions): ScrollSpy {
       },
     );
     for (const s of sections) observer.observe(s.el);
+
+    // ★★ THE OBSERVER CANNOT SEE THE END OF THE SCROLL (`SR-11`). Its callbacks
+    //    fire on threshold crossings, and the last few pixels of a scroll
+    //    usually cross none — the last section is already inside the band. So a
+    //    passive scroll listener re-runs the same measurement, at most once per
+    //    frame, and `atEnd` gets its chance to apply.
+    const target: HTMLElement | Window | null =
+      untracked(root) ?? (typeof window === 'undefined' ? null : window);
+    if (target && typeof requestAnimationFrame !== 'undefined') {
+      let frame: number | null = null;
+      const onScroll = (): void => {
+        if (frame !== null) return;
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          recompute(sections);
+        });
+      };
+      target.addEventListener('scroll', onScroll, { passive: true });
+      removeScroll = () => {
+        target.removeEventListener('scroll', onScroll);
+        if (frame !== null) cancelAnimationFrame(frame);
+      };
+    }
 
     // An observer's first callback is asynchronous, and a rail with nothing
     // highlighted for a frame is a visible flicker on every page load. The

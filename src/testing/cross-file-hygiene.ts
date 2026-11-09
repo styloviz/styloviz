@@ -37,6 +37,34 @@
  * files rendering unstyled with no way to know.
  */
 
+/**
+ * The globals `@angular/platform-server` overwrites: `Object.assign(globalThis,
+ * domino.impl)` plus `KeyboardEvent` (its `setDomTypes()`). Listed, not
+ * imported — importing platform-server here would run the very assignment this
+ * undoes in every worker.
+ */
+const DOMINO_GLOBALS: readonly string[] = [
+  'CSSStyleDeclaration', 'CharacterData', 'Comment', 'DOMImplementation', 'DOMTokenList', 'Document',
+  'DocumentFragment', 'DocumentType', 'Element', 'NamedNodeMap', 'Node', 'NodeList', 'NodeFilter',
+  'ProcessingInstruction', 'Text', 'Window', 'Event', 'UIEvent', 'MouseEvent', 'CustomEvent', 'HTMLElement',
+  'HTMLUnknownElement', 'HTMLAnchorElement', 'HTMLAreaElement', 'HTMLBRElement', 'HTMLBaseElement',
+  'HTMLBodyElement', 'HTMLButtonElement', 'HTMLDListElement', 'HTMLDataElement', 'HTMLDataListElement',
+  'HTMLDetailsElement', 'HTMLDivElement', 'HTMLEmbedElement', 'HTMLFieldSetElement', 'HTMLFormElement',
+  'HTMLHRElement', 'HTMLHeadElement', 'HTMLHeadingElement', 'HTMLHtmlElement', 'HTMLIFrameElement',
+  'HTMLImageElement', 'HTMLInputElement', 'HTMLKeygenElement', 'HTMLLIElement', 'HTMLLabelElement',
+  'HTMLLegendElement', 'HTMLLinkElement', 'HTMLMapElement', 'HTMLMenuElement', 'HTMLMetaElement',
+  'HTMLMeterElement', 'HTMLModElement', 'HTMLOListElement', 'HTMLObjectElement', 'HTMLOptGroupElement',
+  'HTMLOptionElement', 'HTMLOutputElement', 'HTMLParagraphElement', 'HTMLParamElement', 'HTMLPreElement',
+  'HTMLProgressElement', 'HTMLQuoteElement', 'HTMLScriptElement', 'HTMLSelectElement', 'HTMLSpanElement',
+  'HTMLStyleElement', 'HTMLTableCaptionElement', 'HTMLTableCellElement', 'HTMLTableColElement',
+  'HTMLTableElement', 'HTMLTemplateElement', 'HTMLTableRowElement', 'HTMLTableSectionElement',
+  'HTMLTextAreaElement', 'HTMLTimeElement', 'HTMLTitleElement', 'HTMLUListElement', 'HTMLMediaElement',
+  'HTMLAudioElement', 'HTMLVideoElement', 'HTMLTableDataCellElement', 'HTMLTableHeaderCellElement',
+  'HTMLFrameSetElement', 'HTMLFrameElement', 'HTMLCanvasElement', 'HTMLDialogElement', 'HTMLMenuItemElement',
+  'HTMLSourceElement', 'HTMLTrackElement', 'HTMLFontElement', 'HTMLDirectoryElement', 'SVGElement',
+  'SVGSVGElement', 'KeyboardEvent',
+];
+
 /** Where each overwritten global lives, by the name specs replace it under. */
 const OWNERS: readonly (readonly [owner: () => object, keys: readonly string[]])[] = [
   [
@@ -52,7 +80,40 @@ const OWNERS: readonly (readonly [owner: () => object, keys: readonly string[]])
   [() => document, ['visibilityState', 'hidden', 'elementFromPoint', 'referrer', 'hasFocus']],
   [() => HTMLElement.prototype, ['offsetParent', 'offsetWidth', 'offsetHeight', 'offsetTop', 'offsetLeft', 'scrollIntoView', 'focus']],
   [() => Element.prototype, ['scrollIntoView', 'getBoundingClientRect', 'scrollTo', 'animate']],
+  /**
+   * ★ Canvas. jsdom has no 2-D context, so specs install one — some with
+   *   `Object.defineProperty` on the prototype, which `restoreAllMocks` cannot
+   *   undo. The QR spec's stub (no `setTransform`) reached the signature pad's
+   *   export canvas in a later file (FL-A8-02).
+   */
+  [() => HTMLCanvasElement.prototype, ['getContext', 'toDataURL', 'toBlob']],
+  /**
+   * ★★ Every global constructor — `Event`, `KeyboardEvent`, `Node`, `Element`…
+   *    `@angular/platform-server` runs `Object.assign(globalThis, domino.impl)`
+   *    when an SSR spec renders (`renderApplication`), and sets `KeyboardEvent`
+   *    to domino's `Event`. Every jsdom spec after it in the worker then built
+   *    events jsdom rejects ("parameter 1 is not of type 'Event'") and read
+   *    domino's `Node` constants in selection code: 6 tests in shard 126 failed
+   *    after `expand.ssr.spec.ts` and passed without it (FL-A8-02). Read from
+   *    the global at record time, before any spec ran, so it is jsdom's set.
+   *
+   * ★ Exactly the names platform-server writes, nothing wider. A first cut
+   *   took every capitalised function on `globalThis` and every `await
+   *   setTimeout(…)` in `admin-mutation.spec.ts` then hung for 30 s in a
+   *   shared worker.
+   */
+  [() => globalThis, DOMINO_GLOBALS],
+  /**
+   * ★★ The timer globals, restored LAST (after `vi.useRealTimers()` and
+   *    `vi.restoreAllMocks()`). A `vi.spyOn(globalThis, 'setTimeout')` taken
+   *    under fake timers wraps the fake; `restoreAllMocks` after the clock is
+   *    gone puts that fake back, and no timer fires again in the worker —
+   *    `admin-mutation.spec.ts` hung 6 × 30 s after `terminal.ssr.spec.ts`
+   *    (FL-A8-02).
+   */
+  [() => globalThis, ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'clearImmediate', 'queueMicrotask', 'Date']],
 ];
+
 
 interface Snapshot {
   readonly href: string;

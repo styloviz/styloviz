@@ -18,7 +18,9 @@ import { SvDatePickerComponent } from './date-picker.component';
 async function setup(inputs: Partial<ComponentInput<SvDatePickerComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvDatePickerComponent, {
-    inputs: inputs as ComponentInput<SvDatePickerComponent>,
+    // Written against the Monday-first English grid `''` keeps; the default
+    // follows the kit's locale (FL-B1a) and is covered in the week/locale specs.
+    inputs: { locale: '', ...inputs } as ComponentInput<SvDatePickerComponent>,
   });
 }
 
@@ -251,4 +253,31 @@ describe('SvDatePickerComponent — the caret never walks out of the window', ()
     expect(fixture.componentInstance.activeKey()).toBe(min);
     expect(day(min)!.disabled).toBe(false);
   });
+});
+
+/**
+ * FL-B9 — the day grid is a CSS grid, so under `dir="rtl"` it mirrors: the next
+ * day sits to the LEFT. Left/Right follow what the user sees (as the toolbar,
+ * stepper and heatmap already do), Up/Down are unchanged.
+ */
+describe('date picker — arrows under dir="rtl" follow the mirrored grid', () => {
+  afterEach(() => document.documentElement.removeAttribute('dir'));
+
+  const cases: { keys: string; to: string; why: string }[] = [
+    { keys: '{ArrowLeft}',  to: '2024-03-16', why: 'the day to its left, the next one' },
+    { keys: '{ArrowRight}', to: '2024-03-14', why: 'the day to its right, the previous one' },
+    { keys: '{ArrowDown}',  to: '2024-03-22', why: 'one week on, as in LTR' },
+  ];
+
+  for (const { keys, to, why } of cases) {
+    it(`${keys} moves to ${why}`, async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const { fixture } = await setup({ value: MID });
+      await open(fixture);
+      await press(fixture, keys);
+
+      expect(fixture.componentInstance.activeKey()).toBe(to);
+      expect(document.activeElement).toBe(day(to));
+    });
+  }
 });

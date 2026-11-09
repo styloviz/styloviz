@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { render } from '@testing-library/angular';
 import {
   SvAlertBannerComponent,
@@ -9,6 +9,11 @@ import {
   type AlertStyle,
   type AlertVariant,
 } from './alert-banner.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { bellIcon } from '@styloviz/icons/glyph/bell';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([bellIcon]);
 
 /**
  * Five semantic variants × six visual styles × four positions, plus the
@@ -27,7 +32,7 @@ const STYLES: AlertStyle[] = [
 
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvAlertBannerComponent, { inputs });
+  const { fixture } = await render(SvAlertBannerComponent, { providers: [HOST_ICONS], inputs });
   return fixture;
 }
 

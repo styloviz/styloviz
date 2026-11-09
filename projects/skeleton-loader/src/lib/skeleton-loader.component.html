@@ -26,6 +26,8 @@
      nothing to the accessibility tree, so what is exposed is the message and
      the button — and still no live region of its own.
 -->
+<!-- `shown()` is always true unless showAfterMs / minVisibleMs delay it (FL-J3-OF-06). -->
+@if (shown()) {
 <div
   class="w-full" [class]="customClass()"
   [attr.role]="announce() ? 'status' : null"
@@ -208,7 +210,7 @@
       <!-- Large avatar -->
       <div class="shrink-0 rounded-full" [class]="boneBase() + ' ' + waveClass()"
            style="width: 5rem; height: 5rem;"></div>
-      <div class="flex-1 space-y-2.5 text-center sm:text-left">
+      <div class="flex-1 space-y-2.5 text-center sm:text-start">
         <!-- Name -->
         <div class="mx-auto h-5 w-48 rounded-md sm:mx-0" [class]="boneBase() + ' ' + waveClass()"></div>
         <!-- Role -->
@@ -293,7 +295,7 @@
           </div>
         </div>
         <!-- X-axis labels -->
-        <div class="flex justify-around pl-8">
+        <div class="flex justify-around ps-8">
           @for (_ of [0,1,2,3,4,5,6,7,8,9,10,11]; track $index) {
             <div class="h-2.5 w-4 rounded opacity-40" [class]="boneBase()"></div>
           }
@@ -356,6 +358,7 @@
   </div>
 
 </div>
+}
 
 <!--
   Wave shimmer — a pure CSS technique using an overlay gradient that sweeps

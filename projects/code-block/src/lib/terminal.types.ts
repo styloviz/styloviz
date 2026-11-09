@@ -81,3 +81,6 @@ export const out = (...text: readonly string[]): readonly TerminalLine[] =>
 
 export const err = (...text: readonly string[]): readonly TerminalLine[] =>
   text.map((t) => ({ kind: 'stderr' as const, text: t }));
+
+/** How `sv-terminal`'s log announces new lines to a screen reader. */
+export type TerminalLive = 'polite' | 'off';

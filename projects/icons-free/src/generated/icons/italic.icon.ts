@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `italic` icon. */
 export const italicNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const italicNodes: readonly IconNode[] = [
 export const italicSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 19.1h3.4l5.3-14.2h-3.7q-.9 0-.9-.9 0-.9.9-.9h4.7q.2 0 .4 0h3.9q.9 0 .9.9 0 .9-.9.9h-3.4l-5.3 14.2h3.7q.9 0 .9.9 0 .9-.9.9h-4.7q-.2 0-.4 0h-3.9q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `italic` as a registrable glyph — `registerSvIcons([italicIcon])` / `provideSvIcons([italicIcon])`. */
+export const italicIcon: SvIconDef = { name: 'italic', nodes: italicNodes, solid: italicSolidNodes };
 
 /** `italic` — tree-shakable standalone icon. Use `<sv-italic-icon />`. */
 @Component({

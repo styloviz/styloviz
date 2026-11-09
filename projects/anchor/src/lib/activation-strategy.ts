@@ -12,7 +12,7 @@
  * | **Sections taller than the viewport** | ✓ | ✓ | ✗ the heading is far above the line for most of the section, so the *next* heading becomes nearest long before the reader reaches it | ✓ |
  * | **Overlapping / nested sections** | ~ the outer always wins, because it starts first | ✗ the outer always wins too — its box *contains* the inner's, so it can never have less area on screen | ~ the inner wins from its own heading onward, since its top edge is the nearer one | ~ the inner wins from its heading onward, and does not hand back when the reader returns to the outer section's own text |
  * | **Sections that change size after paint** | ✓ nothing is cached | ✓ re-measured per event | ✓ re-measured per event | ✓ re-measured per event |
- * | **Reaching the bottom of the page** | ✗ a final section shorter than the band never reaches it — the id goes stale | ✗ a short final section never wins on area | ✓ the only one that can reach it, since the last heading does become the nearest | ✗ a final section whose heading never crosses the line never activates (`NV-02-I7`) |
+ * | **Reaching the bottom of the page** | ✓ with `atEnd` (`SR-11`): at the end of the scroll the last section wins — without it a final section shorter than the band never reaches it | ✗ a short final section never wins on area | ✓ the only one that can reach it, since the last heading does become the nearest | ✓ with `atEnd` (`SR-11`): without it a final section whose heading never crosses the line never activates (`NV-02-I7`) |
  *
  * ★ **Nothing here is cached between events.** Every snapshot is re-measured
  * from the element on each intersection callback rather than read out of the
@@ -69,6 +69,27 @@ export interface SvSectionSnapshot {
 }
 
 /**
+ * What the strategies may know about the scroll container as a whole, beyond the
+ * per-section geometry. Every field is optional, so callers that pass nothing
+ * keep the old behaviour.
+ */
+export interface SvPickContext {
+  /**
+   * The container is scrolled to its end — it scrolls at all, and
+   * `scrollTop + clientHeight` has reached `scrollHeight`.
+   *
+   * ★★ THE ONLY WAY THE LAST SECTION CAN WIN A LINE RULE (`SR-11`, `NV-02-I7`).
+   *    When the final section is shorter than the band, its heading is still
+   *    below the activation line when the scroll runs out, so neither
+   *    `last-passed` nor `first-visible` can ever reach it — the rail ends on
+   *    the second-to-last item and clicking the last one reports another.
+   *    Bootstrap's and tocbot's scrollspies make the same call: at the end,
+   *    the last section is current.
+   */
+  readonly atEnd?: boolean;
+}
+
+/**
  * Turn one section rect into a snapshot, relative to `band`.
  *
  * `band.top` is the **activation line** — the top of the scroll container plus
@@ -115,13 +136,23 @@ export function svSectionSnapshot(
  *
  * @param order  Section ids in document order. Ties resolve to the earlier one.
  * @param snapshots Per-id geometry. Ids missing from it are simply not candidates.
+ * @param context  Container-wide facts — see {@link SvPickContext}. Optional.
  */
 export function svPickActiveSection(
   order: readonly string[],
   snapshots: ReadonlyMap<string, SvSectionSnapshot>,
   strategy: AnchorActivation,
+  context: SvPickContext = {},
 ): string | null {
   if (order.length === 0) return null;
+
+  // At the end of the scroll the line rules can no longer move, so the last
+  // laid-out section is current (`SR-11`). Only measured sections count: with
+  // no layout there is no scroll position to be at the end of.
+  if (context.atEnd && (strategy === 'last-passed' || strategy === 'first-visible')) {
+    const measured = order.filter((id) => snapshots.get(id)?.measured === true);
+    if (measured.length > 0) return measured[measured.length - 1];
+  }
 
   // `first-visible` IS the flag rule, so it is also the fallback every other
   // strategy lands on — one code path, not a copy per branch.
@@ -141,7 +172,7 @@ export function svPickActiveSection(
       // also the moment the previous section's bottom edge leaves it.
       let passed: string | null = null;
       for (const id of measured) {
-        if ((snapshots.get(id) as SvSectionSnapshot).top <= 0) passed = id;
+        if ((snapshots.get(id) as SvSectionSnapshot).top < PASSED_TOLERANCE_PX) passed = id;
       }
       // Nothing crossed yet — the reader is above the first heading, in a hero or
       // a page title. Whatever is on screen is the honest answer; failing that,
@@ -152,6 +183,18 @@ export function svPickActiveSection(
     }
   }
 }
+
+/**
+ * How close below the line a heading may sit and still count as passed.
+ *
+ * ★★ SCROLL POSITIONS SNAP TO DEVICE PIXELS (`SR-11`). A rail click scrolls the
+ *    heading exactly onto the activation line, but the browser rounds the
+ *    scroll offset — to whole CSS pixels, or to 1/2.625 px on a Pixel 7 — and
+ *    the heading lands a fraction of a pixel BELOW the line. With `<= 0` the
+ *    click reported the section before the one clicked. One pixel absorbs the
+ *    rounding at any device pixel ratio and is invisible to a reader.
+ */
+const PASSED_TOLERANCE_PX = 1;
 
 /**
  * How many intersection thresholds a strategy needs.

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { SvOtpInputComponent } from './otp-input.component';
 import type { OtpInputStatus } from './otp-input.types';
-import type { SvServerError } from '@styloviz/core';
+import type { SvServerError } from '@styloviz/core/forms';
 
 /**
  * `FI-16-M3` — clear-on-error.

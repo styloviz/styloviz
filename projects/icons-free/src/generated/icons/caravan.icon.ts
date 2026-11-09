@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `caravan` icon. */
 export const caravanNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const caravanNodes: readonly IconNode[] = [
 export const caravanSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm1.1 16v-7q0-1.9 1.9-1.9h13q3.9 0 3.9 3.9v4.1h2.1q.9 0 .9.9 0 .9-.9.9h-10.2q-.4 2-2.8 2-2.4 0-2.8-2-.1 0-.2 0h-4q-.9 0-.9-.9zm3.9-6.4q-1.4 0-1.4 1.4v2.5q0 1.4 1.4 1.4h3q1.4 0 1.4-1.4v-2.5q0-1.4-1.4-1.4zm7.9-.7h-1.8v5.1q0 .9.9.9.9 0 .9-.9zm-7.5 2.5h2.2v1.7h-2.2z' },
 ];
+
+/** `caravan` as a registrable glyph — `registerSvIcons([caravanIcon])` / `provideSvIcons([caravanIcon])`. */
+export const caravanIcon: SvIconDef = { name: 'caravan', nodes: caravanNodes, solid: caravanSolidNodes };
 
 /** `caravan` — tree-shakable standalone icon. Use `<sv-caravan-icon />`. */
 @Component({

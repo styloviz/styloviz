@@ -1,0 +1,53 @@
+@if (loading()) {
+  <sv-skeleton-shell variant="list" [rows]="3" [ariaLabel]="text().suggestionsLoading" />
+} @else if (error()) {
+  <sv-error-shell [error]="error()" [compact]="true" (retry)="retry.emit()" />
+} @else if (rows().length === 0) {
+  <sv-empty-shell [compact]="true" [title]="text().suggestionsEmptyTitle" [message]="text().suggestionsEmptyMessage" />
+} @else {
+  <ul role="list" [attr.aria-label]="ariaLabel() ?? text().suggestions" [class]="listClass()" data-sv-suggestions>
+    @for (row of rows(); track row.key) {
+      <li [class.min-w-0]="!isChips()">
+        @if (isChips()) {
+          <button type="button"
+                  (click)="choose(row.item)"
+                  [disabled]="disabled()"
+                  class="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5
+                         text-start text-xs font-medium text-gray-700 transition-colors
+                         hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60
+                         disabled:cursor-not-allowed disabled:opacity-50
+                         dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200
+                         dark:hover:border-primary-700 dark:hover:bg-primary-900/30 dark:hover:text-primary-300">
+            @if (row.item.icon) {
+              <sv-icon [name]="row.item.icon" cssClass="h-3.5 w-3.5 shrink-0 text-primary-600 dark:text-primary-400" [strokeWidth]="1.8" />
+            }
+            <span class="truncate">{{ row.item.label }}</span>
+          </button>
+        } @else {
+          <button type="button"
+                  (click)="choose(row.item)"
+                  [disabled]="disabled()"
+                  class="flex w-full items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5
+                         text-start transition-colors hover:border-primary-200 hover:bg-primary-50/50
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60
+                         disabled:cursor-not-allowed disabled:opacity-50
+                         dark:border-gray-800 dark:bg-gray-800/40
+                         dark:hover:border-primary-800/50 dark:hover:bg-primary-900/20">
+            @if (row.item.icon) {
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/40" aria-hidden="true">
+                <sv-icon [name]="row.item.icon" cssClass="h-3.5 w-3.5 text-primary-600 dark:text-primary-400" [strokeWidth]="1.8" />
+              </span>
+            }
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[12px] font-medium text-gray-700 dark:text-gray-300">{{ row.item.label }}</span>
+              @if (row.item.description) {
+                <span class="mt-0.5 block truncate text-[11px] text-gray-500 dark:text-gray-400">{{ row.item.description }}</span>
+              }
+            </span>
+          </button>
+        }
+      </li>
+    }
+  </ul>
+}

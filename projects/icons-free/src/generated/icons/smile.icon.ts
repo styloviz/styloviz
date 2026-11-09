@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `smile` icon. */
 export const smileNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const smileNodes: readonly IconNode[] = [
 export const smileSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.9 12q0 4.1-2.9 7-2.9 2.9-7 2.9-4.1 0-7-2.9-2.9-2.9-2.9-7 0-4.1 2.9-7 2.9-2.9 7-2.9 4.1 0 7 2.9 2.9 2.9 2.9 7zm-12.6 1.6q-.5-.8-1.2-.4-.8.5-.4 1.2 1.4 2.5 4.3 2.5 2.9 0 4.3-2.5.4-.7-.4-1.2-.7-.4-1.2.4-.9 1.6-2.7 1.6-1.8 0-2.7-1.6zm-.3-4.5q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9zm6 0q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `smile` as a registrable glyph — `registerSvIcons([smileIcon])` / `provideSvIcons([smileIcon])`. */
+export const smileIcon: SvIconDef = { name: 'smile', nodes: smileNodes, solid: smileSolidNodes };
 
 /** `smile` — tree-shakable standalone icon. Use `<sv-smile-icon />`. */
 @Component({

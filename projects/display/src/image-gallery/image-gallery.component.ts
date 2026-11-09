@@ -15,18 +15,21 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { svIsRtl } from '@styloviz/core/a11y';
 import {
-  svStackedPopup,
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
-  createFocusScope,
-  svAttrSelector,
   warnOnDuplicateItemKeys,
   type SvDataError,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svStackedPopup, createFocusScope } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerImageGalleryIcons } from './image-gallery.component.icons';
 export type GalleryLayout  = 'grid' | 'masonry' | 'strip' | 'viewer';
 
 /**
@@ -51,6 +54,18 @@ export interface GalleryImage {
   readonly author?: string;
   readonly tags?: string[];
   readonly aspectRatio?: string; // e.g. '16/9' | '4/3' | '3/4'
+  /**
+   * Responsive candidates, e.g. `'/p/1-400.jpg 400w, /p/1-1600.jpg 1600w'`.
+   * Without it every thumbnail downloads the full-size `src`; with it the
+   * browser picks a candidate for the tile's rendered width (see `sizes`).
+   */
+  readonly srcset?: string;
+  /**
+   * The rendered width hint that goes with `srcset`. Unset, the gallery
+   * derives one from its layout and `columns` — e.g. `(min-width: 768px) 25vw,
+   * (min-width: 640px) 33vw, 50vw` for a four-column grid.
+   */
+  readonly sizes?: string;
 }
 
 /**
@@ -61,14 +76,14 @@ export interface GalleryImage {
  * one that is silently receiving nothing — and the fixture shipped in every
  * buyer's bundle.
  */
-export const DEMO_IMAGES: GalleryImage[] = [
-  { id: '1', src: '/demo/photo-a1.svg',   alt: 'Mountain landscape',    title: 'Mountain at Dusk',   author: 'Alex P.',  tags: ['nature'],  aspectRatio: '16/9' },
-  { id: '2', src: '/demo/photo-b2.svg',   alt: 'City skyline portrait', title: 'Urban Skyline',      author: 'Maria S.', tags: ['city'],    aspectRatio: '2/3'  },
-  { id: '3', src: '/demo/photo-c3.svg',   alt: 'Ocean waves',           title: 'Pacific Waves',      author: 'James K.', tags: ['ocean'],   aspectRatio: '3/2'  },
-  { id: '4', src: '/demo/photo-d4.svg',   alt: 'Forest path portrait',  title: 'Deep Forest',        author: 'Leila N.', tags: ['nature'],  aspectRatio: '3/4'  },
-  { id: '5', src: '/demo/photo-e5.svg',   alt: 'Desert dunes',          title: 'Sahara Dunes',       author: 'Omar R.',  tags: ['desert'],  aspectRatio: '16/9' },
-  { id: '6', src: '/demo/photo-f6.svg',   alt: 'Autumn leaves',         title: 'Fall Colours',       author: 'Yuki T.',  tags: ['nature'],  aspectRatio: '4/3'  },
-  { id: '7', src: '/demo/photo-g7.svg',   alt: 'Snowy peaks',           title: 'Alpine Winter',      author: 'Nico B.',  tags: ['winter'],  aspectRatio: '4/3'  },
+export const DEMO_IMAGES: GalleryImage[] = [ // sv-i18n-ignore: demo sample data the host replaces
+  { id: '1', src: '/demo/photo-a1.svg',   alt: 'Mountain landscape',    title: 'Mountain at Dusk',   author: 'Alex P.',  tags: ['nature'],  aspectRatio: '16/9' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '2', src: '/demo/photo-b2.svg',   alt: 'City skyline portrait', title: 'Urban Skyline',      author: 'Maria S.', tags: ['city'],    aspectRatio: '2/3'  }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '3', src: '/demo/photo-c3.svg',   alt: 'Ocean waves',           title: 'Pacific Waves',      author: 'James K.', tags: ['ocean'],   aspectRatio: '3/2'  }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '4', src: '/demo/photo-d4.svg',   alt: 'Forest path portrait',  title: 'Deep Forest',        author: 'Leila N.', tags: ['nature'],  aspectRatio: '3/4'  }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '5', src: '/demo/photo-e5.svg',   alt: 'Desert dunes',          title: 'Sahara Dunes',       author: 'Omar R.',  tags: ['desert'],  aspectRatio: '16/9' }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '6', src: '/demo/photo-f6.svg',   alt: 'Autumn leaves',         title: 'Fall Colours',       author: 'Yuki T.',  tags: ['nature'],  aspectRatio: '4/3'  }, // sv-i18n-ignore: demo sample data the host replaces
+  { id: '7', src: '/demo/photo-g7.svg',   alt: 'Snowy peaks',           title: 'Alpine Winter',      author: 'Nico B.',  tags: ['winter'],  aspectRatio: '4/3'  }, // sv-i18n-ignore: demo sample data the host replaces
   { id: '8', src: '/demo/photo-h8.svg',   alt: 'Jungle canopy portrait',title: 'Jungle Canopy',      author: 'Aisha M.', tags: ['nature'],  aspectRatio: '2/3'  },
 ];
 
@@ -76,10 +91,18 @@ export const DEMO_IMAGES: GalleryImage[] = [
   selector: 'sv-image-gallery',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent, SvIconComponent],
+  imports: [SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent, SvIconComponent, SvLabelPipe],
   templateUrl: './image-gallery.component.html',
 })
 export class SvImageGalleryComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerImageGalleryIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ display })` says otherwise. */
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+  /** The kit's locale — fills the selection strip's sentence. */
+  private readonly locale = svLocale();
+
   // ── Async state ───────────────────────────────────────────────────────────
 
   /** True while the images are being fetched. @default false */
@@ -93,7 +116,7 @@ export class SvImageGalleryComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the no-data state. @default 'No images yet' */
-  readonly emptyMessage = input<string>('No images yet');
+  readonly emptyMessage = input<string>(this.labels.noImages);
 
   /** True when the emptiness is caused by a filter rather than an empty set. */
   readonly filtered = input<boolean>(false);
@@ -117,7 +140,7 @@ export class SvImageGalleryComponent {
    * ★ Two galleries on one product page (the shots and the customer uploads) both
    *   announce as an unnamed list of N items without this. Left unset, no name is
    *   invented: `<ul role="list">` already gives a listener the count and the
-   *   boundaries, which is the part the arrangement used to carry alone.
+   *   boundaries.
    *
    * @default ''
    */
@@ -175,9 +198,7 @@ export class SvImageGalleryComponent {
    */
   readonly layoutNote = computed<string | null>(() =>
     this.layout() === 'masonry' && this.images().length > 2
-      ? 'Masonry columns fill top to bottom, so the left-to-right reading order '
-        + 'does not match the order these images are in. Use the grid layout where '
-        + 'that order matters.'
+      ? this.labels.masonryOrderNote
       : null,
   );
   /** Product-viewer: magnification factor for the hover-zoom. @default 2 */
@@ -216,14 +237,8 @@ export class SvImageGalleryComponent {
   /**
    * Which images are selected (two-way).
    *
-   * A `model`, so a host can preselect a saved set or clear the selection after
-   * acting on it — as a plain signal it could only be read from inside the
-   * template, which made "selectable" a mode the host could watch but not drive.
-   *
-   * This replaces a `selectionChange = output<string[]>()`: a `model` emits
-   * `selectedChange` on every write already, and shipping both would leave two
-   * differently-shaped ways to observe one fact. That is the mistake the search
-   * inputs made with `queryChange`, noted in `list-view.component.ts`.
+   * Bind it to preselect a saved set or clear the selection after acting on it;
+   * `(selectedChange)` emits on every change.
    */
   readonly selected = model<Set<string>>(new Set());
 
@@ -260,8 +275,9 @@ export class SvImageGalleryComponent {
     const total = this.selectedCount();
     if (total === 0) return '';
     const off = this.selectedOffPage();
-    const base = `${total} selected`;
-    return off > 0 ? `${base} — ${off} not on this page` : base;
+    return off > 0
+      ? svFormatLabel(this.labels.gallerySelectedOffPage, { n: String(total), off: String(off) }, this.locale)
+      : svFormatLabel(this.labels.gallerySelected, { n: String(total) }, this.locale);
   });
 
   /** Drop the whole selection, including the part that is off this page. */
@@ -424,8 +440,11 @@ export class SvImageGalleryComponent {
     // Only the topmost surface acts on keys (`X-4`).
     if (!this._stackedPopup.ownsEscape()) return;
     if (e.key === 'Escape')     { this.closeLightbox(); return; }
-    if (e.key === 'ArrowRight') { this.lightboxNext(); return; }
-    if (e.key === 'ArrowLeft')  { this.lightboxPrev(); return; }
+    // Left/Right follow what the user sees: under dir="rtl" the next image's
+    // button sits on the left, so ArrowLeft is "next" there.
+    const rtl = svIsRtl(this._host.nativeElement);
+    if (e.key === 'ArrowRight') { if (rtl) this.lightboxPrev(); else this.lightboxNext(); return; }
+    if (e.key === 'ArrowLeft')  { if (rtl) this.lightboxNext(); else this.lightboxPrev(); return; }
     if (e.key === 'Tab')        this._trapFocus(e);
   }
 
@@ -458,13 +477,21 @@ export class SvImageGalleryComponent {
       'justify-content:center;background:rgba(0,0,0,0.92);backdrop-filter:blur(6px);padding:1.5rem';
     el.setAttribute('role', 'dialog');
     el.setAttribute('aria-modal', 'true');
-    el.setAttribute('aria-label', img.title ? `${img.title} — image viewer` : 'Image viewer');
+    // The lightbox lives on <body>, outside any `dir` the gallery sits in: carry
+    // the gallery's direction so the inline-start/end controls mirror with it.
+    el.setAttribute('dir', svIsRtl(this._host.nativeElement) ? 'rtl' : 'ltr');
+    el.setAttribute('aria-label', img.title ? svFormatLabel(this.labels.imageViewerTitled, { title: img.title }) : this.labels.imageViewer);
 
     const frame = d.createElement('div');
     frame.style.cssText =
       'position:relative;max-width:900px;max-height:90vh;width:100%;display:flex;flex-direction:column;gap:1rem';
 
     const picture = d.createElement('img');
+    if (img.srcset) {
+      // The lightbox frame is at most 900px wide, so ask for that much and no more.
+      picture.srcset = img.srcset;
+      picture.sizes = img.sizes ?? '(min-width: 948px) 900px, calc(100vw - 3rem)';
+    }
     picture.src = img.src;                 // property assignment — not parsed as HTML
     picture.alt = img.alt;                 // safe: set as text attribute
     picture.style.cssText =
@@ -488,19 +515,29 @@ export class SvImageGalleryComponent {
       frame.appendChild(cap);
     }
 
-    const closeBtn = this._makeLbButton('✕', 'Close image viewer',
-      'top:-16px;right:-16px;width:36px;height:36px;font-size:18px');
+    const closeBtn = this._makeLbButton('✕', this.labels.closeImageViewer,
+      'top:-16px;inset-inline-end:-16px;width:36px;height:36px;font-size:18px');
     closeBtn.addEventListener('click', () => this.closeLightbox());
     frame.appendChild(closeBtn);
 
     this._lbFocusables = [closeBtn];
 
     if (total > 1) {
-      const prevBtn = this._makeLbButton('‹', 'Previous image',
-        'left:-56px;top:50%;transform:translateY(-50%);width:44px;height:44px;font-size:20px');
+      // ★★ THE ARROWS SAT AT A FIXED -56px OUTSIDE THE FRAME, and below ~480px
+      //    the frame fills the viewport, so both were off-screen — on exactly
+      //    the phones where a swipe-less lightbox needs them most. The offset is
+      //    now the free space beside the frame (half of what the viewport has
+      //    left over) less an 8px margin, capped at the old 56px: outside the
+      //    frame on a desktop, over the picture's edge on a phone, on-screen
+      //    always.
+      const offset = 'calc(-1 * min(56px, (100vw - 100%) / 2 - 8px))';
+      const prevBtn = this._makeLbButton('‹', this.labels.previousImage,
+        `inset-inline-start:${offset};top:50%;transform:translateY(-50%);width:44px;height:44px;font-size:20px`);
+      prevBtn.setAttribute('data-sv-lightbox-prev', '');
       prevBtn.addEventListener('click', (e) => { e.stopPropagation(); this.lightboxPrev(); });
-      const nextBtn = this._makeLbButton('›', 'Next image',
-        'right:-56px;top:50%;transform:translateY(-50%);width:44px;height:44px;font-size:20px');
+      const nextBtn = this._makeLbButton('›', this.labels.nextImage,
+        `inset-inline-end:${offset};top:50%;transform:translateY(-50%);width:44px;height:44px;font-size:20px`);
+      nextBtn.setAttribute('data-sv-lightbox-next', '');
       nextBtn.addEventListener('click', (e) => { e.stopPropagation(); this.lightboxNext(); });
       frame.appendChild(prevBtn);
       frame.appendChild(nextBtn);
@@ -511,6 +548,7 @@ export class SvImageGalleryComponent {
     counter.textContent = `${idx + 1} / ${total}`;
     counter.setAttribute('aria-hidden', 'true');
     counter.style.cssText =
+      // sv-physical: centring — left:50% with translateX(-50%) is direction-neutral
       'position:absolute;bottom:-36px;left:50%;transform:translateX(-50%);' +
       'background:rgba(255,255,255,0.1);border-radius:999px;padding:3px 12px;' +
       'font-size:11px;color:rgba(255,255,255,0.7);white-space:nowrap';
@@ -529,9 +567,13 @@ export class SvImageGalleryComponent {
     b.type = 'button';
     b.textContent = glyph;
     b.setAttribute('aria-label', label);
-    b.style.cssText =
-      'position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);border:none;' +
-      'cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;' + extra;
+    // The attribute, not `style.cssText`: the offsets use CSS math (`min()`),
+    // and the attribute is the declaration exactly as written.
+    b.setAttribute(
+      'style',
+      'position:absolute;z-index:1;border-radius:50%;background:rgba(0,0,0,0.45);border:none;' +
+        'cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;' + extra,
+    );
     return b;
   }
 
@@ -557,12 +599,32 @@ export class SvImageGalleryComponent {
     return `grid gap-2.5 ${cols[this.columns()]}`;
   });
 
+  /**
+   * The `sizes` a tile reports when its image has a `srcset` and no `sizes`
+   * of its own — the column fractions the grid and masonry classes lay out,
+   * so the browser fetches a thumbnail-sized candidate, not the full image.
+   */
+  readonly tileSizes = computed(() => {
+    const byColumns: Record<GalleryColumns, string> = {
+      2: '50vw',
+      3: '(min-width: 640px) 33vw, 50vw',
+      4: '(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw',
+      5: '(min-width: 768px) 20vw, (min-width: 640px) 33vw, 50vw',
+    };
+    return byColumns[this.columns()];
+  });
+
+  /** `sizes` for a strip tile, the viewer's main image and a viewer thumbnail (used when an image has `srcset` and no `sizes`). */
+  readonly stripSizes = '20rem';
+  readonly mainSizes = '(min-width: 1024px) 50vw, 100vw';
+  readonly thumbSizes = '6rem';
+
   readonly masonryClass = computed(() => {
     const cols: Record<GalleryColumns, string> = {
       2: 'columns-2',
-      3: 'columns-2 sm:columns-3',
-      4: 'columns-2 sm:columns-3 md:columns-4',
-      5: 'columns-2 sm:columns-3 md:columns-5',
+      3: 'columns-2 sm:columns-3', // sv-i18n-ignore: Tailwind classes
+      4: 'columns-2 sm:columns-3 md:columns-4', // sv-i18n-ignore: Tailwind classes
+      5: 'columns-2 sm:columns-3 md:columns-5', // sv-i18n-ignore: Tailwind classes
     };
     return cols[this.columns()];
   });

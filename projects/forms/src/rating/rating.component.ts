@@ -1,27 +1,25 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   booleanAttribute,
   computed,
   forwardRef,
+  inject,
   input,
   model,
   output,
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import {
-  SvFieldErrorComponent,
-  createFieldError,
-  createOptimisticEdit,
-  svRequestKey,
-  toSvDataError,
-  type SvDataError,
-  type SvServerError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svUniqueId, svIsRtl, svPointerFraction } from '@styloviz/core/a11y';
+import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { SvFieldErrorComponent, createFieldError, type SvServerError, svNumberOr } from '@styloviz/core/forms';
+import { svFormatCount, svLocale, injectSvLabels, svFormatLabel, SvLabelPipe } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
 
+import { registerRatingIcons } from './rating.component.icons';
 export type RatingSize    = 'sm' | 'md' | 'lg' | 'xl';
 
 /**
@@ -50,12 +48,12 @@ export interface SvRatingChange {
 export type RatingVariant = 'star' | 'heart' | 'thumb' | 'fire';
 
 /** Plural/singular noun per variant for accessible value text. */
-const RATING_NOUN: Record<RatingVariant, [singular: string, plural: string]> = {
-  star:  ['star', 'stars'],
-  heart: ['heart', 'hearts'],
-  fire:  ['flame', 'flames'],
-  thumb: ['thumb', 'thumbs'],
-};
+const RATING_NOUN = {
+  star: 'ratingNounStar',
+  heart: 'ratingNounHeart',
+  fire: 'ratingNounFire',
+  thumb: 'ratingNounThumb',
+} as const satisfies Record<RatingVariant, keyof SvFormsLabels>;
 
 /**
  * Icon-library name for each variant.
@@ -78,7 +76,7 @@ const RATING_ICON: Record<RatingVariant, string> = {
 @Component({
   selector: 'sv-rating',
   standalone: true,
-  imports: [SvIconComponent, SvFieldErrorComponent],
+  imports: [SvIconComponent, SvFieldErrorComponent, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './rating.component.html',
   providers: [
@@ -90,10 +88,17 @@ const RATING_ICON: Record<RatingVariant, string> = {
   ],
 })
 export class SvRatingComponent implements ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerRatingIcons();
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   /** Current rating (two-way). @default 0 */
   value    = model<number>(0);
   /** Number of icons in the scale. @default 5 */
-  max      = input<number>(5);
+  max      = input(5, { transform: svNumberOr(5) });
   /** Icon size: sm, md, lg or xl. @default 'md' */
   size     = input<RatingSize>('md');
   /** Icon set: star, heart, fire or thumb. @default 'star' */
@@ -110,27 +115,27 @@ export class SvRatingComponent implements ControlValueAccessor {
   showCount = input<boolean>(false);
   /** Number of ratings to display when showCount is on. @default 0 */
   count    = input<number>(0);
+  /** BCP 47 locale for dates and numbers. @default the kit's locale (`SV_LOCALE`) */
+  readonly locale = input<string>(svLocale());
   /** Active icon color (any CSS color). @default '#f59e0b' */
   color    = input<string>('#f59e0b');
 
   /**
    * What each level of the scale MEANS, from level 1 upwards.
    *
-   * ── The defect this exists for (`FI-18-I1` / `FI-18-M2`) ──────────────────
-   *
-   * ★★★ ONLY STARS ARE ORDINAL BY CONVENTION. Five stars is a quality scale
+   * Only stars are ordinal by convention. Five stars is a quality scale
    *     everyone has already agreed on, so "3 of 5 stars" is a complete
    *     sentence. Three hearts out of five is not a rating of 3 — it is a like
    *     count wearing a rating's clothes, and "3 of 5 hearts" tells a
    *     screen-reader user a number and nothing about what they just said. Fire
    *     and thumb are worse: nobody has a shared scale for either.
    *
-   * ★★ So the meaning is declarable instead of assumed. With labels,
+   * So the meaning is declarable instead of assumed. With labels,
    *    `aria-valuetext` becomes "4 of 5 — Really like it", which is what
    *    `aria-valuetext` is FOR: the number is already in `aria-valuenow`, and a
    *    value text that only repeats it earns nothing.
    *
-   * ⚠️ Labels are per WHOLE level. A half-step has no name, so `3.5` announces
+   * Labels are per whole level. A half-step has no name, so `3.5` announces
    *    numerically — which is honest, and better than inventing "between Good
    *    and Great".
    *
@@ -203,9 +208,9 @@ export class SvRatingComponent implements ControlValueAccessor {
     revision: () => this._revision(),
     selector: 'sv-rating',
     superseded:
-      'the rating has been changed again since, so putting the old value back ' +
-      'would discard the newer choice. Bind [pending] so it cannot be changed ' +
-      'while the write is in flight.',
+      'the rating has been changed again since, so putting the old value back ' + // sv-i18n-ignore: developer message
+      'would discard the newer choice. Bind [pending] so it cannot be changed ' + // sv-i18n-ignore: developer message
+      'while the write is in flight.', // sv-i18n-ignore: developer message
   });
 
   /** Unique per-instance prefix so SVG gradient IDs don't collide across pages. */
@@ -243,10 +248,9 @@ export class SvRatingComponent implements ControlValueAccessor {
   readonly scaleNounText = computed(() => {
     const stated = this.scaleNoun().trim();
     if (stated) return stated;
-    const [singular, plural] = RATING_NOUN[this.variant()];
     // The noun agrees with the SCALE, not the score: "1 of 5 stars", not
     // "1 of 5 star". Only a one-point scale takes the singular.
-    return this.max() === 1 ? singular : plural;
+    return svFormatLabel(this.labels[RATING_NOUN[this.variant()]], { count: this.max() }, this.locale());
   });
 
   /**
@@ -260,9 +264,8 @@ export class SvRatingComponent implements ControlValueAccessor {
   readonly valueText = computed(() => {
     const v = this.value();
     const label = this.levelLabel();
-    return label
-      ? `${v} of ${this.max()} — ${label}`
-      : `${v} of ${this.max()} ${this.scaleNounText()}`;
+    const params = { value: String(v), max: String(this.max()), label, noun: this.scaleNounText() };
+    return svFormatLabel(label ? this.labels.ratingValueTextLevel : this.labels.ratingValueText, params, this.locale());
   });
 
   readonly iconSize = computed(() => ({
@@ -303,7 +306,11 @@ export class SvRatingComponent implements ControlValueAccessor {
     //   product card is a display, and widening it to 48px slots bought nothing
     //   but a stretched row of stars. (Disabled keeps the width, so toggling
     //   `disabled` does not shift the layout.)
-    if (!this.half() || this.readonly()) return '';
+    if (this.readonly()) return '';
+    // ★ A WHOLE-STAR target at `sm` is the 16px glyph alone (`FI-18-M5`): 4px of
+    //   padding all round makes each slot 24×24, the 2.5.8 minimum. md and up
+    //   are already 24px or more.
+    if (!this.half()) return this.size() === 'sm' ? 'p-1' : '';
     // glyph → padding needed each side to reach a 48px slot (24px per half).
     return {
       sm: 'px-4 py-1', // 16px glyph + 2×16 = 48 wide; + 2×4 = 24 tall — a 16px-tall half is still under 24
@@ -325,7 +332,7 @@ export class SvRatingComponent implements ControlValueAccessor {
     return this.distribution().reduce((a, b) => a + (b || 0), 0);
   });
 
-  readonly summaryTotalText = computed(() => this.summaryTotal().toLocaleString());
+  readonly summaryTotalText = computed(() => svFormatCount(this.summaryTotal(), this.locale()));
 
   /** Average — the bound `value` if set, else computed from `distribution`. */
   readonly summaryAverage = computed(() => {
@@ -349,7 +356,7 @@ export class SvRatingComponent implements ControlValueAccessor {
       rows.push({
         level,
         count,
-        countText: count.toLocaleString(),
+        countText: svFormatCount(count, this.locale()),
         pct: total ? (count / total) * 100 : 0,
       });
     }
@@ -363,7 +370,13 @@ export class SvRatingComponent implements ControlValueAccessor {
 
   /** Accessible label for the whole summary block. */
   readonly summaryAriaLabel = computed(() =>
-    `Average ${this.avgDisplay()} of ${this.max()} ${this.scaleNounText()} from ${this.summaryTotalText()} reviews`,
+    svFormatLabel(this.labels.ratingSummaryName, {
+      average: this.avgDisplay(),
+      max: String(this.max()),
+      noun: this.scaleNounText(),
+      count: this.summaryTotal(),
+      total: this.summaryTotalText(),
+    }, this.locale()),
   );
 
   // ── Interactive fill ──────────────────────────────────────────────────────
@@ -392,8 +405,9 @@ export class SvRatingComponent implements ControlValueAccessor {
     if (this.readonly() || this.resolvedDisabled() || this.pending()) return;
     let v = i;
     if (this.half() && e) {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const half = (e.clientX - rect.left) / rect.width < 0.5;
+      // From the INLINE start — the fill is `start-0`, so under dir="rtl" the
+      // half star is the right half of the icon, not the left.
+      const half = svPointerFraction(e.clientX, e.currentTarget as HTMLElement) < 0.5;
       v = half ? i - 0.5 : i;
     }
     this.commit(this.value() === v ? 0 : v);
@@ -431,10 +445,16 @@ export class SvRatingComponent implements ControlValueAccessor {
   onKeydown(e: KeyboardEvent): void {
     if (!this.interactive()) return;
     const step = this.half() ? 0.5 : 1;
+    // The stars fill from the inline start, so under dir="rtl" the higher
+    // stars are to the LEFT: ArrowLeft grows the value, as a native range does.
+    const rtl = svIsRtl(this.host.nativeElement);
     switch (e.key) {
       case 'ArrowRight':
-      case 'ArrowUp':   e.preventDefault(); this.setRating(this.value() + step); break;
       case 'ArrowLeft':
+        e.preventDefault();
+        this.setRating(this.value() + ((e.key === 'ArrowRight') !== rtl ? step : -step));
+        break;
+      case 'ArrowUp':   e.preventDefault(); this.setRating(this.value() + step); break;
       case 'ArrowDown': e.preventDefault(); this.setRating(this.value() - step); break;
       case 'Home':      e.preventDefault(); this.setRating(0); break;
       case 'End':       e.preventDefault(); this.setRating(this.max()); break;
@@ -445,8 +465,9 @@ export class SvRatingComponent implements ControlValueAccessor {
   hover(i: number, e?: MouseEvent): void {
     if (this.readonly() || this.resolvedDisabled() || this.pending()) return;
     if (this.half() && e) {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      const half = (e.clientX - rect.left) / rect.width < 0.5;
+      // From the INLINE start — the fill is `start-0`, so under dir="rtl" the
+      // half star is the right half of the icon, not the left.
+      const half = svPointerFraction(e.clientX, e.currentTarget as HTMLElement) < 0.5;
       this.hovered.set(half ? i - 0.5 : i);
     } else {
       this.hovered.set(i);
@@ -468,7 +489,7 @@ export class SvRatingComponent implements ControlValueAccessor {
 
   protected readonly fieldError = createFieldError(this.value, this.serverError, this.errorMessage);
   protected readonly errorId = computed(() => `${this._errUid}-error`);
-  protected readonly writeErrorId = computed(() => `${this._errUid}-write-error`);
+  protected readonly writeErrorId = computed(() => `${this._errUid}-write-error`); // sv-i18n-ignore: DOM id
 
   /** Validation error and failed-write message, whichever are showing. */
   protected readonly describedBy = computed(() => {

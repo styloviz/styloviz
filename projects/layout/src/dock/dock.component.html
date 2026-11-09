@@ -1,0 +1,106 @@
+<!--
+  ★★ One toolbar, one tab stop. The arrow keys along the dock move between the
+  items; Tab leaves. Every item is a real <a href> or <button>.
+-->
+<div
+  #bar
+  role="toolbar"
+  data-sv-dock
+  [class]="barClasses()"
+  [attr.aria-label]="toolbarName()"
+  [attr.aria-orientation]="vertical() ? 'vertical' : 'horizontal'"
+  [attr.data-sv-dock-magnify]="magnifies() ? 'on' : 'off'"
+  (focusin)="onFocusIn($event)"
+  (focusout)="onFocusOut($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerleave)="onPointerLeave()"
+>
+  <!-- The bar's backdrop: scaled along the dock while it swells, so it keeps framing every item. No blur — it does not sit over motion. -->
+  <span
+    class="pointer-events-none absolute inset-0 -z-10 rounded-2xl border border-gray-200/80 bg-white/85 shadow-lg shadow-gray-900/10 transition-transform duration-100 ease-out motion-reduce:transition-none dark:border-gray-700/80 dark:bg-gray-900/85 dark:shadow-black/40"
+    [style.transform]="backdropTransform()"
+    aria-hidden="true"
+    data-sv-dock-backdrop
+  ></span>
+
+  <div #list [class]="listClasses()" [attr.data-sv-dock-fit]="fit().scroll ? 'scroll' : fit().shrunk ? 'shrunk' : 'rest'" data-sv-dock-list>
+    @for (row of rows(); track row.key) {
+      <div
+        class="group relative shrink-0 transition-transform duration-100 ease-out hover:z-10 focus-within:z-10 motion-reduce:transition-none"
+        [style.transform]="motion()[row.index]?.item"
+        data-sv-dock-item
+      >
+        <!-- ⚠️ [attr.href], never [href]: a null href must not become the current URL. -->
+        @if (row.kind === 'link') {
+          <a
+            data-sv-dock-control
+            [attr.data-sv-dock-index]="row.index"
+            [class]="controlClasses()"
+            [style.transform]="motion()[row.index]?.control"
+            [style.width.px]="shrunkPx()"
+            [style.height.px]="shrunkPx()"
+            [attr.href]="row.href"
+            [attr.role]="row.href === null ? 'link' : null"
+            [attr.tabindex]="row.index === stop() ? 0 : -1"
+            [attr.aria-current]="row.current ? 'page' : null"
+            [attr.aria-disabled]="row.disabled ? 'true' : null"
+            [attr.target]="row.external && !row.disabled ? '_blank' : null"
+            [attr.rel]="row.external && !row.disabled ? 'noopener noreferrer' : null"
+            (keydown)="onKeydown($event)"
+            (click)="onActivate($event, row)"
+          >
+            <ng-container [ngTemplateOutlet]="tile" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </a>
+        } @else {
+          <button
+            type="button"
+            data-sv-dock-control
+            [attr.data-sv-dock-index]="row.index"
+            [class]="controlClasses()"
+            [style.transform]="motion()[row.index]?.control"
+            [style.width.px]="shrunkPx()"
+            [style.height.px]="shrunkPx()"
+            [attr.tabindex]="row.index === stop() ? 0 : -1"
+            [attr.aria-disabled]="row.disabled ? 'true' : null"
+            (keydown)="onKeydown($event)"
+            (click)="onActivate($event, row)"
+          >
+            <ng-container [ngTemplateOutlet]="tile" [ngTemplateOutletContext]="{ $implicit: row }" />
+          </button>
+        }
+
+        <!-- The label, on hover and on focus. Decorative: the control already carries the name. -->
+        <span
+          [class]="tipClasses()"
+          [class.invisible]="tipsHidden()"
+          [style.transform]="motion()[row.index]?.tip"
+          aria-hidden="true"
+          data-sv-dock-tip
+        >{{ row.item.label }}</span>
+
+        @if (row.current) {
+          <span [class]="dotClasses()" aria-hidden="true" data-sv-dock-current></span>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<ng-template #tile let-row>
+  @if (row.image) {
+    <img [src]="row.image" alt="" class="h-full w-full rounded-2xl object-cover" draggable="false" />
+  } @else if (row.item.icon) {
+    <sv-icon [name]="row.item.icon" [size]="iconPx()" />
+  } @else {
+    <span class="text-base font-semibold" aria-hidden="true">{{ row.initial }}</span>
+  }
+  @if (row.badge !== null) {
+    <span
+      class="absolute -end-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-600 px-1 text-[10px] font-semibold leading-none text-white tabular-nums ring-2 ring-white dark:ring-gray-900"
+      aria-hidden="true"
+      data-sv-dock-badge
+    >{{ row.badge }}</span>
+  }
+  <!-- The accessible name: the label, then what the badge says, so it reads "Inbox, 3". -->
+  <span class="sr-only">{{ row.item.label }}@if (row.badge !== null) {, {{ row.badge }}}@if (row.external && !row.disabled) { {{ text().dockNewTab }}}</span>
+</ng-template>

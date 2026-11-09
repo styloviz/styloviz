@@ -1,8 +1,10 @@
 # @styloviz/button
 
-> 9 variants × 6 styles × 5 sizes × 3 shapes — solid, outline, soft, ghost, link and gradient with loading states and icon support.
+> 10 variants × 6 styles × 5 sizes × 3 shapes — solid, outline, soft, ghost, link and gradient with loading states and icon support.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -55,6 +57,8 @@ import { SvButtonComponent } from '@styloviz/button';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -66,7 +70,7 @@ export class DemoComponent {}
 | `block` | `boolean` | `false` | Stretch to 100% width. |
 | `elevated` | `boolean` | `false` | Add drop shadow. |
 | `label` | `string` | `''` | Button text. Omit when projecting custom content. |
-| `icon` | `string` | `''` | Icon-library NAME for the built-in leading/trailing icon — e.g. `'plus'`. Ignored when `iconTemplate` is set. BREAKING (icon sweep): was `iconPath`, a raw SVG `d` string. A name resolves through `@styloviz/icons`, so `check:icons` catches a typo that a `d` string rendered as a blank button. ⚠️ The old attribute was usually written STATICALLY (`iconPath="M12 4.5v15…"`), and Angular silently ignores an unknown static attribute — so a missed call site renders no icon rather than failing the build. All 157 in-repo sites were rewritten tag-scoped. |
+| `icon` | `string` | `''` | Icon-library NAME for the built-in leading/trailing icon — e.g. `'plus'`. Ignored when `iconTemplate` is set. A raw SVG `d` string is not a name and renders no icon. |
 | `trailingIcon` | `string` | `''` | Icon-library NAME for the secondary/dual trailing icon. Ignored when `trailingIconTemplate` is set. Was `trailingIconPath`. |
 | `iconTemplate` | `ButtonIconTemplate` | `null` | Custom template for the primary icon — use this to render a third-party icon component (e.g. lucide-angular, ngx-heroicons), an `<img>`, an icon font `<i>`, or arbitrary custom SVG instead of the built-in `icon`. Positioned per `iconPosition()`. Takes precedence over `icon` when set. |
 | `trailingIconTemplate` | `ButtonIconTemplate` | `null` | Custom template for the secondary/dual trailing icon. Takes precedence over `trailingIcon` when set. See `iconTemplate` for usage. |
@@ -77,7 +81,7 @@ export class DemoComponent {}
 | `type` | `ButtonType` | `'button'` | Native button type when not in link mode. |
 | `disabled` | `boolean` | `false` | Disable interaction and dim the button. |
 | `loading` | `boolean` | `false` | Show a loading indicator and block activation. |
-| `loadingStyle` | `ButtonLoader` | `'spinner'` | Loading indicator style: spinner or dots. |
+| `loadingStyle` | `ButtonLoader` | `'spinner'` | Loading indicator style: spinner, dots or pulse. |
 | `loadingLabel` | `string` | `''` | Optional text shown beside the loading indicator. |
 | `preventDoubleSubmit` | `boolean` | `false` | Ignore a second activation that lands within `doubleSubmitWindowMs` of the one before it. |
 | `doubleSubmitWindowMs` | `number` | `400` | How long a repeat activation is ignored for, in milliseconds. |
@@ -89,7 +93,7 @@ export class DemoComponent {}
 | `name` | `string` | `''` | Native `name` for the button when submitted as part of a form. |
 | `value` | `string` | `''` | Native `value` submitted with `name` for multi-button forms. |
 | `ariaLabel` | `string` | `''` | Explicit accessible name. Required for icon-only buttons; overrides label. |
-| `pressed` | `boolean \| null` | `null` | Toggle state, published as `aria-pressed`. A BUTTON THAT STAYS ON IS A TOGGLE, AND A TOGGLE HAS TO SAY SO. Filter chips, "pin", "mute", "bold" — every one of them is a button whose variant changes to show it is active, and to a screen reader that change is invisible: the name is identical in both states, so the control reads as an ordinary button that does nothing. `aria-pressed` is the whole difference between "Filter" and "Filter, pressed". `null` — the default — omits the attribute entirely, because a button that is not a toggle must NOT claim to be one. `aria-pressed="false"` on an ordinary button tells the reader there is a state to toggle. |
+| `pressed` | `boolean \| null` | `null` | Toggle state, published as `aria-pressed`. A button that stays on is a toggle, and a toggle has to say so. Filter chips, "pin", "mute", "bold" — every one of them is a button whose variant changes to show it is active, and to a screen reader that change is invisible: the name is identical in both states, so the control reads as an ordinary button that does nothing. `aria-pressed` is the whole difference between "Filter" and "Filter, pressed". `null` — the default — omits the attribute entirely, because a button that is not a toggle must NOT claim to be one. `aria-pressed="false"` on an ordinary button tells the reader there is a state to toggle. |
 | `title` | `string` | `''` | Native tooltip / title attribute. |
 | `autofocus` | `boolean` | `false` | Autofocus the control on render. |
 
@@ -101,10 +105,18 @@ export class DemoComponent {}
 | `focused` | `FocusEvent` | Emitted when the control receives focus. |
 | `blurred` | `FocusEvent` | Emitted when the control loses focus. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-button` | Output-driven — An action, not a value: listen to `(clicked)`. Inside a `<form>` it is a native `type="submit"` or `type="button"` and submits the form you own. |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs/button
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

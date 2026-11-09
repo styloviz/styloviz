@@ -6,7 +6,7 @@
 
   <!-- ═══════════ TOOLBAR ═══════════════════════════════════════════════════ -->
   @if (resolvedShowToolbar()) {
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/80 dark:border-gray-800/60 px-4 py-2.5 bg-white dark:bg-gray-900">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/80 dark:border-gray-800/60 px-4 py-2.5 bg-white dark:bg-gray-900 print:hidden">
 
       <!-- Left: title + row count badge -->
       <div class="flex items-center gap-2.5 min-w-0">
@@ -24,14 +24,14 @@
         <!-- Global search -->
         @if (searchable()) {
           <div class="relative">
-            <sv-icon name="search" cssClass="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+            <sv-icon name="search" cssClass="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
             <input
               type="search"
               [value]="searchQuery()"
               (input)="onSearchInput($event)"
-              placeholder="Search…"
-              aria-label="Search table"
-              class="h-8 w-44 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-8 pr-3 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 dark:focus:border-primary-500 transition-all"
+              [placeholder]="labels.searchPlaceholder"
+              [attr.aria-label]="labels.searchTable"
+              class="h-8 w-44 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ps-8 pe-3 text-xs text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 dark:focus:border-primary-500 transition-all"
             />
           </div>
         }
@@ -39,7 +39,7 @@
         <!-- Density toggle -->
         @if (showDensityToggle()) {
           <div class="flex items-center rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-               role="group" aria-label="Row density">
+               role="group" [attr.aria-label]="labels.rowDensity">
             @for (d of densityOptions; track d.value) {
               <button
                 type="button"
@@ -47,7 +47,7 @@
                 [title]="d.label"
                 [attr.aria-pressed]="effectiveDensity() === d.value"
                 [ngClass]="[
-                  'h-7 w-8 flex items-center justify-center border-r border-gray-200 dark:border-gray-700 last:border-r-0 transition-colors focus:outline-none',
+                  'h-7 w-8 flex items-center justify-center border-e border-gray-200 dark:border-gray-700 last:border-e-0 transition-colors focus:outline-none',
                   effectiveDensity() === d.value
                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
                     : 'bg-white dark:bg-gray-800 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-700'
@@ -66,18 +66,18 @@
           <div class="relative">
             <button
               type="button"
-              (click)="columnToggleOpen.update(v => !v); $event.stopPropagation()"
+              (click)="toggleColumnMenu($event)"
               [attr.aria-expanded]="columnToggleOpen()"
-              aria-label="Toggle columns"
+              [attr.aria-label]="labels.toggleColumns"
               class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             >
               <sv-icon name="columns" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
-              Columns
+              {{ labels.columns }}
             </button>
 
             @if (columnToggleOpen()) {
               <div
-                class="absolute right-0 top-full z-40 mt-1 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5"
+                class="absolute end-0 top-full z-40 mt-1 w-48 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1.5"
                 svStopPropagation
               >
                 @for (col of columns(); track col.key) {
@@ -104,7 +104,7 @@
             class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
             <sv-icon name="download" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
-            Export
+            {{ labels.export }}
           </button>
         }
 
@@ -115,15 +115,15 @@
   <!-- ═══════════ ACTIVE FILTER CHIPS ══════════════════════════════════════ -->
   @if (activeFilterChips().length > 0) {
     <div class="flex flex-wrap items-center gap-2 border-b border-gray-200/80 dark:border-gray-800/60 px-4 py-2 bg-gray-50/60 dark:bg-gray-800/20">
-      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 shrink-0">Active filters:</span>
+      <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ labels.activeFilters }}</span>
       @for (chip of activeFilterChips(); track chip.key) {
         <span class="inline-flex items-center gap-1 rounded-full bg-primary-100 dark:bg-primary-900/30 ps-2.5 pe-1 py-0.5 text-[11px] font-medium text-primary-700 dark:text-primary-400">
           <span class="font-semibold">{{ chip.label }}:</span>&nbsp;{{ chip.value }}
           <button
             type="button"
             (click)="clearFilter(chip.key)"
-            class="ms-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors"
-            [attr.aria-label]="'Remove ' + chip.label + ' filter'"
+            class="sv-target ms-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-primary-200 dark:hover:bg-primary-800/50 transition-colors"
+            [attr.aria-label]="labels.removeFilter | svLabel: { name: chip.label }"
           >
             <sv-icon name="close" cssClass="h-2.5 w-2.5" [strokeWidth]="3" />
           </button>
@@ -134,7 +134,7 @@
         (click)="clearAllFilters()"
         class="text-[11px] text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline underline-offset-2 transition-colors"
       >
-        Clear all
+        {{ labels.clearAllFilters }}
       </button>
     </div>
   }
@@ -143,7 +143,7 @@
   @if (selectedIds().size > 0 && bulkActions().length > 0) {
     <div class="flex flex-wrap items-center gap-3 border-b border-primary-200/80 dark:border-primary-800/40 bg-primary-50/80 dark:bg-primary-950/30 px-4 py-2">
       <span class="text-xs font-semibold text-primary-700 dark:text-primary-400 shrink-0">
-        {{ selectedIds().size }}&nbsp;{{ selectedIds().size === 1 ? 'row' : 'rows' }} selected
+        {{ labels.rowsSelected | svLabel: { count: selectedIds().size } }}
       </span>
       <div class="flex items-center gap-1.5 flex-wrap">
         @for (action of bulkActions(); track action.label) {
@@ -153,7 +153,7 @@
             [ngClass]="[
               'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
               action.danger
-                ? 'bg-danger-100 text-danger-700 hover:bg-danger-200 dark:bg-danger-900/30 dark:text-danger-400 dark:hover:bg-danger-900/50'
+                ? 'bg-danger-100 text-danger-800 hover:bg-danger-200 dark:bg-danger-900/30 dark:text-danger-400 dark:hover:bg-danger-900/50'
                 : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
             ]"
           >
@@ -170,9 +170,9 @@
         type="button"
         (click)="clearSelection()"
         class="ms-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-        aria-label="Clear selection"
+        [attr.aria-label]="labels.clearSelection"
       >
-        Clear
+        {{ labels.clear }}
       </button>
     </div>
   }
@@ -189,7 +189,8 @@
 
   <!-- ═══════════ TABLE AREA ════════════════════════════════════════════════ -->
   <div
-    class="relative flex-1 overflow-x-auto"
+    class="relative flex-1 overflow-x-auto print:overflow-visible print:max-h-none"
+    svRevealFocus
     [ngClass]="{ 'overflow-y-auto': !!maxHeight() }"
     [style.max-height]="maxHeight() ?? null"
     data-sv-table-scroller
@@ -198,19 +199,168 @@
     <!-- Loading overlay -->
     @if (loading() && loadingStyle() === 'overlay') {
       <div class="absolute inset-0 z-30 flex items-center justify-center bg-white/70 dark:bg-gray-900/70 backdrop-blur-[2px]"
-           role="status" aria-busy="true" aria-label="Loading">
+           role="status" aria-busy="true" [attr.aria-label]="labels.loading">
         <sv-spinner-arc cssClass="h-8 w-8 text-primary-500" />
       </div>
     }
 
     <!-- Horizontal scroll gradient hint -->
     @if (showScrollHint()) {
-      <div class="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-linear-to-l from-white dark:from-gray-900 to-transparent"
+      <div class="pointer-events-none absolute inset-y-0 end-0 z-10 w-10 bg-linear-to-l rtl:bg-linear-to-r from-white dark:from-gray-900 to-transparent"
            aria-hidden="true"></div>
     }
 
-    <!-- ─── DESKTOP TABLE (hidden on xs when cardOnMobile) ─────────────── -->
-    <div [ngClass]="cardOnMobile() ? 'hidden sm:block' : 'block'">
+    <!-- ─── RECORDS (responsive="records" — the 1.x sv-record-grid, FL-C13) ──
+         ★★★ The markup stops claiming to be a table. The usual responsive
+              table sets `display: block` on the table elements, which drops
+              their roles, and pipes headers in through `::before`, which nobody
+              can select or copy. This is a list of records instead, each a real
+              `<dl>`; nothing is dropped — secondary fields sit behind a
+              disclosure that says how many there are. -->
+    @if (recordsOn()) {
+      <div class="p-3" data-sv-view="records">
+        @if (loading()) {
+          <!-- Announced like the table's skeleton (FL-G8): shimmer alone is silence to a screen reader. -->
+          <div role="status" aria-busy="true" [attr.aria-label]="labels.loading" data-sv-state="loading">
+            @for (i of skeletonArray(); track i) {
+              <div class="mb-3 rounded-xl border border-gray-200 p-3 space-y-2 dark:border-gray-800">
+                <div class="skeleton-wave h-4 w-1/2 rounded"></div>
+                <div class="skeleton-wave h-3 w-3/4 rounded"></div>
+              </div>
+            }
+          </div>
+        } @else if (pagedRows().length === 0) {
+          <!-- No data and no matches differ: a filter that hides everything offers its own undo, as the table does. -->
+          <div class="px-6 py-12 text-center" data-sv-state="empty"
+               [attr.data-sv-empty-reason]="activeFilterChips().length > 0 ? 'no-results' : 'no-data'">
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ emptyMessage() }}</p>
+            @if (activeFilterChips().length > 0) {
+              <button type="button" (click)="clearAllFilters()"
+                      class="mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline transition-colors">
+                {{ labels.clearFilters }}
+              </button>
+            }
+          </div>
+        } @else {
+          <!-- ★ A card list has nowhere to put a sort: the table's affordance is
+               the header cell. So it is rebuilt here as a labelled select and a
+               button, driving the table's own sort — both views agree. -->
+          @if (recordSortableColumns().length) {
+            <div class="mb-3 flex items-center gap-2">
+              <label class="text-xs font-medium text-gray-600 dark:text-gray-400"
+                     [attr.for]="pageSizeId + '-record-sort'">{{ labels.gridSortBy }}</label>
+              <select
+                [id]="pageSizeId + '-record-sort'"
+                class="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-900
+                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400
+                       dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                [value]="recordSortKey()"
+                (change)="onRecordSortKeyChange($any($event.target).value)"
+                data-sv-sort-key>
+                <option value="">{{ labels.gridUnsorted }}</option>
+                @for (column of recordSortableColumns(); track column.key) {
+                  <option [value]="column.key">{{ column.label }}</option>
+                }
+              </select>
+              @if (recordSortKey()) {
+                <button
+                  type="button"
+                  class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700
+                         transition-colors hover:bg-gray-50 focus-visible:outline-none
+                         focus-visible:ring-2 focus-visible:ring-primary-400
+                         dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                  [attr.aria-label]="recordSortDirection() === 'asc' ? labels.sortAscendingReverse : labels.sortDescendingReverse"
+                  (click)="toggleRecordSortDirection()"
+                  data-sv-sort-direction>{{ recordSortDirection() === 'asc' ? labels.sortAscending : labels.sortDescending }}</button>
+              }
+            </div>
+          }
+
+          <ul role="list" class="flex flex-col gap-3" data-sv-records>
+            @for (r of recordItems(); track r.id) {
+              <li>
+                <article
+                  class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900"
+                  [attr.aria-labelledby]="r.titleId"
+                  data-sv-record>
+                  <div class="flex items-start gap-2">
+                    @if (selectable()) {
+                      <label class="sv-target inline-flex shrink-0">
+                        <input
+                          [type]="selectMode() === 'single' ? 'radio' : 'checkbox'"
+                          class="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600
+                                 focus-visible:ring-2 focus-visible:ring-primary-400 dark:border-gray-600"
+                          [checked]="r.selected"
+                          [attr.aria-label]="labels.selectCard | svLabel: { title: r.title }"
+                          (change)="toggleRow(r.row)"
+                          data-sv-record-select />
+                      </label>
+                    }
+                    <!-- ★ A card needs a heading, and a `<dl>` cannot supply one. -->
+                    <h3 [id]="r.titleId"
+                        class="min-w-0 flex-1 break-words text-sm font-semibold text-gray-900 dark:text-white">
+                      {{ r.title }}
+                    </h3>
+                  </div>
+
+                  <dl class="mt-2 flex flex-col gap-1">
+                    @for (f of r.primary; track f.key) {
+                      <div class="flex items-baseline gap-3">
+                        <dt class="w-2/5 shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">{{ f.label }}</dt>
+                        <dd class="min-w-0 break-words text-xs text-gray-900 dark:text-gray-100">{{ f.value }}</dd>
+                      </div>
+                    }
+                    @if (r.expanded) {
+                      @for (f of r.secondary; track f.key) {
+                        <div class="flex items-baseline gap-3">
+                          <dt class="w-2/5 shrink-0 text-[11px] font-medium text-gray-500 dark:text-gray-400">{{ f.label }}</dt>
+                          <dd class="min-w-0 break-words text-xs text-gray-900 dark:text-gray-100">{{ f.value }}</dd>
+                        </div>
+                      }
+                    }
+                  </dl>
+
+                  @if (r.secondary.length) {
+                    <button
+                      type="button"
+                      class="mt-2 text-[11px] font-semibold text-primary-600 underline-offset-2 hover:underline
+                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400
+                             dark:text-primary-400"
+                      [attr.aria-expanded]="r.expanded"
+                      [attr.aria-label]="(r.expanded ? labels.hideMoreFields : labels.showMoreFields) | svLabel: { count: r.secondary.length, title: r.title }"
+                      (click)="toggleRecordExpanded(r.row)"
+                      data-sv-record-more>
+                      {{ r.expanded ? labels.recordFewerFields : (labels.recordMoreFields | svLabel: { count: r.secondary.length }) }}
+                    </button>
+                  }
+
+                  @if (r.actions.length) {
+                    <div class="mt-3 flex flex-wrap gap-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                      @for (action of r.actions; track action.label) {
+                        <button
+                          type="button"
+                          class="rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors
+                                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+                          [class]="action.danger
+                            ? 'border-danger-200 text-danger-700 hover:bg-danger-50 dark:border-danger-900 dark:text-danger-300 dark:hover:bg-danger-950/40'
+                            : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'"
+                          [attr.aria-label]="labels.cardAction | svLabel: { action: action.label, title: r.title }"
+                          (click)="runAction(action, r.row, $event)"
+                          data-sv-record-action>{{ action.label }}</button>
+                      }
+                    </div>
+                  }
+                </article>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (!recordsOn()) {
+    <!-- ─── DESKTOP TABLE (hidden on xs when responsive="cards") ─────── -->
+    <div [ngClass]="cardsOn() ? 'hidden sm:block' : 'block'">
       <!-- `aria-label` from `tableTitle`: `showToolbar` documents that forcing
            the strip OFF leaves the title "used only as the accessible name",
            and without this that was a no-op — the table had no name at all.
@@ -224,7 +374,7 @@
              scrolling under a `maxHeight` table showed through the header and
              the totals row, and at a fractional height a sliver of the row
              beneath shared the clipped edge pixel. -->
-        <thead class="sticky -top-px z-20 bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40">
+        <thead data-sv-sticky="top" class="sticky -top-px z-20 print:static bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40">
           <tr>
 
             <!-- Expand column -->
@@ -234,16 +384,18 @@
 
             <!-- Select column -->
             @if (selectable()) {
-              <th scope="col" [ngClass]="[headerPadding(), 'w-10']">
+              <th scope="col" class="print:hidden" [ngClass]="[headerPadding(), 'w-10']">
                 @if (selectMode() === 'multi') {
-                  <input
-                    type="checkbox"
-                    [checked]="allSelected()"
-                    [indeterminate]="someSelected()"
-                    (change)="toggleAll()"
-                    aria-label="Select all rows on this page"
-                    class="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
-                  />
+                  <label class="sv-target inline-flex shrink-0">
+                    <input
+                      type="checkbox"
+                      [checked]="allSelected()"
+                      [indeterminate]="someSelected()"
+                      (change)="toggleAll()"
+                      [attr.aria-label]="labels.selectAllRowsOnPage"
+                      class="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
+                    />
+                  </label>
                 }
               </th>
             }
@@ -253,13 +405,14 @@
               <th
                 scope="col"
                 [ngClass]="getHeaderCellClass(col)"
+                [attr.data-sv-sticky]="stickySides()[col.key] ?? null"
                 [style.min-width]="col.minWidth ?? null"
                 [style.max-width]="col.maxWidth ?? null"
                 (click)="onSort(col, $event)"
                 (keydown)="onSortKeydown(col, $event)"
                 [attr.tabindex]="col.sortable ? 0 : null"
                 [attr.aria-sort]="getSortAria(col)"
-                [attr.title]="col.sortable ? 'Sort by ' + col.label : null"
+                [attr.title]="col.sortable ? (labels.sortBy | svLabel: { name: col.label }) : null"
               >
                 <span class="inline-flex items-center gap-1.5">
                   {{ col.label }}
@@ -282,8 +435,8 @@
 
             <!-- Actions column -->
             @if (actions().length > 0) {
-              <th scope="col" [ngClass]="[headerPadding(), 'w-12']">
-                <span class="sr-only">Actions</span>
+              <th scope="col" class="print:hidden" [ngClass]="[headerPadding(), 'w-12']">
+                <span class="sr-only">{{ labels.actionsColumn }}</span>
               </th>
             }
 
@@ -296,20 +449,20 @@
                first one is a fractional height, and the sticky band's two
                half-covered pixel rows let the rows scrolling beneath show
                through as a hairline of text. -->
-            <tr class="border-t border-gray-100 dark:border-gray-800 [&>th:not(.sticky)]:relative [&>th]:before:pointer-events-none [&>th]:before:absolute [&>th]:before:inset-x-0 [&>th]:before:-top-px [&>th]:before:h-0.5 [&>th]:before:bg-white [&>th]:before:bg-linear-to-r [&>th]:before:from-gray-50/80 [&>th]:before:to-gray-50/80 dark:[&>th]:before:bg-gray-900 dark:[&>th]:before:from-gray-800/40 dark:[&>th]:before:to-gray-800/40">
-              @if (expandable()) { <th [ngClass]="headerPadding()"></th> }
-              @if (selectable()) { <th [ngClass]="headerPadding()"></th> }
+            <tr [class]="filterRowClass + ' print:hidden'">
+              @if (expandable()) { <td [ngClass]="headerPadding()"></td> }
+              @if (selectable()) { <td [ngClass]="headerPadding()"></td> }
               @for (col of visibleColumns(); track col.key) {
-                <th [ngClass]="[headerPadding(), 'font-normal', pinnedFilterClass(col)]">
+                <td [ngClass]="[headerPadding(), 'font-normal', pinnedFilterClass(col)]" [attr.data-sv-sticky]="stickySides()[col.key] ?? null">
                   @if (col.filterType !== 'none') {
                     @if (col.filterType === 'select' && col.filterOptions?.length) {
                       <select
                         [value]="getColFilter(col.key)"
                         (change)="onColumnFilterChange(col.key, $event)"
-                        [attr.aria-label]="'Filter ' + col.label"
+                        [attr.aria-label]="labels.filterColumn | svLabel: { name: col.label }"
                         class="w-full h-6 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-1.5 text-[11px] text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-primary-400 transition-colors"
                       >
-                        <option value="">All</option>
+                        <option value="">{{ labels.filterAll }}</option>
                         @for (opt of col.filterOptions!; track opt) {
                           <option [value]="opt" [selected]="opt === getColFilter(col.key)">{{ opt }}</option>
                         }
@@ -319,15 +472,15 @@
                         type="text"
                         [value]="getColFilter(col.key)"
                         (input)="onColumnFilterChange(col.key, $event)"
-                        placeholder="Filter…"
-                        [attr.aria-label]="'Filter ' + col.label"
+                        [placeholder]="labels.filterPlaceholder"
+                        [attr.aria-label]="labels.filterColumn | svLabel: { name: col.label }"
                         class="w-full h-6 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 text-[11px] text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-400 transition-colors"
                       />
                     }
                   }
-                </th>
+                </td>
               }
-              @if (actions().length > 0) { <th [ngClass]="headerPadding()"></th> }
+              @if (actions().length > 0) { <td [ngClass]="headerPadding()"></td> }
             </tr>
           }
         </thead>
@@ -378,7 +531,7 @@
                   @if (activeFilterChips().length > 0) {
                     <button type="button" (click)="clearAllFilters()"
                             class="mt-1 text-xs text-primary-600 dark:text-primary-400 hover:underline transition-colors">
-                      Clear filters
+                      {{ labels.clearFilters }}
                     </button>
                   }
                 </div>
@@ -391,35 +544,43 @@
 
               <!-- ─── Main data row ─────────────────────────────────── -->
               <!-- `data-sv-row-key`: what focus recovery (X-12) finds a row by. -->
-              <tr [ngClass]="getRowClass(row, i)" (click)="onRowClick(row)"
-                  [attr.data-sv-row-key]="getRowId(row)">
+              <!-- `tabindex`: one roving tab stop over the rows (FL-L1). -->
+              <tr class="print:break-inside-avoid" [ngClass]="getRowClass(row, i)" (click)="onRowClick(row)"
+                  [attr.data-sv-row-key]="getRowId(row)"
+                  [attr.tabindex]="rowTabIndexes()[i]"
+                  (focusin)="onRowFocusIn(row)"
+                  (keydown)="onRowKeydown($event, row)">
 
                 <!-- Expand toggle -->
                 @if (expandable()) {
                   <td [ngClass]="[rowPadding(), 'w-10']" (click)="toggleExpand(row, $event)">
                     <button
                       type="button"
-                      class="inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-                      [ngClass]="{ 'rotate-90': isExpanded(row) }"
+                      class="sv-target inline-flex h-5 w-5 items-center justify-center rounded text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                      [ngClass]="{ 'rotate-90 rtl:-rotate-90': isExpanded(row) }"
                       [attr.aria-expanded]="isExpanded(row)"
-                      aria-label="Toggle row details"
+                      [attr.aria-label]="labels.toggleRowDetails"
                     >
-                      <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5 transition-transform" [strokeWidth]="2.5" />
+                      <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5 transition-transform rtl:-scale-x-100" [strokeWidth]="2.5" />
                     </button>
                   </td>
                 }
 
                 <!-- Checkbox / radio -->
                 @if (selectable()) {
-                  <td [ngClass]="[rowPadding(), 'w-10']" svStopPropagation>
+                  <td class="print:hidden" [ngClass]="[rowPadding(), 'w-10']" svStopPropagation>
                     @if (selectMode() === 'single') {
-                      <input type="radio" [checked]="isSelected(row)" (change)="toggleRow(row)"
-                             aria-label="Select row"
-                             class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600" />
+                      <label class="sv-target inline-flex shrink-0">
+                        <input type="radio" [checked]="isSelected(row)" (change)="toggleRow(row)"
+                               [attr.aria-label]="labels.selectRow"
+                               class="h-4 w-4 border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600" />
+                      </label>
                     } @else {
-                      <input type="checkbox" [checked]="isSelected(row)" (change)="toggleRow(row)"
-                             aria-label="Select row"
-                             class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700" />
+                      <label class="sv-target inline-flex shrink-0">
+                        <input type="checkbox" [checked]="isSelected(row)" (change)="toggleRow(row)"
+                               [attr.aria-label]="labels.selectRow"
+                               class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700" />
+                      </label>
                     }
                   </td>
                 }
@@ -428,9 +589,13 @@
                 @for (col of visibleColumns(); track col.key) {
                   <td
                     [ngClass]="getCellClass(col)"
+                    [attr.data-sv-sticky]="stickySides()[col.key] ?? null"
                     [style.max-width]="col.maxWidth ?? null"
+                    [attr.data-sv-col-key]="col.key"
+                    tabindex="-1"
                     (click)="onCellClick(row, col, $event)"
                     (dblclick)="startEdit(row, col, $event)"
+                    (keydown)="onCellKeydown($event, row, col)"
                   >
                     @if (isEditing(row, col)) {
                       <!-- Inline edit input. The error is both described-by (read
@@ -442,9 +607,9 @@
                         [value]="editDraft()"
                         (input)="onEditInput($event)"
                         (blur)="saveEdit(row, col)"
-                        (keydown.enter)="saveEdit(row, col)"
-                        (keydown.escape)="cancelEdit()"
-                        aria-label="Edit cell value"
+                        (keydown.enter)="saveEdit(row, col); refocusCell(row, col)"
+                        (keydown.escape)="cancelEdit(); refocusCell(row, col)"
+                        [attr.aria-label]="labels.editCellValue"
                         [attr.aria-invalid]="editError() ? 'true' : null"
                         [attr.aria-describedby]="editError() ? editErrorId : null"
                         [ngClass]="editError()
@@ -466,13 +631,13 @@
 
                 <!-- Per-row action menu -->
                 @if (actions().length > 0) {
-                  <td [ngClass]="[rowPadding(), 'w-12 relative']" svStopPropagation>
+                  <td class="print:hidden" [ngClass]="[rowPadding(), 'w-12 relative']" svStopPropagation>
                     @if (visibleActions(row).length > 0) {
                       <button
                         type="button"
                         (click)="toggleActionMenu(row, $event)"
                         [attr.aria-expanded]="isActionMenuOpen(row)"
-                        aria-label="Row actions"
+                        [attr.aria-label]="labels.rowActions"
                         class="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-all duration-100"
                       >
                         <sv-icon name="more-vertical"
@@ -482,7 +647,7 @@
 
                       @if (isActionMenuOpen(row)) {
                         <div
-                          class="absolute right-0 z-40 mt-1 w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1"
+                          class="absolute end-0 z-40 mt-1 w-44 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xl py-1"
                           svStopPropagation
                         >
                           @for (action of visibleActions(row); track action.label) {
@@ -490,7 +655,7 @@
                               type="button"
                               (click)="runAction(action, row, $event)"
                               [ngClass]="[
-                                'flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-left transition-colors duration-75',
+                                'flex w-full items-center gap-2.5 px-3.5 py-2 text-sm text-start transition-colors duration-75',
                                 action.danger
                                   ? 'text-danger-600 dark:text-danger-400 hover:bg-danger-50 hover:text-danger-700 dark:hover:bg-danger-900/20'
                                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -546,16 +711,16 @@
 
         <!-- TFOOT — Summary row ────────────────────────────────────────── -->
         @if (showFooter() && hasFooterFns() && !loading() && pagedRows().length > 0) {
-          <tfoot class="border-t-2 border-gray-200 dark:border-gray-700 sticky -bottom-px z-20 bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40">
+          <tfoot data-sv-sticky="bottom" class="border-t-2 border-gray-200 dark:border-gray-700 sticky -bottom-px z-20 bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40">
             <tr>
               @if (expandable()) { <td [ngClass]="rowPadding()"></td> }
-              @if (selectable()) { <td [ngClass]="rowPadding()"></td> }
+              @if (selectable()) { <td class="print:hidden" [ngClass]="rowPadding()"></td> }
               @for (col of visibleColumns(); track col.key) {
                 <td [ngClass]="[rowPadding(), 'text-xs font-semibold text-gray-600 dark:text-gray-300', alignClass(col)]">
                   {{ col.footerFn ? col.footerFn(sortedRows()) : '' }}
                 </td>
               }
-              @if (actions().length > 0) { <td [ngClass]="rowPadding()"></td> }
+              @if (actions().length > 0) { <td class="print:hidden" [ngClass]="rowPadding()"></td> }
             </tr>
           </tfoot>
         }
@@ -564,19 +729,28 @@
     </div>
 
     <!-- ─── MOBILE CARD VIEW ────────────────────────────────────────────── -->
-    @if (cardOnMobile()) {
+    @if (cardsOn()) {
       <div class="block sm:hidden">
         @if (loading()) {
-          @for (i of skeletonArray(); track i) {
-            <div class="border-b border-gray-100 dark:border-gray-800/60 p-4 space-y-2">
-              <div class="skeleton-wave h-4 w-3/4 rounded"></div>
-              <div class="skeleton-wave h-3 w-1/2 rounded mt-2"></div>
-              <div class="skeleton-wave h-3 w-2/3 rounded mt-1"></div>
-            </div>
-          }
+          <div role="status" aria-busy="true" [attr.aria-label]="labels.loading" data-sv-state="loading">
+            @for (i of skeletonArray(); track i) {
+              <div class="border-b border-gray-100 dark:border-gray-800/60 p-4 space-y-2">
+                <div class="skeleton-wave h-4 w-3/4 rounded"></div>
+                <div class="skeleton-wave h-3 w-1/2 rounded mt-2"></div>
+                <div class="skeleton-wave h-3 w-2/3 rounded mt-1"></div>
+              </div>
+            }
+          </div>
         } @else if (pagedRows().length === 0) {
-          <div class="px-6 py-12 text-center">
+          <div class="px-6 py-12 text-center" data-sv-state="empty"
+               [attr.data-sv-empty-reason]="activeFilterChips().length > 0 ? 'no-results' : 'no-data'">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ emptyMessage() }}</p>
+            @if (activeFilterChips().length > 0) {
+              <button type="button" (click)="clearAllFilters()"
+                      class="mt-2 text-xs text-primary-600 dark:text-primary-400 hover:underline transition-colors">
+                {{ labels.clearFilters }}
+              </button>
+            }
           </div>
         } @else {
           @for (row of pagedRows(); track trackByRow($index, row)) {
@@ -616,7 +790,7 @@
                       [type]="selectMode() === 'single' ? 'radio' : 'checkbox'"
                       [checked]="isSelected(row)"
                       (change)="toggleRow(row)"
-                      aria-label="Select row"
+                      [attr.aria-label]="labels.selectRow"
                       class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
                     />
                   </div>
@@ -627,6 +801,7 @@
         }
       </div>
     }
+    } <!-- end @if (!recordsOn()) -->
 
   </div> <!-- end table area -->
 
@@ -634,24 +809,24 @@
 
   <!-- ═══════════ PAGINATION FOOTER ═══════════════════════════════════════ -->
   @if (paginated() && !loading() && !error()) {
-    <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 dark:border-gray-800/60 px-4 py-2.5 bg-gray-50/50 dark:bg-gray-800/30">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200/80 dark:border-gray-800/60 px-4 py-2.5 bg-gray-50/50 dark:bg-gray-800/30 print:hidden">
 
       <!-- Left: range info + page size -->
       <div class="flex flex-wrap items-center gap-3">
         @if (totalDisplayCount() > 0) {
           <p class="text-[12px] text-gray-500 dark:text-gray-400">
-            Showing
+            {{ labels.summaryShowing }}
             <span class="font-medium text-gray-800 dark:text-gray-200">{{ rangeStart() }}</span>
             –
             <span class="font-medium text-gray-800 dark:text-gray-200">{{ rangeEnd() }}</span>
-            of
+            {{ labels.summaryOf }}
             <span class="font-medium text-gray-800 dark:text-gray-200">{{ totalDisplayCount() }}</span>
           </p>
         }
         @if (pageSizeOptions().length > 0) {
           <div class="flex items-center gap-1.5">
             <label class="text-[12px] text-gray-500 dark:text-gray-400 whitespace-nowrap"
-                   [for]="pageSizeId">Rows</label>
+                   [for]="pageSizeId">{{ labels.rowsPerPage }}</label>
             <select
               [id]="pageSizeId"
               (change)="onPageSizeChange($event)"
@@ -666,20 +841,20 @@
       </div>
 
       <!-- Right: page navigation -->
-      <nav aria-label="Table pagination" class="flex items-center gap-1">
+      <nav [attr.aria-label]="labels.tablePagination" class="flex items-center gap-1">
 
         <!-- First page -->
         <button type="button" (click)="goTo(1)" [disabled]="currentPage() <= 1"
-                aria-label="First page"
+                [attr.aria-label]="labels.firstPage"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:text-gray-300 dark:disabled:text-gray-600 enabled:text-gray-600 enabled:hover:bg-gray-100 dark:enabled:text-gray-300 dark:enabled:hover:bg-gray-700">
           <sv-icon name="chevrons-left" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
         </button>
 
         <!-- Previous page -->
         <button type="button" (click)="goTo(currentPage() - 1)" [disabled]="currentPage() <= 1"
-                aria-label="Previous page"
+                [attr.aria-label]="labels.previousPage"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:text-gray-300 dark:disabled:text-gray-600 enabled:text-gray-600 enabled:hover:bg-gray-100 dark:enabled:text-gray-300 dark:enabled:hover:bg-gray-700">
-          <sv-icon name="chevron-left" cssClass="h-4 w-4" [strokeWidth]="2" />
+          <sv-icon name="chevron-left" cssClass="h-4 w-4 rtl:-scale-x-100" [strokeWidth]="2" />
         </button>
 
         <!-- Page number pills -->
@@ -690,7 +865,7 @@
             <button
               type="button"
               (click)="goTo(page)"
-              [attr.aria-label]="'Page ' + page"
+              [attr.aria-label]="labels.goToPage | svLabel: { page: page }"
               [attr.aria-current]="currentPage() === page ? 'page' : null"
               [ngClass]="[
                 'h-8 min-w-8 rounded-lg px-1.5 text-sm tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
@@ -703,15 +878,15 @@
         }
 
         <!-- Next page -->
-        <button type="button" (click)="goTo(currentPage() + 1)" [disabled]="currentPage() >= totalPages()"
-                aria-label="Next page"
+        <button type="button" (click)="goTo(currentPage() + 1)" [disabled]="totalPages() <= currentPage()"
+                [attr.aria-label]="labels.nextPage"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:text-gray-300 dark:disabled:text-gray-600 enabled:text-gray-600 enabled:hover:bg-gray-100 dark:enabled:text-gray-300 dark:enabled:hover:bg-gray-700">
-          <sv-icon name="chevron-right" cssClass="h-4 w-4" [strokeWidth]="2" />
+          <sv-icon name="chevron-right" cssClass="h-4 w-4 rtl:-scale-x-100" [strokeWidth]="2" />
         </button>
 
         <!-- Last page -->
-        <button type="button" (click)="goTo(totalPages())" [disabled]="currentPage() >= totalPages()"
-                aria-label="Last page"
+        <button type="button" (click)="goTo(totalPages())" [disabled]="totalPages() <= currentPage()"
+                [attr.aria-label]="labels.lastPage"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:text-gray-300 dark:disabled:text-gray-600 enabled:text-gray-600 enabled:hover:bg-gray-100 dark:enabled:text-gray-300 dark:enabled:hover:bg-gray-700">
           <sv-icon name="chevrons-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
         </button>

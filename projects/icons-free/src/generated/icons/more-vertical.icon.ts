@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `more-vertical` icon. */
 export const moreVerticalNodes: readonly IconNode[] = [
@@ -10,6 +11,9 @@ export const moreVerticalNodes: readonly IconNode[] = [
   { tag: 'circle', cx: 12, cy: 12, r: 1.6, fill: true },
   { tag: 'circle', cx: 12, cy: 19, r: 1.6, fill: true },
 ];
+
+/** `more-vertical` as a registrable glyph — `registerSvIcons([moreVerticalIcon])` / `provideSvIcons([moreVerticalIcon])`. */
+export const moreVerticalIcon: SvIconDef = { name: 'more-vertical', nodes: moreVerticalNodes };
 
 /** `more-vertical` — tree-shakable standalone icon. Use `<sv-more-vertical-icon />`. */
 @Component({

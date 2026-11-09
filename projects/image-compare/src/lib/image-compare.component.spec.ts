@@ -20,6 +20,11 @@ async function compare(inputs: Record<string, unknown> = {}) {
     inputs: { beforeSrc: SRC_A, afterSrc: SRC_B, ...inputs },
   });
   fixture.detectChanges();
+  // jsdom never fetches, so neither image would ever report `load` and the
+  // wipe would stay covered (FL-J3-DD-15). Report both as loaded; the specs
+  // that stub a size dispatch `load` again with it.
+  for (const img of fixture.nativeElement.querySelectorAll('img')) img.dispatchEvent(new Event('load'));
+  fixture.detectChanges();
   return fixture;
 }
 
@@ -375,9 +380,14 @@ describe('SvImageCompareComponent — the pointer', () => {
    * page instead of moving the wipe, and the control is unusable on the devices
    * where before/after comparisons are most often shared.
    */
-  it('claims the touch gesture rather than letting the page scroll', async () => {
+  // FL-J3-DD-15 inverted this: `touch-none` swallowed every vertical swipe, so a
+  // page could not be scrolled past the pair on a phone. A horizontal drag is
+  // still ours; a vertical one goes to the page.
+  it('claims horizontal drags but lets a vertical swipe scroll the page', async () => {
     const f = await compare();
-    expect((q(f, '[data-sv-box]') as HTMLElement).className).toContain('touch-none');
+    const box = q(f, '[data-sv-box]') as HTMLElement;
+    expect(box.className).toContain('touch-pan-y');
+    expect(box.className).not.toContain('touch-none');
   });
 });
 

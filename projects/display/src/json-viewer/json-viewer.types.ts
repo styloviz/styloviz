@@ -5,6 +5,8 @@
  * as functions. What a JSON viewer is actually *for* is telling you what you
  * received, and almost every mistake it can make is a mistake about TYPE.
  */
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvDisplayLabels } from '../display.labels';
 
 /** What a node is. Drives the colour, the preview and whether it opens. */
 export type JsonNodeKind =
@@ -19,6 +21,7 @@ export type JsonNodeKind =
   | 'map'
   | 'set'
   | 'bigint'
+  | 'binary'
   | 'function'
   | 'symbol'
   | 'circular'
@@ -160,6 +163,7 @@ export function classify(value: unknown): JsonNodeKind {
   if (value instanceof Date) return 'date';
   if (value instanceof Map) return 'map';
   if (value instanceof Set) return 'set';
+  if (isBinary(value)) return 'binary';
   switch (typeof value) {
     case 'string': return 'string';
     case 'number': return 'number';
@@ -169,6 +173,39 @@ export function classify(value: unknown): JsonNodeKind {
     case 'symbol': return 'symbol';
     default: return 'object';
   }
+}
+
+/**
+ * Bytes, not data: an `ArrayBuffer`, a `SharedArrayBuffer`, any typed array or
+ * `DataView`, or a `Blob` / `File`.
+ *
+ * ★ Walking one as an object is the bug this exists for. A `Uint8Array` has an
+ *   own enumerable property per byte, so a 1 MB upload became a million rows; an
+ *   `ArrayBuffer` and a `Blob` have none, so they read as an empty `{}`. Neither
+ *   says what you are looking at. One leaf with the type and the byte length does.
+ */
+export function isBinary(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false;
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return true;
+  if (typeof SharedArrayBuffer !== 'undefined' && value instanceof SharedArrayBuffer) return true;
+  return typeof Blob !== 'undefined' && value instanceof Blob;
+}
+
+/** The type name and byte length of a {@link isBinary} value. */
+export function binaryFacts(value: unknown): { readonly type: string; readonly bytes: number } {
+  const type = (Object.getPrototypeOf(value as object) as { constructor?: { name?: string } } | null)?.constructor?.name || 'Binary';
+  if (typeof Blob !== 'undefined' && value instanceof Blob) return { type, bytes: value.size };
+  return { type, bytes: (value as ArrayBufferLike | ArrayBufferView).byteLength };
+}
+
+/**
+ * The one-line summary of a binary value, e.g. "Uint8Array · 1,024 bytes".
+ * `template` is the label (`{type}`, `{n}` formatted, `{count}` for the plural).
+ */
+export function binarySummary(value: unknown, template: string, locale = ''): string {
+  const { type, bytes } = binaryFacts(value);
+  const n = new Intl.NumberFormat(locale || undefined).format(bytes);
+  return svFormatLabel(template, { type, n, count: bytes }, locale);
 }
 
 /** Containers whose children the viewer walks into. */
@@ -293,6 +330,13 @@ function messageOf(error: unknown): string {
 }
 
 /**
+ * What `scalarText` writes for bytes when no label is passed — `Uint8Array(1,024)`,
+ * the same word-free shape as `Map(2)`. The component always passes the
+ * localised `jsonBinary` label instead.
+ */
+const BINARY_FALLBACK = '{type}({n})';
+
+/**
  * The one-line text for a value.
  *
  * ★ `-0` is spelled out. `Object.is(-0, 0)` is false and the difference has
@@ -309,12 +353,13 @@ export function scalarText(value: unknown, kind: JsonNodeKind, quoteStrings: boo
       return String(n); // NaN and ±Infinity print themselves, which is the point
     }
     case 'bigint': return `${String(value)}n`;
+    case 'binary': return binarySummary(value, BINARY_FALLBACK);
     case 'null': return 'null';
     case 'undefined': return 'undefined';
     case 'boolean': return String(value);
     case 'date': {
       const d = value as Date;
-      return Number.isNaN(d.getTime()) ? 'Invalid Date' : d.toISOString();
+      return Number.isNaN(d.getTime()) ? 'Invalid Date' : d.toISOString(); // sv-i18n-ignore: JavaScript's own spelling of an invalid Date, shown as the value like `null` / `[Circular]`
     }
     case 'function': return `ƒ ${(value as { name?: string }).name || '(anonymous)'}()`;
     case 'symbol': return String(value);
@@ -351,13 +396,25 @@ export function classNameOf(value: unknown): string {
 }
 
 /** How a container's hidden own properties are described, or '' when there are none. */
-export function omissionNote(children: JsonChildren): string {
-  const total = children.nonEnumerable + children.symbolKeys;
-  if (total === 0) return '';
-  const parts: string[] = [];
-  if (children.nonEnumerable > 0) parts.push(`${children.nonEnumerable} non-enumerable`);
-  if (children.symbolKeys > 0) parts.push(`${children.symbolKeys} symbol-keyed`);
-  return `+ ${parts.join(', ')} own ${total === 1 ? 'property' : 'properties'} not shown`;
+export function omissionNote(
+  children: JsonChildren,
+  labels: Pick<SvDisplayLabels, 'jsonOmittedNonEnumerable' | 'jsonOmittedSymbolKeyed' | 'jsonOmittedBoth'>,
+  locale = '',
+): string {
+  const { nonEnumerable, symbolKeys } = children;
+  const count = nonEnumerable + symbolKeys;
+  if (count === 0) return '';
+  const template =
+    nonEnumerable > 0 && symbolKeys > 0
+      ? labels.jsonOmittedBoth
+      : nonEnumerable > 0
+        ? labels.jsonOmittedNonEnumerable
+        : labels.jsonOmittedSymbolKeyed;
+  return svFormatLabel(
+    template,
+    { count, n: String(count), nonEnumerable: String(nonEnumerable), symbolKeyed: String(symbolKeys) },
+    locale,
+  );
 }
 
 /** Append a segment to a path, bracketing array indices. */
@@ -371,10 +428,18 @@ export function joinPath(parent: string, key: string, parentKind: JsonNodeKind):
 export interface JsonProjectionOptions {
   readonly redact: JsonRedactor | null;
   readonly redactedLabel: string;
+  /** The placeholder an unread accessor becomes — the row's own text. */
+  readonly getterNotReadLabel: string;
+  /** The placeholder an accessor that threw becomes; `{error}` is what it threw. */
+  readonly getterThrewLabel: string;
   readonly evaluateGetters: boolean;
   readonly sortKeys: boolean;
   /** Called once per node the predicate masked, so a caller can tell the copy contained masks. */
   readonly onRedact?: () => void;
+  /** The binary summary label (`{type}`, `{n}`, `{count}`) — the row's own text for bytes. */
+  readonly binaryLabel?: string;
+  /** Locale for the binary summary's number and plural. */
+  readonly locale?: string;
 }
 
 /**
@@ -407,7 +472,8 @@ export function redactedProjection(
   options: JsonProjectionOptions,
 ): unknown {
   const chain = new Set<object>();
-  const { redact, redactedLabel, evaluateGetters, sortKeys, onRedact } = options;
+  const { redact, redactedLabel, getterNotReadLabel, getterThrewLabel, evaluateGetters, sortKeys, onRedact } = options;
+  const binaryLabel = options.binaryLabel ?? BINARY_FALLBACK;
 
   const project = (v: unknown, k: string, p: string): unknown => {
     const kind = classify(v);
@@ -418,6 +484,7 @@ export function redactedProjection(
     if (!isContainer(kind)) {
       if (kind === 'string' || kind === 'boolean' || kind === 'null') return v;
       if (kind === 'number' && Number.isFinite(v as number) && !Object.is(v, -0)) return v;
+      if (kind === 'binary') return binarySummary(v, binaryLabel, options.locale);
       return scalarText(v, kind, false);
     }
     const obj = v as object;
@@ -437,8 +504,8 @@ export function redactedProjection(
   };
 
   const projectChild = (child: JsonChild, parentPath: string, parentKind: JsonNodeKind): unknown => {
-    if (child.unreadGetter === true) return '(getter — not read)';
-    if (child.threw === true) return `(getter threw: ${String(child.value)})`;
+    if (child.unreadGetter === true) return getterNotReadLabel;
+    if (child.threw === true) return svFormatLabel(getterThrewLabel, { error: String(child.value) });
     return project(child.value, child.key, joinPath(parentPath, child.key, parentKind));
   };
 

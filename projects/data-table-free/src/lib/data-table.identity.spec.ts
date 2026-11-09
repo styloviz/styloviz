@@ -56,7 +56,9 @@ describe('SvDataTableComponent — what identifies a row', () => {
   });
 
   it('falls back to the index and says so, rather than stringifying the row', async () => {
-    const { c } = await setup({ rowKey: 'notAField' });
+    // A name no other spec uses: core warns once per field name per module graph,
+    // and one worker shares that graph across files (FL-A8-04).
+    const { c } = await setup({ rowKey: 'notAFreeTableField' });
     expect(c.getRowId(LINES[0])).toBe(0);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('falling back to the list index'));
   });

@@ -36,8 +36,9 @@ between the `>>> template-tokens: errors` markers:
 ```
 
 Note each page's actual status colour (red for 500, amber for 503, …) comes
-from `sv-result`'s own `status` input, not from this palette — the shell
-accent only touches the logo link and any focus rings.
+from that entry's `tone` in `errors.data.ts` (the `TONES` map in
+`pages/error-page.component.ts`), not from this palette — the shell accent
+only touches the logo link and any focus rings.
 
 ## 3. Wiring these as your real error pages
 

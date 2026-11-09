@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `image` icon. */
 export const imageNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const imageNodes: readonly IconNode[] = [
 export const imageSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 3.1h14q2.9 0 2.9 2.9v12q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-12q0-2.9 2.9-2.9zm6.2 6.4q0-2.7-2.7-2.7-2.7 0-2.7 2.7 0 2.2 1.9 2.6l-3.8 3.8v2q0 0 .1 0 .3 0 .6-.3l4.4-4.4 3.4 3.4q.6.6 1.2 0l2.4-2.4 3.4 3.4q.4.4.7.3v-2l-3.5-3.5q-.3-.3-.6-.3-.3 0-.6.3l-2.4 2.4-2.9-3q1.1-.6 1.1-2.3zm-1.8 0q0 .9-.9.9-.9 0-.9-.9 0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `image` as a registrable glyph — `registerSvIcons([imageIcon])` / `provideSvIcons([imageIcon])`. */
+export const imageIcon: SvIconDef = { name: 'image', nodes: imageNodes, solid: imageSolidNodes };
 
 /** `image` — tree-shakable standalone icon. Use `<sv-image-icon />`. */
 @Component({

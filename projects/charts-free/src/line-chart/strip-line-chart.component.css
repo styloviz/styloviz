@@ -10,3 +10,11 @@
 
 .sl-line-anim { animation: sl-draw 1.2s cubic-bezier(0.4, 0, 0.2, 1) 150ms both; }
 .sl-band-anim { animation: sl-fade 0.6s ease-out var(--sl-delay, 0ms) both; }
+
+/* Reduced motion (FL-J3-CH-01): the line and bands are drawn, not drawn on. */
+@media (prefers-reduced-motion: reduce) {
+  .sl-line-anim,
+  .sl-band-anim {
+    animation: none;
+  }
+}

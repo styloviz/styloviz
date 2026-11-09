@@ -7,6 +7,13 @@ import {
   type AccordionBadgeColor,
   type AccordionItem,
 } from './accordion.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { minusIcon } from '@styloviz/icons/glyph/minus';
+import { plusIcon } from '@styloviz/icons/glyph/plus';
+import { settingsIcon } from '@styloviz/icons/glyph/settings';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([minusIcon, plusIcon, settingsIcon]);
 
 /**
  * How the FREE accordion looks. Adapted from
@@ -34,6 +41,7 @@ const ITEMS: AccordionItem[] = [
 async function setup(inputs: Partial<ComponentInput<SvAccordionComponent>> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvAccordionComponent, {
+    providers: [HOST_ICONS],
     inputs: { items: ITEMS, ...inputs } as ComponentInput<SvAccordionComponent>,
   });
   return fixture;
@@ -264,10 +272,10 @@ describe('SvAccordionComponent — the chevron', () => {
   it('sits after the title by default and before it on request', async () => {
     const right = await setup();
     const rightKids = [...headers(right)[0].children];
-    expect(rightKids[rightKids.length - 1].className).toContain('ml-auto');
+    expect(rightKids[rightKids.length - 1].className).toContain('ms-auto');
 
     const left = await setup({ iconPosition: 'left' });
-    expect([...headers(left)[0].children][0].className).not.toContain('ml-auto');
+    expect([...headers(left)[0].children][0].className).not.toContain('ms-auto');
     expect(left.nativeElement.querySelector('sv-icon')).not.toBeNull();
   });
 
@@ -432,7 +440,7 @@ describe('SvAccordionComponent — items that go away', () => {
 
   it('forgets an open section that is no longer in the list, and keeps the rest', async () => {
     TestBed.resetTestingModule();
-    const { fixture } = await render(Host);
+    const { fixture } = await render(Host, { providers: [HOST_ICONS] });
     await userEvent.click(headers(fixture)[0]);
     await userEvent.click(headers(fixture)[1]);
     fixture.detectChanges();

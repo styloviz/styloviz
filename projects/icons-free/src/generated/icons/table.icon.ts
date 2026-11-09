@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `table` icon. */
 export const tableNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const tableNodes: readonly IconNode[] = [
 export const tableSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4.5 4.1h15q2.4 0 2.4 2.4v11q0 2.4-2.4 2.4h-15q-1 0-1.7-.7-.7-.7-.7-1.7v-11q0-2.4 2.4-2.4zm-.6 6.8h4.2v3.2h-4.2v1.8h4.2v2.2h1.8v-2.2h10.2v-1.8h-10.2v-3.2h10.2v-1.8h-10.2v-3.2h-1.8v3.2h-4.2z' },
 ];
+
+/** `table` as a registrable glyph — `registerSvIcons([tableIcon])` / `provideSvIcons([tableIcon])`. */
+export const tableIcon: SvIconDef = { name: 'table', nodes: tableNodes, solid: tableSolidNodes };
 
 /** `table` — tree-shakable standalone icon. Use `<sv-table-icon />`. */
 @Component({

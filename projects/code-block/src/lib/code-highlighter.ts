@@ -54,9 +54,11 @@ const UNTERMINATED_BACKTICK = '`(?:\\\\.|[^`\\\\])*';
 // Order matters — the first rule that matches at the cursor wins.
 
 const JS_KEYWORDS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'abstract|as|async|await|break|case|catch|class|const|continue|declare|default|delete|do|else|enum|export|extends|false|finally|for|from|function|get|if|implements|import|in|instanceof|interface|keyof|let|new|null|of|private|protected|public|readonly|return|satisfies|set|static|super|switch|this|throw|true|try|type|typeof|undefined|var|void|while|yield';
 
 const JS_BUILTINS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'string|number|boolean|any|unknown|never|object|symbol|bigint|Array|Promise|Record|Partial|Readonly|Map|Set|Date|Math|JSON|Object|console|window|document';
 
 const TS_RULES: readonly Rule[] = [
@@ -125,6 +127,7 @@ const BASH_RULES: readonly Rule[] = [
 ];
 
 const PY_KEYWORDS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'and|as|assert|async|await|break|class|continue|def|del|elif|else|except|False|finally|for|from|global|if|import|in|is|lambda|None|nonlocal|not|or|pass|raise|return|True|try|while|with|yield';
 
 const PY_RULES: readonly Rule[] = [
@@ -153,9 +156,11 @@ const PY_RULES: readonly Rule[] = [
 ];
 
 const GO_KEYWORDS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'break|case|chan|const|continue|default|defer|else|fallthrough|for|func|go|goto|if|import|interface|map|package|range|return|select|struct|switch|type|var';
 
 const GO_BUILTINS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'bool|byte|complex64|complex128|error|float32|float64|int|int8|int16|int32|int64|rune|string|uint|uint8|uint16|uint32|uint64|uintptr|any|nil|true|false|iota|make|new|len|cap|append|copy|delete|panic|recover|print|println';
 
 const GO_RULES: readonly Rule[] = [
@@ -178,9 +183,11 @@ const GO_RULES: readonly Rule[] = [
 ];
 
 const RUST_KEYWORDS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'as|async|await|break|const|continue|crate|dyn|else|enum|extern|false|fn|for|if|impl|in|let|loop|match|mod|move|mut|pub|ref|return|self|Self|static|struct|super|trait|true|type|unsafe|use|where|while';
 
 const RUST_BUILTINS =
+  // sv-i18n-ignore: regex alternation of language keywords
   'bool|char|f32|f64|i8|i16|i32|i64|i128|isize|str|u8|u16|u32|u64|u128|usize|String|Vec|Option|Result|Box|Some|None|Ok|Err|HashMap|HashSet|Iterator';
 
 const RUST_RULES: readonly Rule[] = [

@@ -1,7 +1,7 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvAlertBannerComponent } from './alert-banner.component';
 
 /**

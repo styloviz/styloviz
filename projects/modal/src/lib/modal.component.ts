@@ -20,25 +20,29 @@ import {
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser, NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import { SvSpinnerArcComponent, svUniqueId } from '@styloviz/core';
+import { svUniqueId, svIsRtl } from '@styloviz/core/a11y';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_MODAL_LABELS } from './modal.labels';
+import { type SvPendingDismissal } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { createWaitEscalation, type SvWaitStage } from '@styloviz/core/feedback';
 import {
   svLockBodyScroll,
   svUnlockBodyScroll,
-  svWarnOnce,
   SvOverlayRouteService,
   SvOverlayStackService,
   createCloseGuard,
   svDismissReason,
   createFocusScope,
   createPortalHost,
-  createWaitEscalation,
   type SvCloseReason,
   type SvOverlayHandle,
-  type SvPendingDismissal,
   type SvPortalHost,
   type SvRouteAwareHandle,
-  type SvWaitStage,
-} from '@styloviz/core';
+  createSheetMode,
+  SV_SHEET_SAFE_AREA_PADDING,
+} from '@styloviz/core/overlay';
 import {
   svClampModalSize,
   svMaximizedSize,
@@ -48,6 +52,7 @@ import {
   type SvModalSizePx,
 } from './modal-resize';
 
+import { registerModalIcons } from './modal.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ModalSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
@@ -124,6 +129,12 @@ export type ModalCloseReason =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvModalComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerModalIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ modal })` says otherwise. */
+  protected readonly labels = injectSvLabels('modal', SV_MODAL_LABELS);
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly appRef = inject(ApplicationRef);
   private readonly document = inject(DOCUMENT);
@@ -196,25 +207,23 @@ export class SvModalComponent implements OnDestroy {
   readonly loading = input<boolean>(false);
 
   /** Accessible label announced while `loading` is true. @default 'Loading…' */
-  readonly loadingText = input<string>('Loading…');
+  readonly loadingText = input<string>(this.labels.loading);
 
   // ── Route and history integration (OF-09-I7, OF-09-I8, OF-09-M2, X-13) ────
 
   /**
    * Does a navigation close this dialog?
    *
-   * ★★★ `OF-09-I7`: A MODAL THAT OUTLIVES ITS ROUTE FLOATS OVER AN UNRELATED
-   *     PAGE. The audit calls it the most common overlay bug in shipped
-   *     dashboards, and the mechanism is simple — a link inside the dialog, a
-   *     redirect from a guard, a host that navigates on success — after which
-   *     the panel is still up, still modal, still describing a page that is
-   *     no longer underneath it.
+   * A modal that outlives its route floats over an unrelated page — a common
+   * overlay bug, and the mechanism is simple: a link inside the dialog, a
+   * redirect from a guard, a host that navigates on success — after which the
+   * panel is still up, still modal, still describing a page that has gone from
+   * underneath it.
    *
-   * ★★ IT ONLY HAPPENS IF THE APP ASKED. `provideSvOverlayRouteClose()` from
-   *    `@styloviz/layout` is what tells the overlay layer a navigation
-   *    happened; an app that wires nothing keeps today's behaviour exactly.
-   *    Set this false for a dialog that belongs to the shell rather than to
-   *    the page.
+   * It only takes effect if the app asks: `provideSvOverlayRouteClose()` from
+   * `@styloviz/layout` is what tells the overlay layer a navigation happened,
+   * and an app that wires nothing sees no change. Set this false for a dialog
+   * that belongs to the shell rather than to the page.
    *
    * @default true
    */
@@ -359,16 +368,16 @@ export class SvModalComponent implements OnDestroy {
   readonly canClose = input<((reason: ModalCloseReason) => boolean | void) | null>(null);
 
   /** Heading of the unsaved-changes prompt. */
-  readonly unsavedTitle = input<string>('Discard your changes?');
+  readonly unsavedTitle = input<string>(this.labels.unsavedTitle);
 
   /** Body of the unsaved-changes prompt. */
-  readonly unsavedMessage = input<string>('This dialog has changes that have not been saved.');
+  readonly unsavedMessage = input<string>(this.labels.unsavedMessage);
 
   /** Label of the button that closes and loses the changes. */
-  readonly discardLabel = input<string>('Discard');
+  readonly discardLabel = input<string>(this.labels.discard);
 
   /** Label of the button that returns to the dialog. */
-  readonly keepEditingLabel = input<string>('Keep editing');
+  readonly keepEditingLabel = input<string>(this.labels.keepEditing);
 
   /** The user discarded unsaved changes; the close follows. */
   readonly discarded = output<ModalCloseReason>();
@@ -447,18 +456,12 @@ export class SvModalComponent implements OnDestroy {
   /**
    * May the user dismiss the modal while `loading` is true?
    *
-   * ★★★ `OF-09-I10` IS TWO COMPLAINTS AND THIS IS THE FIRST: "no way out".
-   *     Every close path — the × button, the backdrop, Escape — is blocked
-   *     while `loading`, silently and with no stated policy. That is a
-   *     defensible answer for a two-second save and the wrong one for a
-   *     request that has hung: the modal simply stops responding, and the
-   *     user's remaining move is to reload the page.
-   *
-   *     `'block'` keeps exactly today's behaviour and is the default.
-   *     `'abort'` lets the close through and emits `loadingCancelled` first,
-   *     so the host can abort the work it started. The modal does not own the
-   *     request — `loading` is an input — so the host has to do the aborting;
-   *     what changes is that it is now told to.
+   * `'block'` (the default) blocks every close path — the × button, the
+   * backdrop, Escape — while `loading`. That is right for a two-second save
+   * and wrong for a request that has hung, where the modal would simply stop
+   * responding. `'abort'` lets the close through and emits `loadingCancelled`
+   * first, so the host can abort the work it started. The modal does not own
+   * the request — `loading` is an input — so the host does the aborting.
    *
    * @default 'block'
    */
@@ -477,10 +480,10 @@ export class SvModalComponent implements OnDestroy {
   readonly stalledAfterMs = input<number>(0);
 
   /** Message shown over the panel at the `slow` stage. */
-  readonly slowMessage = input<string>('This is taking longer than usual…');
+  readonly slowMessage = input<string>(this.labels.slowMessage);
 
   /** Message shown over the panel at the `stalled` stage. */
-  readonly stalledMessage = input<string>('This seems to be stuck.');
+  readonly stalledMessage = input<string>(this.labels.stalledMessage);
 
   /**
    * Label for a cancel button in the loading overlay, shown once `stalled`.
@@ -572,7 +575,7 @@ export class SvModalComponent implements OnDestroy {
   // ── Resize / maximize ─────────────────────────────────────────────────────
 
   /**
-   * Let the user drag the panel's bottom-right corner to resize it.
+   * Let the user drag the panel's bottom inline-end corner (bottom-right; bottom-left in RTL) to resize it.
    *
    * ★★ THE DRAG IS AN ENHANCEMENT, NOT THE ONLY WAY IN. A pointer-only affordance
    * is unusable by keyboard, so turning this on also turns on the
@@ -593,6 +596,35 @@ export class SvModalComponent implements OnDestroy {
   /** Floor for a dragged resize, in pixels. @default 160 */
   readonly minHeight = input<number>(160);
 
+  // ── Sheet mode (`X-16`, FL-J3-OF-02) ─────────────────────────────────────
+
+  /**
+   * Become a bottom sheet on a narrow viewport (640px and below). @default false
+   *
+   * ★★ A CENTRED DIALOG AT 375px IS A POSTAGE STAMP WITH THE KEYBOARD OVER IT.
+   *    As a sheet it is full-width, attached to the bottom edge, padded clear
+   *    of the home indicator (`env(safe-area-inset-bottom)`), and lifted above
+   *    the virtual keyboard — the same contract (`createSheetMode`) Dropdown
+   *    Menu, Drawer and Popover use, so turning it on means the same thing
+   *    everywhere. Off by default: it changes how an existing app looks on a
+   *    phone.
+   */
+  readonly sheetOnNarrow = input<boolean>(false);
+
+  private readonly _sheet = createSheetMode({ enabled: () => this.sheetOnNarrow() });
+
+  /** True while this modal is rendering as a bottom sheet. */
+  readonly asSheet = computed(() => this._sheet.asSheet());
+
+  /** Bottom offset for the sheet, clear of the virtual keyboard (px). */
+  readonly sheetBottomPx = computed(() => this._sheet.keyboardInset());
+
+  /** Padding that keeps the sheet's last row clear of the home indicator. */
+  readonly sheetSafeArea = SV_SHEET_SAFE_AREA_PADDING;
+
+  /** Backdrop padding: a sheet is full-bleed at the bottom edge. */
+  readonly backdropPadClass = computed<string>(() => (this.asSheet() ? 'pt-6' : 'px-4 py-6'));
+
   // ── Outputs ───────────────────────────────────────────────────────────────
 
   /** Emitted after the modal is opened (by any means). */
@@ -610,7 +642,7 @@ export class SvModalComponent implements OnDestroy {
 
   /**
    * Emitted alongside `dismissed` with the exact reason, including `'route'`
-   * (the app navigated) and `'history'` (the Back button) from `X-13`.
+   * (the app navigated) and `'history'` (the Back button).
    */
   readonly dismissedBy = output<SvCloseReason>();
 
@@ -621,17 +653,19 @@ export class SvModalComponent implements OnDestroy {
 
   private readonly uid = svUniqueId('sv-modal');
   /** Stable id for the built-in title, used by `aria-labelledby`. */
-  readonly titleId = `sv-modal-title-${this.uid}`;
+  readonly titleId = `sv-modal-title-${this.uid}`; // sv-i18n-ignore: DOM id
   /** Stable id for the subtitle, used by `aria-describedby`. */
-  readonly subtitleId = `sv-modal-desc-${this.uid}`;
+  readonly subtitleId = `sv-modal-desc-${this.uid}`; // sv-i18n-ignore: DOM id
 
   /** Ids for the unsaved-changes prompt's own labelling. */
-  readonly unsavedTitleId = `sv-modal-unsaved-title-${this.uid}`;
-  readonly unsavedMessageId = `sv-modal-unsaved-desc-${this.uid}`;
+  readonly unsavedTitleId = `sv-modal-unsaved-title-${this.uid}`; // sv-i18n-ignore: DOM id
+  readonly unsavedMessageId = `sv-modal-unsaved-desc-${this.uid}`; // sv-i18n-ignore: DOM id
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
   readonly panelClass = computed<string>(() => {
+    // A sheet spans the viewport whatever `size` says — `size` is a desktop width.
+    if (this.asSheet()) return 'w-full max-w-none';
     const sizeMap: Record<ModalSize, string> = {
       xs: 'w-full max-w-xs',
       sm: 'w-full max-w-sm',
@@ -646,6 +680,7 @@ export class SvModalComponent implements OnDestroy {
 
   /** Alignment of the panel inside the flex overlay. */
   readonly alignClass = computed<string>(() => {
+    if (this.asSheet()) return 'items-end';
     switch (this.position()) {
       case 'top':
         return 'items-start pt-16';
@@ -658,14 +693,16 @@ export class SvModalComponent implements OnDestroy {
 
   /** Bottom position becomes a full-width sheet on small screens. */
   readonly positionPanelClass = computed<string>(() =>
-    this.position() === 'bottom' && this.size() !== 'full'
+    this.asSheet()
+      ? 'rounded-b-none'
+      : this.position() === 'bottom' && this.size() !== 'full'
       ? 'rounded-b-none sm:rounded-2xl'
       : ''
   );
 
   /** Animation class — bottom slides up, others slide down + fade. */
   readonly animationClass = computed<string>(() =>
-    this.position() === 'bottom' ? 'modal-panel modal-panel--up' : 'modal-panel'
+    this.position() === 'bottom' || this.asSheet() ? 'modal-panel modal-panel--up' : 'modal-panel' // sv-i18n-ignore: CSS class names
   );
 
   /** Accent classes for the header icon badge, keyed by variant. */
@@ -1126,13 +1163,15 @@ export class SvModalComponent implements OnDestroy {
   private sizeBeforeMaximize: SvModalSizePx | null = null;
 
   /** Where the pointer went down, and how big the panel was then. */
-  private dragFrom: { x: number; y: number; size: SvModalSizePx } | null = null;
+  private dragFrom: { x: number; y: number; size: SvModalSizePx; rtl: boolean } | null = null;
 
   /** The maximize button is the keyboard half of `resizable` — see that input. */
   readonly showsMaximize = computed(() => this.maximizable() || this.resizable());
 
   /** Inline style for the panel, or `null` to let the size class decide. */
   readonly panelSizeStyle = computed<Record<string, string> | null>(() => {
+    // ★ A sheet ignores a dragged size: it is the width of the phone.
+    if (this.asSheet()) return null;
     const size = this.panelSize();
     if (!size) return null;
     return { width: `${size.width}px`, height: `${size.height}px`, maxWidth: 'none' };
@@ -1192,7 +1231,10 @@ export class SvModalComponent implements OnDestroy {
     if (!this.resizable() || this.loading()) return;
     event.preventDefault();
     (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
-    this.dragFrom = { x: event.clientX, y: event.clientY, size: this.currentSize() };
+    // The grip is the panel's bottom inline-END corner — bottom-left in RTL —
+    // so there a drag to the LEFT is the one that widens. `clientX` is
+    // physical; the direction is read once, when the drag starts.
+    this.dragFrom = { x: event.clientX, y: event.clientY, size: this.currentSize(), rtl: svIsRtl(event.target as Element) };
   }
 
   onResizeMove(event: PointerEvent): void {
@@ -1200,7 +1242,7 @@ export class SvModalComponent implements OnDestroy {
     if (!from) return;
     event.preventDefault();
     this.applySize(
-      svResizeModal(from.size, event.clientX - from.x, event.clientY - from.y, this.bounds()),
+      svResizeModal(from.size, (event.clientX - from.x) * (from.rtl ? -1 : 1), event.clientY - from.y, this.bounds()),
     );
     // A drag is a deliberate size, so it takes the panel out of maximized —
     // otherwise the restore button would put back a size the user has since

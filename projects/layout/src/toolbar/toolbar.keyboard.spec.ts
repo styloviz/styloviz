@@ -156,7 +156,7 @@ class TwoToolbarsHost {
 
 /**
  * ★ REGRESSION TESTS — do not delete as redundant.
- * PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1 (backlog `X-1` / `X-3`): roving
+ * docs/audit/PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1 (backlog `X-1` / `X-3`): roving
  * focus used a document-wide lookup keyed by action id, so on a page with two
  * toolbars an arrow key in one focused the other's button. Focus is now scoped
  * to the component's own host; these tests are what keep it that way.

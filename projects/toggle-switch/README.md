@@ -2,7 +2,9 @@
 
 > Accessible toggle for boolean settings in multiple sizes, colors and label positions.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -56,6 +58,8 @@ import { SvToggleSwitchComponent } from '@styloviz/toggle-switch';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -66,7 +70,7 @@ export class DemoComponent {}
 | `labelPosition` | `ToggleLabelPosition` | `'right'` | Position of the label relative to the track. |
 | `onLabel` | `string` | `''` | Text shown inside the track when ON. Keep ≤ 3 characters for `md` size, fewer for smaller sizes. |
 | `offLabel` | `string` | `''` | Text shown inside the track when OFF. |
-| `onIcon` | `string` | `''` | Icon-library NAME rendered inside the thumb when the toggle is ON — e.g. `'check'`. Omit to show a plain thumb. BREAKING (icon sweep): was `onIconPath`, a raw SVG `d` string. |
+| `onIcon` | `string` | `''` | Icon-library NAME rendered inside the thumb when the toggle is ON — e.g. `'check'`. Omit to show a plain thumb. |
 | `offIcon` | `string` | `''` | Icon-library NAME rendered inside the thumb when the toggle is OFF — e.g. `'close'`. Was `offIconPath`. |
 | `size` | `ToggleSize` | `'md'` | Size of the toggle track and thumb. |
 | `variant` | `ToggleVariant` | `'primary'` | Active-state color variant. |
@@ -90,10 +94,18 @@ export class DemoComponent {}
 | `toggleRequest` | `SvToggleChange` | The same toggle, carrying what a server write needs: an idempotency key and a guarded way back. Additive, not a replacement — `toggled` still fires, and a switch that only writes to local state has no use for either of these. Both are emitted for one interaction, in this order. |
 | `checkedChange` | `boolean` | Emits the new `checked` whenever it changes — the output half of `[(checked)]`. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-toggle-switch` | ControlValueAccessor |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs/toggle-switch
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

@@ -10,13 +10,15 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { svUniqueId } from '@styloviz/core/a11y';
 import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
   type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -146,6 +148,9 @@ export interface DescriptionItem {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvDescriptionsComponent {
+  /** @internal English unless `provideSvLabels({ display })` says otherwise; first, because input defaults read it. */
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+
   /** Instance-scoped id root, e.g. `sv-descriptions-3`. */
   protected readonly uid = svUniqueId('sv-descriptions');
 
@@ -177,12 +182,9 @@ export class SvDescriptionsComponent {
   /**
    * Where a `horizontal` pair stops sitting side by side and stacks. @default 'sm'
    *
-   * ★★ The rule was already in the class list and nowhere in the API: the
-   * horizontal layout has always been `sm:flex`, so it stacked below 640px and
-   * a host had no say and no way to find out. Now it is stated, adjustable, and
-   * — the part that was actually broken — a stacked pair gets vertical spacing.
-   * Without it the label sat directly on top of its value with no gap, which on
-   * a phone reads as one wrapped sentence rather than two things.
+   * The default `'sm'` stacks below 640px. A stacked pair gets vertical spacing
+   * between label and value, so on a phone it reads as two things rather than
+   * one wrapped sentence.
    */
   readonly stackAt = input<DescriptionsStackAt>('sm');
 
@@ -204,7 +206,7 @@ export class SvDescriptionsComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Message for the empty state. @default 'No details to show' */
-  readonly emptyText = input<string>('No details to show');
+  readonly emptyText = input<string>(this.labels.noDetails);
 
   /** The host should re-run the failed load. */
   readonly retry = output<void>();
@@ -303,6 +305,10 @@ export class SvDescriptionsComponent {
     return [
       bordered ? `bg-white dark:bg-gray-900 ${pad}` : '',
       this.layout() === 'horizontal' ? this.horizontalCellClasses() : 'flex flex-col gap-1',
+      // ★ DD-10-I3: a page break may fall BETWEEN pairs, never inside one — a
+      //   term at the foot of page 1 and its value at the head of page 2 reads
+      //   as two unrelated fragments on paper.
+      'print:break-inside-avoid',
     ]
       .filter(Boolean)
       .join(' ');
@@ -326,6 +332,9 @@ export class SvDescriptionsComponent {
     }
   }
 
+  /** Print: the term never ends a page on its own (see `cellClasses`). */
+  protected readonly termPrintClass = 'print:break-after-avoid';
+
   protected readonly termClasses = computed<string>(() => {
     const base = 'font-medium text-gray-500 dark:text-gray-400';
     const width = this.layout() === 'horizontal' ? this.termWidthClasses() : '';
@@ -338,9 +347,9 @@ export class SvDescriptionsComponent {
   private termWidthClasses(): string {
     switch (this.stackAt()) {
       case 'never': return 'w-2/5 shrink-0';
-      case 'md':    return 'md:w-2/5 md:shrink-0';
-      case 'lg':    return 'lg:w-2/5 lg:shrink-0';
-      default:      return 'sm:w-2/5 sm:shrink-0';
+      case 'md':    return 'md:w-2/5 md:shrink-0'; // sv-i18n-ignore: Tailwind classes
+      case 'lg':    return 'lg:w-2/5 lg:shrink-0'; // sv-i18n-ignore: Tailwind classes
+      default:      return 'sm:w-2/5 sm:shrink-0'; // sv-i18n-ignore: Tailwind classes
     }
   }
 

@@ -2,7 +2,9 @@
 
 > Code 128, EAN-13 and EAN-8 rendered as SVG from a real encoder: mod-103 and mod-10 check characters computed rather than trusted, EAN-13's leading digit carried in the left-half parity, subset-C packing so a long serial fits the label, spec quiet zones, and a module width snapped to whole device pixels. Refuses to draw what cannot scan, and says why.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -82,4 +84,4 @@ Full API reference and live demos: https://styloviz.dev/docs/barcode-1d
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

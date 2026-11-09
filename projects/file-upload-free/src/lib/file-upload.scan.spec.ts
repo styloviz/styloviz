@@ -20,8 +20,10 @@ import { SvFileUploadComponent } from './file-upload.component';
  */
 const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
 const file = (name: string) => new File([new Uint8Array(4)], name, { type: 'text/plain' });
-const dropEvent = (files: File[]): DragEvent =>
-  ({ preventDefault() { /* no-op */ }, dataTransfer: { files } }) as unknown as DragEvent;
+/** A change on the hidden file input — what picking files in the dialog produces. */
+function pickEvent(files: File[]): Event {
+  return { target: { files, value: '' } } as unknown as Event;
+}
 
 async function setup() {
   TestBed.resetTestingModule();
@@ -34,7 +36,7 @@ async function setup() {
 }
 
 async function uploaded(c: SvFileUploadComponent, fixture: { detectChanges(): void }) {
-  c.onDrop(dropEvent([file('a.txt')]));
+  c.onFileInputChange(pickEvent([file('a.txt')]));
   fixture.detectChanges();
   await until(() => c.files()[0]?.status === 'success');
   fixture.detectChanges();

@@ -11,9 +11,13 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { SvFieldErrorComponent, createFieldError, svRovingTarget, type SvServerError, svUniqueId } from '@styloviz/core';
+import { svRovingTarget, svUniqueId } from '@styloviz/core/a11y';
+import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerSegmentedControlIcons } from './segmented-control.component.icons';
 export type SegmentedSize    = 'xs' | 'sm' | 'md' | 'lg';
 export type SegmentedVariant = 'default' | 'pills' | 'underline' | 'bordered' | 'swatch';
 
@@ -90,10 +94,19 @@ export interface SegmentOption {
   readonly soldOut?: boolean;
 }
 
+/**
+ * Forced colours (Windows High Contrast, FI-06-M3). The selected segment was a
+ * white or tinted FILL plus a box-shadow ring — forced colours repaints the
+ * fill as Canvas and drops the ring, so every segment looked the same. The
+ * Highlight pair is a system colour and survives; focus becomes an outline.
+ */
+const FORCED_SELECTED = 'forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:border-[Highlight]'; // sv-i18n-ignore: Tailwind classes
+const FORCED_FOCUS = 'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2'; // sv-i18n-ignore: Tailwind classes
+
 @Component({
   selector: 'sv-segmented-control',
   standalone: true,
-  imports: [SvIconComponent, SvFieldErrorComponent],
+  imports: [SvIconComponent, SvFieldErrorComponent, SvLabelPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './segmented-control.component.html',
   providers: [
@@ -105,15 +118,20 @@ export interface SegmentOption {
   ],
 })
 export class SvSegmentedControlComponent implements ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerSegmentedControlIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   /** The selectable segments (value + label, optional icon/badge). */
   options  = input.required<readonly SegmentOption[]>();
   /** Active segment value (two-way). */
   value    = model<string>('');
-  /** Control size: sm, md or lg. @default 'md' */
+  /** Control size: xs, sm, md or lg. @default 'md' */
   size     = input<SegmentedSize>('md');
-  /** Visual style: default, pills, underline or bordered. @default 'default' */
+  /** Visual style: default, pills, underline, bordered or swatch. @default 'default' */
   variant  = input<SegmentedVariant>('default');
   /** Stretch segments to fill the container width. @default false */
   fullWidth = input<boolean>(false);
@@ -126,8 +144,7 @@ export class SvSegmentedControlComponent implements ControlValueAccessor {
    * Whether this control sets a value or switches visible content.
    * @default 'radiogroup'
    *
-   * Defaulted to the behaviour the component has always had, so no existing
-   * caller changes meaning. See `SegmentedSemantics` for why the choice is not
+   * See `SegmentedSemantics` for why the choice is not
    * cosmetic — and note that a `tablist` whose options carry no `controls` is a
    * tablist controlling nothing, which is worse than a radiogroup.
    */
@@ -296,6 +313,7 @@ export class SvSegmentedControlComponent implements ControlValueAccessor {
     const base = `relative inline-flex items-center justify-center font-medium
       whitespace-nowrap select-none outline-none transition-all duration-150
       focus-visible:ring-2 focus-visible:ring-primary-400/50 focus-visible:z-10
+      ${FORCED_FOCUS}
       ${this.sizeClass()}
       ${opt.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`;
 
@@ -304,18 +322,18 @@ export class SvSegmentedControlComponent implements ControlValueAccessor {
       // `bg-gray-100` track (see `wrapperClass`), where gray-500 is 4.40:1 and
       // misses AA. `bordered` has no fill, so it only ever gets darker here.
       return base + (active
-        ? ' rounded-lg bg-white text-gray-900 shadow-sm ring-1 ring-gray-200/60 dark:bg-gray-700 dark:text-white dark:ring-gray-600/40'
+        ? ' rounded-lg bg-white text-gray-900 shadow-sm ring-1 ring-gray-200/60 dark:bg-gray-700 dark:text-white dark:ring-gray-600/40 ' + FORCED_SELECTED
         : ' rounded-lg text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200');
     }
     if (v === 'pills') {
       return base + ' rounded-full ' + (active
-        ? 'bg-primary-600 text-white shadow-sm'
+        ? 'bg-primary-600 text-white shadow-sm ' + FORCED_SELECTED
         : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800');
     }
     if (v === 'underline') {
       return base + ' rounded-none border-b-2 -mb-px ' + (active
-        ? 'border-primary-600 text-primary-600 dark:border-primary-400 dark:text-primary-400'
-        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200');
+        ? 'border-primary-600 text-primary-600 dark:border-primary-400 dark:text-primary-400 forced-colors:border-[Highlight]'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 forced-colors:border-[Canvas]'); // sv-i18n-ignore: Tailwind classes
     }
     return base;
   }
@@ -327,15 +345,18 @@ export class SvSegmentedControlComponent implements ControlValueAccessor {
     const active  = this.value() === opt.value;
     const soldOut = this.isSoldOut(opt);
     const cursor  = this.isEnabled(opt) ? 'cursor-pointer' : 'cursor-not-allowed';
-    const focus   = 'outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900';
+    const focus   = `outline-none focus-visible:ring-2 focus-visible:ring-primary-400/60 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${FORCED_FOCUS}`;
     if (opt.color) {
+      // The selection ring is a box-shadow, which forced colours removes — the
+      // selected swatch gets a Highlight outline there instead, every swatch a
+      // ButtonText edge.
       const ring = active
-        ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900'
+        ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-gray-900 forced-colors:outline-2 forced-colors:outline-solid forced-colors:outline-offset-2 forced-colors:outline-[Highlight]'
         : 'ring-1 ring-inset ring-black/10 hover:ring-black/25 dark:ring-white/20 dark:hover:ring-white/40';
-      return `relative inline-flex h-8 w-8 items-center justify-center rounded-full p-0.5 transition-all duration-150 ${ring} ${focus} ${cursor} ${soldOut ? 'opacity-45' : ''}`;
+      return `relative inline-flex h-8 w-8 items-center justify-center rounded-full p-0.5 transition-all duration-150 forced-colors:border forced-colors:border-[ButtonText] ${ring} ${focus} ${cursor} ${soldOut ? 'opacity-45' : ''}`; // sv-i18n-ignore: Tailwind classes
     }
     const state = active
-      ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-500 dark:border-primary-400 dark:bg-primary-500/10 dark:text-primary-300'
+      ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-500 dark:border-primary-400 dark:bg-primary-500/10 dark:text-primary-300 ' + FORCED_SELECTED
       : 'border-gray-300 text-gray-700 hover:border-gray-400 dark:border-gray-600 dark:text-gray-200 dark:hover:border-gray-500';
     const soldOutChip = soldOut ? 'border-gray-200 text-gray-500 line-through dark:border-gray-700 dark:text-gray-400' : state;
     return `relative inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium transition-all duration-150 ${soldOutChip} ${focus} ${cursor}`;

@@ -6,6 +6,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
 import {
   SvChartFrameComponent,
   type SvDataError,
@@ -13,8 +14,9 @@ import {
   svGapNotice,
   svGapRuns,
   svIsGap,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel, SvLabelPipe, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 import { NgClass } from '@angular/common';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -81,13 +83,6 @@ const PALETTE: readonly string[] = [
   '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
   '#ec4899', '#06b6d4', '#f97316',
 ];
-
-const TREND_LABEL: Record<TrendType, string> = {
-  'linear':         'Linear',
-  'exponential':    'Exponential',
-  'moving-average': 'Moving Avg',
-  'polynomial':     'Polynomial',
-};
 
 // ─── Regression helpers ───────────────────────────────────────────────────────
 
@@ -168,6 +163,20 @@ function polynomialFit(xs: number[], ys: number[], deg = 2): (x: number) => numb
   return (x: number) => coeffs.reduce((sum, c, j) => sum + c * Math.pow(x, j), 0);
 }
 
+/** One fitted trend: its model, the series it fits and the span of readings it covers. */
+interface TrendFit {
+  readonly type: TrendType;
+  readonly seriesIndex: number;
+  readonly color: string;
+  readonly predict: (x: number) => number;
+  readonly r2: number | null;
+  /** Units per category — linear fits only. */
+  readonly slope: number | null;
+  /** First and last category index with a reading. */
+  readonly x0: number;
+  readonly x1: number;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -201,12 +210,17 @@ function polynomialFit(xs: number[], ys: number[], deg = 2): (x: number) => numb
   imports: [
     NgClass,
     SvChartFrameComponent,
+    SvLabelPipe,
   ],
   templateUrl: './trend-line-chart.component.html',
   styleUrl: './trend-line-chart.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvTrendLineChartComponent {
+  /** @internal Accessible names — English unless `provideSvLabels({ charts })` says otherwise. */
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-trend-line-chart');
 
@@ -224,7 +238,7 @@ export class SvTrendLineChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -263,10 +277,14 @@ export class SvTrendLineChartComponent {
     if (this.ariaLabel()) return this.ariaLabel();
     const cats = this.categories();
     const sets = this.series();
-    const base = this.title() || 'Trend line chart';
+    const base = this.title() || this.labels.chartTrendLine;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
 
   // ── Active trend type (driven by switcher) ────────────────────────────────
@@ -287,6 +305,7 @@ export class SvTrendLineChartComponent {
   // ── SVG geometry ──────────────────────────────────────────────────────────
 
   readonly SVG_W = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD   = { top: 24, right: 24, bottom: 48, left: 54 };
 
   plotW = computed(() => this.SVG_W - this.PAD.left - this.PAD.right);
@@ -321,7 +340,7 @@ export class SvTrendLineChartComponent {
 
   /** What the missing dots mean, or `null` when there are none. */
   readonly gapNote = computed<string | null>(() =>
-    svGapNotice(this.extent().gaps, this.extent().total),
+    svGapNotice(this.extent().gaps, this.extent().total, false, this.labels, this.locale),
   );
 
   axisMin = computed<number>(() => {
@@ -407,13 +426,21 @@ export class SvTrendLineChartComponent {
   // ── Trend computation ─────────────────────────────────────────────────────
 
   readonly trendTypes: TrendType[] = ['linear', 'exponential', 'moving-average', 'polynomial'];
-  trendLabel(t: TrendType): string { return TREND_LABEL[t]; }
+  private readonly trendLabels: Readonly<Record<TrendType, string>> = {
+    'linear':         this.labels.trendLinear,
+    'exponential':    this.labels.trendExponential,
+    'moving-average': this.labels.trendMovingAverage,
+    'polynomial':     this.labels.trendPolynomial,
+  };
+  trendLabel(t: TrendType): string { return this.trendLabels[t]; }
 
   /**
-   * Computed trend path for each trend definition.
+   * The fitted model behind each trend definition, or `null` where there is
+   * nothing to fit (no such series, or fewer than two readings). Shared by the
+   * drawn path and the data summary, so the two cannot describe different fits.
    * The first trend's type is overridden by `activeTrendType`.
    */
-  trendPaths = computed<{ path: string; color: string; r2: number | null; label: string }[]>(() => {
+  private readonly trendFits = computed<(TrendFit | null)[]>(() => {
     const defs = this.trends();
     const cats = this.categories();
     if (cats.length < 2 || defs.length === 0) return [];
@@ -422,7 +449,7 @@ export class SvTrendLineChartComponent {
       const type = di === 0 ? this.activeTrendType() : (td.type ?? 'linear');
       const si   = td.seriesIndex ?? 0;
       const s    = this.series()[si];
-      if (!s) return { path: '', color: '', r2: null, label: '' };
+      if (!s) return null;
 
       // ★ The fit sees only the readings that exist. A gap passed through as
       //   `NaN` poisons every sum in the regression; passed as `0` it drags the
@@ -433,12 +460,13 @@ export class SvTrendLineChartComponent {
         const v = s.data[i];
         if (!svIsGap(v)) { xs.push(i); ys.push(v as number); }
       });
-      if (xs.length < 2) return { path: '', color: '', r2: null, label: '' };
+      if (xs.length < 2) return null;
 
       const col  = this.trendColor(td, si);
 
       let predict: (x: number) => number;
       let r2: number | null = null;
+      let slope: number | null = null;
 
       switch (type) {
         case 'exponential': {
@@ -475,29 +503,76 @@ export class SvTrendLineChartComponent {
           const [m, b] = linearRegression(xs, ys);
           predict = (x: number) => m * x + b;
           r2 = rSquared(xs, ys, predict);
+          slope = m;
           break;
         }
       }
 
+      return { type, seriesIndex: si, color: col, predict, r2, slope, x0: xs[0], x1: xs[xs.length - 1] };
+    });
+  });
+
+  /** Computed trend path for each trend definition. */
+  trendPaths = computed<{ path: string; color: string; r2: number | null; label: string }[]>(() =>
+    this.trendFits().map((fit) => {
+      if (!fit) return { path: '', color: '', r2: null, label: '' };
+
       // Sample 60 points across the span of the readings for a smooth curve
       const steps = 60;
-      const x0 = xs[0];
-      const span = xs[xs.length - 1] - x0;
+      const span = fit.x1 - fit.x0;
       const points: string[] = [];
       for (let k = 0; k <= steps; k++) {
-        const x  = x0 + (k / steps) * span;
+        const x  = fit.x0 + (k / steps) * span;
         const px = this.xForIndex(x);
-        const py = this.yForValue(predict(x));
+        const py = this.yForValue(fit.predict(x));
         points.push(`${k === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`);
       }
 
       return {
         path:  points.join(' '),
-        color: col,
-        r2,
-        label: TREND_LABEL[type],
+        color: fit.color,
+        r2:    fit.r2,
+        label: this.trendLabel(fit.type),
       };
-    });
+    }),
+  );
+
+  /**
+   * The readings as rows — one category per row, one column per series; a gap
+   * reads "No reading". The trend lines are what the picture adds to the
+   * readings, so the overview says what each one claims: a linear fit's slope
+   * per category, any other fit's start and end, and R² where it is shown.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets = this.series();
+    const r2Format    = new Intl.NumberFormat(this.locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+    const slopeFormat = new Intl.NumberFormat(this.locale, { maximumFractionDigits: 2, signDisplay: 'exceptZero' });
+    const trends = this.trendFits()
+      .filter((fit): fit is TrendFit => fit !== null)
+      .map((fit) => {
+        const params = {
+          type:   this.trendLabel(fit.type),
+          series: sets[fit.seriesIndex]?.label || this.labels.valueColumn,
+          slope:  fit.slope === null ? '' : slopeFormat.format(fit.slope),
+          start:  this.formatValue(fit.predict(fit.x0)),
+          end:    this.formatValue(fit.predict(fit.x1)),
+          r2:     fit.r2 === null ? '' : r2Format.format(fit.r2),
+        };
+        const template = fit.slope !== null ? this.labels.trendOverviewLinear
+          : fit.r2 !== null ? this.labels.trendOverviewFit
+          : this.labels.trendOverviewNoFit;
+        return svFormatLabel(template, params, this.locale);
+      });
+    return {
+      caption: this.title() || this.labels.chartTrendLine,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: this.categories().map((cat, ci) => ({
+        key: cat,
+        header: cat,
+        cells: sets.map((s) => (svIsGap(s.data[ci]) ? this.labels.noReading : this.formatValue(s.data[ci] as number))),
+      })),
+      ...(trends.length ? { overview: trends.join(' ') } : {}),
+    };
   });
 
   /** Formatted R² label for display. */

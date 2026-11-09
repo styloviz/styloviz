@@ -1,62 +1,50 @@
 <!-- ============================================================
-     Dashboard Shell Layout
-     ============================================================
-     Desktop: sidebar on left, content on right
-     Mobile:  sidebar hidden, hamburger menu in topbar
+     Dashboard shell — [svShellSidebar] · [svShellTopbar] · page · [svShellFooter]
+
+     RTL (FL-J3-LU-02): the content is offset on the inline START (`lg:ms-*`),
+     where the sidebar is pinned, so under dir="rtl" both mirror together.
      ============================================================ -->
 
-<div class="relative flex h-screen overflow-hidden bg-[linear-gradient(180deg,var(--color-gray-50)_0%,var(--color-brandaccent-50)_48%,var(--color-info-50)_100%)] dark:bg-[linear-gradient(180deg,var(--color-gray-950)_0%,var(--color-gray-900)_52%,var(--color-gray-900)_100%)]">
+<div class="relative flex overflow-hidden bg-[linear-gradient(180deg,var(--color-gray-50)_0%,var(--color-brandaccent-50)_48%,var(--color-info-50)_100%)] dark:bg-[linear-gradient(180deg,var(--color-gray-950)_0%,var(--color-gray-900)_52%,var(--color-gray-900)_100%)]"
+     [class.h-dvh]="!contained()"
+     [class.h-full]="contained()">
 
-  <div class="pointer-events-none absolute inset-0">
-    <div class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-300/25 blur-3xl dark:bg-primary-600/20"></div>
-    <div class="absolute bottom-[-8rem] left-[-6rem] h-80 w-80 rounded-full bg-accent-300/20 blur-3xl dark:bg-accent-500/15"></div>
-  </div>
-
-  <!-- ========== Mobile Sidebar Backdrop ========== -->
-  @if (mobileSidebarOpen()) {
-    <div
-      class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
-      (click)="closeMobileSidebar()"
-      aria-hidden="true">
-    </div>
+  <!--
+    ★ Skip link (WCAG 2.4.1 Bypass Blocks, FL-J3-LU-03): the shell's FIRST
+    focusable element, visually hidden until it takes focus. It moves focus to
+    <main> (tabindex="-1") itself instead of following `#id` — under a
+    `<base href>` a fragment link resolves against the base and navigates away.
+  -->
+  @if (skipLink()) {
+    <a [href]="mainHref"
+       class="sr-only rounded-lg bg-white px-4 py-2 text-sm font-semibold text-primary-700 shadow-lg ring-2 ring-primary-500
+              focus:not-sr-only focus:absolute focus:start-3 focus:top-3 focus:z-[60] focus:outline-none
+              dark:bg-gray-900 dark:text-primary-300"
+       data-sv-skip-link
+       (click)="skipToMain($event)">{{ skipLinkLabel() }}</a>
   }
 
-  <!-- ========== Sidebar ========== -->
-  <sv-sidebar
-    [collapsed]="sidebarCollapsed()"
-    [mobileOpen]="mobileSidebarOpen()"
-    (mobileClose)="closeMobileSidebar()"
-  />
+  @if (mobileOpen()) {
+    <div class="inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" [class.fixed]="!contained()" [class.absolute]="contained()"
+         (click)="closeMobile()" aria-hidden="true"></div>
+  }
 
-  <!-- ========== Main Content Area ========== -->
+  <ng-content select="[svShellSidebar]" />
+
   <div
-    class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden transition-all duration-300"
-    [class.lg:ml-64]="!sidebarCollapsed()"
-    [class.lg:ml-20]="sidebarCollapsed()">
+    class="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden transition-[margin-inline-start] duration-300 motion-reduce:transition-none"
+    [class.lg:ms-64]="sidebar() && !collapsed()"
+    [class.lg:ms-20]="sidebar() && collapsed()">
 
-    <!-- Topbar -->
-    <sv-topbar
-      [sidebarCollapsed]="sidebarCollapsed()"
-      (toggleSidebar)="toggleSidebar()"
-      (toggleMobileSidebar)="toggleMobileSidebar()"
-    />
+    <ng-content select="[svShellTopbar]" />
 
-    <!-- Page Content -->
-    <main class="flex-1 overflow-y-auto px-4 pb-8 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
+    <main #main [id]="mainId" tabindex="-1"
+          class="flex-1 overflow-y-auto px-4 pb-8 pt-5 focus:outline-none sm:px-6 sm:pt-6 lg:px-8 lg:pt-7">
       <div class="mx-auto w-full max-w-[1440px]">
-        <router-outlet />
+        <ng-content />
       </div>
     </main>
 
-    <!-- Footer -->
-    <sv-footer />
+    <ng-content select="[svShellFooter]" />
   </div>
-
-  <!-- Global toast stacks — one host per position, each filters its own toasts -->
-  <sv-toast-host position="top-left"      />
-  <sv-toast-host position="top-center"    />
-  <sv-toast-host position="top-right"     />
-  <sv-toast-host position="bottom-left"   />
-  <sv-toast-host position="bottom-center" />
-  <sv-toast-host position="bottom-right"  />
 </div>

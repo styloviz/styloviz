@@ -2,15 +2,17 @@
 
 > Safe Markdown renderer built for token-by-token output. Renders a parsed token model through Angular bindings — no innerHTML and no bypassSecurityTrust, so untrusted content can never become markup. Headings, lists (incl. tasks), tables with alignment, blockquotes and inline emphasis; fenced code delegates to sv-code-block.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/icons @styloviz/code-block @styloviz/streaming-markdown
+npm install @styloviz/icons @styloviz/code-block @styloviz/core @styloviz/streaming-markdown
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/code-block` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/code-block`, `@styloviz/core` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -64,7 +66,7 @@ export class DemoComponent {}
 | `codeLineNumbers` | `boolean` | `false` | Show line numbers in fenced code blocks. |
 | `codeMaxHeight` | `string` | `'20rem'` | Max height of a fenced code block, as a CSS length. |
 | `ariaLabel` | `string` | `''` | Accessible label for the rendered region. |
-| `completionMessage` | `string` | `'Response complete'` | What a screen reader is told when a streamed response finishes. A LIVE REGION UPDATED PER TOKEN IS UNUSABLE, which is why this component has never had one — but the silence had its own cost: a screen-reader user got no signal at all that generation had finished, and had to poll the region by hand to find out. The answer is not a quieter live region, it is a DIFFERENT event: `aria-busy` while the text is arriving, and one announcement at the moment it stops. Set to `''` to announce nothing at all. |
+| `completionMessage` | `string` | `'Response complete'` | What a screen reader is told when a streamed response finishes. A live region updated per token is unusable, which is why this component has never had one — but the silence had its own cost: a screen-reader user got no signal at all that generation had finished, and had to poll the region by hand to find out. The answer is not a quieter live region, it is a DIFFERENT event: `aria-busy` while the text is arriving, and one announcement at the moment it stops. Set to `''` to announce nothing at all. |
 
 ## Outputs
 
@@ -79,4 +81,4 @@ Full API reference and live demos: https://styloviz.dev/docs/streaming-markdown
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

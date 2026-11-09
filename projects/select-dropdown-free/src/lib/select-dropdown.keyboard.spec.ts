@@ -1,12 +1,15 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { render } from '@testing-library/angular';
 import { flush } from '../../../../src/testing/async';
 import {
   SvSelectDropdownComponent,
   type SelectOption,
   type SelectGroup,
 } from './select-dropdown.component';
+import { renderSelect } from '@testing/select-host';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 /**
  * Keyboard navigation for the Pro select.
@@ -25,9 +28,7 @@ const OPTIONS = (): SelectOption[] => [
 
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvSelectDropdownComponent, {
-    inputs: { options: OPTIONS(), ...inputs },
-  });
+  const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS(), ...inputs });
   return fixture;
 }
 

@@ -1,6 +1,8 @@
 import { inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { toSvDataError, type SvDataQuery } from '@styloviz/core';
+import { toSvDataError, type SvDataQuery } from '@styloviz/core/data';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_DATA_LABELS, type SvDataLabels } from './data.labels';
 import { offsetLimitQuery } from './query-presets';
 import { defaultResponseMapper } from './fetch-source';
 import type { SvDataSource, SvQueryMapper, SvResponseMapper } from './types';
@@ -14,6 +16,12 @@ export interface SvHttpSourceOptions<T> {
   readonly mapResponse?: SvResponseMapper<T>;
   /** Supply the client explicitly when you are outside an injection context. */
   readonly http?: HttpClient;
+  /**
+   * The message for a body `mapResponse` cannot read. @default the `data`
+   * namespace's labels (`provideSvLabels`) when called in an injection
+   * context without `http`, else `SV_DATA_LABELS`.
+   */
+  readonly labels?: Pick<SvDataLabels, 'unreadableResponse'>;
 }
 
 /**
@@ -40,6 +48,7 @@ export interface SvHttpSourceOptions<T> {
 export function createHttpDataSource<T>(options: SvHttpSourceOptions<T>): SvDataSource<T> {
   const { url, mapQuery = offsetLimitQuery(), mapResponse = defaultResponseMapper<T>, http } = options;
   const client = http ?? inject(HttpClient);
+  const labels = options.labels ?? (http ? SV_DATA_LABELS : injectSvLabels('data', SV_DATA_LABELS));
 
   return (query, signal) =>
     new Promise((resolve, reject) => {
@@ -57,7 +66,7 @@ export function createHttpDataSource<T>(options: SvHttpSourceOptions<T>): SvData
           try {
             resolve(mapResponse(body, query));
           } catch (cause) {
-            reject(toSvDataError(cause, 'Could not read the response.'));
+            reject(toSvDataError(cause, labels.unreadableResponse));
           }
         },
         // An abort is the caller superseding this request; the listener below

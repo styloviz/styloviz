@@ -1,0 +1,188 @@
+<!-- Announced once a choice is recorded — the banner itself is gone by then. -->
+<p class="sr-only" role="status" aria-live="polite" data-sv-cookie-status>{{ announcement() }}</p>
+
+@if (barShown()) {
+  <!--
+    A region, not a dialog: the banner never takes focus or blocks the page.
+    Keyboard users reach it by Tab or by landmark navigation.
+  -->
+  <section role="region"
+           [attr.aria-label]="text().region"
+           [class]="barClass()"
+           data-sv-cookie-consent
+           [attr.data-sv-cookie-layout]="isCorner() ? 'corner' : 'banner'">
+    @if (isCorner()) {
+      <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-xl shadow-gray-900/10
+                  dark:border-gray-700 dark:bg-gray-900 dark:shadow-black/40">
+        <div class="flex items-start gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700
+                       dark:bg-primary-900/40 dark:text-primary-300" aria-hidden="true">
+            <sv-icon name="shield-check" [size]="18" />
+          </span>
+          <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ text().title }}</h2>
+            <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+              {{ text().message }}
+              @if (policyHref(); as href) {
+                <a [href]="href"
+                   class="font-medium text-primary-700 underline underline-offset-2 hover:text-primary-800
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm
+                          dark:text-primary-300 dark:hover:text-primary-200">{{ text().policyLink }}</a>
+              }
+            </p>
+            @if (policyChanged()) {
+              <p class="mt-2 rounded-lg bg-warning-50 px-2.5 py-1.5 text-xs font-medium text-warning-900
+                        dark:bg-warning-950/40 dark:text-warning-100" data-sv-cookie-policy-changed>{{ text().policyChanged }}</p>
+            }
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button type="button" [class]="decisionClass" (click)="rejectAll()" data-sv-cookie-action="reject-all">{{ text().rejectAll }}</button>
+          <button type="button" [class]="decisionClass" (click)="acceptAll()" data-sv-cookie-action="accept-all">{{ text().acceptAll }}</button>
+          <button type="button" [class]="secondaryClass + ' col-span-2'" (click)="openPreferences()"
+                  aria-haspopup="dialog" data-sv-cookie-action="customise">
+            <sv-icon name="settings" [size]="16" />
+            {{ text().customise }}
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="border-t border-gray-200 bg-white shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.18)]
+                  dark:border-gray-700 dark:bg-gray-900"
+           [class.rounded-2xl]="inline()" [class.border]="inline()">
+        <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-8">
+          <div class="flex min-w-0 flex-1 items-start gap-3">
+            <span class="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700
+                         sm:flex dark:bg-primary-900/40 dark:text-primary-300" aria-hidden="true">
+              <sv-icon name="shield-check" [size]="20" />
+            </span>
+            <div class="min-w-0">
+              <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ text().title }}</h2>
+              <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                {{ text().message }}
+                @if (policyHref(); as href) {
+                  <a [href]="href"
+                     class="font-medium text-primary-700 underline underline-offset-2 hover:text-primary-800
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm
+                            dark:text-primary-300 dark:hover:text-primary-200">{{ text().policyLink }}</a>
+                }
+              </p>
+              @if (policyChanged()) {
+                <p class="mt-2 inline-block rounded-lg bg-warning-50 px-2.5 py-1.5 text-xs font-medium text-warning-900
+                          dark:bg-warning-950/40 dark:text-warning-100" data-sv-cookie-policy-changed>{{ text().policyChanged }}</p>
+              }
+            </div>
+          </div>
+          <div class="grid shrink-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+            <button type="button" [class]="secondaryClass + ' col-span-2'" (click)="openPreferences()"
+                    aria-haspopup="dialog" data-sv-cookie-action="customise">
+              <sv-icon name="settings" [size]="16" />
+              {{ text().customise }}
+            </button>
+            <button type="button" [class]="decisionClass" (click)="rejectAll()" data-sv-cookie-action="reject-all">{{ text().rejectAll }}</button>
+            <button type="button" [class]="decisionClass" (click)="acceptAll()" data-sv-cookie-action="accept-all">{{ text().acceptAll }}</button>
+          </div>
+        </div>
+      </div>
+    }
+  </section>
+}
+
+<!--
+  A native <dialog> rather than a body portal: showModal() puts it in the top
+  layer (nothing clips it, the page behind is inert, Escape closes it) while it
+  stays in this component's subtree — so a template's palette tokens still apply.
+-->
+<dialog #dialog
+        class="m-auto max-h-[min(42rem,calc(100dvh-2rem))] w-[min(34rem,calc(100vw-2rem))] overflow-hidden rounded-2xl
+               border border-gray-200 bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-gray-950/60
+               dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+        [attr.aria-labelledby]="baseId + '-title'"
+        [attr.aria-describedby]="baseId + '-intro'"
+        (close)="onDialogClose()"
+        data-sv-cookie-dialog>
+  @if (dialogShown()) {
+    <div class="flex max-h-[min(42rem,calc(100dvh-2rem))] flex-col">
+      <div class="flex items-start gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700
+                     dark:bg-primary-900/40 dark:text-primary-300" aria-hidden="true">
+          <sv-icon name="shield-check" [size]="18" />
+        </span>
+        <div class="min-w-0 flex-1">
+          <h2 [id]="baseId + '-title'" tabindex="-1" data-sv-cookie-dialog-title
+              class="text-base font-semibold text-gray-900 focus:outline-none dark:text-white">{{ text().preferencesTitle }}</h2>
+          <p [id]="baseId + '-intro'" class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            {{ text().preferencesIntro }}
+            @if (policyHref(); as href) {
+              <a [href]="href"
+                 class="font-medium text-primary-700 underline underline-offset-2 hover:text-primary-800
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-sm
+                        dark:text-primary-300 dark:hover:text-primary-200">{{ text().policyLink }}</a>
+            }
+          </p>
+        </div>
+        <button type="button" (click)="closePreferences()" [attr.aria-label]="text().close" data-sv-cookie-action="close"
+                class="-me-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors
+                       hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2
+                       focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100">
+          <sv-icon name="close" [size]="18" />
+        </button>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        @if (policyChanged()) {
+          <p class="mb-3 rounded-lg bg-warning-50 px-3 py-2 text-sm font-medium text-warning-900
+                    dark:bg-warning-950/40 dark:text-warning-100" data-sv-cookie-policy-changed>{{ text().policyChanged }}</p>
+        }
+        <fieldset>
+          <legend class="sr-only">{{ text().categories }}</legend>
+          <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (row of rows(); track row.id) {
+              <li class="flex items-start justify-between gap-4 py-3" [attr.data-sv-cookie-category]="row.id">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <label [for]="row.inputId" class="text-sm font-medium text-gray-900 dark:text-white"
+                           [class.cursor-pointer]="!row.required">{{ row.label }}</label>
+                    @if (row.required) {
+                      <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold
+                                   text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                        <sv-icon name="lock" [size]="12" />
+                        {{ text().alwaysOn }}
+                      </span>
+                    }
+                  </div>
+                  @if (row.description) {
+                    <p [id]="row.descriptionId" class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-300">{{ row.description }}</p>
+                  }
+                </div>
+                <input type="checkbox" role="switch"
+                       [id]="row.inputId"
+                       [checked]="row.required || draft()[row.id] === true"
+                       [disabled]="row.required"
+                       [attr.aria-describedby]="row.description ? row.descriptionId : null"
+                       (change)="toggle(row, $event)"
+                       data-sv-cookie-switch
+                       class="relative mt-0.5 h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-gray-500
+                              transition-colors checked:bg-primary-600
+                              before:pointer-events-none before:absolute before:start-0.5 before:top-0.5 before:h-5 before:w-5
+                              before:rounded-full before:bg-white before:shadow before:transition-transform
+                              checked:before:translate-x-5 rtl:checked:before:-translate-x-5
+                              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+                              disabled:cursor-not-allowed disabled:opacity-70
+                              motion-reduce:transition-none motion-reduce:before:transition-none
+                              forced-colors:appearance-auto
+                              dark:bg-gray-500 dark:checked:bg-primary-500 dark:focus-visible:ring-offset-gray-900" />
+              </li>
+            }
+          </ul>
+        </fieldset>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 border-t border-gray-200 px-5 py-4 sm:flex sm:justify-end dark:border-gray-700">
+        <button type="button" [class]="secondaryClass + ' col-span-2 sm:me-auto'" (click)="save()" data-sv-cookie-action="save">{{ text().save }}</button>
+        <button type="button" [class]="decisionClass" (click)="rejectAll()" data-sv-cookie-action="reject-all">{{ text().rejectAll }}</button>
+        <button type="button" [class]="decisionClass" (click)="acceptAll()" data-sv-cookie-action="accept-all">{{ text().acceptAll }}</button>
+      </div>
+    </div>
+  }
+</dialog>

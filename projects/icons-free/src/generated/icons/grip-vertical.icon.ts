@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `grip-vertical` icon. */
 export const gripVerticalNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const gripVerticalNodes: readonly IconNode[] = [
   { tag: 'circle', cx: 15, cy: 12, r: 1.3, fill: true },
   { tag: 'circle', cx: 15, cy: 18, r: 1.3, fill: true },
 ];
+
+/** `grip-vertical` as a registrable glyph — `registerSvIcons([gripVerticalIcon])` / `provideSvIcons([gripVerticalIcon])`. */
+export const gripVerticalIcon: SvIconDef = { name: 'grip-vertical', nodes: gripVerticalNodes };
 
 /** `grip-vertical` — tree-shakable standalone icon. Use `<sv-grip-vertical-icon />`. */
 @Component({

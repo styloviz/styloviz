@@ -10,18 +10,17 @@ export { SvCylindricalColumnChartComponent } from './bar-chart/cylindrical-colum
 export { SvGradientBarChartComponent } from './bar-chart/gradient-bar-chart.component';
 export { SvColumnDrilldownChartComponent } from './bar-chart/column-drilldown-chart.component';
 export { SvLineChartComponent } from './line-chart/line-chart.component';
-export type { LineChartType, LineChartMarkerShape, LineChartZone, LineChartAnnotation, LineChartSeries, LineChartOptions } from './line-chart/line-chart.component';
+export type { LineChartType, LineChartRenderer, LineChartMarkerShape, LineChartZone, LineChartAnnotation, LineChartSeries, LineChartOptions } from './line-chart/line-chart.component';
 export { SvStripLineChartComponent } from './line-chart/strip-line-chart.component';
 export type { StripOrientation, StripBand, StripSeries, StripLineChartOptions } from './line-chart/strip-line-chart.component';
 export { SvTrendLineChartComponent } from './line-chart/trend-line-chart.component';
 export type { TrendType, TrendLineSeries, TrendLineDefinition, TrendLineChartOptions } from './line-chart/trend-line-chart.component';
-export { SvDefaultPieChartComponent } from './pie-chart/default-pie-chart.component';
-export type { PieSlice, PieChartBaseOptions, DefaultPieChartOptions } from './pie-chart/pie-chart.types';
+export { SvPieChartComponent } from './pie-chart/pie-chart.component';
+export type { PieSlice, PieChartBaseOptions, PieChartOptions } from './pie-chart/pie-chart.types';
 export { SvLiveUpdateChartComponent } from './live-chart/live-update-chart.component';
 export { SvLiveStreamChartComponent } from './live-chart/live-stream-chart.component';
 export { SvWaterfallChartComponent } from './waterfall-chart/waterfall-chart.component';
 export type { WaterfallPoint } from './waterfall-chart/waterfall-chart.component';
-export { SvPerformanceChartComponent } from './other-chart/performance-chart.component';
 export { SvDateTimeCategoryChartComponent } from './other-chart/datetime-category-chart.component';
 export { SvAxisLabelTemplateChartComponent } from './other-chart/axis-label-template-chart.component';
 export { DEMO_LIVE_SOURCES } from './live-chart/live-update-chart.component';
@@ -40,3 +39,16 @@ export type {
   ScatterBinShare,
   ScatterRenderMode,
 } from './scatter-chart/scatter-chart.component';
+
+export { SV_CHARTS_LABELS } from './charts-free.labels';
+export type { SvChartsLabels } from './charts-free.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './charts-free.labels.packs';
+
+// Types a public input or output names, so a host can name them too (FL-G8, check:public-types).
+export type { AxisLabelBarEvent, AxisLabelCategory, AxisLabelTemplateDataset, AxisLabelTemplateOptions } from './other-chart/axis-label-template-chart.component';
+export type { DateTimeCategoryEvent, DateTimeCategoryOptions, DateTimeSeries } from './other-chart/datetime-category-chart.component';
+export type { LiveStreamChartOptions, LiveStreamSeries } from './live-chart/live-stream-chart.component';
+export type { LiveUpdateChartOptions, LiveUpdateSource } from './live-chart/live-update-chart.component';
+export type { WaterfallBarEvent, WaterfallChartOptions } from './waterfall-chart/waterfall-chart.component';

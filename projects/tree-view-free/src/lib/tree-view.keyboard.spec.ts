@@ -341,3 +341,31 @@ describe('SvTreeViewComponent — aria-selected only where selection exists (DD-
     expect(row(f, 'readme').hasAttribute('aria-selected')).toBe(false);
   });
 });
+
+/**
+ * Under `dir="rtl"` the indentation spacers push children to the LEFT, so the
+ * APG treeview swaps the pair: ArrowLeft opens / steps in, ArrowRight closes /
+ * climbs out (FL-B9).
+ */
+describe('SvTreeViewComponent — ArrowLeft / ArrowRight under dir="rtl"', () => {
+  beforeEach(() => { document.documentElement.dir = 'rtl'; });
+  afterEach(() => { document.documentElement.dir = 'ltr'; });
+
+  it('opens a closed parent with ArrowLeft, then steps into it', async () => {
+    const f = await setup();
+    await press(f, 'ArrowLeft', 'src');
+    expect(visibleIds(f)).toEqual(['src', 'app', 'util', 'docs', 'readme']);
+
+    await press(f, 'ArrowLeft', 'src');
+    expect(active(f)).toBe('app');
+  });
+
+  it('climbs with ArrowRight from a child, and closes an open parent', async () => {
+    const f = await setup({ expandedIds: new Set(['src']) });
+    await press(f, 'ArrowRight', 'util');
+    expect(active(f)).toBe('src');
+
+    await press(f, 'ArrowRight', 'src');
+    expect(visibleIds(f)).toEqual(['src', 'docs', 'readme']);
+  });
+});

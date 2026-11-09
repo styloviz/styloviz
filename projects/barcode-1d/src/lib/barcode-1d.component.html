@@ -1,6 +1,6 @@
 @if (loading()) {
   <div class="p-4" data-sv-state="loading">
-    <sv-skeleton-shell variant="card" ariaLabel="Generating barcode" />
+    <sv-skeleton-shell variant="card" [ariaLabel]="labels.generating" />
   </div>
 } @else if (error()) {
   <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
@@ -104,49 +104,46 @@
   <dl class="mt-2 max-w-md space-y-1 text-[11px] text-gray-700 dark:text-gray-300"
       data-sv-inspect>
     <div class="flex gap-2">
-      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">encoding</dt>
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.encoding }}</dt>
       <dd class="font-mono" data-sv-inspect-encoding>{{ encodingLabel() }}</dd>
     </div>
     @if (!isRefused()) {
     <div class="flex gap-2">
-      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">modules</dt>
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.modules }}</dt>
       <dd class="font-mono tabular-nums" data-sv-inspect-modules>
-        {{ encoded().moduleCount }} + {{ encoded().quietLeft }}/{{ encoded().quietRight }} quiet
+        {{ labels.modulesValue | svLabel: { count: '' + encoded().moduleCount, left: '' + encoded().quietLeft, right: '' + encoded().quietRight } }}
       </dd>
     </div>
     <div class="flex gap-2">
-      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">module width</dt>
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.moduleWidth }}</dt>
       <dd class="font-mono tabular-nums" data-sv-inspect-width>
         {{ moduleWidth() }}px@if (widthAdjusted()) {
-          <span class="ml-1 text-warning-700 dark:text-warning-400" data-sv-inspect-snapped>
-            (snapped from {{ requestedModuleWidth() }}px — a sub-pixel module
-            antialiases, and a scanner reads that as a different bar width)
+          <span class="ms-1 text-warning-700 dark:text-warning-400" data-sv-inspect-snapped>
+            {{ labels.snappedFrom | svLabel: { width: '' + requestedModuleWidth() } }}
           </span>}
       </dd>
     </div>
     <div class="flex gap-2">
-      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">on paper</dt>
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.onPaper }}</dt>
       <dd class="font-mono tabular-nums" data-sv-inspect-physical>
-        {{ scanSize().xMm.toFixed(3) }}mm/module &middot;
-        {{ scanSize().widthMm }} &times; {{ scanSize().heightMm }}mm &middot;
-        {{ scanSize().magnification }}%
+        {{ labels.physicalSize | svLabel: { x: scanSize().xMm.toFixed(3), width: '' + scanSize().widthMm, height: '' + scanSize().heightMm, magnification: '' + scanSize().magnification } }}
         @if (printWidth()) {
-          <span class="ml-1 text-gray-500 dark:text-gray-400">(pinned for print)</span>
+          <span class="ms-1 text-gray-500 dark:text-gray-400">{{ labels.pinnedForPrint }}</span>
         }
         @if (scanSize().belowMinimum) {
-          <span class="ml-1 text-warning-700 dark:text-warning-400" data-sv-inspect-toosmall>
-            (below the {{ scanSize().minXMm }}mm floor)
+          <span class="ms-1 text-warning-700 dark:text-warning-400" data-sv-inspect-toosmall>
+            {{ labels.belowFloor | svLabel: { min: '' + scanSize().minXMm } }}
           </span>
         }
       </dd>
     </div>
     @if (savings(); as s) {
     <div class="flex gap-2">
-      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">characters</dt>
+      <dt class="w-28 shrink-0 text-gray-500 dark:text-gray-400">{{ labels.characters }}</dt>
       <dd class="font-mono tabular-nums" data-sv-inspect-savings>
-        {{ s.characters }}@if (s.characters < s.ifSubsetBOnly) {
-          <span class="ml-1 text-gray-500 dark:text-gray-400">
-            (subset B alone would need {{ s.ifSubsetBOnly }})
+        {{ s.characters }}@if (s.ifSubsetBOnly > s.characters) {
+          <span class="ms-1 text-gray-500 dark:text-gray-400">
+            {{ labels.subsetBWouldNeed | svLabel: { count: '' + s.ifSubsetBOnly } }}
           </span>}
       </dd>
     </div>

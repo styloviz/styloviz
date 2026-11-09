@@ -102,7 +102,13 @@ export interface DiffHunkEvent {
 
 // ─── Terminal ─────────────────────────────────────────────────────────────────
 
-export type TerminalLineKind = 'command' | 'stdout' | 'stderr' | 'exit';
+/**
+ * What a terminal line is. `command` is an echoed prompt line, `stdout` and
+ * `stderr` are output, `exit` is a non-zero status line, and `info` is a note
+ * the host adds that no process printed — "Connected to build 4812", "Log
+ * truncated".
+ */
+export type TerminalLineKind = 'command' | 'stdout' | 'stderr' | 'exit' | 'info';
 
 /** One line of terminal output. */
 export interface TerminalLine {

@@ -18,10 +18,13 @@
     page — throwing a keyboard user out of the carousel they were reading. Focus
     lands here instead, which is where they already were.
 -->
-<div class="relative w-full overflow-hidden rounded-2xl select-none outline-none"
+<div class="relative w-full overflow-hidden rounded-2xl select-none outline-none touch-pinch-zoom"
+     [class.touch-pan-y]="!vertical()"
+     [class.touch-pan-x]="vertical()"
      data-sv-carousel-region
      tabindex="-1"
-     [style.aspect-ratio]="aspectRatio()"
+     [style.aspect-ratio]="regionAspect()"
+     [class.min-h-56]="captionFloor()"
      role="region"
      aria-roledescription="carousel"
      [attr.aria-label]="ariaLabel()"
@@ -29,13 +32,21 @@
      (mouseleave)="onMouseLeave()"
      (focusin)="onFocusIn()"
      (focusout)="onFocusOut()"
-     (keydown)="onKeydown($event)">
+     (keydown)="onKeydown($event)"
+     (pointerdown)="onPointerDown($event)"
+     (pointerup)="onPointerUp($event)"
+     (pointercancel)="onPointerCancel()"
+     (dragstart)="$event.preventDefault()">
 
   <!-- Live region — announces slide changes when not auto-rotating -->
   <div class="sr-only"
        aria-atomic="true"
        [attr.aria-live]="(autoPlayOn() && !isPaused() && !interacting()) ? 'off' : 'polite'">
-    Slide {{ current() + 1 }} of {{ total() }}{{ currentTitle() ? ': ' + currentTitle() : '' }}
+    @if (currentTitle()) {
+      {{ labels.slideAnnouncementTitled | svLabel: { index: current() + 1, total: total(), title: currentTitle() } }}
+    } @else {
+      {{ labels.slideAnnouncement | svLabel: { index: current() + 1, total: total() } }}
+    }
   </div>
 
   <!-- Slides
@@ -46,138 +57,120 @@
        sent focus to a link they could not see. `inert` is the only attribute that
        takes it out of both the tab order and the accessibility tree; opacity and
        pointer-events answer to the eye and the mouse only. -->
+  @if (multi()) {
+    <!-- Several slides in a row (`slidesPerView`): one track, moved a slide's
+         width at a time. A slide outside the view is `inert`, as above. -->
+    <div class="flex h-full"
+         [class]="animate() ? 'transition-transform duration-500 ease-in-out' : ''"
+         [style.transform]="trackTransform()"
+         data-sv-carousel-track>
+      @for (slide of slides(); track slide.id; let i = $index) {
+        <div class="h-full shrink-0 px-1.5"
+             [style.width.%]="slideWidth()"
+             role="group"
+             aria-roledescription="slide"
+             [attr.aria-label]="labels.slidePosition | svLabel: { index: i + 1, total: total() }"
+             [attr.aria-hidden]="!shown()[i]"
+             [attr.inert]="shown()[i] ? null : ''">
+          <div class="relative h-full w-full overflow-hidden rounded-xl">
+            <ng-container [ngTemplateOutlet]="slideBody" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
   @for (slide of slides(); track slide.id; let i = $index) {
     <!-- Position and transition per `variant` — see `slideClass()`. -->
     <div class="absolute"
          [class]="slideClass(i)"
          role="group"
          aria-roledescription="slide"
-         [attr.aria-label]="(i + 1) + ' of ' + total()"
+         [attr.aria-label]="labels.slidePosition | svLabel: { index: i + 1, total: total() }"
          [attr.aria-hidden]="current() !== i"
          [attr.inert]="current() === i ? null : ''">
-
-      @if (slide.image) {
-        <img [src]="slide.image" [alt]="slide.title || ''"
-             class="h-full w-full object-cover"
-             [attr.loading]="priority() && i === 0 ? 'eager' : 'lazy'"
-             [attr.fetchpriority]="priority() && i === 0 ? 'high' : null" />
-
-        <!-- Premium caption overlay — only when the slide carries copy -->
-        @if (slide.badge || slide.title || slide.subtitle || slide.meta || slide.cta) {
-          <!-- Legibility scrim -->
-          <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent"></div>
-          <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent"></div>
-
-          <!-- Caption content -->
-          <div class="pointer-events-none absolute inset-0 flex items-center">
-            <!-- With arrows, the copy clears them at every width: they sit at
-                 left-3 and are 36px wide, so anything under 56px of inset puts
-                 the first letters of each line underneath the button. -->
-            <div class="w-full max-w-xl"
-                 [class]="arrows() && total() > 1 ? 'px-14' : 'px-6 sm:px-10 lg:px-14'">
-              @if (slide.badge) {
-                <span class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm">
-                  <span class="h-1.5 w-1.5 rounded-full bg-white"></span>{{ slide.badge }}
-                </span>
-              }
-              @if (slide.title) {
-                <h3 class="mt-3 text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow-sm sm:text-3xl lg:text-4xl">{{ slide.title }}</h3>
-              }
-              @if (slide.subtitle) {
-                <p class="mt-2 max-w-md text-sm leading-relaxed text-white/85 sm:text-base">{{ slide.subtitle }}</p>
-              }
-              @if (slide.meta) {
-                <span class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/20 backdrop-blur-sm">
-                  {{ slide.meta }}
-                </span>
-              }
-              @if (slide.cta) {
-                <div class="mt-5">
-                  <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
-                </div>
-              }
-            </div>
-          </div>
-        }
-      } @else {
-        <div class="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br p-8 text-center text-white"
-             [class]="slide.bgColor || 'from-gray-600 to-gray-800'">
-          @if (slide.badge) {
-            <span class="mb-3 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
-              {{ slide.badge }}
-            </span>
-          }
-          @if (slide.title) {
-            <h3 class="text-2xl font-extrabold tracking-tight md:text-3xl">{{ slide.title }}</h3>
-          }
-          @if (slide.subtitle) {
-            <p class="mt-2 text-sm text-white/80 md:text-base">{{ slide.subtitle }}</p>
-          }
-          @if (slide.cta) {
-            <div class="mt-4">
-              <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
-            </div>
-          }
-        </div>
-      }
+      <ng-container [ngTemplateOutlet]="slideBody" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
     </div>
+  }
   }
 
   <!-- Arrows -->
-  @if (arrows() && total() > 1) {
-    <button type="button"
-      class="absolute left-3 top-1/2 z-10 -translate-y-1/2 flex h-9 w-9 items-center justify-center
+  @if (arrows() && positions() > 1) {
+    <!-- Beside the slides, or above and below them when they travel vertically. -->
+    <button data-sv-glass="over-media" type="button"
+      class="absolute z-10 flex h-9 w-9 items-center justify-center
              rounded-full bg-black/30 text-white backdrop-blur-sm transition-all hover:bg-black/50
              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-      aria-label="Previous slide"
+      [class]="vertical() ? 'inset-x-0 top-3 mx-auto' : 'start-3 top-1/2 -translate-y-1/2'"
+      [attr.aria-label]="labels.previousSlide"
       (click)="prev()">
-      <sv-icon name="chevron-left" cssClass="h-5 w-5" [strokeWidth]="2.5" />
+      @if (vertical()) {
+        <sv-icon name="chevron-up" cssClass="h-5 w-5" [strokeWidth]="2.5" />
+      } @else {
+        <sv-icon name="chevron-left" cssClass="h-5 w-5 rtl:-scale-x-100" [strokeWidth]="2.5" />
+      }
     </button>
-    <button type="button"
-      class="absolute right-3 top-1/2 z-10 -translate-y-1/2 flex h-9 w-9 items-center justify-center
+    <button data-sv-glass="over-media" type="button"
+      class="absolute z-10 flex h-9 w-9 items-center justify-center
              rounded-full bg-black/30 text-white backdrop-blur-sm transition-all hover:bg-black/50
              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-      aria-label="Next slide"
+      [class]="vertical() ? 'inset-x-0 bottom-3 mx-auto' : 'end-3 top-1/2 -translate-y-1/2'"
+      [attr.aria-label]="labels.nextSlide"
       (click)="next()">
-      <sv-icon name="chevron-right" cssClass="h-5 w-5" [strokeWidth]="2.5" />
+      @if (vertical()) {
+        <sv-icon name="chevron-down" cssClass="h-5 w-5" [strokeWidth]="2.5" />
+      } @else {
+        <sv-icon name="chevron-right" cssClass="h-5 w-5 rtl:-scale-x-100" [strokeWidth]="2.5" />
+      }
     </button>
   }
 
   <!-- Indicators -->
-  @if (indicator() !== 'none' && total() > 1) {
-    <div class="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 flex items-center gap-1.5"
-         role="group" aria-label="Choose slide">
+  @if (indicator() !== 'none' && indicator() !== 'thumbnails' && positions() > 1) {
+    <!-- Gaps keep every indicator's centre 24 px from the next (WCAG 2.5.8): each
+         carries a 24×24 sv-target, and hit areas that overlap share the overlap.
+         A vertical carousel stacks them down its inline-end edge. -->
+    <!-- sv-physical: centring — left-1/2 with -translate-x-1/2 is direction-neutral -->
+    <div [class]="vertical() ? 'end-3 top-1/2 -translate-y-1/2 flex-col' : 'bottom-3 left-1/2 -translate-x-1/2'"
+         class="absolute z-10 flex items-center"
+         [class.gap-4]="indicator() === 'dots'"
+         [class.gap-2]="indicator() === 'lines'"
+         [class.gap-1.5]="indicator() === 'numbers'"
+         role="group" [attr.aria-label]="labels.chooseSlide">
       @for (i of slideSlots(); track i) {
         @if (indicator() === 'dots') {
           <button type="button"
-            class="rounded-full transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            [style.height]="'8px'"
-            [style.width]="current() === i ? '22px' : '8px'"
+            class="sv-target rounded-full transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            [style.height]="vertical() && current() === i ? '22px' : '8px'"
+            [style.width]="!vertical() && current() === i ? '22px' : '8px'"
             [style.background-color]="current() === i ? 'white' : 'rgba(255,255,255,0.45)'"
             [attr.aria-current]="current() === i ? 'true' : null"
-            [attr.aria-label]="'Go to slide ' + (i + 1)"
+            [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
             (click)="goTo(i)"></button>
         }
         @if (indicator() === 'lines') {
           <button type="button"
-            class="h-1 rounded-full transition-all duration-200"
-            [class.w-6]="current() === i"
-            [class.w-4]="current() !== i"
+            class="sv-target rounded-full transition-all duration-200"
+            [class.h-1]="!vertical()"
+            [class.w-1]="vertical()"
+            [class.w-6]="!vertical() && current() === i"
+            [class.w-4]="!vertical() && current() !== i"
+            [class.h-6]="vertical() && current() === i"
+            [class.h-4]="vertical() && current() !== i"
             [class.bg-white]="current() === i"
             [class.bg-white/50]="current() !== i"
             [attr.aria-current]="current() === i ? 'true' : null"
-            [attr.aria-label]="'Go to slide ' + (i + 1)"
+            [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
             (click)="goTo(i)"></button>
         }
         @if (indicator() === 'numbers') {
           <button type="button"
-            class="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            class="sv-target flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             [class.bg-white]="current() === i"
             [class.text-gray-900]="current() === i"
             [class.bg-white/30]="current() !== i"
             [class.text-white]="current() !== i"
             [attr.aria-current]="current() === i ? 'true' : null"
-            [attr.aria-label]="'Go to slide ' + (i + 1)"
+            [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
             (click)="goTo(i)">{{ i + 1 }}</button>
         }
       }
@@ -185,11 +178,11 @@
   }
 
   <!-- Top-right controls: pause/play (auto-play) + slide counter -->
-  <div class="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+  <div class="absolute end-3 top-3 z-10 flex items-center gap-1.5">
     @if (autoPlayOn() && total() > 1) {
-      <button type="button"
+      <button data-sv-glass="over-media" type="button"
         class="flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-all hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-        [attr.aria-label]="isPaused() ? 'Play automatic slideshow' : 'Pause automatic slideshow'"
+        [attr.aria-label]="isPaused() ? labels.playSlideshow : labels.pauseSlideshow"
         [attr.aria-pressed]="isPaused()"
         (click)="togglePause()">
         @if (isPaused()) {
@@ -199,13 +192,121 @@
         }
       </button>
     }
-    <div class="rounded-full bg-black/30 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
-      {{ current() + 1 }} / {{ total() }}
+    <div data-sv-glass="over-media" class="rounded-full bg-black/30 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+      {{ current() + 1 }} / {{ positions() }}
     </div>
   </div>
 </div>
 
+@if (indicator() === 'thumbnails' && total() > 1) {
+  <!-- A preview of every slide under the carousel. Each is a button named by
+       its position, like the dots; the picture is decoration. -->
+  <div class="mt-3 flex gap-2 overflow-x-auto p-1 print:flex-wrap print:overflow-visible" role="group" [attr.aria-label]="labels.chooseSlide" data-sv-carousel-thumbnails>
+    @for (slide of slides(); track slide.id; let i = $index) {
+      <button type="button"
+        class="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg transition
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+               dark:focus-visible:ring-offset-gray-900"
+        [class]="current() === i
+          ? 'ring-2 ring-primary-600 ring-offset-2 dark:ring-primary-400 dark:ring-offset-gray-900'
+          : 'opacity-60 hover:opacity-100'"
+        [attr.aria-current]="current() === i ? 'true' : null"
+        [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
+        (click)="goTo(i)">
+        @if (slide.image) {
+          <img [src]="slide.image" alt="" loading="lazy" class="h-full w-full object-cover" />
+        } @else {
+          <span class="block h-full w-full bg-gradient-to-br" [class]="slide.bgColor || 'from-gray-600 to-gray-800'"></span>
+        }
+      </button>
+    }
+  </div>
+}
+
 }<!-- /@else content -->
+
+<!-- One slide's picture and caption, for both layouts. With several in view the
+     caption sits at the foot of a smaller card, in smaller type. -->
+<ng-template #slideBody let-slide let-i="index">
+  @if (slide.image) {
+    <img [src]="slide.image" [alt]="slide.title || ''"
+         class="h-full w-full object-cover"
+         [attr.loading]="priority() && i === 0 ? 'eager' : 'lazy'"
+         [attr.fetchpriority]="priority() && i === 0 ? 'high' : null" />
+
+    <!-- Premium caption overlay — only when the slide carries copy -->
+    @if (slide.badge || slide.title || slide.subtitle || slide.meta || slide.cta) {
+      <!-- Legibility scrim. ★ Strong enough for white copy over a WHITE
+           photo wherever the copy can reach: below md the caption spans
+           the slide, so the scrim does too; from md the subtitle ends by
+           ~66% of the width, where this composites to #757575 (4.61:1). -->
+      @if (multi()) {
+        <!-- A card's caption can run its full width, so no stop is lighter
+             than black/60: white over a white photo there is #666666, 5.74:1. -->
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 to-black/60"></div>
+      } @else {
+        <div class="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/65 to-black/30 max-md:to-black/65"></div>
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent"></div>
+      }
+
+      <!-- Caption content -->
+      <div class="pointer-events-none absolute inset-0 flex"
+           [class]="multi() ? 'items-end' : 'items-center'">
+        <!-- With side arrows, the copy clears them at every width: they sit at
+             left-3 and are 36px wide, so anything under 56px of inset puts
+             the first letters of each line underneath the button. -->
+        <div class="w-full max-w-xl"
+             [class]="multi() ? 'px-4 pb-4' : arrows() && 1 < total() && !vertical() ? 'px-14' : 'px-6 sm:px-10 lg:px-14'">
+          @if (slide.badge) {
+            <span data-sv-glass="over-media" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-white ring-1 ring-inset ring-white/25 backdrop-blur-sm">
+              <span class="h-1.5 w-1.5 rounded-full bg-white"></span>{{ slide.badge }}
+            </span>
+          }
+          @if (slide.title) {
+            <h3 [class]="multi()
+                  ? 'mt-2 text-lg font-bold leading-snug text-white'
+                  : 'mt-3 text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow-sm sm:text-3xl lg:text-4xl'">{{ slide.title }}</h3>
+          }
+          @if (slide.subtitle) {
+            <p [class]="multi()
+                 ? 'mt-1 line-clamp-2 text-xs leading-relaxed text-white'
+                 : 'mt-2 max-w-md text-sm leading-relaxed text-white sm:text-base'">{{ slide.subtitle }}</p>
+          }
+          @if (slide.meta) {
+            <span data-sv-glass="over-media" class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1 text-[13px] font-semibold text-white ring-1 ring-inset ring-white/20 backdrop-blur-sm">
+              {{ slide.meta }}
+            </span>
+          }
+          @if (slide.cta) {
+            <div [class]="multi() ? 'mt-3' : 'mt-5'">
+              <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
+            </div>
+          }
+        </div>
+      </div>
+    }
+  } @else {
+    <div class="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br text-center text-white"
+         [class]="(slide.bgColor || 'from-gray-600 to-gray-800') + (multi() ? ' p-5' : ' p-8')">
+      @if (slide.badge) {
+        <span class="mb-3 rounded-full bg-black/20 px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+          {{ slide.badge }}
+        </span>
+      }
+      @if (slide.title) {
+        <h3 [class]="multi() ? 'text-lg font-bold' : 'text-2xl font-extrabold tracking-tight md:text-3xl'">{{ slide.title }}</h3>
+      }
+      @if (slide.subtitle) {
+        <p class="mt-2 text-sm text-white md:text-base">{{ slide.subtitle }}</p>
+      }
+      @if (slide.cta) {
+        <div class="mt-4">
+          <ng-container [ngTemplateOutlet]="ctaTpl" [ngTemplateOutletContext]="{ $implicit: slide, index: i }" />
+        </div>
+      }
+    </div>
+  }
+</ng-template>
 
 <!-- One call-to-action for both slide layouts (DA-07). The image-less layout
      used to render a bare <button> with no type — inside a host <form> it
@@ -215,15 +316,15 @@
 <ng-template #ctaTpl let-slide let-i="index">
   @if (slide.ctaLink) {
     <a [routerLink]="slide.ctaLink"
-       [attr.tabindex]="current() === i ? null : -1"
+       [attr.tabindex]="shown()[i] ? null : -1"
        class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-gray-900 shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
        (click)="ctaClick.emit(slide)">
       {{ slide.cta }}
-      <sv-icon name="arrow-right" cssClass="h-4 w-4" [strokeWidth]="2.2" />
+      <sv-icon name="arrow-right" cssClass="h-4 w-4 rtl:-scale-x-100" [strokeWidth]="2.2" />
     </a>
   } @else {
-    <button type="button"
-            class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-white/20 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+    <button data-sv-glass="over-media" type="button"
+            class="pointer-events-auto relative z-10 inline-flex items-center gap-2 rounded-full bg-black/20 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             (click)="ctaClick.emit(slide)">
       {{ slide.cta }}
     </button>

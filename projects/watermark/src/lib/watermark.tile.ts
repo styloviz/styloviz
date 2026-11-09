@@ -15,6 +15,7 @@
  *   W' = |w·cos θ| + |h·sin θ|
  *   H' = |w·sin θ| + |h·cos θ|
  */
+import type { SvWatermarkLabels } from './watermark.labels';
 
 export interface SvTile {
   /** Tile width in px, including the gap. */
@@ -112,14 +113,17 @@ export function svOpacityVerdict(opacity: number): SvOpacityVerdict {
   return 'usable';
 }
 
-export function svOpacityLabel(opacity: number): string {
+export function svOpacityLabel(
+  opacity: number,
+  labels: Pick<SvWatermarkLabels, 'opacityTooFaint' | 'opacityTooStrong' | 'opacityUsable'>,
+): string {
   switch (svOpacityVerdict(opacity)) {
     case 'too-faint':
-      return 'Below about 4% the mark survives on screen and disappears the moment the screenshot is saved as a JPEG — which is what happens to every screenshot.';
+      return labels.opacityTooFaint;
     case 'too-strong':
-      return 'Above about 25% the document underneath becomes hard to read, and somebody turns the watermark off entirely.';
+      return labels.opacityTooStrong;
     default:
-      return 'Visible in a compressed screenshot, and light enough to read through.';
+      return labels.opacityUsable;
   }
 }
 

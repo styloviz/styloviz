@@ -54,7 +54,7 @@
               @if (error.fieldId) {
                 <button
                   type="button"
-                  class="rounded text-left font-medium text-danger-700 underline decoration-danger-400
+                  class="rounded text-start font-medium text-danger-700 underline decoration-danger-400
                          underline-offset-2 hover:decoration-danger-700 focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-danger-500
                          dark:text-danger-300 dark:decoration-danger-600 dark:hover:decoration-danger-300"
@@ -83,8 +83,8 @@
                   where the problem is AND that they cannot go to it, with no way
                   to tell a broken link from a field that is merely off-screen.
                 -->
-                <span class="ml-1 text-xs text-danger-600 dark:text-danger-400"
-                      data-sv-state="unreachable">(could not jump to this field)</span>
+                <span class="ms-1 text-xs text-danger-600 dark:text-danger-400"
+                      data-sv-state="unreachable">{{ labels.cannotJumpToField }}</span>
               }
             </li>
           }

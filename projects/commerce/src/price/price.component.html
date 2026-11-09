@@ -20,7 +20,7 @@
           amountClass(),
           hasDiscount() ? 'text-danger-600 dark:text-danger-400' : 'text-gray-900 dark:text-white'
         ]"
-      >@if (hasDiscount()) {<span class="sr-only">Sale price </span>}@if (isCredit()) {<span class="sr-only">Credit </span>}{{ formattedAmount() }}</span>
+      >@if (hasDiscount()) {<span class="sr-only">{{ labels.salePrice }} </span>}@if (isCredit()) {<span class="sr-only">{{ labels.credit }} </span>}@if (spokenAmount()) {<span class="sr-only">{{ spokenAmount() }}</span>}<span [attr.aria-hidden]="spokenAmount() ? 'true' : null">{{ formattedAmount() }}</span></span>
 
       @if (hasRange()) {
         <!--
@@ -37,7 +37,7 @@
         <span
           class="font-semibold tabular-nums text-gray-900 dark:text-white"
           [ngClass]="amountClass()"
-        ><span class="sr-only">to </span>{{ formattedAmountTo() }}</span>
+        ><span class="sr-only">{{ labels.rangeTo }} </span>@if (spokenAmountTo()) {<span class="sr-only">{{ spokenAmountTo() }}</span>}<span [attr.aria-hidden]="spokenAmountTo() ? 'true' : null">{{ formattedAmountTo() }}</span></span>
       }
     }
 
@@ -50,7 +50,7 @@
       <s
         class="tabular-nums text-gray-500 dark:text-gray-400"
         [ngClass]="compareClass()"
-      ><span class="sr-only">Regular price </span>{{ formattedCompareAt() }}</s>
+      ><span class="sr-only">{{ labels.regularPrice }} </span>@if (spokenCompareAt()) {<span class="sr-only">{{ spokenCompareAt() }}</span>}<span [attr.aria-hidden]="spokenCompareAt() ? 'true' : null">{{ formattedCompareAt() }}</span></s>
 
       @if (discount() === 'badge') {
         <!--
@@ -60,11 +60,11 @@
         <span
           role="img"
           class="inline-flex items-center rounded-full bg-danger-100 px-2 py-0.5 text-xs font-semibold text-danger-700 dark:bg-danger-900/50 dark:text-danger-300"
-          [attr.aria-label]="discountPercent() + '% off'"
+          [attr.aria-label]="labels.percentOff | svLabel: { percent: discountPercent() }"
         >−{{ discountPercent() }}%</span>
       } @else if (discount() === 'text') {
         <span class="text-xs font-medium text-accent-700 dark:text-accent-400">
-          Save {{ discountPercent() }}%
+          {{ labels.saveDiscount | svLabel: { percent: discountPercent() } }}
         </span>
       }
     }

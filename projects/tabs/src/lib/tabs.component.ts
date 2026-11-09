@@ -1,4 +1,6 @@
 import {
+  afterNextRender,
+  afterRenderEffect,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -14,21 +16,20 @@ import {
   signal,
   TemplateRef,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import {
-  SvLiveAnnouncer,
-  svNavParam,
-  svNavRecorder,
-  svAttrSelector,
-  svRecoverFocus,
-  svUniqueId,
-  svWarnOnce,
-  type SvNavIntent,
-  type SvUnresolvedValue,
-} from '@styloviz/core';
+import { prefersReducedMotion, SvLiveAnnouncer, svUniqueId, svIsRtl } from '@styloviz/core/a11y';
+import { type SvUnresolvedValue } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svNavParam, svNavRecorder, type SvNavIntent } from '@styloviz/core/nav';
+import { svRecoverFocus } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_TABS_LABELS } from './tabs.labels';
 
+import { registerTabsIcons } from './tabs.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type TabsStyle  = 'underline' | 'pills' | 'boxed' | 'lifted' | 'border-card' | 'unstyled';
@@ -63,14 +64,19 @@ export interface TabItem {
   /** Display label. */
   label:     string;
   /**
-   * ★ BREAKING (icon sweep): an icon-library NAME shown before the label —
-   * `'star'`, `'settings'` — resolved through `@styloviz/icons`.
+   * An icon-library NAME shown before the label — `'star'`, `'settings'` —
+   * resolved through `@styloviz/icons`.
    *
-   * It used to hold a raw SVG `<path d="…">` despite already being called
-   * `icon`, and the type is `string` either way, so **the compiler cannot tell
-   * the two apart**. A host still passing a path gets a silently blank slot.
+   * Before 2.0 this held a raw SVG `<path d="…">`. The type is `string` either
+   * way, so the compiler cannot tell the two apart: a host still passing a path
+   * gets a blank slot.
    */
   icon?: string;
+  /**
+   * Show only the `icon`: the label stays the tab's accessible name and its
+   * hover title, but is not drawn. Ignored on a tab with no `icon`. @default false
+   */
+  iconOnly?: boolean;
   /**
    * Keep this tab's content out of the DOM until the tab is first activated.
    *
@@ -125,6 +131,13 @@ export class SvTabPanelDirective {
   readonly templateRef = inject(TemplateRef<unknown>);
 }
 
+/** How one tab panel is shown — see `SvTabsComponent.panelView`. */
+interface SvTabPanelView {
+  readonly cls: string;
+  readonly hidden: 'until-found' | null;
+  readonly tabindex: 0 | null;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -141,7 +154,9 @@ export class SvTabPanelDirective {
  * - Both WAI-ARIA activation modes: `automatic` (arrows select, the default) and
  *   `manual` (arrows move focus, Enter/Space selects) — `NV-06-M1`
  * - Optional icon, badge, unread dot, and closable (× / Delete) tab
- * - Optional horizontal scrolling for tab lists that overflow their container
+ * - Optional horizontal scrolling for tab lists that overflow their container,
+ *   with previous / next arrows while they do, and the selected tab kept in view
+ * - Icon-only tabs that keep their label as the accessible name
  * - Disabled tab support
  * - Opt-in lazy rendering — a tab marked `lazy` keeps its panel out of the DOM
  *   until first activated; every other panel is mounted up front and hidden.
@@ -173,6 +188,13 @@ export class SvTabPanelDirective {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvTabsComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerTabsIcons();
+
+  protected readonly labels = injectSvLabels('tabs', SV_TABS_LABELS);
+  /** The kit's locale — fills the tab-closed announcement. */
+  private readonly locale = svLocale();
+
   /**
    * Per-instance id prefix.
    *
@@ -205,7 +227,7 @@ export class SvTabsComponent implements OnDestroy {
   }
 
   /** DOM id of the sr-only sentence that tells AT how to close a tab. */
-  readonly closeHintId = `${this.uid}-close-hint`;
+  readonly closeHintId = `${this.uid}-close-hint`; // sv-i18n-ignore: DOM id
 
   private readonly host = inject(ElementRef);
   private readonly announcer = inject(SvLiveAnnouncer);
@@ -238,6 +260,13 @@ export class SvTabsComponent implements OnDestroy {
    * when there are more tabs than fit the available width. @default false
    */
   scrollable = input<boolean>(false);
+
+  /**
+   * Previous / next arrows at the ends of a horizontal `scrollable` strip, shown
+   * while its tabs overflow. They are for the pointer: the arrow keys already
+   * move along the strip and scroll the focused tab into view. @default true
+   */
+  scrollButtons = input<boolean>(true);
 
   /** Additional CSS classes on the root wrapper. */
   customClass = input<string>('');
@@ -297,6 +326,38 @@ export class SvTabsComponent implements OnDestroy {
    * @default 'retain'
    */
   lazyRetention = input<TabsLazyRetention>('retain');
+
+  /*
+   * ── Rationale, deliberately NOT a JSDoc (FL-J3-NV-04, `X-20`, `NV-06-I13`) ──
+   * An inactive panel used to be `display: none`, which browser find-in-page
+   * skips: a reader searching for text that sits behind a tab concludes the page
+   * does not have it. Where the browser supports `hidden="until-found"` (probed
+   * by `onbeforematch`, exactly as `sv-accordion` does), an inactive MOUNTED
+   * panel carries it instead — not rendered, not focusable, out of the
+   * accessibility tree, and still searchable; a match fires `beforematch`, which
+   * selects the tab like a click would.
+   *
+   * ★ The lazy modes are untouched, and that is the documented omission: a lazy
+   *   panel that was never visited, and every inactive panel under
+   *   `lazyRetention="destroy"`, is not in the DOM, so there is nothing for the
+   *   browser to search. Print prints the ACTIVE panel only — a tabset is a set
+   *   of alternative views, not one document. A disabled tab's panel is never
+   *   offered to find-in-page (the browser reveals by deleting the attribute, so
+   *   it would be a way round `disabled`).
+   */
+
+  /**
+   * Let browser find-in-page (`Ctrl+F`) reach the text in INACTIVE panels that
+   * are mounted, by marking them `hidden="until-found"` where the browser
+   * supports it; a match selects its tab. Never-visited `lazy` panels and
+   * `lazyRetention="destroy"` panels are not in the DOM and cannot be found.
+   * @default true
+   */
+  findInPage = input<boolean>(true);
+
+  /** Whether this browser implements `hidden="until-found"` — read once per instance. */
+  private readonly untilFound =
+    typeof document !== 'undefined' && 'onbeforematch' in document.documentElement;
 
   /*
    * ── Rationale, deliberately NOT a JSDoc ─────────────────────────────────────
@@ -397,6 +458,21 @@ export class SvTabsComponent implements OnDestroy {
   activatedIds = signal<Set<string>>(new Set());
 
   /**
+   * ★ Whatever tab is SHOWN counts as visited — not only one reached through
+   *   `selectTab`. The first tab shown by default (no `activeId`), or one a host
+   *   sets, was never recorded, so under `lazyRetention="retain"` switching away
+   *   destroyed that lazy panel — and what was typed in it — and coming back
+   *   rebuilt it. Found by FL-G1's lazy-panel e2e, which counts builds.
+   */
+  protected readonly recordShown = effect(() => {
+    const id = this.resolvedActiveId();
+    if (!id) return;
+    untracked(() => {
+      if (!this.activatedIds().has(id)) this.activatedIds.update(ids => new Set([...ids, id]));
+    });
+  });
+
+  /**
    * The tab focus is on while it differs from the selected one — `null` whenever
    * focus is outside the strip, or on the selected tab.
    *
@@ -404,6 +480,12 @@ export class SvTabsComponent implements OnDestroy {
    * selection follows focus, so the two are never apart.
    */
   private readonly focusedId = signal<string | null>(null);
+
+  /** The tablist element — measured for overflow and scrolled by the arrows. */
+  private readonly list = viewChild.required<ElementRef<HTMLElement>>('strip');
+
+  /** Whether the strip's tabs are wider than the strip, and which ends still hide some. */
+  protected readonly overflow = signal({ any: false, start: false, end: false });
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -455,6 +537,19 @@ export class SvTabsComponent implements OnDestroy {
 
   /** Whether any tab can be closed — gates the single shared keyboard hint. */
   hasClosableTab = computed<boolean>(() => this.tabs().some(t => t.closable));
+
+  /** Whether the previous / next arrows are drawn — see {@link scrollButtons}. */
+  protected readonly showScrollButtons = computed<boolean>(() =>
+    this.scrollable() && this.scrollButtons() && this.layout() === 'horizontal' && this.overflow().any);
+
+  /** The previous / next arrows' look. */
+  protected readonly scrollButtonClass =
+    'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-gray-500 transition-colors ' +
+    'hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200';
+
+  /** Which tabs draw only their icon, by id — see {@link TabItem.iconOnly}. Ignored without an `icon`. */
+  protected readonly iconOnlyById = computed<Readonly<Record<string, boolean>>>(() =>
+    Object.fromEntries(this.tabs().map(t => [t.id, !!t.iconOnly && !!t.icon])));
 
   // ── Size maps ─────────────────────────────────────────────────────────────
 
@@ -515,7 +610,7 @@ export class SvTabsComponent implements OnDestroy {
     if (v === 'border-card') {
       return [
         isV
-          ? 'flex flex-col gap-0 shrink-0 border-r border-gray-200 bg-gray-50/60 p-2 dark:border-gray-800 dark:bg-gray-800/30'
+          ? 'flex flex-col gap-0 shrink-0 border-e border-gray-200 bg-gray-50/60 p-2 dark:border-gray-800 dark:bg-gray-800/30'
           : 'flex gap-0 border-b border-gray-200 bg-gray-50/60 px-2 pt-2 dark:border-gray-800 dark:bg-gray-800/30',
         this.fullWidth() && !isV ? 'w-full' : '',
         scroll,
@@ -533,7 +628,7 @@ export class SvTabsComponent implements OnDestroy {
 
     if (v === 'lifted') {
       return [
-        isV ? 'flex flex-col gap-0 shrink-0 border-r border-gray-200/80 dark:border-gray-800/60 pr-0'
+        isV ? 'flex flex-col gap-0 shrink-0 border-e border-gray-200/80 dark:border-gray-800/60 pe-0'
             : 'flex gap-0 border-b border-gray-200/80 dark:border-gray-800/60',
         this.fullWidth() && !isV ? 'w-full' : '',
         scroll,
@@ -550,12 +645,16 @@ export class SvTabsComponent implements OnDestroy {
 
     // underline (default)
     return [
-      isV ? 'flex flex-col gap-0 shrink-0 border-r border-gray-200/80 dark:border-gray-800/60'
+      isV ? 'flex flex-col gap-0 shrink-0 border-e border-gray-200/80 dark:border-gray-800/60'
           : 'flex gap-0 border-b border-gray-200/80 dark:border-gray-800/60',
       this.fullWidth() && !isV ? 'w-full' : '',
       scroll,
     ].filter(Boolean).join(' ');
   });
+
+  /** The tablist's classes, plus room for the arrows beside it when they are drawn. */
+  protected readonly stripClasses = computed<string>(() =>
+    this.showScrollButtons() ? `${this.listClasses()} min-w-0 flex-1` : this.listClasses());
 
   // ── Per-tab classes ───────────────────────────────────────────────────────
 
@@ -581,7 +680,7 @@ export class SvTabsComponent implements OnDestroy {
       // hooks (see template) and their own CSS/customClass.
     } else if (v === 'border-card') {
       if (isV) {
-        base.push('-mr-px rounded-l-lg border border-r-0 border-transparent');
+        base.push('-me-px rounded-s-lg border border-e-0 border-transparent');
         base.push(isActive
           ? 'border-gray-200 bg-white font-semibold text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-white'
           : isDisabled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200');
@@ -609,7 +708,7 @@ export class SvTabsComponent implements OnDestroy {
         : isDisabled ? 'text-gray-500 dark:text-gray-400' : 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200');
     } else if (v === 'lifted') {
       if (isV) {
-        base.push('border-r-2 -mr-px');
+        base.push('border-e-2 -me-px');
         base.push(isActive
           ? 'border-primary-600 text-gray-900 font-semibold dark:text-white dark:border-primary-500 bg-primary-50/50 dark:bg-primary-950/20'
           : isDisabled ? 'border-transparent text-gray-500 dark:text-gray-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600');
@@ -622,7 +721,7 @@ export class SvTabsComponent implements OnDestroy {
     } else {
       // underline
       if (isV) {
-        base.push('border-r-2 -mr-px');
+        base.push('border-e-2 -me-px');
         base.push(isActive
           ? 'border-primary-600 text-gray-900 font-semibold dark:border-primary-500 dark:text-white'
           : isDisabled ? 'border-transparent text-gray-500 dark:text-gray-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600');
@@ -635,6 +734,69 @@ export class SvTabsComponent implements OnDestroy {
     }
 
     return base.join(' ');
+  }
+
+  // ── Overflow and the scroll arrows ────────────────────────────────────────
+
+  /**
+   * Re-measured when the strip is resized (`ResizeObserver`), scrolled, or
+   * re-rendered with other tabs — a new tab widens the content without
+   * resizing the box, which an observer on the box would not see.
+   */
+  protected readonly trackOverflow = afterNextRender(() => {
+    const el = this.list().nativeElement;
+    const measure = () => this.measureOverflow();
+    el.addEventListener('scroll', measure, { passive: true });
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(el);
+    this.stopTracking = () => {
+      el.removeEventListener('scroll', measure);
+      observer?.disconnect();
+    };
+  });
+
+  private stopTracking: (() => void) | null = null;
+
+  /**
+   * ★ The selected tab is kept in view. A deep link, a host setting `activeId`
+   * or a click on a half-hidden tab can leave it past the strip's edge, and a
+   * selection the reader cannot see tells them nothing. Only the strip scrolls —
+   * `element.scrollIntoView()` would scroll the page too.
+   */
+  protected readonly followSelection = afterRenderEffect(() => {
+    const active = this.resolvedActiveId();
+    this.tabs();
+    this.scrollable();
+    untracked(() => {
+      this.measureOverflow();
+      const el = this.list().nativeElement;
+      const tab = el.querySelector<HTMLElement>(svAttrSelector('id', this.tabDomId(active)));
+      if (!tab || el.scrollWidth <= el.clientWidth) return;
+      const box = el.getBoundingClientRect();
+      const at = tab.getBoundingClientRect();
+      if (at.left < box.left) el.scrollLeft -= box.left - at.left;
+      else if (at.right > box.right) el.scrollLeft += at.right - box.right;
+    });
+  });
+
+  private measureOverflow(): void {
+    const el = this.list().nativeElement;
+    const max = el.scrollWidth - el.clientWidth;
+    // `scrollLeft` runs negative under `dir="rtl"`; its size is the distance from the start.
+    const from = Math.abs(el.scrollLeft);
+    const next = { any: max > 1, start: max > 1 && from > 1, end: max > 1 && from < max - 1 };
+    const now = this.overflow();
+    if (now.any !== next.any || now.start !== next.start || now.end !== next.end) this.overflow.set(next);
+  }
+
+  /** One arrow press: most of a strip's width towards its start (`-1`) or end (`1`). */
+  protected scrollStrip(direction: 1 | -1): void {
+    const el = this.list().nativeElement;
+    const forward = svIsRtl(this.host.nativeElement as HTMLElement) ? -1 : 1;
+    el.scrollBy({
+      left: direction * forward * Math.max(el.clientWidth * 0.8, 40),
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
   }
 
   // ── Panel visibility ──────────────────────────────────────────────────────
@@ -665,6 +827,39 @@ export class SvTabsComponent implements OnDestroy {
    * way out as well — only the active lazy panel exists, and coming back rebuilds
    * it. `NV-06-M4`.
    */
+  /**
+   * How each panel is shown, by tab id (FL-J3-NV-04): the active one visible and
+   * focusable; an inactive one hidden by EXACTLY ONE of `hidden="until-found"`
+   * (findable — where the browser supports it, `findInPage` is on and the tab is
+   * not disabled) or the `hidden` class (`display: none`). Derived once per
+   * change, so the panel loop reads fields instead of calling per tab.
+   */
+  readonly panelView = computed<Readonly<Record<string, SvTabPanelView>>>(() => {
+    const active = this.resolvedActiveId();
+    const findable = this.untilFound && this.findInPage();
+    const view: Record<string, SvTabPanelView> = {};
+    for (const tab of this.tabs()) {
+      if (tab.id === active) {
+        view[tab.id] = { cls: 'block focus:outline-none', hidden: null, tabindex: 0 };
+      } else if (findable && !tab.disabled) {
+        view[tab.id] = { cls: '', hidden: 'until-found', tabindex: null };
+      } else {
+        view[tab.id] = { cls: 'hidden', hidden: null, tabindex: null };
+      }
+    }
+    return view;
+  });
+
+  /**
+   * The browser revealed an inactive panel to show a find-in-page match. The
+   * attribute is already gone (the event is a notice, not a request), so the
+   * tab is selected to make the strip agree with what is on screen.
+   */
+  protected onPanelBeforeMatch(tab: TabItem): void {
+    if (this.isPanelVisible(tab)) return;
+    this.selectTab(tab);
+  }
+
   isPanelMounted(tab: TabItem): boolean {
     if (!tab.lazy) return true;
     if (this.lazyRetention() === 'destroy') return tab.id === this.resolvedActiveId();
@@ -952,7 +1147,7 @@ export class SvTabsComponent implements OnDestroy {
       svRecoverFocus({
         to: [button(next), button(previous)],
         fallback: root.querySelector('[role="tablist"]'),
-        announce: `${tab.label} tab closed.`,
+        announce: svFormatLabel(this.labels.tabClosed, { label: tab.label }, this.locale),
         announcer: this.announcer,
       });
     });
@@ -972,6 +1167,7 @@ export class SvTabsComponent implements OnDestroy {
   ngOnDestroy(): void {
     for (const id of this.pending) clearTimeout(id);
     this.pending.clear();
+    this.stopTracking?.();
   }
 
   /**
@@ -1019,8 +1215,12 @@ export class SvTabsComponent implements OnDestroy {
       if (event.key === 'ArrowDown') next = step(1);
       if (event.key === 'ArrowUp')   next = step(-1);
     } else {
-      if (event.key === 'ArrowRight') next = step(1);
-      if (event.key === 'ArrowLeft')  next = step(-1);
+      // FL-J3-NV-01: under `dir="rtl"` the strip runs right-to-left, so the
+      // arrow pointing at the next tab is ArrowLeft. Read from the host so a
+      // `dir="rtl"` ancestor is followed (APG: arrows follow the visual order).
+      const forward = svIsRtl(this.host.nativeElement as HTMLElement) ? -1 : 1;
+      if (event.key === 'ArrowRight') next = step(forward);
+      if (event.key === 'ArrowLeft')  next = step(-forward);
     }
     if (event.key === 'Home') next = navigable[0];
     if (event.key === 'End')  next = navigable[len - 1];

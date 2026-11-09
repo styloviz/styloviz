@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `file-archive` icon. */
 export const fileArchiveNodes: readonly IconNode[] = [
@@ -17,6 +18,9 @@ export const fileArchiveNodes: readonly IconNode[] = [
 export const fileArchiveSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm13 2.1q.4 0 .6.3l5 5q.3.2.3.6v12q0 1.9-1.9 1.9h-10q-1.9 0-1.9-1.9v-16q0-1.9 1.9-1.9zm-3 11.5q-2.2 0-2.2 2.2v1.4q0 2.2 2.2 2.2 2.2 0 2.2-2.2v-1.4q0-2.2-2.2-2.2zm2.6-9.7h-.5v4.1q0 .9.9.9h4.1v-.5l-1.2-1.3h-2v-2zm-1.7 8.1q0-.9-.9-.9-.9 0-.9.9 0 .9.9.9.9 0 .9-.9zm0-3q0-.9-.9-.9-.9 0-.9.9 0 .9.9.9.9 0 .9-.9zm-.9 6.4q.4 0 .4.4v1.4q0 .4-.4.4-.4 0-.4-.4v-1.4q0-.4.4-.4z' },
 ];
+
+/** `file-archive` as a registrable glyph — `registerSvIcons([fileArchiveIcon])` / `provideSvIcons([fileArchiveIcon])`. */
+export const fileArchiveIcon: SvIconDef = { name: 'file-archive', nodes: fileArchiveNodes, solid: fileArchiveSolidNodes };
 
 /** `file-archive` — tree-shakable standalone icon. Use `<sv-file-archive-icon />`. */
 @Component({

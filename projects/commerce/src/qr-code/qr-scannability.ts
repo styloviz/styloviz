@@ -15,6 +15,9 @@
  *    else.
  */
 
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvCommerceLabels } from '../commerce.labels';
+
 /** Error-correction levels, and how much of the symbol each can lose. */
 export type SvQrEcLevel = 'L' | 'M' | 'Q' | 'H';
 
@@ -95,55 +98,57 @@ export interface SvQrScanCheck {
  *   and still fails on many scanners, which assume dark-on-light. It is a
  *   warning rather than an error because some readers do cope.
  */
-export function svQrScannability(check: SvQrScanCheck): readonly SvQrWarning[] {
+/** The labels {@link svQrScannability} writes its warnings from. */
+export type SvQrScanLabels = Pick<
+  SvCommerceLabels,
+  | 'qrWarningCapacity'
+  | 'qrWarningContrastUnreadable'
+  | 'qrWarningContrastLow'
+  | 'qrWarningInverted'
+  | 'qrWarningQuietZone'
+  | 'qrWarningLogo'
+>;
+
+export function svQrScannability(check: SvQrScanCheck, labels: SvQrScanLabels): readonly SvQrWarning[] {
   const out: SvQrWarning[] = [];
 
   if (check.payloadBytes > check.capacityBytes) {
     out.push({
       kind: 'capacity',
-      message:
-        `The payload is ${check.payloadBytes} bytes and only ${check.capacityBytes} fit at ` +
-        `correction level ${check.ecLevel}. It would be truncated, producing a code that ` +
-        'scans cleanly and returns the wrong data, so nothing is drawn.',
+      message: svFormatLabel(labels.qrWarningCapacity, {
+        bytes: String(check.payloadBytes),
+        capacity: String(check.capacityBytes),
+        level: check.ecLevel,
+      }),
     });
   }
 
   const contrast = svQrContrast(check.foreground, check.background);
   if (contrast === null) {
-    out.push({
-      kind: 'contrast',
-      message:
-        'The foreground or background is not a plain hex colour, so the contrast a scanner ' +
-        'needs cannot be checked.',
-    });
+    out.push({ kind: 'contrast', message: labels.qrWarningContrastUnreadable });
   } else if (contrast < SV_QR_MIN_CONTRAST) {
     out.push({
       kind: 'contrast',
-      message:
-        `Contrast between the modules and the background is ${contrast.toFixed(1)}:1, below the ` +
-        `${SV_QR_MIN_CONTRAST}:1 a camera needs to separate them. The code will look fine and ` +
-        'may not scan.',
+      message: svFormatLabel(labels.qrWarningContrastLow, {
+        contrast: contrast.toFixed(1),
+        min: String(SV_QR_MIN_CONTRAST),
+      }),
     });
   }
 
   const fg = svParseHex(check.foreground);
   const bg = svParseHex(check.background);
   if (fg && bg && luminance(fg) > luminance(bg)) {
-    out.push({
-      kind: 'inverted',
-      message:
-        'The modules are lighter than the background. Many scanners assume dark on light and ' +
-        'will not read an inverted code, even though its contrast is fine.',
-    });
+    out.push({ kind: 'inverted', message: labels.qrWarningInverted });
   }
 
   if (check.quietZone < SV_QR_MIN_QUIET_ZONE) {
     out.push({
       kind: 'quiet-zone',
-      message:
-        `The quiet zone is ${check.quietZone} modules; the specification requires ` +
-        `${SV_QR_MIN_QUIET_ZONE}. Without it a scanner cannot find the symbol's edges against ` +
-        'whatever surrounds it.',
+      message: svFormatLabel(labels.qrWarningQuietZone, {
+        modules: String(check.quietZone),
+        min: String(SV_QR_MIN_QUIET_ZONE),
+      }),
     });
   }
 
@@ -154,11 +159,11 @@ export function svQrScannability(check: SvQrScanCheck): readonly SvQrWarning[] {
     if (coverage > budget) {
       out.push({
         kind: 'logo',
-        message:
-          `The logo covers ${Math.round(coverage * 100)}% of the code, and level ` +
-          `${check.ecLevel} can only recover ${Math.round(budget * 100)}%. Raise the ` +
-          'correction level or shrink the logo — a code that cannot self-repair is not a ' +
-          'code with a logo on it, it is a broken code.',
+        message: svFormatLabel(labels.qrWarningLogo, {
+          coverage: String(Math.round(coverage * 100)),
+          level: check.ecLevel,
+          budget: String(Math.round(budget * 100)),
+        }),
       });
     }
   }

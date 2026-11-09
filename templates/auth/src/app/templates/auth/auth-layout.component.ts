@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
-import { ThemeService } from '@styloviz/core';
+import { ThemeService } from '@styloviz/core/services';
 import { SvIconComponent } from '@styloviz/icons';
 import { AUTH_BRAND, AUTH_PANEL, AUTH_SUPPORT } from './auth.config';
 

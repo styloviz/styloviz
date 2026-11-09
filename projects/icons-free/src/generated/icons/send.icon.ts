@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `send` icon. */
 export const sendNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const sendNodes: readonly IconNode[] = [
 export const sendSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.8 3.3l-7 18q-.3.8-1.1.5-.3-.1-.5-.4l-3.8-6.8-6.8-3.8q-.8-.5-.4-1.2.2-.3.5-.4l18-7q.8-.3 1.1.5.1.3 0 .6zm-2.3 1.2l-2.1.8-7.5 7.6.5.3q.2.2.4.4l.3.5 7.6-7.5z' },
 ];
+
+/** `send` as a registrable glyph — `registerSvIcons([sendIcon])` / `provideSvIcons([sendIcon])`. */
+export const sendIcon: SvIconDef = { name: 'send', nodes: sendNodes, solid: sendSolidNodes };
 
 /** `send` — tree-shakable standalone icon. Use `<sv-send-icon />`. */
 @Component({

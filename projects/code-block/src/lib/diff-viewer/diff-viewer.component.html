@@ -1,0 +1,194 @@
+<!--
+  ══ sv-diff-viewer ════════════════════════════════════════════════════════════
+
+  Header (name, +/− counts, layout switch) · notices · the diff. Every changed
+  line has a visible + or − and an sr-only "Added:" / "Removed:"; the summary
+  sentence describes the region for a screen reader.
+-->
+<section
+  class="overflow-hidden rounded-lg border border-gray-200 bg-white text-[13px] dark:border-white/10 dark:bg-gray-950"
+  [attr.aria-label]="regionLabel()"
+  [attr.aria-describedby]="summaryId"
+  data-sv-diff-viewer
+>
+  <header
+    class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/10 dark:bg-white/[0.03]"
+  >
+    @if (displayName()) {
+      <span class="min-w-0 truncate font-mono text-xs font-medium text-gray-800 dark:text-gray-100">{{ displayName() }}</span>
+    }
+    @if (diff().status !== 'too-large' && diff().status !== 'patch-invalid') {
+      <!-- The counts in figures; the summary below says them in words. -->
+      <span class="font-mono text-xs font-semibold" aria-hidden="true">
+        <span class="text-accent-700 dark:text-accent-400">+{{ diff().added }}</span>
+        <span class="ms-1.5 text-danger-700 dark:text-danger-400">−{{ diff().removed }}</span>
+      </span>
+    }
+    @if (showViewToggle()) {
+      <div
+        class="ms-auto inline-flex overflow-hidden rounded-md border border-gray-300 dark:border-white/15"
+        role="group"
+        [attr.aria-label]="labels.diffViewerLayout"
+      >
+        <button
+          type="button"
+          data-sv-diff-view="unified"
+          class="sv-target px-2.5 py-1 text-xs font-medium transition-colors focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+          [class]="view() === 'unified'
+            ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+            : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'"
+          [attr.aria-pressed]="view() === 'unified'"
+          (click)="view.set('unified')"
+        >{{ labels.diffViewerUnified }}</button>
+        <button
+          type="button"
+          data-sv-diff-view="split"
+          class="sv-target border-s border-gray-300 px-2.5 py-1 text-xs font-medium transition-colors focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-white/15"
+          [class]="view() === 'split'
+            ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+            : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'"
+          [attr.aria-pressed]="view() === 'split'"
+          (click)="view.set('split')"
+        >{{ labels.diffViewerSplit }}</button>
+      </div>
+    }
+  </header>
+
+  <p [id]="summaryId" class="sr-only">{{ summary() }}</p>
+
+  <!-- ── Notices: what the viewer did not, or could not, do ─────────────── -->
+  @switch (diff().status) {
+    @case ('too-large') {
+      <p data-sv-diff-notice="too-large" class="px-3 py-3 text-xs text-gray-700 dark:text-gray-300">{{ tooLargeText() }}</p>
+    }
+    @case ('patch-invalid') {
+      <p data-sv-diff-notice="patch-invalid" class="px-3 py-3 text-xs text-gray-700 dark:text-gray-300">{{ labels.diffViewerPatchInvalid }}</p>
+    }
+    @case ('too-different') {
+      <p data-sv-diff-notice="too-different" class="border-b border-gray-200 bg-warning-50 px-3 py-2 text-xs text-warning-800 dark:border-white/10 dark:bg-warning-950/30 dark:text-warning-200">{{ labels.diffViewerTooDifferent }}</p>
+    }
+  }
+  @if (diff().identical) {
+    <p data-sv-diff-notice="identical" class="border-b border-gray-200 px-3 py-2 text-xs text-gray-700 dark:border-white/10 dark:text-gray-300">{{ labels.diffViewerIdentical }}</p>
+  }
+  @if (diff().lineEndingsDiffer) {
+    <p data-sv-diff-notice="line-endings" class="border-b border-gray-200 bg-info-50 px-3 py-2 text-xs text-info-800 dark:border-white/10 dark:bg-info-950/30 dark:text-info-200">{{ labels.diffViewerLineEndings }}</p>
+  }
+  @if (diff().moreFiles) {
+    <p data-sv-diff-notice="more-files" class="border-b border-gray-200 bg-info-50 px-3 py-2 text-xs text-info-800 dark:border-white/10 dark:bg-info-950/30 dark:text-info-200">{{ labels.diffViewerPatchMoreFiles }}</p>
+  }
+
+  <!-- ── The diff ───────────────────────────────────────────────────────── -->
+  @if (items().length) {
+    <div class="overflow-y-auto print:max-h-none! print:overflow-visible" [style.max-height]="maxHeight() || null">
+      @if (view() === 'split') {
+        @for (section of sections(); track section.id) {
+          @switch (section.type) {
+            @case ('rows') {
+              <!--
+                ★ Two panes, each its own horizontal scroller with a name, so a
+                  keyboard can reach a long line and the two names make the
+                  repeated context lines read as a comparison.
+              -->
+              <div class="grid grid-cols-2 divide-x divide-gray-200 font-mono leading-relaxed dark:divide-white/10">
+                <div class="min-w-0 overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 print:overflow-visible" tabindex="0" role="group" [attr.aria-label]="beforeLabel()">
+                  @for (pair of section.rows; track pair.id) {
+                    <ng-container [ngTemplateOutlet]="side" [ngTemplateOutletContext]="{ $implicit: pair.left, number: pair.left?.oldNo, cls: pair.leftCls }" />
+                  }
+                </div>
+                <div class="min-w-0 overflow-x-auto outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 print:overflow-visible" tabindex="0" role="group" [attr.aria-label]="afterLabel()">
+                  @for (pair of section.rows; track pair.id) {
+                    <ng-container [ngTemplateOutlet]="side" [ngTemplateOutletContext]="{ $implicit: pair.right, number: pair.right?.newNo, cls: pair.rightCls }" />
+                  }
+                </div>
+              </div>
+            }
+            @case ('fold') {
+              <ng-container [ngTemplateOutlet]="fold" [ngTemplateOutletContext]="{ $implicit: section }" />
+            }
+            @case ('gap') {
+              <ng-container [ngTemplateOutlet]="gap" [ngTemplateOutletContext]="{ $implicit: section }" />
+            }
+          }
+        }
+      } @else {
+        <div class="overflow-x-auto font-mono leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 print:overflow-visible" tabindex="0" role="group" [attr.aria-label]="regionLabel()">
+          @for (item of items(); track item.id) {
+            @switch (item.type) {
+              @case ('row') {
+                <div
+                  data-sv-diff-row
+                  [attr.data-sv-kind]="item.row.kind"
+                  class="flex min-h-[1.5em] w-max min-w-full"
+                  [class]="item.row.rowCls"
+                >
+                  @if (lineNumbers()) {
+                    <span class="shrink-0 select-none px-2 text-end text-gray-600 dark:text-gray-400" [style.width]="gutter()" aria-hidden="true">{{ item.row.oldNo }}</span>
+                    <span class="shrink-0 select-none px-2 text-end text-gray-600 dark:text-gray-400" [style.width]="gutter()" aria-hidden="true">{{ item.row.newNo }}</span>
+                  }
+                  <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: item.row }" />
+                </div>
+              }
+              @case ('fold') {
+                <ng-container [ngTemplateOutlet]="fold" [ngTemplateOutletContext]="{ $implicit: item }" />
+              }
+              @case ('gap') {
+                <ng-container [ngTemplateOutlet]="gap" [ngTemplateOutletContext]="{ $implicit: item }" />
+              }
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</section>
+
+<!-- One side of a split row. A row with nothing on this side is alignment
+     padding, not a line, so it is hidden from a screen reader. -->
+<ng-template #side let-row let-number="number" let-cls="cls">
+  <div
+    data-sv-diff-row
+    [attr.data-sv-kind]="row?.kind ?? 'pad'"
+    class="flex min-h-[1.5em] w-max min-w-full"
+    [class]="cls"
+    [attr.aria-hidden]="row ? null : 'true'"
+  >
+    @if (lineNumbers()) {
+      <span class="shrink-0 select-none px-2 text-end text-gray-600 dark:text-gray-400" [style.width]="gutter()" aria-hidden="true">{{ number }}</span>
+    }
+    @if (row) {
+      <ng-container [ngTemplateOutlet]="body" [ngTemplateOutletContext]="{ $implicit: row }" />
+    }
+  </div>
+</ng-template>
+
+<!-- The marker, the sr-only kind and the text (with its changed words). -->
+<ng-template #body let-row>
+  <span class="shrink-0 select-none whitespace-pre px-1 font-semibold" [class]="row.markCls" aria-hidden="true">{{ row.glyph }}</span>
+  @if (row.sr) {
+    <span class="sr-only">{{ row.sr }}</span>
+  }
+  <span class="whitespace-pre pe-3 text-gray-800 [unicode-bidi:isolate] dark:text-gray-200">@if (row.segments) {@for (seg of row.segments; track $index) {@if (seg.changed) {<mark [class]="row.changedCls">{{ seg.text }}</mark>} @else {<span>{{ seg.text }}</span>}}} @else {<span>{{ row.text }}</span>}</span>
+  @if (row.noEol) {
+    <span class="shrink-0 select-none pe-3 font-sans text-[11px] italic text-gray-600 dark:text-gray-400" data-sv-no-eol>{{ labels.diffViewerNoNewline }}</span>
+  }
+</ng-template>
+
+<ng-template #fold let-item>
+  <div class="border-y border-gray-100 bg-gray-50 dark:border-white/5 dark:bg-white/[0.03]" data-sv-diff-fold>
+    <button
+      type="button"
+      class="sv-target inline-flex items-center gap-1.5 px-3 py-1 font-sans text-xs font-medium text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:text-primary-300"
+      (click)="expand(item.id)"
+    >
+      <sv-chevrons-up-down-icon [size]="12" />
+      {{ item.label }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #gap let-item>
+  <p class="border-y border-gray-100 bg-gray-50 px-3 py-1 font-sans text-xs italic text-gray-600 dark:border-white/5 dark:bg-white/[0.03] dark:text-gray-400" data-sv-diff-gap>
+    {{ item.label }}
+  </p>
+</ng-template>

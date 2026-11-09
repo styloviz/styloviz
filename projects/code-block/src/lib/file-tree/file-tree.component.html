@@ -1,0 +1,24 @@
+<!--
+  ══ sv-file-tree ══════════════════════════════════════════════════════════════
+
+  sv-tree-view does the tree — roles, keyboard, focus, states. This file only
+  hands it the nodes and a template for the glyph before each name.
+-->
+<sv-tree-view
+  [nodes]="treeNodes()"
+  [ariaLabel]="ariaLabel()"
+  [selectable]="selectable()"
+  [showLines]="showLines()"
+  [loading]="loading()"
+  [error]="error()"
+  [emptyText]="emptyText()"
+  [iconTemplate]="fileIcon"
+  [(expandedIds)]="expandedIds"
+  [(selectedId)]="selectedId"
+  (nodeSelect)="onSelect($event)"
+  (retry)="retry.emit()"
+/>
+
+<ng-template #fileIcon let-node>
+  <sv-icon [name]="iconName(node.id)" [size]="16" [strokeWidth]="1.75" [cssClass]="iconClass(node.id)" />
+</ng-template>

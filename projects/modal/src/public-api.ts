@@ -32,4 +32,11 @@ export {
   svUnlockBodyScroll,
   svBodyScrollLockDepth,
   svResetBodyScrollLock,
-} from '@styloviz/core';
+} from '@styloviz/core/overlay';
+
+// ─── Accessible names (provideSvLabels) ───────────────────────────────────────
+export { SV_MODAL_LABELS } from './lib/modal.labels';
+export type { SvModalLabels } from './lib/modal.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/modal.labels.packs';

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `file` icon. */
 export const fileNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const fileNodes: readonly IconNode[] = [
 export const fileSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7 2.1h7q.4 0 .6.3l5 5q.3.2.3.6v12q0 1.9-1.9 1.9h-11q-1.9 0-1.9-1.9v-16q0-1.9 1.9-1.9zm6.1 1.8v4.1q0 .9.9.9h4.1v-.5l-1.2-1.3h-2v-2l-1.3-1.2z' },
 ];
+
+/** `file` as a registrable glyph — `registerSvIcons([fileIcon])` / `provideSvIcons([fileIcon])`. */
+export const fileIcon: SvIconDef = { name: 'file', nodes: fileNodes, solid: fileSolidNodes };
 
 /** `file` — tree-shakable standalone icon. Use `<sv-file-icon />`. */
 @Component({

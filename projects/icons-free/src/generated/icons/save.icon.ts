@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `save` icon. */
 export const saveNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const saveNodes: readonly IconNode[] = [
 export const saveSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 2.1h11q.4 0 .6.3l4 4q.3.2.3.6v13q0 1.9-1.9 1.9h-14q-1.9 0-1.9-1.9v-16q0-1.9 1.9-1.9zm2.1 17.9q0 .1 0 .1h9.8q0 0 0-.1v-7q0-.9-.9-.9h-8q-.9 0-.9.9zm1.8-6.1h6.2v5.2h-6.2zm7-9.8l-.3-.2h-1.5v3.2h-5.2v-3.2h-1.8v4.1q0 .9.9.9h7q.9 0 .9-.9z' },
 ];
+
+/** `save` as a registrable glyph — `registerSvIcons([saveIcon])` / `provideSvIcons([saveIcon])`. */
+export const saveIcon: SvIconDef = { name: 'save', nodes: saveNodes, solid: saveSolidNodes };
 
 /** `save` — tree-shakable standalone icon. Use `<sv-save-icon />`. */
 @Component({

@@ -1,4 +1,4 @@
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { createSvCursorPager } from './cursor-pager';
 
 /**

@@ -126,7 +126,7 @@ describe('SvExpandComponent — what is mounted, and what is announced', () => {
 });
 
 /**
- * ── regression: PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #2 (X-2 / X-3) ───────
+ * ── regression: docs/audit/PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #2 (X-2 / X-3) ───────
  * "Expand (`sv-expand`) — headless panel can't be wired to a trigger's
  * `aria-controls`": no panel id, so no `aria-controls`, and no way to expose it
  * as a named `role="region"`. The finding is CLOSED, and these tests are what

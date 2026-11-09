@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `map-pin` icon. */
 export const mapPinNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const mapPinNodes: readonly IconNode[] = [
 export const mapPinSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 2 a7 7 0 0 1 7 7 c0 5 -7 12 -7 12 S5 14 5 9 a7 7 0 0 1 7 -7 Z M12 6.8 a2.2 2.2 0 1 0 0 4.4 a2.2 2.2 0 0 0 0 -4.4 Z', fillRule: 'evenodd' },
 ];
+
+/** `map-pin` as a registrable glyph — `registerSvIcons([mapPinIcon])` / `provideSvIcons([mapPinIcon])`. */
+export const mapPinIcon: SvIconDef = { name: 'map-pin', nodes: mapPinNodes, solid: mapPinSolidNodes };
 
 /** `map-pin` — tree-shakable standalone icon. Use `<sv-map-pin-icon />`. */
 @Component({

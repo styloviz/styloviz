@@ -2,24 +2,24 @@
 <div
   [ngClass]="[
     'flex flex-wrap items-center gap-3',
-    variant() === 'compact' ? 'justify-center' : 'justify-between',
+    variant() === 'compact' || variant() === 'load-more' ? 'justify-center' : 'justify-between',
     customClass()
   ]"
 >
 
   <!-- ── Summary + page-size selector ────────────────────────────────── -->
-  @if (variant() !== 'compact') {
+  @if (variant() !== 'compact' && variant() !== 'load-more') {
     <div class="flex flex-wrap items-center gap-3">
 
       <!-- Needs a count to be "of" — cursor / unknown-total modes show the
            ordinal in the nav instead (`NV-04-M1`). -->
       @if (showSummary() && hasStableTotal() && itemCount() > 0) {
         <p [ngClass]="['text-gray-500 dark:text-gray-400', textClass()]">
-          Showing
+          {{ labels.summaryShowing }}
           <span class="font-medium text-gray-900 dark:text-white">{{ rangeStart() }}</span>
           –
           <span class="font-medium text-gray-900 dark:text-white">{{ rangeEnd() }}</span>
-          of
+          {{ labels.summaryOf }}
           <span class="font-medium text-gray-900 dark:text-white">{{ itemCount() }}</span>
         </p>
       }
@@ -27,7 +27,7 @@
       @if (pageSizeOptions().length > 0) {
         <div class="flex items-center gap-1.5">
           <label [ngClass]="['text-gray-500 dark:text-gray-400 whitespace-nowrap', textClass()]"
-                 [for]="pageSizeSelectId">Rows per page</label>
+                 [for]="pageSizeSelectId">{{ labels.rowsPerPage }}</label>
           <select
             [id]="pageSizeSelectId"
             [ngModel]="pageSize()"
@@ -77,7 +77,51 @@
 
   <!-- ── Page controls ────────────────────────────────────────────────── -->
   <nav [attr.aria-label]="ariaLabel()" [attr.aria-busy]="busy() ? 'true' : null">
-    <ul class="flex items-center gap-1">
+    @if (variant() === 'load-more') {
+      <!--
+        One button for the next page; the host appends it to what is shown.
+        The count is of what is on screen so far, which is what "Showing 40 of
+        95" means here. Named by `aria-label` (its own text) so focus can be put
+        back on it after the load — and once it is gone, on this landmark.
+      -->
+      <div class="flex flex-col items-center gap-2">
+        @if (showSummary() && hasStableTotal() && itemCount() > 0) {
+          <p [ngClass]="['text-gray-600 dark:text-gray-400', textClass()]" data-sv-load-more-count>
+            {{ labels.summaryShowing }}
+            <span class="font-medium text-gray-900 dark:text-white">{{ rangeEnd() }}</span>
+            {{ labels.summaryOf }}
+            <span class="font-medium text-gray-900 dark:text-white">{{ itemCount() }}</span>
+          </p>
+        }
+        @if (hasNext()) {
+          <!-- `aria-disabled`, not `disabled`, while a page loads: a disabled
+               button drops focus, and the reader's next press is on this button.
+               `next()` refuses while busy either way. -->
+          <button
+            type="button"
+            [attr.aria-label]="labels.loadMore"
+            [attr.aria-disabled]="busy() || null"
+            (click)="next()"
+            [ngClass]="[
+              'inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white font-medium text-gray-800',
+              'hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1',
+              'aria-disabled:cursor-wait',
+              textClass(),
+              size() === 'sm' ? 'h-8 px-3' : size() === 'lg' ? 'h-11 px-5' : 'h-9 px-4'
+            ]"
+          >
+            @if (busy()) {
+              <sv-icon name="loader" cssClass="h-4 w-4 animate-spin motion-reduce:animate-none" [strokeWidth]="2" />
+            }
+            {{ labels.loadMore }}
+          </button>
+        }
+      </div>
+    } @else {
+    <!-- Wraps rather than run past a narrow card (FL-L4-05); below sm the First /
+         Last buttons go — the window always shows page 1 and the last page. -->
+    <ul class="flex flex-wrap items-center gap-1">
 
       @if (variant() === 'simple' || !hasStableTotal()) {
         <!--
@@ -91,7 +135,7 @@
             [ngClass]="navButtonClass(prevDisabled())"
             [disabled]="prevDisabled()"
             (click)="previous()"
-            aria-label="Previous page"
+            [attr.aria-label]="labels.previousPage"
           >
             <sv-icon name="chevron-left" cssClass="h-4 w-4" [strokeWidth]="2" />
           </button>
@@ -109,7 +153,7 @@
             [ngClass]="navButtonClass(nextDisabled())"
             [disabled]="nextDisabled()"
             (click)="next()"
-            aria-label="Next page"
+            [attr.aria-label]="labels.nextPage"
           >
             <sv-icon name="chevron-right" cssClass="h-4 w-4" [strokeWidth]="2" />
           </button>
@@ -120,13 +164,13 @@
 
         <!-- First -->
         @if (variant() === 'default') {
-          <li>
+          <li class="max-sm:hidden">
             <button
               type="button"
               [ngClass]="navButtonClass(prevDisabled())"
               [disabled]="prevDisabled()"
               (click)="first()"
-              aria-label="First page"
+              [attr.aria-label]="labels.firstPage"
             >
               <sv-icon name="chevrons-left" cssClass="h-4 w-4" [strokeWidth]="2" />
             </button>
@@ -140,7 +184,7 @@
             [ngClass]="navButtonClass(prevDisabled())"
             [disabled]="prevDisabled()"
             (click)="previous()"
-            aria-label="Previous page"
+            [attr.aria-label]="labels.previousPage"
           >
             <sv-icon name="chevron-left" cssClass="h-4 w-4" [strokeWidth]="2" />
           </button>
@@ -159,7 +203,7 @@
                 type="button"
                 [ngClass]="pageButtonClass(page)"
                 [attr.aria-current]="page === currentPage() ? 'page' : null"
-                [attr.aria-label]="'Page ' + page"
+                [attr.aria-label]="labels.goToPage | svLabel: { page: page }"
                 [disabled]="busy()"
                 (click)="goTo(page)"
               >
@@ -176,7 +220,7 @@
             [ngClass]="navButtonClass(nextDisabled())"
             [disabled]="nextDisabled()"
             (click)="next()"
-            aria-label="Next page"
+            [attr.aria-label]="labels.nextPage"
           >
             <sv-icon name="chevron-right" cssClass="h-4 w-4" [strokeWidth]="2" />
           </button>
@@ -184,13 +228,13 @@
 
         <!-- Last -->
         @if (variant() === 'default') {
-          <li>
+          <li class="max-sm:hidden">
             <button
               type="button"
               [ngClass]="navButtonClass(nextDisabled())"
               [disabled]="nextDisabled()"
               (click)="last()"
-              aria-label="Last page"
+              [attr.aria-label]="labels.lastPage"
             >
               <sv-icon name="chevrons-right" cssClass="h-4 w-4" [strokeWidth]="2" />
             </button>
@@ -200,6 +244,48 @@
       }
 
     </ul>
+    }
   </nav>
+
+  <!-- ── Go to page ───────────────────────────────────────────────────── -->
+  @if (jumpToPage() && hasStableTotal() && variant() !== 'load-more') {
+    <!-- The field and its button carry their own text as `aria-label`, so the
+         focus a page move puts back finds them again. -->
+    <form ngNoForm class="flex items-center gap-1.5" (submit)="jump($event, jumpField)">
+      <label [for]="jumpInputId" [ngClass]="['whitespace-nowrap text-gray-600 dark:text-gray-400', textClass()]">{{ labels.jumpToPage }}</label>
+      <input
+        #jumpField
+        [id]="jumpInputId"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        [attr.max]="totalPages()"
+        [attr.aria-label]="labels.jumpToPage"
+        [placeholder]="currentPage()"
+        [disabled]="busy()"
+        [ngClass]="[
+          'w-16 rounded-lg border border-gray-200 bg-white text-gray-900',
+          'dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100',
+          'focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          textClass(),
+          size() === 'sm' ? 'h-7 px-2' : size() === 'lg' ? 'h-10 px-3' : 'h-8 px-2.5'
+        ]"
+      />
+      <button
+        type="submit"
+        [attr.aria-label]="labels.jumpGo"
+        [disabled]="busy()"
+        [ngClass]="[
+          'inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white font-medium text-gray-700',
+          'hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          textClass(),
+          size() === 'sm' ? 'h-7 px-2' : size() === 'lg' ? 'h-10 px-3' : 'h-8 px-2.5'
+        ]"
+      >{{ labels.jumpGo }}</button>
+    </form>
+  }
 
 </div>

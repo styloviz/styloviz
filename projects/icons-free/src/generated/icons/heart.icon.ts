@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `heart` icon. */
 export const heartNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const heartNodes: readonly IconNode[] = [
 export const heartSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 20.7 C4.5 15.4 3 10.6 6.1 7.5 C8.4 5.2 11.2 6.2 12 8.6 C12.8 6.2 15.6 5.2 17.9 7.5 C21 10.6 19.5 15.4 12 20.7 Z' },
 ];
+
+/** `heart` as a registrable glyph — `registerSvIcons([heartIcon])` / `provideSvIcons([heartIcon])`. */
+export const heartIcon: SvIconDef = { name: 'heart', nodes: heartNodes, solid: heartSolidNodes };
 
 /** `heart` — tree-shakable standalone icon. Use `<sv-heart-icon />`. */
 @Component({

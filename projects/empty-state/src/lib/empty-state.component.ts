@@ -1,13 +1,30 @@
 import {
   Component,
+  Directive,
   input,
   output,
   computed,
+  contentChild,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import type { SvEmptyReason } from '@styloviz/core';
+import { SvAvatarComponent } from '@styloviz/avatar';
+import { SvKbdComponent } from '@styloviz/kbd';
+import { svShortcutTokens } from '@styloviz/core/a11y';
+import { type SvEmptyReason } from '@styloviz/core/data';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_EMPTY_STATE_LABELS, type SvEmptyStateLabels } from './empty-state.labels';
+import {
+  SvIllustrationErrorComponent,
+  SvIllustrationNoAccessComponent,
+  SvIllustrationNoDataComponent,
+  SvIllustrationNoResultsComponent,
+} from './empty-state.illustrations';
+
+import { registerEmptyStateIcons } from './empty-state.component.icons';
+export { SV_EMPTY_STATE_LABELS } from './empty-state.labels';
+export type { SvEmptyStateLabels } from './empty-state.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,7 +34,57 @@ import type { SvEmptyReason } from '@styloviz/core';
  * - `md`  — default card/panel use
  * - `lg`  — full-page / hero-style
  */
-export type EmptyStateSize = 'sm' | 'md' | 'lg';
+/** `xs` is a one-line row (a table's empty body); `xl` a full-page hero. */
+export type EmptyStateSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+
+/**
+ * The card's treatment.
+ * - `default` — the ring stack on a plain card.
+ * - `dashed` — a dashed drop-zone border; with exactly one action the whole
+ *   card is that action ("Create your first project").
+ * - `ghost` — `[svGhost]` content shown faintly behind, fading out: a preview
+ *   of what the screen will look like once it has data.
+ * - `glow` — a soft tinted glow behind the icon (`sv-glow`).
+ */
+export type EmptyStateVariant = 'default' | 'dashed' | 'ghost' | 'glow';
+
+/** Centred, or aligned to the start (in a card header, beside other content). */
+export type EmptyStateAlign = 'center' | 'start';
+
+/** A built-in illustration, or `'auto'` to pick one by `reason`. */
+export type EmptyStateIllustration = 'auto' | 'no-data' | 'no-results' | 'no-access' | 'error';
+
+/** One step of an onboarding checklist. */
+export interface EmptyStateStep {
+  readonly id: string;
+  readonly label: string;
+  readonly description?: string;
+  readonly done?: boolean;
+}
+
+/** A person in the "invite teammates" stack. */
+export interface EmptyStateAvatar {
+  readonly name: string;
+  readonly src?: string;
+}
+
+/** A quiet link under the actions — "Learn more". */
+export interface EmptyStateLink {
+  readonly label: string;
+  readonly href: string;
+}
+
+/** Marks projected content as the illustration — it replaces the ring stack. */
+@Directive({ selector: '[svIllustration]', standalone: true })
+export class SvEmptyIllustrationDirective {}
+
+/** Marks projected content as the ghost preview behind a `variant="ghost"` card. */
+@Directive({ selector: '[svGhost]', standalone: true })
+export class SvEmptyGhostDirective {}
+
+/** Marks projected media (an image, a video) shown in place of the icon. */
+@Directive({ selector: '[svMedia]', standalone: true })
+export class SvEmptyMediaDirective {}
 
 /**
  * Layout axis for the content stack.
@@ -128,19 +195,33 @@ const ICON_NAMES: Record<Exclude<EmptyStateIcon, 'custom'>, string> = {
 @Component({
   selector: 'sv-empty-state',
   standalone: true,
-  imports: [NgClass, SvIconComponent],
+  imports: [
+    NgClass,
+    SvIconComponent,
+    SvAvatarComponent,
+    SvKbdComponent,
+    SvIllustrationNoDataComponent,
+    SvIllustrationNoResultsComponent,
+    SvIllustrationNoAccessComponent,
+    SvIllustrationErrorComponent,
+  ],
   templateUrl: './empty-state.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvEmptyStateComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerEmptyStateIcons();
+
+  /** The package's labels — `provideSvLabels({ emptyState: { … } })`; `[labels]` overrides them per instance. */
+  private readonly registryLabels = injectSvLabels('emptyState', SV_EMPTY_STATE_LABELS);
+
   // ── Content ───────────────────────────────────────────────────────────────
 
   /**
    * Main heading text. Falls back to copy chosen from `reason`.
    *
-   * ★ The default is now empty rather than `'Nothing here yet'`: that string
-   *   was the DEFAULT for a filtered list too, which is the whole of
-   *   `OF-07-I5`. `resolvedTitle()` picks the sentence that is true.
+   * Empty by default, so the heading matches the reason: a filtered list says
+   * nothing matched the filters rather than `'Nothing here yet'`.
    */
   title   = input<string>('');
 
@@ -183,7 +264,7 @@ export class SvEmptyStateComponent {
    * ★ Rendered only when there are filters to clear, so it cannot offer to
    *   undo something that is not there.
    */
-  clearFiltersLabel = input<string | null>('Clear filters');
+  clearFiltersLabel = input<string | null>(this.registryLabels.clearFilters);
 
   /**
    * The device is offline (`OF-07-M1`). Takes precedence over `reason`.
@@ -220,10 +301,8 @@ export class SvEmptyStateComponent {
 
   /**
    * Icon-library NAME — required when `icon === 'custom'`, ignored otherwise.
-   *
-   * ★ BREAKING (icon sweep): was `iconPath`, a raw `<path d="…">`, alongside an
-   * `iconViewBox` that is now deleted. An unresolved name draws no `<svg>` at
-   * all, so the decorative ring keeps its shape.
+   * An unresolved name draws no `<svg>` at all, so the decorative ring keeps
+   * its shape.
    */
   customIcon = input<string>('');
 
@@ -260,6 +339,58 @@ export class SvEmptyStateComponent {
    */
   actions = input<EmptyStateAction[]>([]);
 
+  // ── SR-34: variants and content ───────────────────────────────────────────
+
+  /** The card's treatment: plain, dashed, ghost preview, or glow. @default 'default' */
+  variant = input<EmptyStateVariant>('default');
+
+  /** Centred, or aligned to the start of its box. @default 'center' */
+  align = input<EmptyStateAlign>('center');
+
+  /**
+   * A built-in illustration in place of the ring stack — or `'auto'` to pick
+   * one by `reason`. Projected `[svIllustration]` content wins over this.
+   * @default null
+   */
+  illustration = input<EmptyStateIllustration | null>(null);
+
+  /** An onboarding checklist: numbered steps, a check on the done ones. @default [] */
+  steps = input<readonly EmptyStateStep[]>([]);
+
+  /**
+   * The search that found nothing. With `reason="no-results"` and no `title`,
+   * the title says "No results for «query»", and a Clear search button appears.
+   * @default ''
+   */
+  query = input<string>('');
+
+  /** "Did you mean" chips for a search with no results. @default [] */
+  suggestions = input<readonly string[]>([]);
+
+  /** Technical detail for an error, behind a "Show details" disclosure. @default '' */
+  errorDetails = input<string>('');
+
+  /** With `reason="no-access"`, a button to ask for access. @default '' */
+  requestAccessLabel = input<string>('');
+
+  /** A quiet link under the actions — documentation, a guide. @default null */
+  secondaryLink = input<EmptyStateLink | null>(null);
+
+  /** People to show in an "invite teammates" stack. @default [] */
+  avatars = input<readonly EmptyStateAvatar[]>([]);
+
+  /** How many avatars to draw before a "+N" chip. @default 4 */
+  maxAvatars = input<number>(4);
+
+  /** A keyboard shortcut to mention — `'mod+n'` — drawn as keys. @default '' */
+  shortcut = input<string>('');
+
+  /** What the shortcut does, after it: "to create a project". @default '' */
+  shortcutHint = input<string>('');
+
+  /** Every string the component renders itself. Merged over `SV_EMPTY_STATE_LABELS`. @default {} */
+  labels = input<Partial<SvEmptyStateLabels>>({});
+
   // ── Outputs ───────────────────────────────────────────────────────────────
 
   /** Emitted when any action button is clicked, carrying the action's `id`. */
@@ -270,6 +401,103 @@ export class SvEmptyStateComponent {
 
   /** The preset retry button was pressed (`retryLabel`, `OF-07-M1`). */
   readonly retry = output<void>();
+
+  /** A checklist step was chosen. */
+  readonly stepClick = output<EmptyStateStep>();
+
+  /** A "Did you mean" suggestion was chosen. */
+  readonly suggestionClick = output<string>();
+
+  /** The Clear search button. */
+  readonly clearQuery = output<void>();
+
+  /** The request-access button. */
+  readonly requestAccess = output<void>();
+
+  // ── SR-34: projected parts ────────────────────────────────────────────────
+
+  private readonly _illustrationSlot = contentChild(SvEmptyIllustrationDirective);
+  private readonly _ghostSlot = contentChild(SvEmptyGhostDirective);
+  private readonly _mediaSlot = contentChild(SvEmptyMediaDirective);
+  readonly hasIllustrationSlot = computed(() => this._illustrationSlot() !== undefined);
+  readonly hasGhost = computed(() => this._ghostSlot() !== undefined);
+  readonly hasMedia = computed(() => this._mediaSlot() !== undefined);
+
+  /** The labels: the registry's (English unless the app provides others), under whatever the host passed. */
+  readonly text = computed<SvEmptyStateLabels>(() => ({ ...this.registryLabels, ...this.labels() }));
+
+  /** The built-in illustration to draw, or `null`. */
+  readonly builtInIllustration = computed<Exclude<EmptyStateIllustration, 'auto'> | null>(() => {
+    const chosen = this.illustration();
+    if (chosen === null || this.hasIllustrationSlot()) return null;
+    if (chosen !== 'auto') return chosen;
+    return this.offline() ? 'error' : this.resolvedReason();
+  });
+
+  /** What stands in the icon's place: an illustration, media, or the ring stack. */
+  readonly visual = computed<'illustration' | 'media' | 'icon'>(() =>
+    this.hasIllustrationSlot() || this.builtInIllustration() !== null ? 'illustration' : this.hasMedia() ? 'media' : 'icon');
+
+  /**
+   * ★ `dashed` with exactly one action and nothing else to press: the whole
+   *   card IS the action, so it becomes one button — not a card with a button
+   *   in it, which would nest one control inside another.
+   */
+  readonly cardIsAction = computed(() =>
+    this.variant() === 'dashed' &&
+    this.actions().length === 1 &&
+    !this.clearOffered() &&
+    !this.retryOffered() &&
+    this.steps().length === 0 &&
+    this.suggestions().length === 0 &&
+    !this.queryClearOffered() &&
+    !this.requestAccessOffered() &&
+    this.secondaryLink() === null);
+
+  /** Run the card's one action — the dashed card's click, Enter and Space. */
+  activateCard(event?: Event): void {
+    if (!this.cardIsAction()) return;
+    if (event instanceof KeyboardEvent) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+    }
+    this.actionClick.emit(this.actions()[0].id);
+  }
+
+  /** A Clear search button, for a search that found nothing. */
+  readonly queryClearOffered = computed(() => this.query().trim() !== '' && this.resolvedReason() === 'no-results');
+
+  /** A request-access button, for a no-access state. */
+  readonly requestAccessOffered = computed(() => this.requestAccessLabel() !== '' && this.resolvedReason() === 'no-access');
+
+  /** The avatars drawn, and how many are left over. */
+  readonly avatarStack = computed(() => {
+    const all = this.avatars();
+    const max = Math.max(0, this.maxAvatars());
+    const shown = all.slice(0, max);
+    const more = all.length - shown.length;
+    return { shown, more, moreLabel: this.text().moreAvatars.replace('{count}', String(more)) };
+  });
+
+  /** The shortcut sentence, split around its keys. */
+  readonly shortcutParts = computed(() => {
+    const keys = this.shortcut();
+    if (!keys) return null;
+    const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+    const tokens = svShortcutTokens(keys, { isMac });
+    if (tokens.length === 0) return null;
+    const sentence = this.text().shortcut.replace('{hint}', this.shortcutHint()).trim();
+    const [before, after = ''] = sentence.split('{keys}');
+    return { before: before.trim(), after: after.trim(), tokens };
+  });
+
+  /** Numbered steps, with their state. */
+  readonly stepRows = computed(() => {
+    const steps = this.steps();
+    const next = steps.findIndex((s) => !s.done);
+    return steps.map((step, i) => ({ step, number: i + 1, done: !!step.done, current: i === next }));
+  });
+
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -303,12 +531,16 @@ export class SvEmptyStateComponent {
   readonly resolvedTitle = computed<string>(() => {
     const stated = this.title().trim();
     if (stated) return stated;
-    if (this.offline()) return 'You are offline';
+    const text = this.text();
+    if (this.offline()) return text.offlineTitle;
     switch (this.resolvedReason()) {
-      case 'no-results': return 'No matching results';
-      case 'error':      return 'Could not load this';
-      case 'no-access':  return 'You do not have access';
-      default:           return 'Nothing here yet';
+      case 'no-results': {
+        const q = this.query().trim();
+        return q ? text.noResultsFor.replace('{query}', q) : text.noResultsTitle;
+      }
+      case 'error':      return text.errorTitle;
+      case 'no-access':  return text.noAccessTitle;
+      default:           return text.noDataTitle;
     }
   });
 
@@ -316,14 +548,15 @@ export class SvEmptyStateComponent {
   readonly resolvedMessage = computed<string>(() => {
     const stated = this.message().trim();
     if (stated) return stated;
-    if (this.offline()) return 'This will load when your connection is back.';
+    const text = this.text();
+    if (this.offline()) return text.offlineMessage;
     switch (this.resolvedReason()) {
       // ★ No message for `no-results`: the filter chips below say more than a
       //   sentence could, and a generic "try adjusting your filters" above a
       //   list of the actual filters is noise between the user and the fix.
       case 'no-results': return '';
-      case 'error':      return 'Something went wrong while loading. Try again.';
-      case 'no-access':  return 'Ask an administrator if you think this is wrong.';
+      case 'error':      return text.errorMessage;
+      case 'no-access':  return text.noAccessMessage;
       default:           return '';
     }
   });
@@ -383,23 +616,39 @@ export class SvEmptyStateComponent {
   // ── Root wrapper ──────────────────────────────────────────────────────────
 
   rootClasses = computed<string>(() => {
-    const bordered = this.bordered()
-      ? 'border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
-      : '';
+    const variant = this.variant();
+    const xs = this.size() === 'xs';
+    const surface = !this.bordered()
+      ? ''
+      : variant === 'dashed'
+        ? 'border-2 border-dashed border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900'
+        : 'border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900';
 
     const sizeMap: Record<EmptyStateSize, string> = {
+      xs: 'rounded-lg px-4 py-3',
       sm: 'rounded-xl px-6 py-8',
       md: 'rounded-xl px-8 py-12',
       lg: 'rounded-2xl px-10 py-16',
+      xl: 'rounded-2xl px-6 py-20 sm:px-12 sm:py-28',
     };
 
-    return [
-      'w-full',
-      bordered,
-      sizeMap[this.size()],
-      this.layout() === 'horizontal'
+    const start = this.align() === 'start';
+    const axis = xs
+      ? 'flex items-center gap-3 text-start'
+      : this.layout() === 'horizontal'
         ? 'flex items-center gap-8'
-        : 'flex flex-col items-center text-center',
+        : start
+          ? 'flex flex-col items-start text-start'
+          : 'flex flex-col items-center text-center';
+
+    return [
+      'relative isolate w-full overflow-hidden',
+      surface,
+      sizeMap[this.size()],
+      axis,
+      this.cardIsAction()
+        ? 'cursor-pointer transition-colors hover:border-primary-400 hover:bg-primary-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:hover:border-primary-500/60 dark:hover:bg-primary-500/5 dark:focus-visible:ring-offset-gray-950'
+        : '',
       this.customClass(),
     ].filter(Boolean).join(' ');
   });
@@ -409,8 +658,10 @@ export class SvEmptyStateComponent {
   /** Outer ring container size keyed to component size. */
   ringSizeClass = computed<string>(() => {
     switch (this.size()) {
+      case 'xs': return 'h-8 w-8';
       case 'sm': return 'h-20 w-20';
       case 'lg': return 'h-36 w-36';
+      case 'xl': return 'h-44 w-44';
       default:   return 'h-28 w-28';
     }
   });
@@ -418,8 +669,10 @@ export class SvEmptyStateComponent {
   /** Inner icon container size. */
   iconContainerClass = computed<string>(() => {
     switch (this.size()) {
+      case 'xs': return 'h-8 w-8';
       case 'sm': return 'h-10 w-10';
       case 'lg': return 'h-16 w-16';
+      case 'xl': return 'h-20 w-20';
       default:   return 'h-14 w-14';
     }
   });
@@ -427,48 +680,63 @@ export class SvEmptyStateComponent {
   /** SVG icon size. */
   iconSvgClass = computed<string>(() => {
     switch (this.size()) {
+      case 'xs': return 'h-4 w-4';
       case 'sm': return 'h-5 w-5';
       case 'lg': return 'h-8 w-8';
+      case 'xl': return 'h-10 w-10';
       default:   return 'h-7 w-7';
     }
   });
+
+  /** The rings are a centrepiece; a one-line row has no room for them. */
+  readonly ringsShown = computed(() => this.showRings() && this.size() !== 'xs');
 
   // ── Typography ────────────────────────────────────────────────────────────
 
   titleClass = computed<string>(() => {
     const base = 'font-semibold text-gray-900 dark:text-white';
     switch (this.size()) {
+      case 'xs': return `${base} text-sm`;
       case 'sm': return `${base} text-sm`;
       case 'lg': return `${base} text-2xl`;
+      case 'xl': return `${base} text-3xl tracking-tight sm:text-4xl`;
       default:   return `${base} text-lg`;
     }
   });
 
   messageClass = computed<string>(() => {
-    const base = 'text-gray-500 dark:text-gray-400 leading-relaxed';
-    const maxW = this.layout() === 'vertical'
-      ? (this.size() === 'lg' ? 'max-w-md' : 'max-w-xs')
+    const base = 'text-gray-600 dark:text-gray-400 leading-relaxed';
+    const maxW = this.layout() === 'vertical' && this.size() !== 'xs'
+      ? (this.size() === 'xl' ? 'max-w-lg' : this.size() === 'lg' ? 'max-w-md' : 'max-w-xs')
       : '';
     switch (this.size()) {
+      case 'xs': return `${base} text-sm`;
       case 'sm': return `${base} text-xs ${maxW}`;
       case 'lg': return `${base} text-base ${maxW}`;
+      case 'xl': return `${base} text-lg ${maxW}`;
       default:   return `${base} text-sm ${maxW}`;
     }
   });
 
   // ── Text block layout ─────────────────────────────────────────────────────
 
-  textBlockClass = computed<string>(() =>
-    this.layout() === 'horizontal'
-      ? 'flex flex-1 flex-col items-start text-left gap-1 min-w-0'
-      : 'flex flex-col items-center gap-1.5'
-  );
+  textBlockClass = computed<string>(() => {
+    if (this.size() === 'xs') return 'flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5';
+    return this.layout() === 'horizontal' || this.align() === 'start'
+      ? 'relative flex flex-1 flex-col items-start text-start gap-1 min-w-0'
+      : 'relative flex flex-col items-center gap-1.5';
+  });
 
-  actionsClass = computed<string>(() =>
-    this.layout() === 'horizontal'
+  actionsClass = computed<string>(() => {
+    if (this.size() === 'xs') return 'flex shrink-0 flex-wrap gap-2';
+    return this.layout() === 'horizontal' || this.align() === 'start'
       ? 'flex flex-wrap gap-2 mt-4'
-      : 'flex flex-wrap justify-center gap-3 mt-4'
-  );
+      : 'flex flex-wrap justify-center gap-3 mt-4';
+  });
+
+  /** Where the chips and lists sit: centred or to the start. */
+  readonly rowJustify = computed(() =>
+    this.layout() === 'horizontal' || this.align() === 'start' || this.size() === 'xs' ? 'justify-start' : 'justify-center');
 
   // ── Action button classes ─────────────────────────────────────────────────
 
@@ -480,9 +748,11 @@ export class SvEmptyStateComponent {
   actionClasses = computed<Record<NonNullable<EmptyStateAction['style']>, string>>(() => {
     const base = 'inline-flex items-center gap-1.5 rounded-lg font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
     const sizeMap: Record<EmptyStateSize, string> = {
+      xs: 'px-2.5 py-1 text-xs',
       sm: 'px-3 py-1.5 text-xs',
       md: 'px-4 py-2 text-sm',
       lg: 'px-5 py-2.5 text-sm',
+      xl: 'px-6 py-3 text-base',
     };
     const sizeClass = sizeMap[this.size()];
 

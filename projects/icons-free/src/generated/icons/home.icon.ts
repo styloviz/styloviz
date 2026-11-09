@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `home` icon. */
 export const homeNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const homeNodes: readonly IconNode[] = [
 export const homeSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M11.3 2.8 a1 1 0 0 1 1.4 0 l8 7.2 a1 1 0 0 1 0.3 0.75 V20 a1 1 0 0 1 -1 1 h-5 v-6 h-4 v6 H4 a1 1 0 0 1 -1 -1 v-9.25 a1 1 0 0 1 0.3 -0.75 Z' },
 ];
+
+/** `home` as a registrable glyph — `registerSvIcons([homeIcon])` / `provideSvIcons([homeIcon])`. */
+export const homeIcon: SvIconDef = { name: 'home', nodes: homeNodes, solid: homeSolidNodes };
 
 /** `home` — tree-shakable standalone icon. Use `<sv-home-icon />`. */
 @Component({

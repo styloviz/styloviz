@@ -5,6 +5,7 @@
 @if (isVisible() && !suppressed()) {
   <div
     [ngClass]="wrapperClasses()"
+    [attr.data-sv-sticky]="stickyEdge()"
     #strip
     role="status"
     [style.top.px]="stackTopPx()"
@@ -26,7 +27,7 @@
 
         <span class="text-center leading-snug">
           @if (title()) { <span class="font-semibold">{{ title() }}</span> }
-          @if (message()) { <span class="text-white/90" [class.ml-1.5]="title()">{{ message() }}</span> }
+          @if (message()) { <span class="text-white" [class.ml-1.5]="title()">{{ message() }}</span> }
           <ng-content />
         </span>
 
@@ -39,7 +40,7 @@
               (click)="onActionClick(action.id)"
             >
               {{ action.label }}
-              <sv-icon name="arrow-right" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+              <sv-icon name="arrow-right" cssClass="h-3 w-3 rtl:-scale-x-100" [strokeWidth]="2.5" />
             </button>
           }
         }
@@ -48,9 +49,9 @@
           <button
             type="button"
             data-sv-alert-control
-            class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition-colors duration-150 hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            (click)="close()"
-            aria-label="Dismiss announcement"
+            class="absolute end-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/80 transition-colors duration-150 hover:bg-white/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            (click)="dismiss()"
+            [attr.aria-label]="labels.dismissAnnouncement"
           >
             <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
           </button>
@@ -118,8 +119,8 @@
           data-sv-alert-control
           class="shrink-0"
           [ngClass]="dismissClass()"
-          (click)="close()"
-          aria-label="Dismiss alert"
+          (click)="dismiss()"
+          [attr.aria-label]="labels.dismissAlert"
         >
           <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
         </button>

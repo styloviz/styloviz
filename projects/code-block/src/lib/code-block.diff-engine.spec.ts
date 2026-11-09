@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svDiffLines } from '@styloviz/core';
+import { svDiffLines } from '@styloviz/core/data';
+import { SV_CORE_LABELS } from '@styloviz/core/i18n';
 import { SvCodeBlockComponent } from './code-block.component';
 import type { DiffHunk } from './code-block.types';
 
@@ -45,7 +46,7 @@ describe('svDiffLines feeds sv-code-block without a translation layer', () => {
   it('assigns straight to [hunks]', async () => {
     // ★ No mapping, no adapter. If this stops compiling or stops rendering, the
     //   two halves have drifted and the shared engine has stopped being shared.
-    const result = svDiffLines(BEFORE, AFTER);
+    const result = svDiffLines(BEFORE, AFTER, SV_CORE_LABELS);
     const f = await block(result.hunks);
 
     expect(result.hunks.length).toBeGreaterThan(0);
@@ -56,7 +57,7 @@ describe('svDiffLines feeds sv-code-block without a translation layer', () => {
   });
 
   it('renders the added and removed lines the engine found', async () => {
-    const result = svDiffLines(BEFORE, AFTER);
+    const result = svDiffLines(BEFORE, AFTER, SV_CORE_LABELS);
     const f = await block(result.hunks);
     const text = el(f).textContent ?? '';
 
@@ -67,7 +68,7 @@ describe('svDiffLines feeds sv-code-block without a translation layer', () => {
   });
 
   it('agrees with the renderer about the counts', async () => {
-    const result = svDiffLines(BEFORE, AFTER);
+    const result = svDiffLines(BEFORE, AFTER, SV_CORE_LABELS);
     const f = await block(result.hunks);
     // The component computes its own summary from the hunks it was given; the
     // engine computed one from the same lines. They have to match, or one of
@@ -78,7 +79,7 @@ describe('svDiffLines feeds sv-code-block without a translation layer', () => {
   });
 
   it('renders nothing for two identical texts, and the engine says why', async () => {
-    const result = svDiffLines(BEFORE, BEFORE);
+    const result = svDiffLines(BEFORE, BEFORE, SV_CORE_LABELS);
     expect(result.identical).toBe(true);
     expect(result.hunks).toEqual([]);
     const f = await block(result.hunks);
@@ -91,7 +92,7 @@ describe('svDiffLines feeds sv-code-block without a translation layer', () => {
     //   broken page.
     const a = Array.from({ length: 200 }, (_, i) => `alpha ${i}`).join('\n');
     const b = Array.from({ length: 200 }, (_, i) => `beta ${i * 3}`).join('\n');
-    const result = svDiffLines(a, b, { maxEdits: 20 });
+    const result = svDiffLines(a, b, SV_CORE_LABELS, { maxEdits: 20 });
 
     expect(result.tooDifferent).toBe(true);
     const f = await block(result.hunks);

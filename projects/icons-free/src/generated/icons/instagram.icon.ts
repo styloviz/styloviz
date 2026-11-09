@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `instagram` icon. */
 export const instagramNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const instagramNodes: readonly IconNode[] = [
 export const instagramSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm8 2.1h8q2.4 0 4.2 1.7 1.7 1.8 1.7 4.2v8q0 2.4-1.7 4.2-1.8 1.7-4.2 1.7h-8q-2.4 0-4.2-1.7-1.7-1.8-1.7-4.2v-8q0-2.4 1.7-4.2 1.8-1.7 4.2-1.7zm8.9 9.9q0-2-1.5-3.4-1.4-1.5-3.4-1.5-2 0-3.4 1.5-1.5 1.4-1.5 3.4 0 2 1.5 3.4 1.4 1.5 3.4 1.5 2 0 3.4-1.5 1.5-1.4 1.5-3.4zm-1.8 0q0 3.1-3.1 3.1-3.1 0-3.1-3.1 0-3.1 3.1-3.1 3.1 0 3.1 3.1zm2.5-4.5c0-.6-.5-1.1-1.1-1.1-.6 0-1.1.5-1.1 1.1 0 .6.5 1.1 1.1 1.1.6 0 1.1-.5 1.1-1.1z' },
 ];
+
+/** `instagram` as a registrable glyph — `registerSvIcons([instagramIcon])` / `provideSvIcons([instagramIcon])`. */
+export const instagramIcon: SvIconDef = { name: 'instagram', nodes: instagramNodes, solid: instagramSolidNodes };
 
 /** `instagram` — tree-shakable standalone icon. Use `<sv-instagram-icon />`. */
 @Component({

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `arrow-down-left` icon. */
 export const arrowDownLeftNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const arrowDownLeftNodes: readonly IconNode[] = [
 export const arrowDownLeftSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm18.6 6.6l-10.5 10.5h6.9q.9 0 .9.9 0 .9-.9.9h-8.7q-.2 0-.3 0-.2 0-.3-.1-.4-.1-.5-.5-.2-.3-.1-.6v-8.7q0-.9.9-.9.9 0 .9.9v6.9l10.5-10.5q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6z' },
 ];
+
+/** `arrow-down-left` as a registrable glyph — `registerSvIcons([arrowDownLeftIcon])` / `provideSvIcons([arrowDownLeftIcon])`. */
+export const arrowDownLeftIcon: SvIconDef = { name: 'arrow-down-left', nodes: arrowDownLeftNodes, solid: arrowDownLeftSolidNodes };
 
 /** `arrow-down-left` — tree-shakable standalone icon. Use `<sv-arrow-down-left-icon />`. */
 @Component({

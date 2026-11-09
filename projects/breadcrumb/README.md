@@ -2,7 +2,9 @@
 
 > 4 visual variants, 5 separator styles, a sibling-page dropdown switcher, badges, disabled crumbs, collapsible middle crumbs, a loading skeleton, and full keyboard support.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -53,6 +55,8 @@ import { SvBreadcrumbComponent } from '@styloviz/breadcrumb';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -60,7 +64,7 @@ export class DemoComponent {}
 | `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
 | `items` | `BreadcrumbItem[]` | `[]` | Ordered list of crumbs. The last item is treated as the current page. |
 | `separator` | `BreadcrumbSeparator` | `'chevron'` | Separator style between crumbs. Use `custom` with `customSeparatorIcon`. |
-| `customSeparatorIcon` | `string` | `''` | Icon-library NAME used when `separator="custom"` — e.g. `'chevron-right'`. Was `customSeparatorPath`, a raw `<path d="…">`, and it was written as a STATIC attribute at every call site, so the rename could not error: the custom-separator demo silently fell back to the default chevron until the sites were rewritten by hand. |
+| `customSeparatorIcon` | `string` | `''` | Icon-library NAME drawn as the separator when `separator="custom"` — e.g. `'chevron-right'`. |
 | `variant` | `BreadcrumbVariant` | `'plain'` | Visual style of the crumb trail. |
 | `size` | `BreadcrumbSize` | `'md'` | Size of the breadcrumb text and icons. |
 | `maxVisible` | `number` | `0` | Maximum number of crumbs to show before collapsing the middle ones. Set to `0` to always show all. |
@@ -73,6 +77,7 @@ export class DemoComponent {}
 | `skeletonCount` | `number` | `3` | Number of skeleton segments rendered when `loading` is `true`. |
 | `ariaLabel` | `string` | `'Breadcrumb'` | Accessible label for the breadcrumb navigation landmark. |
 | `customClass` | `string` | `''` | Additional CSS classes on the root `<nav>` element. |
+| `surfaceId` | `string \| null` | `null` | Names this trail in the shared navigation-analytics stream when a page has more than one — a static name, never a record id. Ignored unless `provideSvNavTelemetry()` is wired up. |
 
 ## Outputs
 
@@ -90,4 +95,4 @@ Full API reference and live demos: https://styloviz.dev/docs/breadcrumb
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

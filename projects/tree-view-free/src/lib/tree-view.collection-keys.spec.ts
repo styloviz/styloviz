@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { flush } from '@testing/async';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvTreeViewComponent } from './tree-view.component';
 import type { TreeNode } from './tree-view.component';
 

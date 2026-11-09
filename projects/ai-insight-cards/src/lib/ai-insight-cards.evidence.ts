@@ -1,3 +1,5 @@
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvAiInsightCardsLabels } from './ai-insight-cards.labels';
 import type { AiInsight } from './ai-insight-cards.types';
 
 /**
@@ -37,12 +39,18 @@ const ALLOWED = Object.freeze(['http:', 'https:']);
  *    teaches the reader that evidence links do not work rather than that this
  *    one is wrong.
  */
-export function svInsightEvidence(insight: AiInsight): SvInsightEvidence {
+/** The words `svInsightEvidence` is written in. */
+export type SvInsightEvidenceLabels = Pick<
+  SvAiInsightCardsLabels,
+  'evidenceNone' | 'evidenceInvalid' | 'evidenceScheme' | 'evidenceCheck'
+>;
+
+export function svInsightEvidence(insight: AiInsight, labels: SvInsightEvidenceLabels): SvInsightEvidence {
   const raw = (insight.evidenceUrl ?? '').trim();
   if (raw === '') {
     return {
       href: null,
-      label: 'No evidence linked — this is an assertion, not a finding.',
+      label: labels.evidenceNone,
       checkable: false,
     };
   }
@@ -52,18 +60,18 @@ export function svInsightEvidence(insight: AiInsight): SvInsightEvidence {
   } catch {
     return {
       href: null,
-      label: 'The evidence link is not a usable address.',
+      label: labels.evidenceInvalid,
       checkable: false,
     };
   }
   if (!ALLOWED.includes(protocol)) {
     return {
       href: null,
-      label: `The evidence link uses "${protocol}", which is not opened from here.`,
+      label: svFormatLabel(labels.evidenceScheme, { protocol }),
       checkable: false,
     };
   }
-  return { href: raw, label: 'Check the evidence', checkable: true };
+  return { href: raw, label: labels.evidenceCheck, checkable: true };
 }
 
 /**
@@ -75,13 +83,20 @@ export function svInsightEvidence(insight: AiInsight): SvInsightEvidence {
  * basis the figure still renders and says so — hiding a number the host already
  * shows would be a silent regression.
  */
-export function svInsightConfidenceLabel(insight: AiInsight): string {
+/** The words `svInsightConfidenceLabel` is written in. */
+export type SvInsightConfidenceLabels = Pick<
+  SvAiInsightCardsLabels,
+  'confidenceBasisModel' | 'confidenceBasisOnly' | 'confidenceModelOnly' | 'confidenceUnattributed'
+>;
+
+export function svInsightConfidenceLabel(insight: AiInsight, labels: SvInsightConfidenceLabels): string {
   const basis = (insight.confidenceBasis ?? '').trim();
   const model = [insight.model, insight.modelVersion].filter((p) => p?.trim()).join(' ');
-  if (basis && model) return `${insight.confidence}% — ${basis}, from ${model}`;
-  if (basis) return `${insight.confidence}% — ${basis}`;
-  if (model) return `${insight.confidence}% — from ${model}, method not recorded`;
-  return `${insight.confidence}% — no method or model recorded`;
+  const params = { percent: String(insight.confidence), basis, model };
+  if (basis && model) return svFormatLabel(labels.confidenceBasisModel, params);
+  if (basis) return svFormatLabel(labels.confidenceBasisOnly, params);
+  if (model) return svFormatLabel(labels.confidenceModelOnly, params);
+  return svFormatLabel(labels.confidenceUnattributed, params);
 }
 
 /** True when the reader can tell what produced this number. */
@@ -104,10 +119,12 @@ export function svSampleCount(insights: readonly AiInsight[]): number {
 }
 
 /** What to say about sample data on screen, or `''`. */
-export function svSampleLabel(count: number, total: number): string {
+export function svSampleLabel(
+  count: number,
+  total: number,
+  labels: Pick<SvAiInsightCardsLabels, 'sampleAll' | 'sampleSome'>,
+): string {
   if (count <= 0) return '';
-  if (count === total) {
-    return 'Every insight here is sample data shipped with the component. None of it is about your system.';
-  }
-  return `${count} of these ${total} insights are sample data shipped with the component.`;
+  if (count === total) return labels.sampleAll;
+  return svFormatLabel(labels.sampleSome, { count: String(count), total: String(total) });
 }

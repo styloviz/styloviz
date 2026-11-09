@@ -45,17 +45,22 @@
       [ngClass]="isCompact() ? 'items-center' : 'items-start'"
     >
       <div class="min-w-0">
+        <!--
+          DD-12-I5: the full name is disclosed (the `title` tooltip; assistive
+          tech already reads it whole from the group's name and this text), and
+          only the stem truncates — the extension stays on screen.
+        -->
         <p
-          class="truncate font-medium text-gray-900 dark:text-white"
+          class="flex min-w-0 font-medium text-gray-900 dark:text-white"
           [ngClass]="isCompact() ? 'text-xs' : 'text-sm'"
-        >
-          {{ fileName() }}
-        </p>
+          [attr.title]="fileName()"
+          data-sv-file-name
+        ><span class="truncate">{{ nameParts().stem }}</span>@if (nameParts().ext) {<span class="shrink-0">{{ nameParts().ext }}</span>}</p>
         @if (!isCompact()) {
           <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
             {{ formattedSize() }}
             @if (status() === 'error') {
-              · <span class="text-danger-600 dark:text-danger-400">Upload failed</span>
+              · <span class="text-danger-600 dark:text-danger-400">{{ labels.uploadFailed }}</span>
             }
           </p>
         }
@@ -77,12 +82,12 @@
         <!-- Status indicator -->
         @if (statusIcon() === 'check') {
           <span class="flex h-5 w-5 items-center justify-center rounded-full bg-accent-100 dark:bg-accent-900/40"
-                role="img" aria-label="Upload successful">
+                role="img" [attr.aria-label]="labels.uploadSuccessful">
             <sv-icon name="check" cssClass="h-3 w-3 text-accent-700 dark:text-accent-400" [strokeWidth]="2.5" />
           </span>
         } @else if (statusIcon() === 'x') {
           <span class="flex h-5 w-5 items-center justify-center rounded-full bg-danger-100 dark:bg-danger-900/40"
-                role="img" aria-label="Upload failed">
+                role="img" [attr.aria-label]="labels.uploadFailed">
             <sv-icon name="close" cssClass="h-3 w-3 text-danger-600 dark:text-danger-400" [strokeWidth]="2.25" />
           </span>
         }
@@ -105,7 +110,7 @@
         @if (status() === 'uploading') {
           <button
             type="button"
-            [attr.aria-label]="'Cancel uploading ' + fileName()"
+            [attr.aria-label]="labels.cancelUploadingFile | svLabel: { name: fileName() }"
             class="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             (click)="onCancelUpload()"
           >
@@ -122,7 +127,7 @@
           <button
             #downloadButton
             type="button"
-            [attr.aria-label]="'Download ' + fileName() + (downloadNeedsConfirm() ? ', flagged as unsafe' : '')"
+            [attr.aria-label]="(downloadNeedsConfirm() ? labels.downloadUnsafeFile : labels.downloadFile) | svLabel: { name: fileName() }"
             [attr.aria-expanded]="downloadNeedsConfirm() ? awaitingUnsafeConfirm() : null"
             class="flex h-7 w-7 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
             [ngClass]="downloadNeedsConfirm()
@@ -144,7 +149,7 @@
           <button
             #removeButton
             type="button"
-            [attr.aria-label]="(awaitingConfirm() ? 'Cancel removing ' : 'Remove ') + fileName()"
+            [attr.aria-label]="(awaitingConfirm() ? labels.cancelRemovingFile : labels.removeFile) | svLabel: { name: fileName() }"
             [attr.aria-expanded]="confirmRemove() ? awaitingConfirm() : null"
             [disabled]="removing()"
             class="flex h-7 w-7 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-400 disabled:cursor-progress disabled:opacity-50"
@@ -169,22 +174,22 @@
       <div
         class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-danger-50 px-2.5 py-2 ring-1 ring-inset ring-danger-200 dark:bg-danger-950/40 dark:ring-danger-900"
         role="group"
-        [attr.aria-label]="'Confirm downloading ' + fileName()"
+        [attr.aria-label]="labels.confirmDownloadingFile | svLabel: { name: fileName() }"
         data-sv-state="confirm-unsafe-download"
       >
         <p class="min-w-0 flex-1 text-xs font-medium text-danger-800 dark:text-danger-200">
-          {{ scanNote() || 'This file was flagged as unsafe.' }} Download it anyway?
+          {{ labels.downloadAnywayPrompt | svLabel: { note: scanNote() || labels.flaggedUnsafe } }}
         </p>
         <button
           type="button"
           class="rounded-md bg-danger-600 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-danger-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-400"
           (click)="confirmUnsafeDownload()"
-        >Download anyway</button>
+        >{{ labels.downloadAnyway }}</button>
         <button
           type="button"
           class="rounded-md px-2.5 py-1 text-[11px] font-semibold text-gray-700 transition-colors hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-200 dark:hover:bg-gray-800/60"
           (click)="cancelUnsafeDownload()"
-        >Cancel</button>
+        >{{ labels.cancelButton }}</button>
       </div>
     }
 
@@ -203,11 +208,11 @@
       <div
         class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-danger-50 px-2.5 py-2 ring-1 ring-inset ring-danger-200 dark:bg-danger-950/40 dark:ring-danger-900"
         role="group"
-        [attr.aria-label]="'Confirm removing ' + fileName()"
+        [attr.aria-label]="labels.confirmRemovingFile | svLabel: { name: fileName() }"
         data-sv-state="confirm-remove"
       >
         <p class="min-w-0 flex-1 text-xs font-medium text-danger-800 dark:text-danger-200">
-          Remove this file? This cannot be undone.
+          {{ labels.confirmRemoveFilePrompt }}
         </p>
         <button
           type="button"
@@ -216,7 +221,7 @@
           [attr.aria-busy]="removing() || null"
           (click)="confirmRemoval()"
         >
-          {{ removing() ? 'Removing…' : 'Remove' }}
+          {{ removing() ? labels.removingFile : labels.removeButton }}
         </button>
         <button
           type="button"
@@ -224,7 +229,7 @@
           [disabled]="removing()"
           (click)="cancelRemove()"
         >
-          Keep
+          {{ labels.keepButton }}
         </button>
       </div>
     }
@@ -257,7 +262,7 @@
         <button
           type="button"
           class="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-          [attr.aria-label]="retryLabel() + ' — ' + fileName()"
+          [attr.aria-label]="labels.retryUploadOfFile | svLabel: { action: retryLabel(), name: fileName() }"
           (click)="onRetryUpload()"
         >
           <sv-icon name="refresh-cw" cssClass="h-3 w-3" [strokeWidth]="2" />
@@ -270,7 +275,7 @@
     @if (status() === 'uploading' && progress() !== undefined) {
       <div class="mt-2">
         <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Uploading…</span>
+          <span>{{ labels.uploadingStatus }}</span>
           <span>{{ progress() }}%</span>
         </div>
         <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
@@ -278,7 +283,7 @@
             class="h-full rounded-full bg-primary-500 transition-all duration-300"
             [style.width.%]="progress()"
             role="progressbar"
-            [attr.aria-label]="'Upload progress for ' + fileName()"
+            [attr.aria-label]="labels.uploadProgressFor | svLabel: { name: fileName() }"
             [attr.aria-valuenow]="progress()"
             aria-valuemin="0"
             aria-valuemax="100"

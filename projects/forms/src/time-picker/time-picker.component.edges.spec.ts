@@ -1,7 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { SvOverlayStackService } from '@styloviz/core';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { SvTimePickerComponent } from './time-picker.component';
 
 /**

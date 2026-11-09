@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { SvOverlayRouteService, SvOverlayStackService, svResetBodyScrollLock } from '@styloviz/core';
+import { SvOverlayRouteService, SvOverlayStackService, svResetBodyScrollLock } from '@styloviz/core/overlay';
 import { SvModalComponent, type ModalCloseReason } from './modal.component';
 import type { SvModalSizePx } from './modal-resize';
 import { until } from '@testing/async';

@@ -1,11 +1,11 @@
 <div class="flex flex-col gap-1">
   @if (activeLabel()) {
-    <label [attr.for]="inputId" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ activeLabel() }}</label>
+    <label [attr.for]="inputId" class="mb-0.5 text-xs font-medium text-gray-700 dark:text-gray-200">{{ activeLabel() }}</label>
   }
 
   <div class="relative">
     @if (icon()) {
-      <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+      <div class="pointer-events-none absolute inset-y-0 start-3 flex items-center">
         <sv-icon [name]="icon()" cssClass="h-4 w-4 text-gray-500 dark:text-gray-400" [strokeWidth]="1.8" />
       </div>
     }
@@ -35,10 +35,15 @@
       [value]="value()"
       [placeholder]="activePlaceholder()"
       [disabled]="resolvedDisabled()"
+      [required]="required()"
+      [attr.aria-required]="required() || null"
+      [attr.name]="name() || null"
       [attr.inputmode]="inputMode()"
+      [attr.dir]="inputDir()"
+      [attr.aria-label]="ariaLabel() || null"
       [attr.aria-invalid]="error() || fieldError.showError() ? 'true' : null"
       [attr.aria-describedby]="describedBy()"
-      [class]="inputClass() + (icon() ? ' pl-9' : '') + (isSensitive() ? ' fs-mask fs-exclude' : '')"
+      [class]="inputClass() + (icon() ? ' ps-9' : '') + (isSensitive() ? ' fs-mask fs-exclude' : '')"
       [attr.autocomplete]="autocompleteToken()"
       spellcheck="false"
       [attr.data-private]="isSensitive() ? 'lipsum' : null"
@@ -48,6 +53,8 @@
       [attr.data-sl]="isSensitive() ? 'mask' : null"
       [attr.data-recording-sensitive]="isSensitive() ? 'true' : null"
       (input)="onInput($event)"
+      (compositionstart)="onCompositionStart()"
+      (compositionend)="onCompositionEnd($event)"
       (paste)="onPaste($event)"
       (keydown)="onKeydown($event)"
       (focus)="focused.set(true)"
@@ -56,9 +63,9 @@
     <!-- Clear button -->
     @if (value()) {
       <button type="button"
-        class="absolute inset-y-0 right-2 flex items-center p-1 text-gray-500 dark:text-gray-400
+        class="absolute inset-y-0 end-2 flex min-w-6 items-center justify-center p-1 text-gray-500 dark:text-gray-400
                hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none"
-        aria-label="Clear"
+        [attr.aria-label]="labels.clear"
         [disabled]="resolvedDisabled()"
         (click)="clear()">
         <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />

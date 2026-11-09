@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `minimize` icon. */
 export const minimizeNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const minimizeNodes: readonly IconNode[] = [
 export const minimizeSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm20 15.9h-3q-.1 0-.1.1v3q0 .9-.9.9-.9 0-.9-.9v-3q0-1.9 1.9-1.9h3q.9 0 .9.9 0 .9-.9.9zm-16-1.8h3q1.9 0 1.9 1.9v3q0 .9-.9.9-.9 0-.9-.9v-3q0-.1-.1-.1h-3q-.9 0-.9-.9 0-.9.9-.9zm16-4.2h-3q-1.9 0-1.9-1.9v-3q0-.9.9-.9.9 0 .9.9v3q0 .1.1.1h3q.9 0 .9.9 0 .9-.9.9zm-16-1.8h3q.1 0 .1-.1v-3q0-.9.9-.9.9 0 .9.9v3q0 1.9-1.9 1.9h-3q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `minimize` as a registrable glyph — `registerSvIcons([minimizeIcon])` / `provideSvIcons([minimizeIcon])`. */
+export const minimizeIcon: SvIconDef = { name: 'minimize', nodes: minimizeNodes, solid: minimizeSolidNodes };
 
 /** `minimize` — tree-shakable standalone icon. Use `<sv-minimize-icon />`. */
 @Component({

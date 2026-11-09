@@ -8,7 +8,10 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { SvLabelPipe, injectSvLabels } from '@styloviz/core/i18n';
+import { SV_AVATAR_LABELS } from './avatar-free.labels';
 
+import { registerAvatarIcons } from './avatar.component.icons';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -55,17 +58,23 @@ const COLOR_PALETTE: Exclude<AvatarColor, 'auto'>[] = [
 @Component({
   selector: 'sv-avatar',
   standalone: true,
-  imports: [NgClass, SvIconComponent],
+  imports: [NgClass, SvIconComponent, SvLabelPipe],
   templateUrl: './avatar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAvatarComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAvatarIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ avatar })` says otherwise. */
+  protected readonly labels = injectSvLabels('avatar', SV_AVATAR_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** URL of the avatar image. When blank or broken, falls back to initials/icon. */
   src = input<string>('');
 
-  /** Full name — used to generate initials and auto-assign a palette color. */
+  /** Full name — generates the initials and picks a palette color. */
   name = input<string>('');
 
   /** Alt text for the image; falls back to `name`. */
@@ -341,6 +350,22 @@ export class SvAvatarComponent {
   statusBorderClass = computed<string>(() =>
     this.status() === 'offline' ? 'border-gray-400 dark:border-gray-500' : 'border-transparent',
   );
+
+  /**
+   * The fallback glyph in px, ~55 % of the shell. A percentage `cssClass`
+   * cannot do this: it lands on the <svg>, whose host is content-sized, so it
+   * resolved against the icon's own 20 px (11 px in a 40 px avatar).
+   */
+  readonly fallbackIconPx = computed<number>(() => {
+    switch (this.size()) {
+      case 'xs':  return 13;
+      case 'sm':  return 18;
+      case 'lg':  return 26;
+      case 'xl':  return 35;
+      case '2xl': return 44;
+      default:    return 22; // md
+    }
+  });
 
   /** Status dot size keyed to avatar size. */
   statusSizeClasses = computed<string>(() => {

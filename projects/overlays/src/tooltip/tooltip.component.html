@@ -28,6 +28,12 @@
     pressed ON the wrapper (`onWrapperActivate`) — the wrapper is a div, and
     a div synthesises no click from a key.
 
+  ★ `aria-describedby` is on the wrapper only in two cases: under the preset,
+    and — while showing — when nothing projected can take focus. Otherwise it
+    is written on the projected trigger itself (`_linkDescription`), because
+    that is what a screen reader lands on. Escape is a document listener in
+    the component, so it hides a hover tooltip wherever focus is (`SR-15`).
+
   ⚠️ There WAS an `eslint-disable-next-line interactive-supports-focus` here and
      it no longer fires — the wrapper takes a real `tabindex` under
      `[forDisabledControl]`, which is what the rule wanted. ESLint reported the
@@ -36,15 +42,19 @@
 -->
 <div
   #wrap
-  [class]="wrapperClasses()"
-  [attr.aria-describedby]="(visible() || forDisabledControl()) && text() ? tooltipId : null"
+  [class]="wrapperClasses() + (effectiveTrigger() === 'hold' ? ' select-none [-webkit-touch-callout:none]' : '')"
+  [attr.aria-describedby]="hasContent() && (forDisabledControl() || (visible() && !_describesTrigger())) ? tooltipId : null"
   [attr.tabindex]="forDisabledControl() ? 0 : null"
   (mouseenter)="effectiveTrigger() === 'hover' ? show() : null"
   (mouseleave)="effectiveTrigger() === 'hover' ? hide() : null"
   (focusin)="effectiveTrigger() === 'hover' || effectiveTrigger() === 'focus' ? show() : null"
   (focusout)="effectiveTrigger() === 'hover' || effectiveTrigger() === 'focus' ? hide() : null"
   (click)="effectiveTrigger() === 'click' ? toggle() : null"
-  (keydown.escape)="hide()"
+  (pointerdown)="onPointerDown($event)"
+  (pointerup)="onPointerEnd()"
+  (pointercancel)="onPointerEnd()"
+  (pointerleave)="onPointerEnd()"
+  (contextmenu)="onContextMenu($event)"
   (keydown.enter)="onWrapperActivate($event)"
   (keydown.space)="onWrapperActivate($event)"
 >
@@ -52,28 +62,63 @@
   <ng-content />
 
   <!-- Tooltip bubble -->
-  @if (text()) {
-    <div
+  @if (hasContent()) {
+    <!-- sv-physical: viewport px from svPositionAnchored, which already resolves start/end under RTL -->
+    <div [style.left.px]="usePortal() ? _bubbleLeft() : null"
       #bubble
       [id]="tooltipId"
       role="tooltip"
       [class]="tooltipClasses() + ' ' + customClass()"
       [style.max-width.px]="maxWidth()"
       [attr.aria-hidden]="!visible()"
-      [style.top.px]="portal() ? _bubbleTop() : null"
-      [style.left.px]="portal() ? _bubbleLeft() : null"
-      [style.z-index]="portal() ? _z() : null"
+      [attr.inert]="visible() ? null : ''"
+      [attr.data-sv-glass]="variant() === 'glass' ? 'pinned' : null"
+      [attr.data-sv-tooltip-side]="usePortal() ? effectivePosition() : position()"
+      [style.top.px]="usePortal() ? _bubbleTop() : null"
+      [style.z-index]="usePortal() ? _z() : null"
     >
-      {{ text() }}
+      @if (contentTemplate(); as tpl) {
+        <!-- SR-35: [svTooltipContent] — the host's own markup. -->
+        <ng-container [ngTemplateOutlet]="tpl" [ngTemplateOutletContext]="contentContext" />
+      } @else if (rich()) {
+        <!-- SR-35: title · description · keys, with a status dot or an icon. -->
+        <span class="flex items-start gap-2" data-sv-tooltip-rich>
+          @if (status()) {
+            <span aria-hidden="true" [class]="'mt-1 size-2 shrink-0 rounded-full ' + statusClass()"></span>
+          }
+          @if (icon()) {
+            <sv-icon [name]="icon()" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+          }
+          <span class="min-w-0">
+            @if (title()) {
+              <span class="block font-semibold">{{ title() }}</span>
+            }
+            @if (text()) {
+              <span class="block font-normal" [class.mt-0.5]="!!title()">{{ text() }}</span>
+            }
+          </span>
+          @if (kbd().length > 0) {
+            <span class="ms-auto flex shrink-0 items-center gap-0.5 ps-2">
+              @for (k of kbd(); track $index) {
+                <sv-kbd size="sm">{{ k }}</sv-kbd>
+              }
+            </span>
+          }
+        </span>
+      } @else {
+        {{ text() }}
+      }
       <!-- Arrow. Portalled, the bubble may have been clamped away from the
            trigger's centre, so the arrow is placed from the engine's measured
            offset instead of the `left-1/2` the CSS path uses. -->
-      <span
-        [class]="arrowClasses()"
-        [style.left.px]="portal() && _horizontalSide() ? _arrowX() : null"
-        [style.top.px]="portal() && !_horizontalSide() ? _arrowY() : null"
-        aria-hidden="true"
-      ></span>
+      @if (arrow()) {
+        <!-- sv-physical: arrow offset in px from the bubble's left edge, measured by svPositionAnchored -->
+        <span [style.left.px]="usePortal() && _horizontalSide() ? _arrowX() : null"
+          [class]="arrowClasses()"
+          [style.top.px]="usePortal() && !_horizontalSide() ? _arrowY() : null"
+          aria-hidden="true"
+        ></span>
+      }
     </div>
   }
 </div>

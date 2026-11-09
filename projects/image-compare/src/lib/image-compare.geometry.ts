@@ -12,6 +12,8 @@
  * looks exactly right, and the difference it shows is real, and it is the wrong
  * difference.
  */
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvImageCompareLabels } from './image-compare.labels';
 
 /**
  * Aspect ratios differing by more than this are not comparable by wiping.
@@ -66,7 +68,7 @@ export function svAspect(
   };
 }
 
-export function svAspectLabel(aspect: SvAspect): string {
+export function svAspectLabel(aspect: SvAspect, labels: Pick<SvImageCompareLabels, 'warningReshaped'>): string {
   // ★★ NO `known` CHECK HERE, DELIBERATELY. It used to be the first line, and a
   //    mutation that removed it changed nothing — because `svAspect` returns
   //    `mismatched: false` in the same branch that returns `known: false`, so an
@@ -74,7 +76,10 @@ export function svAspectLabel(aspect: SvAspect): string {
   //    affect any result the module can produce; it was the appearance of care,
   //    and the invariant it was standing in for is stated where it lives.
   if (!aspect.mismatched) return '';
-  return `These two images are different shapes (${aspect.before.toFixed(2)}:1 against ${aspect.after.toFixed(2)}:1), so one of them is being cropped or stretched to fit. Part of what the wipe shows is the reframing, not the change.`;
+  return svFormatLabel(labels.warningReshaped, {
+    before: aspect.before.toFixed(2),
+    after: aspect.after.toFixed(2),
+  });
 }
 
 /**
@@ -123,6 +128,7 @@ export function svFrames(
   beforeHeight: number,
   afterWidth: number,
   afterHeight: number,
+  labels: Pick<SvImageCompareLabels, 'noteScaled' | 'warningRotated' | 'warningReshaped'>,
 ): SvFrames {
   const aspect = svAspect(beforeWidth, beforeHeight, afterWidth, afterHeight);
   if (!aspect.known) {
@@ -130,7 +136,8 @@ export function svFrames(
   }
 
   const size = (w: number, h: number) => `${w}×${h}`;
-  const both = `${size(beforeWidth, beforeHeight)} against ${size(afterWidth, afterHeight)}`;
+  // Pre-formatted strings, so a dimension never picks up digit grouping.
+  const both = { before: size(beforeWidth, beforeHeight), after: size(afterWidth, afterHeight) };
 
   if (!aspect.mismatched) {
     if (beforeWidth === afterWidth && beforeHeight === afterHeight) {
@@ -140,9 +147,7 @@ export function svFrames(
       verdict: 'scaled',
       aspect,
       warning: '',
-      note:
-        `These are the same shape at different sizes (${both}), so the wipe is honest — ` +
-        `but the smaller one is being scaled up to fit, and will look softer than it is.`,
+      note: svFormatLabel(labels.noteScaled, both),
     };
   }
 
@@ -159,15 +164,12 @@ export function svFrames(
     return {
       verdict: 'rotated',
       aspect,
-      warning:
-        `One of these is a quarter turn out (${both}). That is almost always an EXIF ` +
-        `orientation tag applied to one file and not the other — re-export it rather ` +
-        `than re-cropping, because the picture is right and only the rotation is wrong.`,
+      warning: svFormatLabel(labels.warningRotated, both),
       note: '',
     };
   }
 
-  return { verdict: 'reshaped', aspect, warning: svAspectLabel(aspect), note: '' };
+  return { verdict: 'reshaped', aspect, warning: svAspectLabel(aspect, labels), note: '' };
 }
 
 /** Clamp a wipe position into 0–1. */
@@ -238,9 +240,16 @@ export function svAriaValue(position: number): number {
   return Math.round(svClampPosition(position) * 100);
 }
 
-export function svPositionLabel(position: number, beforeAlt: string, afterAlt: string): string {
+export function svPositionLabel(
+  position: number,
+  beforeAlt: string,
+  afterAlt: string,
+  labels: Pick<SvImageCompareLabels, 'positionBeforeOnly' | 'positionAfterOnly' | 'positionMix'>,
+  locale = '',
+): string {
   const pct = svAriaValue(position);
-  if (pct === 0) return `Showing ${beforeAlt} only.`;
-  if (pct === 100) return `Showing ${afterAlt} only.`;
-  return `${pct}% ${afterAlt}, ${100 - pct}% ${beforeAlt}.`;
+  const params = { before: beforeAlt, after: afterAlt, afterPercent: pct, beforePercent: 100 - pct };
+  if (pct === 0) return svFormatLabel(labels.positionBeforeOnly, params, locale);
+  if (pct === 100) return svFormatLabel(labels.positionAfterOnly, params, locale);
+  return svFormatLabel(labels.positionMix, params, locale);
 }

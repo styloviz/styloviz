@@ -29,11 +29,9 @@ const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
 
 const file = (name: string) => new File([new Uint8Array(4)], name, { type: 'text/plain' });
 
-function dropEvent(files: File[]): DragEvent {
-  return {
-    preventDefault() { /* no-op */ },
-    dataTransfer: { files },
-  } as unknown as DragEvent;
+/** A change on the hidden file input — what picking files in the dialog produces. */
+function pickEvent(files: File[]): Event {
+  return { target: { files, value: '' } } as unknown as Event;
 }
 
 /** An uploader that hands each call's resolvers back to the test. */
@@ -53,7 +51,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
   it('starts only as many uploads as the limit allows, and queues the rest', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 2 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b'), file('c'), file('d')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b'), file('c'), file('d')]));
     await flush();
 
     expect(calls.map((c) => c.name)).toEqual(['a', 'b']);
@@ -71,7 +69,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
     for (const concurrency of [0, -3, 0.4, NaN]) {
       const { calls, uploader } = controllable();
       const { fixture } = await setup({ uploader, concurrency });
-      fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+      fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
       await flush();
       expect(calls.map((c) => c.name), `concurrency ${concurrency}`).toEqual(['a']);
     }
@@ -79,7 +77,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
 
   it('collects without sending when there is no uploader', async () => {
     const { fixture } = await setup({ uploader: null, demoMode: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await quietFor();
     expect(fixture.componentInstance.files()[0].status).toBe('pending');
     expect(fixture.componentInstance.files()[0].progress).toBe(0);
@@ -88,7 +86,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
   it('collects without sending when autoUpload is off, then sends on demand', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, autoUpload: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await quietFor();
     expect(calls).toEqual([]);
     expect(fixture.componentInstance.files()[0].status).toBe('pending');
@@ -100,7 +98,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
   it('is safe to call uploadAll twice — a double-clicked submit sends once', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, autoUpload: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
 
     fixture.componentInstance.uploadAll();
@@ -112,7 +110,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
   it('skips files that already finished, failed or are in flight', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].resolve({});
     await until(() => byName(fixture.componentInstance)['a'].status === 'success');
@@ -126,7 +124,7 @@ describe('SvFileUploadComponent — the concurrency limit', () => {
   it('does nothing at all from uploadAll while disabled', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, autoUpload: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     fixture.componentRef.setInput('disabled', true);
     fixture.detectChanges();
 
@@ -140,7 +138,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('aborts an in-flight request and puts the row back to pending', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     let aborted = false;
@@ -161,7 +159,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('cancels a file that is still waiting for a slot', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     expect(calls.map((c) => c.name)).toEqual(['a']);
 
@@ -180,7 +178,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('says nothing about a file that was neither running nor queued', async () => {
     const { uploader } = controllable();
     const { fixture } = await setup({ uploader, autoUpload: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     const cancelled: UploadFile[] = [];
     fixture.componentInstance.uploadCancelled.subscribe((u) => cancelled.push(u));
 
@@ -199,7 +197,7 @@ describe('SvFileUploadComponent — cancelling', () => {
     const { fixture } = await setup({ uploader, concurrency: 2 });
     const cancelled: UploadFile[] = [];
     fixture.componentInstance.uploadCancelled.subscribe((u) => cancelled.push(u));
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b'), file('c')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b'), file('c')]));
     await flush();
 
     fixture.componentInstance.cancelAll();
@@ -221,7 +219,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('does not open a request for a queued file while cancelling it', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b'), file('c')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b'), file('c')]));
     await flush();
     expect(calls.map((c) => c.name)).toEqual(['a']);
 
@@ -234,7 +232,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('clearAll cancels without opening requests either', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b'), file('c')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b'), file('c')]));
     await flush();
 
     fixture.componentInstance.clearAll();
@@ -248,7 +246,7 @@ describe('SvFileUploadComponent — cancelling', () => {
     // flip a row the user cancelled back to "Uploaded".
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     const id = fixture.componentInstance.files()[0].id;
@@ -263,7 +261,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('ignores a rejection that lands after the cancel — a cancel is not a failure', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     const failed: UploadFile[] = [];
@@ -279,7 +277,7 @@ describe('SvFileUploadComponent — cancelling', () => {
   it('ignores progress reported after the cancel', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     fixture.componentInstance.cancelUpload(fixture.componentInstance.files()[0].id);
@@ -292,7 +290,7 @@ describe('SvFileUploadComponent — progress', () => {
   it('clamps everything a host can report into 0–100', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
     const report = calls[0].ctx.onProgress;
     const progress = () => fixture.componentInstance.files()[0].progress;
@@ -315,7 +313,7 @@ describe('SvFileUploadComponent — progress', () => {
     const { fixture } = await setup({ uploader, concurrency: 3 });
     expect(fixture.componentInstance.overallProgress()).toBe(0);
 
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].ctx.onProgress(50);
     calls[1].ctx.onProgress(100);
@@ -332,7 +330,7 @@ describe('SvFileUploadComponent — progress', () => {
     const status = () => fixture.componentInstance.statusMessage();
     expect(status()).toBe('');
 
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
     calls[0].ctx.onProgress(40);
     expect(status()).toBe('Uploading 1 file, 40 percent');
@@ -345,7 +343,7 @@ describe('SvFileUploadComponent — progress', () => {
   it('pluralises, and reports failures alongside successes', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 3 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b'), file('c')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b'), file('c')]));
     await flush();
     expect(fixture.componentInstance.statusMessage()).toContain('Uploading 3 files');
 
@@ -362,7 +360,7 @@ describe('SvFileUploadComponent — finishing', () => {
   it('keeps what the server said about a stored file', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     calls[0].resolve({ id: 'remote-9', url: 'https://example.test/f/9' });
@@ -376,7 +374,7 @@ describe('SvFileUploadComponent — finishing', () => {
   it('copes with an uploader that resolves nothing at all', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     calls[0].resolve(undefined);
@@ -392,7 +390,7 @@ describe('SvFileUploadComponent — finishing', () => {
     const complete: UploadFile[][] = [];
     fixture.componentInstance.uploadComplete.subscribe((all) => complete.push(all));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].resolve({});
     await until(() => calls.length === 2, { label: 'the second upload to start' });
@@ -409,7 +407,7 @@ describe('SvFileUploadComponent — finishing', () => {
     const complete: UploadFile[][] = [];
     fixture.componentInstance.uploadComplete.subscribe((all) => complete.push(all));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].resolve({});
     calls[1].reject(new Error('Storage rejected it'));
@@ -422,7 +420,7 @@ describe('SvFileUploadComponent — what a rejection is allowed to say', () => {
   const failWith = async (reason: unknown) => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
     calls[0].reject(reason);
     await until(() => fixture.componentInstance.files()[0].status === 'error');
@@ -462,7 +460,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
   it('puts a failed file back in the queue and sends it again', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
     calls[0].reject(new Error('nope'));
     await until(() => fixture.componentInstance.files()[0].status === 'error');
@@ -474,7 +472,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
 
   it('only resets the row when there is nothing to send it with', async () => {
     const { fixture } = await setup({ uploader: null, demoMode: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     const id = fixture.componentInstance.files()[0].id;
 
     fixture.componentInstance.retryFile(id);
@@ -485,7 +483,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
   it('does nothing on retry, remove or clear while disabled', async () => {
     const { uploader } = controllable();
     const { fixture } = await setup({ uploader, autoUpload: false });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     const id = fixture.componentInstance.files()[0].id;
     fixture.componentRef.setInput('disabled', true);
     fixture.detectChanges();
@@ -499,7 +497,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
   it('aborts the request when the row is removed, not just the row', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a')]));
     await flush();
 
     let aborted = false;
@@ -517,7 +515,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
   it('drops a removed file out of the queue so it never starts', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
 
     fixture.componentInstance.removeFile(byName(fixture.componentInstance)['b'].id);
@@ -531,7 +529,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
     const { fixture } = await setup({ uploader, autoUpload: false });
     const changes: UploadFile[][] = [];
     fixture.componentInstance.filesChange.subscribe((all) => changes.push(all));
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
 
     fixture.componentInstance.clearAll();
     fixture.detectChanges();
@@ -543,7 +541,7 @@ describe('SvFileUploadComponent — retrying, removing, clearing', () => {
   it('aborts every in-flight request when it is destroyed', async () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 3 });
-    fixture.componentInstance.onDrop(dropEvent([file('a'), file('b')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
 
     const aborted: string[] = [];
@@ -561,7 +559,7 @@ describe('SvFileUploadComponent — removing a file mid-run', () => {
     const { calls, uploader } = controllable();
     const { fixture } = await setup({ uploader, concurrency: 1 });
     const c = fixture.componentInstance;
-    c.onDrop(dropEvent([file('a'), file('b')]));
+    c.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     expect(calls.map((x) => x.name)).toEqual(['a']);
 
@@ -577,7 +575,7 @@ describe('SvFileUploadComponent — removing a file mid-run', () => {
     const c = fixture.componentInstance;
     const complete: UploadFile[][] = [];
     c.uploadComplete.subscribe((all) => complete.push(all));
-    c.onDrop(dropEvent([file('a'), file('b')]));
+    c.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].resolve({});
     await until(() => byName(c)['a'].status === 'success', { label: 'a to land' });
@@ -594,7 +592,7 @@ describe('SvFileUploadComponent — removing a file mid-run', () => {
     const c = fixture.componentInstance;
     const complete: UploadFile[][] = [];
     c.uploadComplete.subscribe((all) => complete.push(all));
-    c.onDrop(dropEvent([file('a'), file('b')]));
+    c.onFileInputChange(pickEvent([file('a'), file('b')]));
     await flush();
     calls[0].resolve({});
     calls[1].resolve({});

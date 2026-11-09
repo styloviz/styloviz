@@ -1,4 +1,4 @@
-import type { SvDataError, SvDataQuery, SvPage } from '@styloviz/core';
+import type { SvDataError, SvDataQuery, SvPage } from '@styloviz/core/data';
 
 /**
  * A function that turns a query into one page of results.

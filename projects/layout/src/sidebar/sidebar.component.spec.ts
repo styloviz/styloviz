@@ -1,195 +1,105 @@
-import { provideRouter } from '@angular/router';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { render, screen, type ComponentInput } from '@testing-library/angular';
+import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import type { MenuGroup } from '@styloviz/core';
-import { ICON_REGISTRY } from '@styloviz/icons';
 import { SvSidebarComponent } from './sidebar.component';
-import { NAVIGATION_ITEMS } from './navigation.data';
 
 /**
- * The sidebar renders whatever navigation the host hands it, in two widths. The
- * collapsed width is where the interesting failure lives: labels disappear, so
- * every item has to keep a name some other way, or a screen-reader user is
- * given a column of unlabelled icons.
+ * The sidebar is a container: it owns the three widths and the overlay, and
+ * renders whatever the host projects. The behaviour worth pinning is the
+ * state (inputs on its own, the shell inside one — see the shell spec), the
+ * landmark name, and that following a link closes the overlay.
  */
 
-const GROUPS: MenuGroup[] = [
-  {
-    groupLabel: 'Overview',
-    items: [
-      { label: 'Dashboard', route: '/dashboard', icon: 'chart-bar' },
-      { label: 'Reports', route: '/reports', icon: 'book-open', badge: '3', badgeColor: 'primary' },
-    ],
-  },
-  {
-    groupLabel: 'Manage',
-    items: [{ label: 'Users', route: '/users', icon: 'users' }],
-  },
-];
-
-async function setup(inputs: Partial<ComponentInput<SvSidebarComponent>> = {}) {
-  TestBed.resetTestingModule();
-  return render(SvSidebarComponent, {
-    inputs: { menuGroups: GROUPS, ...inputs } as ComponentInput<SvSidebarComponent>,
-    providers: [provideRouter([])],
-  });
+@Component({
+  standalone: true,
+  imports: [SvSidebarComponent],
+  template: `
+    <sv-sidebar [collapsed]="collapsed()" [mobileOpen]="open()" [label]="label()" (mobileClose)="closes = closes + 1">
+      <span svSidebarBrand>Acme</span>
+      <nav aria-label="Sections"><a href="/orders">Orders</a><button type="button">Not a link</button></nav>
+      <span svSidebarFooter>v3</span>
+    </sv-sidebar>
+  `,
+})
+class HostComponent {
+  readonly collapsed = signal(false);
+  readonly open = signal(false);
+  readonly label = signal('Main navigation');
+  closes = 0;
 }
 
-const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
+async function setup() {
+  TestBed.resetTestingModule();
+  const r = await render(HostComponent);
+  return { ...r, host: r.fixture.componentInstance, aside: r.fixture.nativeElement.querySelector('aside') as HTMLElement };
+}
 
-describe('SvSidebarComponent — the navigation it was given', () => {
-  it('is a named navigation landmark', async () => {
-    await setup();
-    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeTruthy();
+describe('SvSidebarComponent', () => {
+  it('projects the brand, the navigation and the footer into their places', async () => {
+    const { aside } = await setup();
+    const [brand, body, footer] = [...aside.children] as HTMLElement[];
+    expect(brand.textContent).toContain('Acme');
+    expect(body.querySelector('nav a')?.textContent).toBe('Orders');
+    expect(footer.textContent).toContain('v3');
   });
 
-  it('renders every group and every item', async () => {
-    await setup();
-    expect(screen.getByText('Overview')).toBeTruthy();
-    expect(screen.getByText('Manage')).toBeTruthy();
-    for (const label of ['Dashboard', 'Reports', 'Users']) {
-      expect(screen.getByText(label)).toBeTruthy();
-    }
+  it('is a complementary landmark named by its label input', async () => {
+    const { host, fixture } = await setup();
+    expect(screen.getByRole('complementary', { name: 'Main navigation' })).toBeTruthy();
+    host.label.set('Hauptnavigation');
+    fixture.detectChanges();
+    expect(screen.getByRole('complementary', { name: 'Hauptnavigation' })).toBeTruthy();
   });
 
-  it('points each item at its route', async () => {
-    const { fixture } = await setup();
-    const hrefs = [...el(fixture).querySelectorAll('a[href]')].map((a) => a.getAttribute('href'));
-    expect(hrefs).toContain('/dashboard');
-    expect(hrefs).toContain('/users');
+  it('is the full width expanded and the icon rail collapsed', async () => {
+    const { host, fixture, aside } = await setup();
+    expect(aside.classList).toContain('w-64');
+    host.collapsed.set(true);
+    fixture.detectChanges();
+    expect(aside.classList).toContain('w-20');
+    expect(aside.getAttribute('data-collapsed')).toBe('true');
   });
 
-  it('shows a badge on the item that has one', async () => {
-    await setup();
-    expect(screen.getByText('3')).toBeTruthy();
+  it('slides in only while the overlay is open', async () => {
+    const { host, fixture, aside } = await setup();
+    expect(aside.classList).toContain('-translate-x-full');
+    host.open.set(true);
+    fixture.detectChanges();
+    expect(aside.classList).toContain('translate-x-0');
+    expect(aside.classList).not.toContain('-translate-x-full');
   });
 
-  it('renders nothing at all when given no navigation', async () => {
-    const { fixture } = await setup({ menuGroups: [] });
-    expect(el(fixture).querySelector('nav')?.textContent?.trim()).toBe('');
-    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeTruthy();
-  });
-});
-
-describe('SvSidebarComponent — collapsed', () => {
-  it('keeps every item named once the labels are gone', async () => {
-    // Collapsed, the visible text is dropped and only the icon is left. Without
-    // a title or an aria-label on the link, that is a column of anonymous
-    // buttons to anyone not looking at it.
-    const { fixture } = await setup({ collapsed: true });
-    const links = [...el(fixture).querySelectorAll<HTMLAnchorElement>('nav a')];
-    expect(links.length).toBeGreaterThan(0);
-    for (const link of links) {
-      const name = link.getAttribute('aria-label') ?? link.getAttribute('title') ?? link.textContent?.trim() ?? '';
-      expect(name).not.toBe('');
-    }
+  it('hides a closed overlay below lg, so its links leave the tab order — and never hides it from lg up', async () => {
+    // FL-J3-LU-07: translated off-canvas alone, a closed drawer's links were
+    // still tabbable and announced. `max-lg:` scopes it to the overlay sizes.
+    const { host, fixture, aside } = await setup();
+    expect(aside.classList).toContain('max-lg:invisible');
+    expect(aside.classList).not.toContain('invisible');
+    // Visibility rides the slide, so the panel stays painted while it moves.
+    expect(aside.className).toContain('transition-[width,translate,visibility]');
+    host.open.set(true);
+    fixture.detectChanges();
+    expect(aside.classList).not.toContain('max-lg:invisible');
   });
 
-  it('still renders all the items', async () => {
-    const { fixture } = await setup({ collapsed: true });
-    expect([...el(fixture).querySelectorAll('nav a')].length).toBe(3);
-  });
-});
-
-describe('SvSidebarComponent — the footer strip', () => {
-  it('shows the version it was told to show', async () => {
-    await setup({ version: 'v2.4.1' });
-    expect(screen.getAllByText('v2.4.1').length).toBeGreaterThan(0);
+  it('asks for the overlay to close when a link inside it is followed — and only a link', async () => {
+    const { host } = await setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Not a link' }));
+    expect(host.closes).toBe(0);
+    screen.getByRole('link', { name: 'Orders' }).addEventListener('click', (e) => e.preventDefault());
+    await userEvent.click(screen.getByRole('link', { name: 'Orders' }));
+    expect(host.closes).toBe(1);
   });
 
-  it('points the resource links where the host said', async () => {
-    await setup({
-      docsUrl: 'https://docs.example.test',
-      githubUrl: 'https://github.example.test',
-      npmUrl: 'https://npm.example.test',
-      communityUrl: 'https://forum.example.test',
-    });
-    expect(screen.getByRole('link', { name: 'Documentation' }).getAttribute('href')).toBe('https://docs.example.test');
-    expect(screen.getByRole('link', { name: 'npm package' }).getAttribute('href')).toBe('https://npm.example.test');
-    expect(screen.getByRole('link', { name: 'Community forum' }).getAttribute('href')).toBe('https://forum.example.test');
-  });
-
-  it('opens every outbound link safely', async () => {
-    const { fixture } = await setup();
-    const outbound = [...el(fixture).querySelectorAll<HTMLAnchorElement>('a[target="_blank"]')];
-    expect(outbound.length).toBeGreaterThan(0);
-    for (const a of outbound) {
-      expect(a.getAttribute('rel')).toContain('noopener');
-    }
-  });
-
-  it('drops the resource icons when the host does not want them, keeping the version', async () => {
-    await setup({ showFooterLinks: false, version: 'v9' });
-    expect(screen.queryByRole('link', { name: 'Documentation' })).toBeNull();
-    expect(screen.getAllByText('v9').length).toBeGreaterThan(0);
-  });
-});
-
-describe('SvSidebarComponent — talking to the shell', () => {
-  // ★ This used to call `mobileClose.emit()` itself and then assert that it
-  //   had fired — true of any component. It now drives the real control: a
-  //   navigation link, which closes the mobile overlay as it navigates.
-  it('asks the shell to close the mobile overlay when a link is followed', async () => {
-    TestBed.resetTestingModule();
-    const { fixture } = await render(SvSidebarComponent, {
-      inputs: { menuGroups: GROUPS, mobileOpen: true } as ComponentInput<SvSidebarComponent>,
-      providers: [provideRouter([{ path: '**', children: [] }])],
-    });
-    let closes = 0;
-    fixture.componentInstance.mobileClose.subscribe(() => { closes += 1; });
-
-    await userEvent.click(screen.getAllByRole('link', { name: /Users/ })[0]);
-
-    expect(closes).toBe(1);
-  });
-});
-
-describe('SvSidebarComponent — route awareness', () => {
-  it('selects nothing when the url names no child', async () => {
-    const { fixture } = await setup();
-    expect(fixture.componentInstance.activeChildId()).toBeNull();
-  });
-
-  it('knows which top-level section it is in', async () => {
-    const { fixture } = await setup();
-    expect(fixture.componentInstance.isOnRoute('/')).toBe(true);
-    expect(fixture.componentInstance.isOnRoute('/nowhere')).toBe(false);
-  });
-
-  it('styles the selected child differently from the rest', async () => {
-    const { fixture } = await setup();
-    const c = fixture.componentInstance;
-    expect(c.childItemClass('anything')).toContain('text-gray-500');
-    expect(c.childItemClass('anything')).not.toContain('bg-primary-50');
-  });
-
-  /**
-   * This used to assert that the component's private map held a path for each
-   * of the seven names it "ships", and '' for anything else — pinning the very
-   * limit that made the map wrong: a consumer could only use those seven, and
-   * an eighth silently rendered nothing.
-   *
-   * `item.icon` goes straight to `<sv-icon>` now, so the claim worth pinning is
-   * that the name reaches the library — and that the names this package's own
-   * demo data uses all resolve in the FREE registry, since `<sv-icon>` reads
-   * only that one and a Pro name would render blank.
-   */
-  it('passes the item icon name through to the library', async () => {
-    const { fixture } = await setup();
-    const host = fixture.nativeElement as HTMLElement;
-    const names = [...host.querySelectorAll('sv-icon')].length;
-    expect(names).toBeGreaterThan(0);
-    expect([...host.querySelectorAll('svg')].every((n) => n.closest('sv-icon'))).toBe(true);
-  });
-
-  it('uses only FREE glyph names in its shipped demo navigation', () => {
-    const used = new Set(
-      NAVIGATION_ITEMS.flatMap((g) => g.items.map((i) => i.icon)).filter(Boolean),
-    );
-    expect(used.size).toBeGreaterThan(0);
-    for (const name of used) {
-      expect(ICON_REGISTRY[name as keyof typeof ICON_REGISTRY], `glyph ${name}`).toBeTruthy();
-    }
+  /** FL-L4-07: on its own (no shell), Escape did nothing to the open overlay. */
+  it('asks to close the open overlay on Escape, and ignores Escape while closed', async () => {
+    const { host, fixture } = await setup();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(host.closes).toBe(0);
+    host.open.set(true);
+    fixture.detectChanges();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(host.closes).toBe(1);
   });
 });

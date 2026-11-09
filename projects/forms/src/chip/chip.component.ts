@@ -10,11 +10,14 @@ import {
   ElementRef
 } from '@angular/core';
 import { SvIconComponent } from '@styloviz/icons';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 import { SV_CHIP_GROUP } from '../chip-group/chip-group.token';
 
+import { registerChipIcons } from './chip.component.icons';
 export type ChipVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
 /**
  * What a chip is being used AS.
@@ -52,11 +55,16 @@ export type ChipStyle   = 'filled' | 'soft' | 'outline';
 @Component({
   selector: 'sv-chip',
   standalone: true,
-  imports: [SvIconComponent],
+  imports: [SvIconComponent, SvLabelPipe],
   templateUrl: './chip.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvChipComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerChipIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   // ── Content ───────────────────────────────────────────────────────────────
 
   /** Label text displayed in the chip. */
@@ -86,10 +94,8 @@ export class SvChipComponent {
    * - `'token'` — an entry in a set. The body is not interactive; the `×` is a
    *   real button named "Remove <label>".
    * - `'action'` — it does something. `role="button"`, focusable, `Space`/`Enter`,
-   *   and it emits `activated`. ★★ THIS ONE WAS NOT BUILDABLE BEFORE at all:
-   *   there was no output to listen to and no role but `checkbox`.
-   * - `'auto'` — infer from `selectable` / `removable`, i.e. what this component
-   *   has always done.
+   *   and it emits `activated`.
+   * - `'auto'` — infer from `selectable` / `removable`.
    */
   chipRole = input<ChipRole>('auto');
 
@@ -110,9 +116,8 @@ export class SvChipComponent {
   /**
    * Name of an icon in `@styloviz/icons`, e.g. `'star'`.
    *
-   * This used to be a raw `<path d="…">` string. That put SVG geometry in
-   * every consumer's config and skipped the library's sizing, stroke and
-   * dark-mode handling — pass a name instead.
+   * A name, not a raw `<path d="…">` string: the library supplies the sizing,
+   * stroke and dark-mode handling.
    */
   icon = input<string>('');
 
@@ -241,7 +246,7 @@ export class SvChipComponent {
 
   /** `Delete` removes a focusable removable chip inside a group — its `×` is out of the tab order. */
   readonly removeShortcut = computed<string | null>(() =>
-    this.group && this.removable() && this.focusable() ? 'Delete Backspace' : null,
+    this.group && this.removable() && this.focusable() ? 'Delete Backspace' : null, // sv-i18n-ignore: aria-keyshortcuts key names (ARIA syntax)
   );
 
   /**

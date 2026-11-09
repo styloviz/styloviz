@@ -8,24 +8,29 @@
      to switch off. The server has no stack and no `<body>` to portal into, so
      it renders the backdrop in place and the client takes over on hydration.
 -->
-@if (overlay()) {
-  @if (!isBrowser || !portal()) {
-    <ng-container [ngTemplateOutlet]="overlayTpl"></ng-container>
-  }
-} @else {
-  <!-- Inline spinner -->
-  <div class="inline-flex flex-col items-center gap-2" [class]="customClass()">
-    <ng-container [ngTemplateOutlet]="spinnerTpl"
-                  [ngTemplateOutletContext]="{ onDark: false }"></ng-container>
-    @if (labelVisible()) {
-      <span [class]="labelSize() + ' text-gray-600 dark:text-gray-400'">{{ label() }}</span>
+<!-- `shown()` is `active` unless showAfterMs / minVisibleMs delay it
+     (FL-J3-OF-06): before then nothing renders — the wait has not lasted long
+     enough to mention. -->
+@if (shown()) {
+  @if (overlay()) {
+    @if (!isBrowser || !portal()) {
+      <ng-container [ngTemplateOutlet]="overlayTpl"></ng-container>
     }
-  </div>
+  } @else {
+    <!-- Inline spinner -->
+    <div class="inline-flex flex-col items-center gap-2" [class]="customClass()">
+      <ng-container [ngTemplateOutlet]="spinnerTpl"
+                    [ngTemplateOutletContext]="{ onDark: false }"></ng-container>
+      @if (labelVisible()) {
+        <span [class]="labelSize() + ' text-gray-600 dark:text-gray-400'">{{ label() }}</span>
+      }
+    </div>
+  }
 }
 
 <!-- ── Fullscreen surface (portalled to <body> while overlaying) ── -->
 <ng-template #overlayTpl>
-  <div class="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm outline-none"
+  <div class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm outline-none"
        [class]="customClass()"
        [style.zIndex]="backdropZ()"
        data-sv-spinner-overlay
@@ -49,32 +54,38 @@
   <div role="status" [attr.aria-label]="resolvedLabel()">
 
     @if (spinnerStyle() === 'border') {
-      <!-- Rotating border ring -->
-      <div [class]="'rounded-full animate-spin ' + spinnerSize() + ' ' + borderWidth() + ' ' + trackColor() + ' ' + fillColor()">
+      <!-- Rotating border ring.
+           Reduced motion (OF-18-I4): the ring keeps turning — a frozen spinner
+           reads as a hang — but at a third of the speed, which is the
+           static-enough fallback WCAG 2.3.3 asks for without losing "busy". -->
+      <div data-sv-spinner-motion="slow" [class]="'rounded-full animate-spin motion-reduce:[animation-duration:2.4s] ' + spinnerSize() + ' ' + borderWidth() + ' ' + trackColor() + ' ' + fillColor()">
       </div>
 
     } @else if (spinnerStyle() === 'dots') {
-      <!-- Three bouncing dots -->
-      <div [class]="'flex items-center gap-1 ' + spinnerSize()">
-        <div [class]="'rounded-full animate-bounce [animation-delay:-0.3s] ' + dotSize() + ' ' + dotColor()"></div>
-        <div [class]="'rounded-full animate-bounce [animation-delay:-0.15s] ' + dotSize() + ' ' + dotColor()"></div>
-        <div [class]="'rounded-full animate-bounce ' + dotSize() + ' ' + dotColor()"></div>
+      <!-- Three bouncing dots. Reduced motion (OF-18-M5): a still ellipsis,
+           stepped in opacity so it still reads as "in progress", not as text. -->
+      <div data-sv-spinner-motion="static" [class]="'flex items-center gap-1 ' + spinnerSize()">
+        <div [class]="'rounded-full animate-bounce motion-reduce:animate-none motion-reduce:opacity-40 [animation-delay:-0.3s] ' + dotSize() + ' ' + dotColor()"></div>
+        <div [class]="'rounded-full animate-bounce motion-reduce:animate-none motion-reduce:opacity-70 [animation-delay:-0.15s] ' + dotSize() + ' ' + dotColor()"></div>
+        <div [class]="'rounded-full animate-bounce motion-reduce:animate-none ' + dotSize() + ' ' + dotColor()"></div>
       </div>
 
     } @else if (spinnerStyle() === 'pulse') {
-      <!-- Pulsing circle -->
-      <div class="relative" [class]="spinnerSize()">
-        <div [class]="'absolute inset-0 rounded-full animate-ping opacity-50 ' + dotColor()"></div>
+      <!-- Pulsing circle. Reduced motion: the ping ring is dropped and the
+           solid dot stays — the dot is the status. -->
+      <div class="relative" data-sv-spinner-motion="static" [class]="spinnerSize()">
+        <div [class]="'absolute inset-0 rounded-full animate-ping motion-reduce:hidden opacity-50 ' + dotColor()"></div>
         <div [class]="'rounded-full ' + spinnerSize() + ' ' + dotColor()"></div>
       </div>
 
     } @else if (spinnerStyle() === 'bars') {
-      <!-- Equalizer bars -->
-      <div class="flex items-end gap-0.5" [class]="spinnerSize()">
-        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.4s] ' + barHeight() + ' ' + dotColor()"></div>
-        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] ' + barHeight() + ' ' + dotColor()"></div>
-        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite] ' + barHeight() + ' ' + dotColor()"></div>
-        <div [class]="'w-1 rounded-t animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] ' + barHeight() + ' ' + dotColor()"></div>
+      <!-- Equalizer bars. Reduced motion: the bars stand still at staggered
+           heights (scaleY, so the static frame matches the moving one). -->
+      <div class="flex items-end gap-0.5" data-sv-spinner-motion="static" [class]="spinnerSize()">
+        <div [class]="'w-1 rounded-t origin-bottom animate-[bounce_0.8s_ease-in-out_infinite_-0.4s] motion-reduce:animate-none motion-reduce:scale-y-50 ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t origin-bottom animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] motion-reduce:animate-none motion-reduce:scale-y-75 ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t origin-bottom animate-[bounce_0.8s_ease-in-out_infinite] motion-reduce:animate-none ' + barHeight() + ' ' + dotColor()"></div>
+        <div [class]="'w-1 rounded-t origin-bottom animate-[bounce_0.8s_ease-in-out_infinite_-0.2s] motion-reduce:animate-none motion-reduce:scale-y-75 ' + barHeight() + ' ' + dotColor()"></div>
       </div>
     }
 
@@ -113,14 +124,14 @@
         <span
           data-sv-state="expectation"
           aria-hidden="true"
-          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/80' : 'text-gray-500 dark:text-gray-400')"
+          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/90' : 'text-gray-500 dark:text-gray-400')"
         >{{ expectationText() }}</span>
       }
       @if (waitMessage(); as message) {
         <span
           data-sv-state="escalation"
           [attr.data-sv-stage]="waitStage()"
-          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/80' : 'text-gray-500 dark:text-gray-400')"
+          [class]="'mt-2 text-xs ' + (onDark ? 'text-white/90' : 'text-gray-500 dark:text-gray-400')"
         >{{ message }}</span>
       }
       @if (cancelOffered()) {

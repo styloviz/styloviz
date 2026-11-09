@@ -11,8 +11,11 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import type { SvSensitiveCopyEvent } from '@styloviz/core';
+import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { type SvSensitiveCopyEvent } from '@styloviz/core/security';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 import {
+  binarySummary,
   childrenOf,
   classNameOf,
   classify,
@@ -30,6 +33,7 @@ import {
   type JsonViewerSize,
 } from './json-viewer.types';
 
+import { registerJsonViewerIcons } from './json-viewer.component.icons';
 /**
  * JsonViewer — an expandable tree over any value.
  *
@@ -76,11 +80,17 @@ import {
 @Component({
   selector: 'sv-json-viewer',
   standalone: true,
-  imports: [NgClass, SvIconComponent],
+  imports: [NgClass, SvIconComponent, SvLabelPipe],
   templateUrl: './json-viewer.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvJsonViewerComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerJsonViewerIcons();
+
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+  /** The kit's locale — picks the plural form of the hidden-properties note. */
+  private readonly locale = svLocale();
   private readonly host = inject(ElementRef<HTMLElement>);
 
   // ── Inputs ────────────────────────────────────────────────────────────────
@@ -304,7 +314,10 @@ export class SvJsonViewerComponent {
       if (!isContainer(kind)) {
         push({
           path, depth, key, kind,
-          preview: scalarText(value, kind, quote),
+          preview:
+            kind === 'binary'
+              ? binarySummary(value, this.labels.jsonBinary, this.locale)
+              : scalarText(value, kind, quote),
           expandable: false, expanded: false, count: 0, value, redacted: false,
         });
         return;
@@ -332,8 +345,8 @@ export class SvJsonViewerComponent {
           // the row says rather than pasting the `undefined` standing in for it.
           const preview =
             child.unreadGetter === true
-              ? '(getter — not read)'
-              : `(getter threw: ${String(child.value)})`;
+              ? this.labels.jsonGetterNotRead
+              : svFormatLabel(this.labels.jsonGetterThrew, { error: String(child.value) });
           push({
             path: childPath, depth: depth + 1, key: child.key, kind: 'getter',
             preview,
@@ -349,14 +362,14 @@ export class SvJsonViewerComponent {
         push({
           path: `${path}::more`, depth: depth + 1, key: '',
           kind: 'truncated',
-          preview: `… ${kids.length - cap} more (raise maxChildren to show)`,
+          preview: svFormatLabel(this.labels.jsonMoreChildren, { n: String(kids.length - cap) }),
           expandable: false, expanded: false, count: kids.length - cap,
           value: undefined, redacted: false,
         });
       }
 
       // What `Object.entries` would have dropped without a word.
-      const omitted = omissionNote(children);
+      const omitted = omissionNote(children, this.labels, this.locale);
       if (!truncated && omitted !== '') {
         push({
           path: `${path}::omitted`, depth: depth + 1, key: '',
@@ -374,7 +387,7 @@ export class SvJsonViewerComponent {
     if (truncated) {
       out.push({
         path: '$::ceiling', depth: 0, key: '', kind: 'truncated',
-        preview: `… stopped at ${ceiling} rows (raise maxRows to show more)`,
+        preview: svFormatLabel(this.labels.jsonRowCeiling, { n: String(ceiling) }, this.locale),
         expandable: false, expanded: false, count: 0,
         value: undefined, redacted: false,
       });
@@ -497,9 +510,13 @@ export class SvJsonViewerComponent {
     const value = redactedProjection(row.value, row.key, row.path, {
       redact: this.redact(),
       redactedLabel: this.redactedLabel(),
+      getterNotReadLabel: this.labels.jsonGetterNotRead,
+      getterThrewLabel: this.labels.jsonGetterThrew,
       evaluateGetters: this.evaluateGetters(),
       sortKeys: this.sortKeys(),
       onRedact: () => (redacted = true),
+      binaryLabel: this.labels.jsonBinary,
+      locale: this.locale,
     });
     return { value, redacted };
   }
@@ -531,6 +548,10 @@ export class SvJsonViewerComponent {
       // The projection is JSON-safe by construction (BigInt, NaN, functions and
       // cycles are already the row's own text), so plain stringify cannot throw.
       text = JSON.stringify(projection.value, null, 2);
+    } else if (row.kind === 'binary') {
+      // The summary, never the bytes: stringify would spell a typed array out
+      // index by index and turn an ArrayBuffer or a Blob into `{}`.
+      text = row.preview;
     } else {
       text = safeStringify(row.value) ?? scalarText(row.value, row.kind, true);
     }
@@ -636,7 +657,7 @@ export class SvJsonViewerComponent {
 
   protected rowClasses(focused: boolean): string {
     return [
-      'flex w-full items-start gap-1 rounded px-1 text-left leading-5',
+      'flex w-full items-start gap-1 rounded px-1 text-start leading-5',
       'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
       focused ? 'bg-gray-100 dark:bg-gray-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800/60',
     ].join(' ');
@@ -665,6 +686,7 @@ export class SvJsonViewerComponent {
       case 'string': return 'text-emerald-700 dark:text-emerald-400';
       case 'number':
       case 'bigint': return 'text-sky-700 dark:text-sky-400';
+      case 'binary': return 'italic text-sky-700 dark:text-sky-400';
       case 'boolean': return 'text-violet-700 dark:text-violet-400';
       case 'null': return 'text-gray-500 dark:text-gray-400';
       case 'undefined': return 'italic text-gray-500 dark:text-gray-400';

@@ -4,7 +4,7 @@ The complete set of pre-session screens — sign in with providers, register wit
 
 | | |
 |---|---|
-| Version | **1.0.2** |
+| Version | **2.0.0** |
 | Tier | **Free** |
 | Built with | Angular 22.2.0, Tailwind CSS 4, TypeScript (strict), standalone components, signals, zoneless change detection |
 | Opens at | `http://localhost:4200/templates/auth/login` |
@@ -166,11 +166,12 @@ To deploy under a sub-path (e.g. `https://example.com/admin/`), build with
 | `@styloviz/forms` | Free — public npm |
 | `@styloviz/icons` | Free — public npm |
 | `@styloviz/input-field` | Free — public npm |
+| `@styloviz/kbd` | Free — public npm |
 | `@styloviz/layout` | Free — public npm |
+| `@styloviz/overlays` | Free — public npm |
 | `@styloviz/password-strength` | Free — public npm |
-| `@styloviz/toast` | Free — public npm |
 
-9 free · 0 Pro. They are ordinary npm dependencies —
+10 free · 0 Pro. They are ordinary npm dependencies —
 upgrade with `npm install <package>@latest`. Component docs and live examples:
 https://styloviz.dev/docs
 

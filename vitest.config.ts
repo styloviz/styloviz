@@ -12,9 +12,11 @@ process.env.TZ = process.env.SV_TEST_TZ?.trim() || 'Pacific/Marquesas';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const tsconfig = JSON.parse(readFileSync(resolve(root, 'tsconfig.json'), 'utf8'));
+// Exact, not prefix: a key's `*` becomes a capture group its target reuses (FL-B4).
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 const alias = Object.entries(tsconfig.compilerOptions.paths as Record<string, string[]>).map(([key, targets]) => ({
-  find: key.replace(/\/\*$/, ''),
-  replacement: resolve(root, targets[0].replace(/\/\*$/, '')),
+  find: new RegExp(`^${escape(key).replace('\\*', '(.+)')}$`),
+  replacement: resolve(root, targets[0]).replace('*', '$1'),
 }));
 
 export default defineConfig({

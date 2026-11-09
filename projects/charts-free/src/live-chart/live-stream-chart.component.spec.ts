@@ -429,7 +429,7 @@ describe('SvLiveStreamChartComponent — chrome', () => {
     expect(bare.querySelectorAll('line').length).toBeLessThan(
       full.querySelectorAll('line').length,
     );
-    expect(bare.textContent).not.toContain('CPU');
+    expect(visibleText(bare)).not.toContain('CPU');
     // The gradient defs stay; what goes is the filled <path> that references them.
     expect(bare.querySelectorAll('path[fill^="url(#lsc-grad-"]').length).toBe(0);
     expect(full.querySelectorAll('path[fill^="url(#lsc-grad-"]').length).toBe(2);
@@ -753,3 +753,13 @@ describe('SvLiveStreamChartComponent — server render', () => {
     expect(c.pointCount()).toBe(6);
   });
 });
+
+/**
+ * The text a sighted reader sees: the frame's hidden data table (FL-D5) names
+ * every series too, so a "the legend is gone" check must not read it.
+ */
+function visibleText(el: HTMLElement): string {
+  const copy = el.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll('.sv-summary').forEach((n) => n.remove());
+  return copy.textContent ?? '';
+}

@@ -3,31 +3,26 @@ import {
   Component,
   computed,
   input,
+  model,
   output,
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
 import {
-  SvChartAnimDirective,
+  createSeriesEmphasis,
+  injectSvChartSync,
   SvChartFrameComponent,
-  SvDataSummaryTableComponent,
   type SvDataError,
-  type SvDataSummary,
   svFiniteExtent,
   svGapNotice,
+  svDecimateIndices,
   svGapRuns,
   svIsGap,
-  svUniqueId,
-} from '@styloviz/core';
-
-/**
- * What the table and tooltip print for a gap.
- *
- * ★ Never `0` and never `NaN`: `0` asserts a measurement nobody took, and `NaN`
- *   leaks an implementation detail into the reader's sentence. Same wording as
- *   the heatmap's missing square.
- */
-const GAP_TEXT = 'No reading';
+} from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +43,19 @@ export type LineChartType =
   | 'stacked'
   | 'stacked-percent'
   | 'inversed';
+
+/**
+ * How the lines are drawn.
+ *
+ * - `'standard'`   — every reading is a vertex, with markers and data labels as set.
+ * - `'large-data'` — for series in the thousands: each horizontal unit of the plot
+ *   keeps only its lowest and highest reading (plus the readings beside a gap),
+ *   so every peak and trough is still drawn while the path stays a few hundred
+ *   vertices long. Markers, data labels and per-point colours are off, the x-axis
+ *   labels are thinned, and the chart says how many points it drew. Hovering
+ *   still reads the exact value under the cursor. Ignored for `'inversed'`.
+ */
+export type LineChartRenderer = 'standard' | 'large-data';
 
 /** Shape of data-point markers. */
 export type LineChartMarkerShape = 'circle' | 'square' | 'diamond' | 'triangle';
@@ -223,12 +231,14 @@ const DEFAULT_COLORS: readonly string[] = [
     NgClass,
     SvChartAnimDirective,
     SvChartFrameComponent,
-    SvDataSummaryTableComponent,
   ],
   templateUrl: './line-chart.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvLineChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-line-chart');
 
@@ -246,7 +256,7 @@ export class SvLineChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -256,6 +266,35 @@ export class SvLineChartComponent {
 
   /** The host should re-run the failed load. */
   readonly retry = output<void>();
+
+  // ── Series emphasis (FL-J3-CH-03) ────────────────────────────────────────
+
+  /**
+   * Legend entries are keyboard buttons: hover or focus one and the other
+   * series fade; Enter, Space or a click hides or shows it; the arrow keys move
+   * between series. `false` keeps the static legend. Applies to the series
+   * legend — a zoned chart's legend keys zones, not series, and stays static.
+   * @default true
+   */
+  readonly interactiveLegend = input<boolean>(true);
+
+  /**
+   * Labels of the series switched off from the legend. Two-way bindable
+   * (`[(hiddenSeries)]`) so a host can persist and restore the choice; the
+   * last visible series cannot be hidden. The value axis keeps its scale, so
+   * hiding a series never silently re-scales the ones left.
+   * @default []
+   */
+  readonly hiddenSeries = model<readonly string[]>([]);
+
+  /** Isolate (fade the others) and toggle — the shared series-emphasis model. */
+  readonly emphasis = createSeriesEmphasis({
+    keys: () => this.series().map((s) => s.label),
+    hidden: this.hiddenSeries,
+  });
+
+  /** Id of the legend's off-screen keyboard hint. */
+  protected readonly legendHintId = svUniqueId('sv-line-chart-legend');
 
   /** Nothing to plot. */
   readonly chartIsEmpty = computed(() => this.series().length === 0);
@@ -270,6 +309,13 @@ export class SvLineChartComponent {
 
   /** Visual chart type. @default 'line' */
   chartType = input<LineChartType>('line');
+
+  /**
+   * `'large-data'` draws a series of thousands of points as its outline — the
+   * lowest and highest reading of each horizontal plot unit — instead of one
+   * vertex per reading. See `LineChartRenderer`. @default 'standard'
+   */
+  renderer = input<LineChartRenderer>('standard');
 
   /** Chart title. */
   title = input<string>('');
@@ -299,13 +345,13 @@ export class SvLineChartComponent {
   readonly chartDescription = computed<string>(() => {
     const cats = this.categories();
     const sets = this.series();
-    const base = this.title() || 'Line chart';
+    const base = this.title() || this.labels.chartLine;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    const seriesPart = sets.length === 1
-      ? (names ? `series ${names}` : '1 series')
-      : `${sets.length} series${names ? ` (${names})` : ''}`;
-    return `${base}: ${seriesPart} across ${cats.length} point${cats.length === 1 ? '' : 's'}.`;
+    const template = !names
+      ? this.labels.lineSummary
+      : sets.length === 1 ? this.labels.lineSummaryOneNamed : this.labels.lineSummaryNamed;
+    return svFormatLabel(template, { title: base, series: sets.length, names, points: cats.length }, this.locale);
   });
 
   /** Resolved accessible name — explicit override or the generated summary. */
@@ -331,13 +377,14 @@ export class SvLineChartComponent {
   protected readonly a11ySummary = computed<SvDataSummary>(() => {
     const sets = this.series();
     return {
-      caption: this.title() || 'Line chart',
-      columns: ['Point', ...sets.map((s) => s.label)],
-      rows: this.categories().map((cat, ci) => ({
-        key: cat,
-        header: cat,
-        cells: sets.map((_, si) => this.cellValue(si, ci)),
-      })),
+      caption: this.title() || this.labels.chartLine,
+      columns: [this.labels.pointColumn, ...sets.map((s) => s.label)],
+      // Large-data mode lists the readings it drew, and says so.
+      overview: this.decimationNote() ?? undefined,
+      rows: this.categories().flatMap((cat, ci) => {
+        const kept = this.keptIndices();
+        return kept && !kept.has(ci) ? [] : [{ key: cat, header: cat, cells: sets.map((_, si) => this.cellValue(si, ci)) }];
+      }),
     };
   });
 
@@ -362,13 +409,54 @@ export class SvLineChartComponent {
 
   // ── Chart geometry ────────────────────────────────────────────────────────
 
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly SVG_WIDTH = 600;  readonly PAD = { top: 28, right: 24, bottom: 52, left: 56 };
 
   /** Padding for inversed layout — wider left margin for category labels. */
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD_INV = { top: 24, right: 40, bottom: 44, left: 130 };
 
   svgHeight  = computed(() => this.height());
   isInversed = computed(() => this.chartType() === 'inversed');
+
+  /** The large-data renderer is in force (it does not apply to `'inversed'`). */
+  readonly largeData = computed(() => this.renderer() === 'large-data' && !this.isInversed());
+
+  /**
+   * The readings the large-data renderer draws, as a set of category indices —
+   * or `null` when every reading is drawn (standard renderer, or a series short
+   * enough that there is nothing to leave out).
+   */
+  readonly keptIndices = computed<ReadonlySet<number> | null>(() => {
+    if (!this.largeData()) return null;
+    const n = this.categories().length;
+    const kept = svDecimateIndices(this.effectiveData(), 0, n - 1, Math.round(this.plotW()));
+    return kept ? new Set<number>(kept) : null;
+  });
+
+  /** Category indices that get an x-axis label: all of them, or ~8 in large-data mode. */
+  readonly xLabelIndices = computed<number[]>(() => {
+    const n = this.categories().length;
+    const step = this.largeData() ? Math.max(1, Math.ceil(n / 8)) : 1;
+    const out: number[] = [];
+    for (let i = 0; i < n; i += step) out.push(i);
+    return out;
+  });
+
+  /** What the large-data renderer left out, in words — or `null` when it drew everything. */
+  readonly decimationNote = computed<string | null>(() => {
+    const kept = this.keptIndices();
+    if (!kept) return null;
+    return svFormatLabel(this.labels.largeDataNote, {
+      shown: kept.size.toLocaleString(this.locale),
+      total: this.categories().length.toLocaleString(this.locale),
+    }, this.locale);
+  });
+
+  /** Everything the frame says under the plot: gaps, then decimation. */
+  readonly frameNotice = computed<string | null>(
+    () => [this.gapNote(), this.decimationNote()].filter(Boolean).join(' ') || null,
+  );
 
   // Normal layout
   plotW = computed(() => this.SVG_WIDTH   - this.PAD.left     - this.PAD.right);
@@ -383,12 +471,15 @@ export class SvLineChartComponent {
   showGrid       = computed(() => this.options().showGrid       ?? true);
   showLabels     = computed(() => this.options().showLabels     ?? true);
   showLegend     = computed(() => this.options().showLegend     ?? true);
-  showDots       = computed(() => this.options().showDots       ?? true);
+  /** `options.showDots` as set; the large-data renderer turns markers off regardless. */
+  private readonly dotsOption = computed(() => this.options().showDots ?? true);
+  showDots       = computed(() => this.dotsOption() && !this.largeData());
   gridDivisions  = computed(() => this.options().gridDivisions  ?? 5);
   animated       = computed(() => this.options().animated       ?? true);
   animDuration   = computed(() => { const d = this.options().animationDuration; return d != null ? d + 'ms' : null; });
   showCrosshair  = computed(() => this.options().showCrosshair  ?? true);
-  showDataLabels = computed(() => this.options().showDataLabels ?? false);
+  private readonly dataLabelsOption = computed(() => this.options().showDataLabels ?? false);
+  showDataLabels = computed(() => this.dataLabelsOption() && !this.largeData());
   annotations    = computed(() => this.options().annotations    ?? []);
   yAxisTitle     = computed(() => this.options().yAxisTitle     ?? '');
   xAxisTitle     = computed(() => this.options().xAxisTitle     ?? '');
@@ -508,7 +599,7 @@ export class SvLineChartComponent {
   readonly gapNote = computed<string | null>(() => {
     const stacked = this.chartType() === 'stacked' || this.chartType() === 'stacked-percent';
     const total = this.series().reduce((n, s) => n + s.data.length, 0);
-    return svGapNotice(this.gapCount(), total, stacked);
+    return svGapNotice(this.gapCount(), total, stacked, this.labels, this.locale);
   });
 
   axisMin = computed<number>(() => {
@@ -634,7 +725,17 @@ export class SvLineChartComponent {
    * side of the chart.
    */
   private runsOf(data: readonly (number | null)[]): { x: number; y: number }[][] {
-    return svGapRuns(data, (v, i) => ({ x: this.xForIndex(i), y: this.yForValue(v) }));
+    return this.thin(svGapRuns(data, (v, i) => ({ x: this.xForIndex(i), y: this.yForValue(v), i })));
+  }
+
+  /**
+   * In large-data mode, drops the vertices the renderer leaves out. A run's first
+   * and last reading always stay, so a line starts and stops where it really does.
+   */
+  private thin<T extends { i: number }>(runs: T[][]): T[][] {
+    const kept = this.keptIndices();
+    if (!kept) return runs;
+    return runs.map((run) => run.filter((p, k) => k === 0 || k === run.length - 1 || kept.has(p.i)));
   }
 
   /** Whether a series uses smooth curves. */
@@ -686,7 +787,7 @@ export class SvLineChartComponent {
     //   `Z` around the whole series would fill straight across a break — the
     //   area under a stretch of missing readings, drawn as if it had been
     //   measured, which is precisely the claim the break exists to avoid.
-    const runs = svGapRuns(data, (v, i) => ({ x: this.xForIndex(i), y: this.yForValue(v), i }));
+    const runs = this.thin(svGapRuns(data, (v, i) => ({ x: this.xForIndex(i), y: this.yForValue(v), i })));
     if (runs.length === 0) return '';
 
     const bPts = isStk && base.length > 0
@@ -765,7 +866,7 @@ export class SvLineChartComponent {
     return { y: topY, height: Math.max(0, botY - topY) };
   }
 
-  zoneClipId(si: number, zi: number): string { return `lc-zone-${this._uid}-${si}-${zi}`; }
+  zoneClipId(si: number, zi: number): string { return `lc-zone-${this._uid}-${si}-${zi}`; } // sv-i18n-ignore: SVG clip-path id
 
   // ── Inversed layout ───────────────────────────────────────────────────────
 
@@ -812,11 +913,11 @@ export class SvLineChartComponent {
   // ── Formatting ────────────────────────────────────────────────────────────
 
   /**
-   * A datum as the table and tooltip print it: `GAP_TEXT` for a gap (null,
+   * A datum as the table and tooltip print it: `labels.noReading` for a gap (null,
    * undefined, NaN, ±Infinity — the `svIsGap` rule), the formatted value otherwise.
    */
   formatReading(v: number | null | undefined): string {
-    return svIsGap(v) ? GAP_TEXT : this.formatNumber(v as number);
+    return svIsGap(v) ? this.labels.noReading : this.formatNumber(v as number);
   }
 
   /**
@@ -879,6 +980,7 @@ export class SvLineChartComponent {
 
     if (relX < 0 || relX > pW || relY < 0 || relY > pH) {
       this.tooltip.update(t => ({ ...t, visible: false }));
+      this.sync?.publishHover(null);
       return;
     }
 
@@ -888,15 +990,26 @@ export class SvLineChartComponent {
     const ci = inv
       ? Math.min(Math.round(relY / pH * (n - 1)), n - 1)
       : Math.min(Math.round(relX / pW * (n - 1)), n - 1);
+    this.tooltipAt(ci, relX, relY);
+    this.remoteTip = false;
+    this.sync?.publishHover(ci);
+  }
 
+  /** The crosshair and tooltip at category `ci`, the pointer at plot-relative (`relX`, `relY`). */
+  private tooltipAt(ci: number, relX: number, relY: number): void {
+    const inv = this.isInversed();
+    const pad = inv ? this.PAD_INV : this.PAD;
     const crossX = inv ? relX : this.xForIndex(ci);
     const crossY = inv ? this.yForIndex_inv(ci) : relY;
 
-    const items = this.series().map((s, i) => ({
-      color:  this.seriesColors()[i],
-      series: s.label,
-      value:  svIsGap(s.data[ci]) ? null : (s.data[ci] as number),
-    }));
+    // A series switched off in the legend is off in the tooltip too.
+    const items = this.series()
+      .map((s, i) => ({
+        color:  this.seriesColors()[i],
+        series: s.label,
+        value:  svIsGap(s.data[ci]) ? null : (s.data[ci] as number),
+      }))
+      .filter((item) => !this.emphasis.isHidden(item.series));
 
     const tipH = 24 + items.length * 18 + 12;
     const tipW = 150;
@@ -919,5 +1032,22 @@ export class SvLineChartComponent {
 
   onMouseLeave(): void {
     this.tooltip.update(t => ({ ...t, visible: false }));
+    this.sync?.publishHover(null);
+  }
+
+  /** `svChartSync`: show the group's hovered category — never re-published. */
+  private readonly sync = injectSvChartSync({
+    categories: () => this.categories(),
+    hover: (ci) => this.showRemoteHover(ci),
+  });
+
+  /** Whether the tooltip on screen is another chart's hover, which only that chart can take away. */
+  private remoteTip = false;
+
+  private showRemoteHover(ci: number | null): void {
+    const inv = this.isInversed();
+    if (ci !== null) this.tooltipAt(ci, inv ? this.plotW_inv() / 2 : this.xForIndex(ci), (inv ? this.plotH_inv() : this.plotH()) / 2);
+    else if (this.remoteTip) this.tooltip.update(t => ({ ...t, visible: false }));
+    this.remoteTip = ci !== null;
   }
 }

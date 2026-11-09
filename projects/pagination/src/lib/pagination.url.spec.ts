@@ -1,10 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import {
-  provideSvNavLocation,
-  svNoopNavLocation,
-  svQueryParamNavLocation,
-} from '@styloviz/core';
+import { provideSvNavLocation, svNoopNavLocation, svQueryParamNavLocation } from '@styloviz/core/nav';
 import { SvPaginationComponent } from './pagination.component';
 
 /**

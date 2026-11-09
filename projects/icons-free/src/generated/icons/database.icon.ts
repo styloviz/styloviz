@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `database` icon. */
 export const databaseNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const databaseNodes: readonly IconNode[] = [
 export const databaseSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4.1 6q0-1.8 2.6-2.9 2.2-1 5.3-1 3.1 0 5.3 1 2.6 1.1 2.6 2.9v12q0 1.8-2.6 2.9-2.2 1-5.3 1-3.1 0-5.3-1-2.6-1.1-2.6-2.9zm14 2.5q-.4.2-.8.4-2.2 1-5.3 1-3.1 0-5.3-1-.4-.2-.8-.4v3.5q0 .7 1.5 1.3 1.9.8 4.6.8 2.7 0 4.6-.8 1.5-.6 1.5-1.3zm-12.2 6v3.5q0 .7 1.5 1.3 1.9.8 4.6.8 2.7 0 4.6-.8 1.5-.6 1.5-1.3v-3.5q-.4.2-.8.4-2.2 1-5.3 1-3.1 0-5.3-1-.4-.2-.8-.4z' },
 ];
+
+/** `database` as a registrable glyph — `registerSvIcons([databaseIcon])` / `provideSvIcons([databaseIcon])`. */
+export const databaseIcon: SvIconDef = { name: 'database', nodes: databaseNodes, solid: databaseSolidNodes };
 
 /** `database` — tree-shakable standalone icon. Use `<sv-database-icon />`. */
 @Component({

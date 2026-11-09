@@ -3,6 +3,11 @@ import { render, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { until, quietFor } from '../../../../src/testing/async';
 import { SvSearchBarComponent, type SearchSuggestion } from './search-bar.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * The dropdown: when it exists at all, what each row resolves to, and how the
@@ -17,6 +22,7 @@ import { SvSearchBarComponent, type SearchSuggestion } from './search-bar.compon
 async function setup(inputs: Partial<ComponentInput<SvSearchBarComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvSearchBarComponent, {
+    providers: [HOST_ICONS],
     inputs: inputs as ComponentInput<SvSearchBarComponent>,
   });
 }

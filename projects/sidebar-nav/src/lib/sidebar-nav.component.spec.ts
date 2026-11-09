@@ -1,17 +1,17 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { type MenuGroup } from '@styloviz/core/models';
 import {
   SV_LINK_ADAPTER,
   SV_NAV_TELEMETRY,
   provideSvNavLocation,
   svQueryParamNavLocation,
-  svResetWarnOnce,
-  type MenuGroup,
   type SvLinkAdapter,
   type SvLinkTarget,
   type SvNavEvent,
   type SvNavTelemetry,
-} from '@styloviz/core';
+} from '@styloviz/core/nav';
 import { SvSidebarNavComponent } from './sidebar-nav.component';
 import type { SidebarNavSelection } from './sidebar-nav.model';
 
@@ -227,7 +227,10 @@ describe('SvSidebarNavComponent — sub-navigation', () => {
 
   it('lets the host pin the open child instead of the URL', async () => {
     const f = await setup({ activeRoute: '/orders', activeChildId: 'shipped' });
-    expect(current(f.fixture)).toEqual(['Orders', 'Shipped']);
+    // SR-30: one page is current. The parent is on the trail — "true", not a
+    // second "page" a screen reader would announce.
+    expect(current(f.fixture)).toEqual(['Shipped']);
+    expect(linkFor(f.fixture, '/orders')!.getAttribute('aria-current')).toBe('true');
   });
 });
 
@@ -362,11 +365,15 @@ describe('SvSidebarNavComponent — picking something', () => {
 // ─── The rail ────────────────────────────────────────────────────────────────
 
 describe('SvSidebarNavComponent — the collapsed rail', () => {
-  it('hides the labels and keeps them as titles', async () => {
+  it('hides the labels and keeps them as the accessible name, shown by a kit tooltip', async () => {
     const f = await setup({ collapsed: true });
     const orders = linkFor(f.fixture, '/orders')!;
     expect(orders.textContent?.trim()).toBe('');
-    expect(orders.getAttribute('title')).toBe('Orders');
+    // SR-30: a native `title` never showed on focus or touch; the name is the
+    // label and the visible hint is `sv-tooltip`.
+    expect(orders.getAttribute('aria-label')).toBe('Orders');
+    expect(orders.hasAttribute('title')).toBe(false);
+    expect(orders.closest('sv-tooltip')).not.toBeNull();
   });
 
   it('drops the group headings for dividers', async () => {
@@ -377,7 +384,7 @@ describe('SvSidebarNavComponent — the collapsed rail', () => {
   /** A toggle is an action on this page, so it is a real button. */
   it('toggles through a real button that says which way it goes', async () => {
     const f = await setup();
-    const toggle = el(f.fixture).querySelector('button')!;
+    const toggle = el(f.fixture).querySelector<HTMLButtonElement>('[data-sv-collapse-toggle]')!;
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
 
     toggle.click();
@@ -393,7 +400,7 @@ describe('SvSidebarNavComponent — the collapsed rail', () => {
 describe('SvSidebarNavComponent — projected chrome', () => {
   it('omits the header and footer boxes when told to', async () => {
     const f = await setup({ showHeader: false, showFooter: false });
-    expect(el(f.fixture).querySelector('button')).toBeNull();
+    expect(el(f.fixture).querySelector('[data-sv-collapse-toggle]')).toBeNull();
     expect(el(f.fixture).querySelectorAll('nav').length).toBe(1);
   });
 });

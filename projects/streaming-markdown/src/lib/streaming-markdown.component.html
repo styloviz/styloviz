@@ -106,7 +106,7 @@
                     ? 'border-primary-500 bg-primary-500 text-white'
                     : 'border-gray-300 dark:border-gray-600'"
                   role="img"
-                  [attr.aria-label]="item.checked ? 'Done' : 'Not done'">
+                  [attr.aria-label]="item.checked ? labels.done : labels.notDone">
                   @if (item.checked) {
                     <sv-icon name="check"
                              cssClass="h-2.5 w-2.5"
@@ -128,7 +128,7 @@
       <!-- ── Blockquote ──────────────────────────────────────────────── -->
       @case ('quote') {
         <blockquote
-          class="my-3 border-l-2 border-primary-300 pl-3 italic text-gray-600 first:mt-0
+          class="my-3 border-s-2 border-primary-300 ps-3 italic text-gray-600 first:mt-0
                  dark:border-primary-700 dark:text-gray-400"><ng-container
           *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" /></blockquote>
       }
@@ -136,7 +136,7 @@
       <!-- ── Table ───────────────────────────────────────────────────── -->
       @case ('table') {
         <div class="my-3 overflow-x-auto rounded-lg border border-gray-200 first:mt-0 dark:border-gray-800" tabindex="0">
-          <table class="w-full border-collapse text-left">
+          <table class="w-full border-collapse text-start">
             <thead class="bg-gray-50 dark:bg-gray-900/60">
               <tr>
                 @for (cell of block.head; track $index) {
@@ -170,7 +170,7 @@
       @default {
         <p class="my-2 first:mt-0 last:mb-0"><ng-container
           *ngTemplateOutlet="inlines; context: { $implicit: block.inlines }" />@if (streaming() && $last) {<span
-          class="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-gray-400 align-middle dark:bg-gray-500"
+          class="ms-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-gray-400 align-middle dark:bg-gray-500"
           aria-hidden="true"></span>}</p>
       }
     }

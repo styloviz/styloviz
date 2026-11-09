@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { render } from '@testing-library/angular';
 import { SvSelectDropdownComponent, type SelectOption } from './select-dropdown.component';
+import { renderSelect } from '@testing/select-host';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 /**
  * The floating-label styling, the server-side search contract, and the error
@@ -30,9 +33,7 @@ const OPTIONS = (): SelectOption[] => [
 
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvSelectDropdownComponent, {
-    inputs: { options: OPTIONS(), ...inputs },
-  });
+  const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS(), ...inputs });
   return fixture;
 }
 
@@ -46,7 +47,7 @@ describe('SvSelectDropdownComponent — the floating label at rest', () => {
     const c = (await setup({ label: 'Country' })).componentInstance;
     const cls = c.floatingLabelClasses();
     expect(c.labelIsFloated()).toBe(false);
-    expect(cls).toContain('left-3.5');
+    expect(cls).toContain('start-3.5');
     expect(cls).toContain('top-1/2');
     expect(cls).toContain('text-sm'); // the md label size, not the shrunken one
     expect(cls).not.toContain('bg-white');
@@ -76,7 +77,7 @@ describe('SvSelectDropdownComponent — the floating label once it floats', () =
     const c = (await setup({ label: 'Country', value: 'a' })).componentInstance;
     expect(c.labelIsFloated()).toBe(true);
     const cls = c.floatingLabelClasses();
-    expect(cls).toContain('left-3');
+    expect(cls).toContain('start-3');
     expect(cls).toContain('-top-px');
     expect(cls).toContain('text-[0.7rem] leading-none');
     // It sits on the border, so it needs a backdrop to punch through it.

@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { svKbdChord, svKbdSpoken, type SvKbdKey } from './kbd.keys';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { svKbdChord, svKbdPlatform, svKbdSequence, svKbdSpoken, svKbdSpokenSequence, type SvKbdKey, type SvKbdPlatform } from './kbd.keys';
+import { SV_KBD_LABELS } from './kbd.labels';
 
 /**
  * Visual weight.
@@ -41,6 +43,9 @@ export type KbdSize = 'sm' | 'md';
   templateUrl: './kbd.component.html',
 })
 export class SvKbdComponent {
+  /** The spoken key names — `provideSvLabels({ kbd: { … } })` translates them. */
+  protected readonly labels = injectSvLabels('kbd', SV_KBD_LABELS);
+
   /**
    * The key, by name or by glyph — `cmd`, `shift`, `esc`, `⌘`, `K`.
    *
@@ -69,6 +74,24 @@ export class SvKbdComponent {
    */
   readonly chord = input<string>('');
 
+  /**
+   * A SEQUENCE — chords pressed one after another — separated by spaces:
+   * `"g i"` (Gmail's "go to inbox"), `"mod+k mod+s"`. Each step is drawn as its
+   * own unbreakable chord with "then" between them, and announced as
+   * "G then I". Takes precedence over `chord` and `key`.
+   * @default ''
+   */
+  readonly sequence = input<string>('');
+
+  /**
+   * Which keyboard to draw for, which is what the `mod` token resolves by —
+   * Command (⌘) on `apple`, Control on `other`. `auto` reads the platform in
+   * the browser; on the server it answers `other`, so a prerendered `mod`
+   * reads "Ctrl" until hydration (see `svKbdPlatform`).
+   * @default 'auto'
+   */
+  readonly platform = input<'auto' | SvKbdPlatform>('auto');
+
   /** Visual weight. @default 'solid' */
   readonly variant = input<KbdVariant>('solid');
 
@@ -86,18 +109,33 @@ export class SvKbdComponent {
   /** Extra classes appended after the resolved variant/size classes. */
   readonly customClass = input<string>('');
 
+  /** The platform `mod` resolves for. */
+  readonly resolvedPlatform = computed<SvKbdPlatform>(() => {
+    const p = this.platform();
+    return p === 'auto' ? svKbdPlatform() : p;
+  });
+
   /** The keys this chip draws, empty when the host is projecting content. */
   protected readonly keys = computed<readonly SvKbdKey[]>(() => {
     const chord = this.chord().trim();
-    if (chord) return svKbdChord(chord);
+    if (chord) return svKbdChord(chord, this.labels, this.resolvedPlatform());
     const key = this.key().trim();
-    return key ? svKbdChord(key) : [];
+    return key ? svKbdChord(key, this.labels, this.resolvedPlatform()) : [];
+  });
+
+  /** The steps of `sequence`, each a chord; empty when there is no sequence. */
+  protected readonly steps = computed<readonly (readonly SvKbdKey[])[]>(() => {
+    const sequence = this.sequence().trim();
+    return sequence ? svKbdSequence(sequence, this.labels, this.resolvedPlatform()) : [];
   });
 
   /** What the whole thing is announced as. */
-  protected readonly spokenLabel = computed(
-    () => this.ariaLabel().trim() || svKbdSpoken(this.keys()),
-  );
+  protected readonly spokenLabel = computed(() => {
+    const override = this.ariaLabel().trim();
+    if (override) return override;
+    const steps = this.steps();
+    return steps.length ? svKbdSpokenSequence(steps, this.labels.then) : svKbdSpoken(this.keys());
+  });
 
   protected readonly classes = computed<string>(() => {
     const base = 'inline-flex items-center justify-center rounded border font-mono leading-none';

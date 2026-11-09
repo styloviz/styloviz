@@ -11,6 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { prefersReducedMotion, type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
 import {
   SvChartFrameComponent,
   SvConnectionStatusComponent,
@@ -18,8 +19,9 @@ import {
   svAppendSample,
   type SvConnectionState,
   type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,9 @@ const PALETTE = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
+  /** @internal Accessible names — English unless `provideSvLabels({ charts })` says otherwise. */
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-live-stream-chart');
 
@@ -110,7 +115,7 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -124,8 +129,8 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   /**
    * Generate the stream's points internally, with `Math.random()`.
    *
-   * For demos and screenshots only. This used to be the only behaviour, so a
-   * chart wired to a real feed drew invented numbers alongside the real ones.
+   * For demos and screenshots only. Off by default; left on, a chart wired to a
+   * real feed would draw invented numbers alongside the real ones.
    * @default false
    */
   readonly demoFeed = input<boolean>(false);
@@ -161,7 +166,7 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Chart title, rendered in the header and used in the default accessible name. @default 'Live Data Stream' */
-  title    = input<string>('Live Data Stream');
+  title    = input<string>(this.labels.liveStreamTitle);
   /** Secondary line shown under the title; hidden when empty. @default '' */
   subtitle = input<string>('');
   /**
@@ -182,7 +187,10 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   readonly resolvedAriaLabel = computed<string>(() => {
     if (this.ariaLabel()) return this.ariaLabel();
     const names = this.series().map(s => s.label).filter(Boolean).join(', ');
-    return `${this.title()} — live streaming chart${names ? `, series: ${names}` : ''}.`;
+    return svFormatLabel(names ? this.labels.liveStreamingNameSeries : this.labels.liveStreamingName, {
+      title: this.title(),
+      series: names,
+    });
   });
 
   // ── Resolved options ──────────────────────────────────────────────────────
@@ -245,6 +253,7 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   // ── SVG geometry ──────────────────────────────────────────────────────────
 
   readonly SVG_W = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD   = { top: 20, right: 20, bottom: 36, left: 48 };
 
   plotW = computed(() => this.SVG_W - this.PAD.left - this.PAD.right);
@@ -269,12 +278,20 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
   });
 
   /**
+   * Read once: a reader who asked for less motion gets a window that STEPS
+   * one reading at a time instead of gliding (FL-J3-CH-01, X-10). The slide
+   * is an inline transition, which no `motion-reduce:` class can beat.
+   */
+  private readonly reducedMotion = prefersReducedMotion();
+
+  /**
    * CSS transition string applied to the scrolling `<g>` element.
-   * Enabled only during the slide animation so the snap-back is instant.
+   * Enabled only during the slide animation so the snap-back is instant, and
+   * never under `prefers-reduced-motion` — the window steps instead.
    */
   slideTransition = computed<string>(() =>
-    this.isAnimating()
-      ? `transform ${Math.round(this.intervalMs() * 0.88)}ms linear`
+    this.isAnimating() && !this.reducedMotion
+      ? `transform ${Math.round(this.intervalMs() * 0.88)}ms linear` // sv-i18n-ignore: CSS transition value
       : 'none'
   );
 
@@ -292,6 +309,39 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
       }
     }
     return labels;
+  });
+
+  /**
+   * The readings currently in the window, oldest first — one row per reading,
+   * numbered as the x-axis numbers it, one column per series. A reading still
+   * waiting off-screen to slide in is not listed until it is drawn, and one
+   * outside the fixed y range, which the plot pins to the edge, says so.
+   *
+   * ★ The hidden table is not a live region: it re-renders on every tick but
+   *   announces nothing. A listener reads the window when they choose to.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets = this.series();
+    const buf  = this.bufferData();
+    const n    = this.windowSize();
+    const drop = this.incoming() ? 1 : 0;
+    const shown = buf.map((b) => b.slice(0, b.length - drop).slice(-n));
+    const held  = shown[0]?.length ?? 0;
+    const first = this.pointCount() - held + 1;
+    const [lo, hi] = [this.yMin(), this.yMax()];
+    const cell = (v: number | undefined): string => {
+      if (v === undefined || !Number.isFinite(v)) return this.labels.noValue;
+      const text = this.fmtValue(v);
+      return v < lo || v > hi ? svFormatLabel(this.labels.valueNotToScale, { value: text }) : text;
+    };
+    return {
+      caption: this.title() || this.labels.liveStreamTitle,
+      columns: [this.labels.pointColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: Array.from({ length: held }, (_, i) => {
+        const t = String(first + i);
+        return { key: t, header: t, cells: sets.map((_, si) => cell(shown[si]?.[i])) };
+      }),
+    };
   });
 
   // ── Coordinate helpers ─────────────────────────────────────────────────────
@@ -362,7 +412,7 @@ export class SvLiveStreamChartComponent implements OnInit, OnDestroy {
     return `${lp} L ${lx} ${pH} L ${fx} ${pH} Z`;
   }
 
-  gradId(si: number): string { return `lsc-grad-${this._uid}-${si}`; }
+  gradId(si: number): string { return `lsc-grad-${this._uid}-${si}`; } // sv-i18n-ignore: SVG gradient id
 
   // ── Data generation ────────────────────────────────────────────────────────
 

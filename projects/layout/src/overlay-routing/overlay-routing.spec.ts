@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
-import { SvOverlayRouteService, ToastService } from '@styloviz/core';
+import { SvOverlayRouteService } from '@styloviz/core/overlay';
+import { ToastService } from '@styloviz/core/services';
 import { provideSvOverlayRouteClose, type SvOverlayRouteCloseOptions } from './overlay-routing';
 
 /**

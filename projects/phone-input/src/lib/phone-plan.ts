@@ -1,5 +1,6 @@
-import { svDigitsOnly } from '@styloviz/core';
+import { svDigitsOnly, svFormatLabel } from '@styloviz/core/i18n';
 import type { PhoneCountry } from './phone-countries';
+import type { SvPhoneInputLabels } from './phone-input.labels';
 
 /**
  * Numbering plans, and why this file refuses to pretend it knows them.
@@ -81,12 +82,20 @@ export function svNationalLengthState(
  * actually check. The one exception is the E.164 ceiling, which is the format's
  * own rule and cannot go stale.
  */
-export function svLengthHint(digits: string, country: PhoneCountry): string {
+export function svLengthHint(
+  digits: string,
+  country: PhoneCountry,
+  labels: Pick<SvPhoneInputLabels, 'lengthHintE164' | 'lengthHintExact' | 'lengthHintRange'>,
+  locale = '',
+): string {
   const n = svDigitsOnly(digits).length;
   const dial = country.dialCode.replace(/\D/g, '').length;
   if (n + dial > SV_E164_MAX_DIGITS) {
-    return `That is ${n + dial} digits including ${country.dialCode}. E.164 allows at most ` +
-      `${SV_E164_MAX_DIGITS}, so this cannot be stored as an international number.`;
+    return svFormatLabel(
+      labels.lengthHintE164,
+      { count: n + dial, dialCode: country.dialCode, max: SV_E164_MAX_DIGITS },
+      locale,
+    );
   }
 
   const state = svNationalLengthState(digits, country);
@@ -94,10 +103,13 @@ export function svLengthHint(digits: string, country: PhoneCountry): string {
 
   const min = svMinNational(country.nationalDigits);
   const max = svMaxNational(country.nationalDigits);
-  const expected = min === max ? `${min} digits` : `${min}–${max} digits`;
   // One sentence for both directions: "usually 10 digits; this has 7" and
   // "…; this has 12" already say which way it is off.
-  return `${country.name} numbers are usually ${expected}; this has ${n}.`;
+  return svFormatLabel(
+    min === max ? labels.lengthHintExact : labels.lengthHintRange,
+    { country: country.name, min, max, count: n },
+    locale,
+  );
 }
 
 /**

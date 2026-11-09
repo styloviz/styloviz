@@ -7,15 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  SvDataSummaryTableComponent,
-  svApplyValuePolicy,
-  type SvDataError,
-  type SvDataSummary,
-  type SvValuePolicy,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { svApplyValuePolicy, SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 import { formatChartValue } from '../bar-chart/bar-chart.utils';
 
 // ─── Public Types ─────────────────────────────────────────────────────────────
@@ -329,12 +325,13 @@ const FLAGGED_BAR_STROKE = 'var(--color-warning-600)';
     NgClass,
     SvChartAnimDirective,
     SvChartFrameComponent,
-    SvDataSummaryTableComponent,
   ],
   templateUrl: './waterfall-chart.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvWaterfallChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -349,7 +346,7 @@ export class SvWaterfallChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -373,8 +370,7 @@ export class SvWaterfallChartComponent {
   /**
    * The waterfall series, **in the order it should be read**.
    *
-   * ★ Order is the meaning here, not a presentation choice (audit item
-   *   CH-18-I3). Each bar starts where the previous one ended, so moving a step
+   * ★ Order is the meaning here, not a presentation choice. Each bar starts where the previous one ended, so moving a step
    *   changes every running total after it: `[+100, −50, ×2]` and `[+100, ×2,
    *   −50]` end at 100 and 150 from the same three facts. This component
    *   therefore **never sorts** — not by label, not by magnitude, not to put
@@ -451,7 +447,9 @@ export class SvWaterfallChartComponent {
 
   // ── Padding by orientation ────────────────────────────────────────────────
 
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD_V = { top: 40, right: 24, bottom: 56, left: 68 } as const;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD_H = { top: 12, right: 80, bottom: 44, left: 112 } as const;
 
   // ── Derived option signals ────────────────────────────────────────────────
@@ -497,6 +495,9 @@ export class SvWaterfallChartComponent {
       fallback: 'clamp',
       selector: 'sv-waterfall-chart',
       noun: 'step',
+      nounCount: this.labels.valueCountStep,
+      labels: this.labels,
+      locale: this.locale,
       plottable: Number.isFinite,
     }),
   );
@@ -548,21 +549,18 @@ export class SvWaterfallChartComponent {
    */
   private rowNote(row: RunningRow): string | null {
     if (row.clamped) {
-      return 'No value this chart can use, so this step moves the running total by nothing.';
+      return this.labels.waterfallClamped;
     }
     const rec = row.reconciliation;
     if (rec.status === 'differs') {
-      return (
-        `States ${this.fmtAmount(rec.stated)} against the ${this.fmtAmount(row.to)} its ` +
-        `steps add up to — a difference of ${this.fmtAmount(Math.abs(rec.by))}. The bar is ` +
-        `drawn from the steps.`
-      );
+      return svFormatLabel(this.labels.waterfallDiffers, {
+        stated: this.fmtAmount(rec.stated),
+        computed: this.fmtAmount(row.to),
+        diff: this.fmtAmount(Math.abs(rec.by)),
+      });
     }
     if (rec.status === 'unreadable') {
-      return (
-        `The stated total could not be read, so the bar is drawn from the ` +
-        `${this.fmtAmount(row.to)} its steps add up to.`
-      );
+      return svFormatLabel(this.labels.waterfallUnreadable, { computed: this.fmtAmount(row.to) });
     }
     return null;
   }
@@ -570,7 +568,7 @@ export class SvWaterfallChartComponent {
   /**
    * What the reader has to be told about this series, under the plot.
    *
-   * ★ Not a `console.warn`. A total that does not reconcile is the single most
+   * ★ Not a console warning. A total that does not reconcile is the single most
    *   consequential thing this chart can discover, and the person it matters to
    *   is reading a dashboard, not a browser console.
    */
@@ -580,16 +578,13 @@ export class SvWaterfallChartComponent {
     if (policyNotice) parts.push(policyNotice);
     for (const pt of this.data()) {
       if (pt.kind != null && !isPointKind(pt.kind)) {
-        parts.push(
-          `${pt.label}: its kind ("${String(pt.kind)}") is not delta, subtotal or total, ` +
-          `so it is read as a step.`,
-        );
+        parts.push(svFormatLabel(this.labels.waterfallBadKind, { label: pt.label, kind: String(pt.kind) }));
       }
     }
     for (const row of this.runningRows()) {
       if (row.clamped) continue; // already covered by the policy's own sentence
       const note = this.rowNote(row);
-      if (note) parts.push(`${row.label}: ${note}`);
+      if (note) parts.push(svFormatLabel(this.labels.waterfallRowNote, { label: row.label, note }));
     }
     return parts.length ? parts.join(' ') : null;
   });
@@ -710,7 +705,7 @@ export class SvWaterfallChartComponent {
      * question they did not ask.
      */
     const getLabelText = (row: RunningRow): string => {
-      if (row.clamped) return 'no value';
+      if (row.clamped) return this.labels.noValue;
       if (row.type === 'total' || row.type === 'intermediate') {
         const rec = row.reconciliation;
         return rec.status === 'differs'
@@ -806,12 +801,13 @@ export class SvWaterfallChartComponent {
   /** Concise summary used as the chart's accessible name. */
   readonly chartDescription = computed<string>(() => {
     const rows = this.runningRows();
-    const base = this.title() || 'Waterfall chart';
+    const base = this.title() || this.labels.chartWaterfall;
     if (!rows.length) return base;
     const last = rows[rows.length - 1];
-    return (
-      `${base}: ${rows.length} step${rows.length === 1 ? '' : 's'} in sequence, ` +
-      `ending at ${this.fmtAmount(last.to)}.`
+    return svFormatLabel(
+      this.labels.waterfallSummary,
+      { title: base, steps: rows.length, end: this.fmtAmount(last.to) },
+      this.locale,
     );
   });
 
@@ -827,13 +823,16 @@ export class SvWaterfallChartComponent {
    * subject is where the total stands.
    */
   barAriaLabel(bar: ComputedBar): string {
-    const head =
-      bar.clamped
-        ? `${bar.label}: no value, running total ${this.fmtAmount(bar.to)}`
-        : bar.type === 'total' || bar.type === 'intermediate'
-          ? `${bar.label}: ${this.typeLabel(bar.type).toLowerCase()} ${this.fmtAmount(bar.to)}`
-          : `${bar.label}: ${this.fmtDelta(bar.delta)}, running total ${this.fmtAmount(bar.to)}`;
-    return bar.note ? `${head}. ${bar.note}` : head;
+    const params = {
+      label: bar.label, total: this.fmtAmount(bar.to), amount: this.fmtAmount(bar.to), delta: this.fmtDelta(bar.delta),
+    };
+    const template =
+      bar.clamped ? this.labels.waterfallBarClamped
+        : bar.type === 'total' ? this.labels.waterfallBarTotal
+          : bar.type === 'intermediate' ? this.labels.waterfallBarInterim
+            : this.labels.waterfallBarStep;
+    const head = svFormatLabel(template, params);
+    return bar.note ? svFormatLabel(this.labels.waterfallBarNote, { head, note: bar.note }) : head;
   }
 
   /**
@@ -848,12 +847,18 @@ export class SvWaterfallChartComponent {
   protected readonly a11ySummary = computed<SvDataSummary>(() => {
     const rows = this.runningRows();
     return {
-      caption: this.title() || 'Waterfall chart',
+      caption: this.title() || this.labels.chartWaterfall,
       overview:
         rows.length > 0
-          ? `Read in order; each step continues from the one before it.`
+          ? this.labels.waterfallOverview
           : undefined,
-      columns: ['Item', 'Step', 'Type', 'Change', 'Running total'],
+      columns: [
+        this.labels.itemColumn,
+        this.labels.stepColumn,
+        this.labels.typeColumn,
+        this.labels.changeColumn,
+        this.labels.runningTotalColumn,
+      ],
       rows: rows.map((row, i) => ({
         key: `${i}-${row.label}`,
         header: row.label,
@@ -876,9 +881,9 @@ export class SvWaterfallChartComponent {
    */
   private changeCell(row: RunningRow, index: number): string {
     if (row.clamped) {
-      return `${this.fmtAmount(this.data()[index]?.value ?? NaN)} (drawn as no change)`;
+      return svFormatLabel(this.labels.waterfallClampedChange, { value: this.fmtAmount(this.data()[index]?.value ?? NaN) });
     }
-    if (row.type === 'total' || row.type === 'intermediate') return 'no change';
+    if (row.type === 'total' || row.type === 'intermediate') return this.labels.noChange;
     return this.fmtDelta(row.delta);
   }
 
@@ -887,12 +892,13 @@ export class SvWaterfallChartComponent {
     const computedText = this.fmtAmount(row.to);
     const rec = row.reconciliation;
     if (rec.status === 'differs') {
-      return (
-        `${computedText} (stated ${this.fmtAmount(rec.stated)}, a difference of ` +
-        `${this.fmtAmount(Math.abs(rec.by))})`
-      );
+      return svFormatLabel(this.labels.waterfallRunningDiffers, {
+        computed: computedText,
+        stated: this.fmtAmount(rec.stated),
+        diff: this.fmtAmount(Math.abs(rec.by)),
+      });
     }
-    if (rec.status === 'unreadable') return `${computedText} (stated total unreadable)`;
+    if (rec.status === 'unreadable') return svFormatLabel(this.labels.waterfallRunningUnreadable, { computed: computedText });
     return computedText;
   }
 
@@ -1029,19 +1035,19 @@ export class SvWaterfallChartComponent {
    * measurement. A value the chart could not read is an absence, and says so.
    */
   fmtAmount(v: number): string {
-    if (!Number.isFinite(v)) return 'no value';
+    if (!Number.isFinite(v)) return this.labels.noValue;
     return `${this.options().valuePrefix ?? ''}${formatChartValue(v)}${this.options().valueSuffix ?? ''}`;
   }
 
   /** A step, signed — `+$300M`, `-$200M`. */
   fmtDelta(v: number): string {
-    if (!Number.isFinite(v)) return 'no value';
+    if (!Number.isFinite(v)) return this.labels.noValue;
     const sign = v >= 0 ? '+' : '-';
     return `${sign}${this.options().valuePrefix ?? ''}${formatChartValue(Math.abs(v))}${this.options().valueSuffix ?? ''}`;
   }
 
   fmtTooltipDelta(t: TooltipState): string {
-    if (t.clamped) return 'no value';
+    if (t.clamped) return this.labels.noValue;
     if (t.type === 'total' || t.type === 'intermediate') return this.fmtAmount(t.running);
     return this.fmtDelta(t.delta);
   }
@@ -1052,10 +1058,10 @@ export class SvWaterfallChartComponent {
 
   typeLabel(type: WaterfallBarType): string {
     switch (type) {
-      case 'increase':     return 'Increase';
-      case 'decrease':     return 'Decrease';
-      case 'intermediate': return 'Interim Sum';
-      default:             return 'Total';
+      case 'increase':     return this.labels.legendIncrease;
+      case 'decrease':     return this.labels.legendDecrease;
+      case 'intermediate': return this.labels.typeInterimSum;
+      default:             return this.labels.legendTotal;
     }
   }
 }

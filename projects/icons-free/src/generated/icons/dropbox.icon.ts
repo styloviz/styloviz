@@ -3,11 +3,15 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `dropbox` icon. */
 export const dropboxNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M6 1.807L0 5.629l6 3.822 6.001-3.822L6 1.807zM18 1.807l-6 3.822 6 3.822 6-3.822-6-3.822zM0 13.274l6 3.822 6.001-3.822L6 9.452l-6 3.822zM18 9.452l-6 3.822 6 3.822 6-3.822-6-3.822zM6 18.371l6.001 3.822 6-3.822-6-3.822L6 18.371z', fill: true },
 ];
+
+/** `dropbox` as a registrable glyph — `registerSvIcons([dropboxIcon])` / `provideSvIcons([dropboxIcon])`. */
+export const dropboxIcon: SvIconDef = { name: 'dropbox', nodes: dropboxNodes };
 
 /** `dropbox` — tree-shakable standalone icon. Use `<sv-dropbox-icon />`. */
 @Component({

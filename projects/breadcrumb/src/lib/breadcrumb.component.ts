@@ -19,24 +19,24 @@ import {
   signal,
   viewChildren,
 } from '@angular/core';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
+import { SvErrorShellComponent, type SvDataError } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { svElementSize } from '@styloviz/core/layout';
 import {
-  svStackedPopup,
   SV_LINK_ADAPTER,
-  SvErrorShellComponent,
-  createPortalHost,
   svCloseOnNavigation,
-  svElementSize,
   svIsModifiedClick,
-  svRecoverFocus,
-  svUniqueId,
-  svWarnOnce,
-  type SvDataError,
   type SvLinkTarget,
-  type SvPortalHost,
-} from '@styloviz/core';
+  svNavRecorder,
+} from '@styloviz/core/nav';
+import { svStackedPopup, createPortalHost, svRecoverFocus, type SvPortalHost } from '@styloviz/core/overlay';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_BREADCRUMB_LABELS } from './breadcrumb.labels';
 
+import { registerBreadcrumbIcons } from './breadcrumb.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** A sibling page offered from a crumb's dropdown switcher. */
@@ -140,7 +140,7 @@ const GAP = 4;
  * - Optional icon before each crumb label, plus an automatic home icon on the first crumb
  * - Per-crumb badge, disabled state, and a sibling-page dropdown switcher (ARIA menu-button)
  * - Sibling-menu panel is rendered in a true `document.body` portal so it always escapes
- *   ancestor `overflow:hidden`/scroll/transform containment (see dropdown-instruction.md)
+ *   ancestor `overflow:hidden`/scroll/transform containment (see docs/dropdown-instruction.md)
  * - Automatic "current page" ARIA on the last crumb
  * - Collapsible middle crumbs when more than `maxVisible` items — the ellipsis is a real
  *   open/close toggle (`toggleCollapse`), not a one-way reveal, with `expand`/`collapse` outputs
@@ -154,11 +154,17 @@ const GAP = 4;
 @Component({
   selector: 'sv-breadcrumb',
   standalone: true,
-  imports: [SvErrorShellComponent, NgClass, NgTemplateOutlet, SvIconComponent],
+  imports: [SvErrorShellComponent, NgClass, NgTemplateOutlet, SvIconComponent, SvLabelPipe],
   templateUrl: './breadcrumb.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvBreadcrumbComponent implements OnInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerBreadcrumbIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ breadcrumb })` says otherwise. */
+  protected readonly labels = injectSvLabels('breadcrumb', SV_BREADCRUMB_LABELS);
+
   // ── Async state ───────────────────────────────────────────────────────────
 
   /**
@@ -194,11 +200,8 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   separator = input<BreadcrumbSeparator>('chevron');
 
   /**
-   * Icon-library NAME used when `separator="custom"` — e.g. `'chevron-right'`.
-   * Was `customSeparatorPath`, a raw `<path d="…">`, and it was written as a
-   * STATIC attribute at every call site, so the rename could not error: the
-   * custom-separator demo silently fell back to the default chevron until the
-   * sites were rewritten by hand.
+   * Icon-library NAME drawn as the separator when `separator="custom"` — e.g.
+   * `'chevron-right'`.
    */
   customSeparatorIcon = input<string>('');
 
@@ -292,10 +295,25 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   skeletonCount = input<number>(3);
 
   /** Accessible label for the breadcrumb navigation landmark. @default 'Breadcrumb' */
-  ariaLabel = input<string>('Breadcrumb');
+  ariaLabel = input<string>(this.labels.navigation);
 
   /** Additional CSS classes on the root `<nav>` element. */
   customClass = input<string>('');
+
+  /**
+   * Names this trail in the shared navigation-analytics stream
+   * when a page has more than one — a static name, never a record
+   * id. Ignored unless `provideSvNavTelemetry()` is wired up.
+   * @default null
+   */
+  surfaceId = input<string | null>(null);
+
+  /*
+   * FL-J3-NV-07: a crumb or a sibling page followed is `jump`, the ellipsis or a
+   * crumb's sibling menu opened is `explore`, the menu dismissed with Escape is
+   * `escape`. Consent and retention belong to the sink (`svNavRecorder`).
+   */
+  private readonly nav = svNavRecorder('breadcrumb', () => this.surfaceId());
 
   // ── Outputs ───────────────────────────────────────────────────────────────
 
@@ -333,11 +351,11 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   /**
    * Inline style object applied to the portaled menu panel. Uses
    * `position: fixed` with exact viewport coordinates so the panel escapes
-   * all parent `overflow`/transform containment (dropdown-instruction.md §1–2).
+   * all parent `overflow`/transform containment (docs/dropdown-instruction.md §1–2).
    */
   readonly menuPanelStyle = signal<Record<string, string>>({});
 
-  // ── Body-portal state (dropdown-instruction.md §1) ────────────────────────
+  // ── Body-portal state (docs/dropdown-instruction.md §1) ────────────────────────
 
   /*
    * ── `X-13` / `NV-03-I4`: a body portal leaves its own context behind ────────
@@ -385,7 +403,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   /**
    * Capture-phase scroll listener — fires for ANY scrollable ancestor, not
    * just the window, so the panel tracks its trigger through nested
-   * scroll containers (dropdown-instruction.md §6).
+   * scroll containers (docs/dropdown-instruction.md §6).
    */
   private _rafId: number | null = null;
   private readonly _scrollHandler = (): void => {
@@ -766,7 +784,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
 
   /** Classes for a clickable (routerLink) crumb. */
   linkClasses = computed<string>(() => {
-    const base = 'flex items-center gap-1 text-gray-500 transition-colors hover:text-gray-700 ' +
+    const base = 'flex min-h-6 items-center gap-1 text-gray-500 transition-colors hover:text-gray-700 ' +
       'dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none focus-visible:rounded ' +
       'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1';
     switch (this.variant()) {
@@ -910,6 +928,12 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
     }
     if (!item.routerLink) return;
 
+    this.nav.record({
+      intent: 'jump',
+      key: this.hrefFor(item.routerLink) ?? item.label,
+      label: item.label,
+      index: this.items().indexOf(item),
+    });
     if (event) this.followLink(item.routerLink, event);
     this.crumbClick.emit(item);
   }
@@ -923,6 +947,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
     if (!this.expandable() || !this.isCollapsible()) return;
     const next = !this.isExpanded();
     this.isExpanded.set(next);
+    if (next) this.nav.record({ intent: 'explore', key: 'collapsed-crumbs' });
     if (next) this.expand.emit();
     else this.collapse.emit();
   }
@@ -931,7 +956,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Capture phase catches scroll from any scrollable ancestor, not just window
-    // (dropdown-instruction.md §6).
+    // (docs/dropdown-instruction.md §6).
     // ★ SSR: this hook runs during a prerender, where there is no `window`
     // or `document`. A scroll listener is a browser-only affordance, so
     // skipping it server-side loses nothing.
@@ -965,9 +990,12 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
 
     this.triggerEl = event.currentTarget as HTMLElement;
     this._calcMenuPos();
+    const opened = this.visibleItems()[index];
+    const crumb = typeof opened === 'object' ? opened : null;
+    this.nav.record({ intent: 'explore', key: crumb ? this.hrefFor(crumb.routerLink) ?? crumb.label : null, label: crumb?.label, index });
 
     // Mount the panel into document.body via a true portal so it always
-    // escapes ancestor overflow/transform clipping (dropdown-instruction.md §1).
+    // escapes ancestor overflow/transform clipping (docs/dropdown-instruction.md §1).
     this.portal = createPortalHost({
       origin: this.host.nativeElement as Element,
       className: 'sv-breadcrumb-menu-portal',
@@ -1043,6 +1071,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   }
 
   selectMenuItem(item: BreadcrumbMenuItem, event?: Event): void {
+    this.nav.record({ intent: 'jump', key: this.hrefFor(item.routerLink) ?? item.label, label: item.label });
     if (event && item.routerLink) this.followLink(item.routerLink, event);
     this.menuItemSelect.emit(item);
     this.closeMenu();
@@ -1075,6 +1104,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
         break;
       case 'Escape':
         event.preventDefault();
+        this.nav.record({ intent: 'escape', reason: 'escape' });
         this.closeMenu();
         break;
       case 'Tab':
@@ -1093,7 +1123,13 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
     const above = spaceBelow < MENU_PANEL_H && spaceAbove > spaceBelow;
-    const right = rect.left + MENU_PANEL_W > vw;
+    // The menu hangs from the trigger's INLINE-START edge and grows toward the
+    // inline end — rightward in LTR, leftward in RTL — and anchors the other
+    // edge only when that way would leave the viewport. `rect` is physical,
+    // so the side has to be chosen here; CSS cannot do it for a fixed panel.
+    const right = svIsRtl(trigger)
+      ? rect.right - MENU_PANEL_W >= 0
+      : rect.left + MENU_PANEL_W > vw;
 
     this.menuAbove.set(above);
 
@@ -1127,7 +1163,7 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   /**
    * Click-outside close. The panel lives in `document.body`, not inside this
    * component's DOM subtree, so both the host AND the portal element must be
-   * checked (dropdown-instruction.md §7).
+   * checked (docs/dropdown-instruction.md §7).
    */
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
@@ -1150,14 +1186,14 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   }
 
   /** Viewport resize invalidates the computed coordinates — close rather than reposition
-   *  with stale numbers (dropdown-instruction.md §8). */
+   *  with stale numbers (docs/dropdown-instruction.md §8). */
   @HostListener('window:resize')
   onWindowResize(): void {
     if (this.openMenuIndex() !== null) this.closeMenu();
   }
 
   /** Scoped to the host so it only fires while focus/interaction is on the trigger;
-   *  focus inside the portaled panel is handled by `onMenuKeydown` (dropdown-instruction.md §9). */
+   *  focus inside the portaled panel is handled by `onMenuKeydown` (docs/dropdown-instruction.md §9). */
   // On the DOCUMENT, not the host: this component renders its panel into
   // <body> and moves focus into it, so a key pressed while the panel is open
   // never passes through this element. Gated by `portal-host-escape`.
@@ -1165,7 +1201,9 @@ export class SvBreadcrumbComponent implements OnInit, OnDestroy {
   onHostEscape(): void {
     // Only the topmost surface acts on Escape (`X-4`).
     if (!this._stackedPopup.ownsEscape()) return;
-    if (this.openMenuIndex() !== null) this.closeMenu();
+    if (this.openMenuIndex() === null) return;
+    this.nav.record({ intent: 'escape', reason: 'escape' });
+    this.closeMenu();
   }
 
   readonly menuCaretIcon = MENU_CARET_ICON;

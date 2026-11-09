@@ -131,15 +131,72 @@ describe('SvDndListComponent — focus after a removal, per variant', () => {
   });
 });
 
-describe('SvDndListComponent — kanban move controls are visible on focus', () => {
-  it('reveals the column move buttons on focus-within, not only hover', async () => {
+/**
+ * WCAG 2.5.7 (Dragging Movements) — every move a kanban card can make has a
+ * single-pointer path that is ALWAYS visible: hover never happens on touch,
+ * so a hover/focus reveal left a tap user with nothing to tap.
+ */
+const COLUMN_ITEMS: DndItem[] = [
+  { id: 'a', label: 'Alpha', column: 'todo' },
+  { id: 'x', label: 'Xeno', column: 'done' },
+  { id: 'b', label: 'Beta', column: 'todo' },
+  { id: 'c', label: 'Gamma', column: 'todo' },
+];
+const ids = (f: F) => (f.componentInstance as unknown as { items: () => DndItem[] }).items().map(i => i.id);
+const btn = (f: F, sel: string, name: string) =>
+  qa(f, sel).find(b => b.getAttribute('aria-label') === name) as HTMLButtonElement;
+
+describe('SvDndListComponent — kanban single-pointer moves (WCAG 2.5.7)', () => {
+  it('shows the move buttons without hover or focus', async () => {
     const f = await setup('kanban');
     const right = qa(f, '[title="Move right"]')[0];
     const wrap = right.parentElement!;
-    expect(wrap.className).toContain('group-focus-within:opacity-100');
-    expect(wrap.className).toContain('focus-within:opacity-100');
-    expect(right.className).toContain('focus-visible:opacity-100');
+    expect(wrap.hasAttribute('data-dnd-card-moves')).toBe(true);
+    expect(wrap.className).not.toContain('opacity-0');
     expect(right.getAttribute('aria-label')).toBe('Move Alpha right');
+    expect(qa(f, '[data-dnd-move-up]')).toHaveLength(3);
+    expect(qa(f, '[data-dnd-move-down]')).toHaveLength(3);
+  });
+
+  it('clicking Move down reorders within the column and emits reordered', async () => {
+    const seen: { items: DndItem[] }[] = [];
+    const f = await setup('kanban', { items: COLUMN_ITEMS }, { reordered: (e: { items: DndItem[] }) => seen.push(e) });
+    btn(f, '[data-dnd-move-down]', 'Move Alpha down').click();
+    f.detectChanges();
+    // Alpha swaps with Beta, its column neighbour; the Done card keeps its slot.
+    expect(ids(f)).toEqual(['b', 'x', 'a', 'c']);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].items.map(i => i.id)).toEqual(['b', 'x', 'a', 'c']);
+  });
+
+  it('clicking Move up reorders within the column, and the reorder can be rolled back', async () => {
+    const seen: { items: DndItem[]; rollback: () => void }[] = [];
+    const f = await setup('kanban', { items: COLUMN_ITEMS }, { reordered: (e: { items: DndItem[]; rollback: () => void }) => seen.push(e) });
+    btn(f, '[data-dnd-move-up]', 'Move Gamma up').click();
+    f.detectChanges();
+    expect(ids(f)).toEqual(['a', 'x', 'c', 'b']);
+    seen[0].rollback();
+    expect(ids(f)).toEqual(['a', 'x', 'b', 'c']);
+  });
+
+  it('disables Move up on the first card and Move down on the last card of each column', async () => {
+    const f = await setup('kanban', { items: COLUMN_ITEMS });
+    expect(btn(f, '[data-dnd-move-up]', 'Move Alpha up').disabled).toBe(true);
+    expect(btn(f, '[data-dnd-move-down]', 'Move Alpha down').disabled).toBe(false);
+    expect(btn(f, '[data-dnd-move-down]', 'Move Gamma down').disabled).toBe(true);
+    expect(btn(f, '[data-dnd-move-up]', 'Move Gamma up').disabled).toBe(false);
+    // A card alone in its column can move neither way.
+    expect(btn(f, '[data-dnd-move-up]', 'Move Xeno up').disabled).toBe(true);
+    expect(btn(f, '[data-dnd-move-down]', 'Move Xeno down').disabled).toBe(true);
+  });
+
+  it('disables in-column moves while a save is in flight', async () => {
+    const seen: unknown[] = [];
+    const f = await setup('kanban', { items: COLUMN_ITEMS, saving: true }, { reordered: (e: unknown) => seen.push(e) });
+    const down = btn(f, '[data-dnd-move-down]', 'Move Alpha down');
+    expect(down.disabled).toBe(true);
+    down.click();
+    expect(seen).toHaveLength(0);
   });
 });
 

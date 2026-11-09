@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, vi } from 'vitest';
 import { SvJsonViewerComponent } from './json-viewer.component';
 import { secretKeyRedactor, type JsonCopyEvent, type JsonNodeClick } from './json-viewer.types';
-import type { SvSensitiveCopyEvent } from '@styloviz/core';
+import type { SvSensitiveCopyEvent } from '@styloviz/core/security';
 import { quietFor, until } from '@testing/async';
 
 /**
@@ -140,13 +140,13 @@ describe('SvJsonViewerComponent — size and chrome', () => {
     await setup({ value: { a: 1 }, size: 'sm', customClass: 'my-viewer' });
     expect(tree().className).toContain('text-[11px]');
     expect(tree().className).toContain('my-viewer');
-    expect(rowByKey('a').style.paddingLeft).toBe('10px');
+    expect(rowByKey('a').style.getPropertyValue('padding-inline-start')).toBe('10px');
   });
 
   it('indents 12px a level at md', async () => {
     await setup({ value: { a: 1 } });
     expect(tree().className).toContain('text-xs');
-    expect(rowByKey('a').style.paddingLeft).toBe('12px');
+    expect(rowByKey('a').style.getPropertyValue('padding-inline-start')).toBe('12px');
   });
 
   it('names the root and the tree as told', async () => {

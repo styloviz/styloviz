@@ -195,7 +195,7 @@ describe('SvEmptyStateComponent — layout', () => {
     const c = f.componentInstance;
     expect(region(f).className).toContain('flex items-center gap-8');
     expect(region(f).className).not.toContain('text-center');
-    expect(c.textBlockClass()).toContain('text-left');
+    expect(c.textBlockClass()).toContain('text-start');
     expect(c.actionsClass()).not.toContain('justify-center');
   });
 });

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `align-center` icon. */
 export const alignCenterNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const alignCenterNodes: readonly IconNode[] = [
 export const alignCenterSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 5.1h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm1 12h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9zm2-6h10q.9 0 .9.9 0 .9-.9.9h-10q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `align-center` as a registrable glyph — `registerSvIcons([alignCenterIcon])` / `provideSvIcons([alignCenterIcon])`. */
+export const alignCenterIcon: SvIconDef = { name: 'align-center', nodes: alignCenterNodes, solid: alignCenterSolidNodes };
 
 /** `align-center` — tree-shakable standalone icon. Use `<sv-align-center-icon />`. */
 @Component({

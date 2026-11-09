@@ -1,0 +1,72 @@
+<!--
+  ★★ A fixed bar is out of the flow, so the end of the page would sit behind it.
+  The spacer is the bar's own height plus the same safe-area padding, so the
+  last row of the page always clears it.
+-->
+@if (position() === 'fixed' && reserveSpace()) {
+  <div class="h-16" [style.padding-bottom]="safeArea" aria-hidden="true" data-sv-bottom-nav-spacer></div>
+}
+
+<nav
+  [ngClass]="barClasses()"
+  [style.padding-bottom]="safeArea"
+  [attr.aria-label]="navName()"
+  [attr.data-sv-sticky]="stickyEdge()"
+  data-sv-bottom-nav
+>
+  <!--
+    ★ A list of links, not a tablist: Tab walks the destinations, Enter follows
+    one, and "current page" is said by aria-current. `role="list"` restores the
+    list semantics Safari drops from a `list-style: none` <ul>.
+  -->
+  <ul role="list" class="mx-auto flex max-w-xl items-stretch gap-1 px-2">
+    @for (row of rows(); track row.key; let i = $index) {
+      <li class="flex min-w-0 flex-1">
+        <!-- ⚠️ [attr.href], never [href] — see the sidebar's note: a null href must not become the current URL. -->
+        <a
+          data-sv-bottom-nav-item
+          [attr.href]="row.href"
+          [ngClass]="row.classes"
+          [attr.aria-current]="row.current ? 'page' : null"
+          [attr.target]="row.item.external ? '_blank' : null"
+          [attr.rel]="row.item.external ? 'noopener noreferrer' : null"
+          (click)="onSelect($event, row.item, i)"
+        >
+          <span class="relative inline-flex">
+            <sv-icon
+              [name]="row.item.icon"
+              [weight]="row.current ? 'solid' : 'line'"
+              cssClass="h-6 w-6"
+              [strokeWidth]="1.8"
+            />
+            @if (row.item.badge) {
+              <span
+                class="absolute -end-2.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1
+                       text-[10px] font-semibold leading-none tabular-nums ring-2 ring-white dark:ring-gray-950"
+                [ngClass]="row.badgeClasses"
+                aria-hidden="true"
+                data-sv-bottom-nav-badge
+              >{{ row.item.badge }}</span>
+            } @else if (row.item.dot) {
+              <span
+                class="absolute -end-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-danger-600 ring-2 ring-white dark:ring-gray-950"
+                aria-hidden="true"
+                data-sv-bottom-nav-dot
+              ></span>
+            }
+          </span>
+          <!-- The label first, then what the badge or dot says, so the link reads "Inbox, 3". -->
+          <span [ngClass]="row.labelClasses" data-sv-bottom-nav-label>{{ row.item.label }}</span>
+          @if (row.item.badge) {
+            <span class="sr-only">, {{ row.item.badge }}</span>
+          } @else if (row.item.dot) {
+            <span class="sr-only">, {{ text().newActivity }}</span>
+          }
+          @if (row.item.external) {
+            <span class="sr-only">{{ text().external }}</span>
+          }
+        </a>
+      </li>
+    }
+  </ul>
+</nav>

@@ -1,9 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { render, screen } from '@testing-library/angular';
+import { screen } from '@testing-library/angular';
 import {
   SvSelectDropdownComponent,
   type SelectOption,
 } from './select-dropdown.component';
+import { renderSelect } from '@testing/select-host';
+import { SvSelectSearchDirective } from './select-search.directive';
+
+const FEATURES = { search: SvSelectSearchDirective };
 
 const OPTIONS: SelectOption[] = [
   { value: 'us', label: 'United States' },
@@ -13,9 +17,7 @@ const OPTIONS: SelectOption[] = [
 ];
 
 async function setup(extra: Record<string, unknown> = {}) {
-  const { fixture } = await render(SvSelectDropdownComponent, {
-    inputs: { options: OPTIONS, ...extra },
-  });
+  const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS, ...extra });
   return fixture.componentInstance;
 }
 
@@ -78,10 +80,7 @@ describe('SvSelectDropdownComponent — search & clear', () => {
   it('filters options by query and emits searchChange', async () => {
     TestBed.resetTestingModule();
     const spy = vi.fn();
-    const { fixture } = await render(SvSelectDropdownComponent, {
-      inputs: { options: OPTIONS, searchable: true, debounceMs: 0 },
-      on: { searchChange: spy },
-    });
+    const fixture = await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS, searchable: true, debounceMs: 0 }, { searchChange: spy });
 
     fixture.componentInstance.setSearch('can');
     expect(fixture.componentInstance.filteredOptions().map((o) => o.value)).toEqual(['ca']);
@@ -105,9 +104,7 @@ describe('SvSelectDropdownComponent — search & clear', () => {
 
 describe('SvSelectDropdownComponent — accessibility', () => {
   it('renders its associated label text', async () => {
-    await render(SvSelectDropdownComponent, {
-      inputs: { options: OPTIONS, label: 'Country' },
-    });
+    await renderSelect(SvSelectDropdownComponent, FEATURES, { options: OPTIONS, label: 'Country' });
     expect(screen.getByText('Country')).toBeTruthy();
   });
 });

@@ -1,0 +1,177 @@
+<div
+  data-sv-cron-builder
+  [attr.data-mode]="mode()"
+  class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 dark:border-gray-700/70 dark:bg-gray-900">
+
+  <fieldset class="m-0 min-w-0 border-0 p-0" [disabled]="resolvedDisabled()">
+    <legend [id]="legendId" class="mb-3 p-0 text-sm font-semibold text-gray-900 dark:text-white">
+      {{ label() || text().cronLegend }}
+    </legend>
+
+    <!-- The modes; scrolls sideways on a narrow phone rather than wrapping mid-word. -->
+    <div class="-mx-1 overflow-x-auto px-1 pb-1">
+      <sv-segmented-control
+        size="sm"
+        [options]="modeOptions()"
+        [value]="mode() ?? ''"
+        [ariaLabel]="text().cronFrequency"
+        [disabled]="resolvedDisabled()"
+        (changed)="setMode($event)" />
+    </div>
+
+    <div class="mt-4" data-sv-cron-editor>
+      @switch (mode()) {
+        @case ('minutes') {
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label [for]="baseId + '-interval'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronEvery }}</label>
+              <select [id]="baseId + '-interval'" data-sv-cron-minute-interval [class]="selectClass"
+                      (change)="pick('minuteInterval', $event)" (blur)="markTouched()">
+                @for (o of minuteIntervalOptions(); track o.value) {
+                  <option [value]="o.value" [selected]="o.value === draft().minuteInterval">{{ o.text }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        }
+        @case ('hourly') {
+          <div class="flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1.5">
+              <label [for]="baseId + '-hours'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronEvery }}</label>
+              <select [id]="baseId + '-hours'" data-sv-cron-hour-interval [class]="selectClass"
+                      (change)="pick('hourInterval', $event)" (blur)="markTouched()">
+                @for (o of hourIntervalOptions(); track o.value) {
+                  <option [value]="o.value" [selected]="o.value === draft().hourInterval">{{ o.text }}</option>
+                }
+              </select>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <label [for]="baseId + '-past'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronAtMinute }}</label>
+              <select [id]="baseId + '-past'" data-sv-cron-minute [class]="selectClass"
+                      (change)="pick('minute', $event)" (blur)="markTouched()">
+                @for (o of minuteOptions(); track o.value) {
+                  <option [value]="o.value" [selected]="o.value === draft().minute">{{ o.text }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        }
+        @case ('daily') {
+          <ng-container [ngTemplateOutlet]="timeFields" />
+        }
+        @case ('weekly') {
+          <fieldset class="m-0 mb-4 min-w-0 border-0 p-0" data-sv-cron-weekdays
+                    [attr.aria-describedby]="daysDescribedBy()">
+            <legend class="mb-2 p-0 text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronWeekdays }}</legend>
+            <div class="grid grid-cols-7 gap-1.5 sm:flex sm:flex-wrap">
+              @for (d of weekdayOptions(); track d.value) {
+                <label class="relative flex min-w-0 sm:w-auto">
+                  <input type="checkbox" class="peer sr-only"
+                         [checked]="d.checked"
+                         [attr.aria-invalid]="noDays() ? 'true' : null"
+                         (change)="toggleDay('weekdays', d.value, $event)"
+                         (blur)="markTouched()" />
+                  <span [class]="dayClass">{{ d.text }}</span>
+                </label>
+              }
+            </div>
+          </fieldset>
+          <ng-container [ngTemplateOutlet]="timeFields" />
+        }
+        @case ('monthly') {
+          <fieldset class="m-0 mb-4 min-w-0 border-0 p-0" data-sv-cron-month-days
+                    [attr.aria-describedby]="daysDescribedBy()">
+            <legend class="mb-2 p-0 text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronMonthDays }}</legend>
+            <div class="grid max-w-md grid-cols-7 gap-1.5">
+              @for (d of monthDayOptions(); track d.value) {
+                <label class="relative flex min-w-0">
+                  <input type="checkbox" class="peer sr-only"
+                         [checked]="d.checked"
+                         [attr.aria-invalid]="noDays() ? 'true' : null"
+                         (change)="toggleDay('monthDays', d.value, $event)"
+                         (blur)="markTouched()" />
+                  <span [class]="dayClass">{{ d.text }}</span>
+                </label>
+              }
+            </div>
+          </fieldset>
+          <ng-container [ngTemplateOutlet]="timeFields" />
+        }
+        @case ('custom') {
+          <div class="flex flex-col gap-1.5">
+            <label [for]="customId" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().cronExpression }}</label>
+            <input
+              type="text"
+              data-sv-cron-expression
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+              [id]="customId"
+              [value]="customText()"
+              [attr.aria-invalid]="shownError() ? 'true' : null"
+              [attr.aria-describedby]="customDescribedBy()"
+              [class]="customInputClass()"
+              (input)="onCustomInput($event)"
+              (blur)="onCustomBlur()" />
+            <p [id]="hintId" class="text-xs text-gray-600 dark:text-gray-400">{{ text().cronExpressionHint }}</p>
+          </div>
+        }
+        @default {
+          <p class="text-sm text-gray-600 dark:text-gray-400" data-sv-cron-empty>{{ text().cronChooseFrequency }}</p>
+        }
+      }
+    </div>
+
+    <sv-field-error [id]="errorId" [message]="shownError()" class="mt-2 block" />
+  </fieldset>
+
+  @if (showPreview() && description()) {
+    <section
+      data-sv-cron-preview
+      [attr.aria-label]="text().cronPreview"
+      class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3.5 dark:border-gray-700/70 dark:bg-gray-800/50">
+      <p class="flex items-start gap-2 text-sm font-medium text-gray-900 dark:text-gray-100" aria-live="polite" data-sv-cron-description>
+        <sv-icon name="clock" cssClass="mt-0.5 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
+        <span>{{ description() }}</span>
+      </p>
+      @if (runCount() > 0) {
+        <p class="mt-3 text-xs font-medium text-gray-600 dark:text-gray-400">{{ runsHeading() }}</p>
+        @if (runs().length > 0) {
+          <ol class="mt-1.5 space-y-1 text-sm tabular-nums text-gray-700 dark:text-gray-300" data-sv-cron-runs>
+            @for (run of runs(); track run.iso) {
+              <li><time [attr.datetime]="run.iso">{{ run.text }}</time></li>
+            }
+          </ol>
+        } @else {
+          <p class="mt-1.5 text-sm text-gray-700 dark:text-gray-300" data-sv-cron-no-runs>{{ text().cronNoRuns }}</p>
+        }
+      }
+    </section>
+  }
+</div>
+
+<!-- Hour and minute, shared by daily, weekly and monthly. -->
+<ng-template #timeFields>
+  <div class="flex flex-wrap items-end gap-3" data-sv-cron-time>
+    <div class="flex flex-col gap-1.5">
+      <label [for]="baseId + '-hour'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().hour }}</label>
+      <select [id]="baseId + '-hour'" data-sv-cron-hour [class]="selectClass"
+              [disabled]="resolvedDisabled()"
+              (change)="pick('hour', $event)" (blur)="markTouched()">
+        @for (o of hourOptions(); track o.value) {
+          <option [value]="o.value" [selected]="o.value === draft().hour">{{ o.text }}</option>
+        }
+      </select>
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <label [for]="baseId + '-minute'" class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ text().minute }}</label>
+      <select [id]="baseId + '-minute'" data-sv-cron-minute [class]="selectClass"
+              [disabled]="resolvedDisabled()"
+              (change)="pick('minute', $event)" (blur)="markTouched()">
+        @for (o of minuteOptions(); track o.value) {
+          <option [value]="o.value" [selected]="o.value === draft().minute">{{ o.text }}</option>
+        }
+      </select>
+    </div>
+  </div>
+</ng-template>

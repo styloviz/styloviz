@@ -210,6 +210,24 @@ describe('SvProductTourComponent — the keyboard', () => {
     expect(fixture.componentInstance.stepIndex()).toBe(1);
   });
 
+  // FL-B9: the "next" glyph mirrors under RTL, and so do the arrows.
+  it('moves forward with ArrowLeft and back with ArrowRight under dir="rtl"', async () => {
+    document.documentElement.setAttribute('dir', 'rtl');
+    try {
+      const { fixture } = await open();
+
+      await userEvent.keyboard('{ArrowLeft}');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.stepIndex()).toBe(1);
+
+      await userEvent.keyboard('{ArrowRight}');
+      fixture.detectChanges();
+      expect(fixture.componentInstance.stepIndex()).toBe(0);
+    } finally {
+      document.documentElement.removeAttribute('dir');
+    }
+  });
+
   it('skips on Escape', async () => {
     const { fixture } = await open();
     const skipped: unknown[] = [];

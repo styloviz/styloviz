@@ -1,10 +1,10 @@
-import type { SvShareOrder } from '@styloviz/core';
+import type { SvShareOrder } from '@styloviz/core/data';
 
 /**
  * Shared types for all Pie Chart variants.
  *
  * Consumed by:
- *  - DefaultPieChartComponent
+ *  - PieChartComponent (`sv-pie-chart`, and `sv-pie-chart-pro` with its donut variant)
  *  - PieRadiusChartComponent
  *  - PieLegendTemplateChartComponent
  *  - SmartLabelsPieChartComponent
@@ -80,7 +80,7 @@ export interface PieChartBaseOptions {
   animationDuration?: number;
 }
 
-export interface DefaultPieChartOptions extends PieChartBaseOptions {
+export interface PieChartOptions extends PieChartBaseOptions {
   /** Push hovered slice outward (explode). @default true */
   explodeOnHover?: boolean;
   /** Pixels to offset the exploded slice. @default 10 */

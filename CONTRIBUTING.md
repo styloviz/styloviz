@@ -8,4 +8,4 @@ Thanks for helping. A few things to know first.
 - **Before a pull request:** `npm run build` and `npm test` must pass. A fix comes with a spec that fails without it.
 - **Security reports:** do not open an issue; see https://styloviz.dev/security.
 
-By contributing you agree that your contribution is licensed under the MIT licence in LICENSE.
+By contributing you agree that your contribution is licensed under the MIT license in LICENSE.

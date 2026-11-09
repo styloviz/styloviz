@@ -1,8 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+declare const ngDevMode: boolean | undefined;
+
+import { ChangeDetectionStrategy, Component, afterNextRender, computed, inject, input, isDevMode } from '@angular/core';
 import { SvIconSvgComponent } from './icon-svg.component';
-import { SV_ICON_REGISTRY } from './provide-icons';
+import { SvIconRegistry } from './provide-icons';
 import type { IconFlip, IconNode, IconSize, IconWeight } from './icon.types';
-import { ICON_REGISTRY, ICON_SOLID_REGISTRY, type IconName } from '../generated/registry';
+import type { IconName } from '../generated/registry';
+import { svIconWarn } from './warn-once';
 
 /**
  * SvIconComponent — resolve any icon by name.
@@ -12,10 +15,10 @@ import { ICON_REGISTRY, ICON_SOLID_REGISTRY, type IconName } from '../generated/
  * <sv-icon name="check-circle" size="lg" cssClass="text-emerald-500" />
  * ```
  *
- * Convenience over bytes: importing this component makes the whole built-in set
- * available by name. For bundle-critical apps, import individual icon components
- * (e.g. `SvArrowRightIcon`) instead — they tree-shake to just the glyphs used.
- * Custom names can be added with {@link provideSvIcons}.
+ * Names resolve against the glyphs registered in the app — by the kit's own
+ * components, by `provideSvIcons([...])`, or all of them with
+ * `provideSvIcons(svAllIcons)`. Nothing is bundled by name (FL-B4); an
+ * unregistered name renders nothing and warns once in development.
  */
 @Component({
   selector: 'sv-icon',
@@ -39,9 +42,9 @@ import { ICON_REGISTRY, ICON_SOLID_REGISTRY, type IconName } from '../generated/
   `,
 })
 export class SvIconComponent {
-  private readonly custom = inject(SV_ICON_REGISTRY, { optional: true });
+  private readonly registry = inject(SvIconRegistry);
 
-  /** Icon name. Built-in names are type-checked; custom (provided) names are also accepted. */
+  /** Icon name. Built-in names are type-checked; registered custom names are also accepted. */
   readonly name = input.required<IconName | (string & {})>();
   /** Rendered size in px, or a named token (`sm`/`md`/`lg`). @default 'md' */
   readonly size = input<IconSize>('md');
@@ -58,19 +61,31 @@ export class SvIconComponent {
   /** Extra CSS classes applied to the root `<svg>` (e.g. Tailwind `text-*`). @default '' */
   readonly cssClass = input<string>('');
 
-  /** Resolved primitives — custom registry first, then built-in; `null` if the name is unknown. */
-  protected readonly nodes = computed<readonly IconNode[] | null>(() => {
-    const name = this.name();
-    return this.custom?.[name] ?? ICON_REGISTRY[name as IconName] ?? null;
-  });
+  /** Resolved primitives from the registry; `null` if the name is not registered. */
+  protected readonly nodes = computed<readonly IconNode[] | null>(() => this.registry.nodes(this.name()));
 
-  /**
-   * Filled silhouette for the `solid` weight. A custom (provided) glyph shadows
-   * the built-in one, so it must not borrow the built-in silhouette either.
-   */
-  protected readonly solidNodes = computed<readonly IconNode[] | null>(() => {
-    const name = this.name();
-    if (this.custom?.[name]) return null;
-    return ICON_SOLID_REGISTRY[name] ?? null;
-  });
+  /** Filled silhouette for the `solid` weight, from the same registration. */
+  protected readonly solidNodes = computed<readonly IconNode[] | null>(() => this.registry.solid(this.name()));
+
+  constructor() {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      // After the first render, so a glyph a sibling registers in the same pass is not a false alarm.
+      afterNextRender(() => svWarnUnregisteredIcon(this.name(), this.nodes(), 'sv-icon'));
+    }
+  }
+}
+
+const warned = new Set<string>();
+
+/** One development warning per unregistered name. @internal */
+export function svWarnUnregisteredIcon(name: string, nodes: readonly IconNode[] | null, selector: string): void {
+  // A development aid, like Angular's own warnings: a production console is the
+  // buyer's users', not the buyer's (FL-L1).
+  if (nodes || !isDevMode() || warned.has(`${selector}:${name}`)) return;
+  warned.add(`${selector}:${name}`);
+  svIconWarn(
+    `[styloviz] <${selector} name="${name}"> is not registered, so it renders nothing. ` +
+      `Register the glyph — provideSvIcons([${name.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())}Icon]) — ` +
+      `or opt into the whole set with provideSvIcons(svAllIcons).`,
+  );
 }

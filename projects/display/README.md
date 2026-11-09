@@ -1,16 +1,18 @@
 # @styloviz/display
 
-> Content display components — carousel, image gallery, drag-and-drop list, description lists, a JSON tree viewer, line clamp and overflow lists.
+> Content display components — carousel, image gallery, drag-and-drop list, description lists, a JSON tree viewer, line clamp, overflow lists, a status / uptime page and a video / audio media player.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/core @styloviz/icons @styloviz/display
+npm install @styloviz/core @styloviz/icons @styloviz/select-dropdown @styloviz/timeline @styloviz/display
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons`, `@styloviz/select-dropdown`, `@styloviz/timeline` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -41,13 +43,13 @@ redeclaring a token after the import: `@theme { --color-primary-600: #0f766e; }`
 ## Usage
 
 ```ts
-import { SvCarouselComponent } from '@styloviz/display';
+import { SvAudioDeviceSelectComponent } from '@styloviz/display';
 
 @Component({
   standalone: true,
-  imports: [SvCarouselComponent],
+  imports: [SvAudioDeviceSelectComponent],
   template: `
-    <sv-carousel [slides]="slides" [autoPlay]="true" />
+    <sv-audio-device-select [(deviceId)]="mic" [(outputDeviceId)]="speaker" [showOutput]="true" />
   `,
 })
 export class DemoComponent {}
@@ -57,35 +59,33 @@ export class DemoComponent {}
 
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
-| `loading` | `boolean` | `false` | True while the slides are being fetched. |
-| `error` | `SvDataError \| string \| null` | `null` | Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an `HttpErrorResponse`. |
-| `emptyMessage` | `string` | `'No slides to show'` | Copy for the no-data state. |
-| `filtered` | `boolean` | `false` | True when the emptiness is caused by a filter rather than an empty set. |
-| `slides` | `readonly CarouselSlide[]` | `[]` | Slides to display (image, caption, optional link). |
-| `variant` | `CarouselVariant` | `'default'` | Visual variant. `default` slides full-bleed; `fade` cross-fades in place; `card` insets each slide as a rounded, shadowed card; `coverflow` shows the neighbouring slides scaled down either side of the active one. Under `prefers-reduced-motion` every variant keeps its layout but drops the transition. |
-| `indicator` | `CarouselIndicator` | `'dots'` | Indicator style: dots, lines, numbers or none. |
-| `autoPlay` | `boolean` | `false` | Auto-advance slides. |
-| `interval` | `number` | `4000` | Auto-advance interval in ms. |
-| `loop` | `boolean` | `true` | Wrap from last slide back to first. |
-| `arrows` | `boolean` | `true` | Show prev/next arrows. |
-| `aspectRatio` | `string` | `'16/9'` | CSS aspect-ratio for the viewport. |
-| `pauseOnHover` | `boolean` | `true` | Pause auto-advance while the carousel is hovered or focused. |
-| `ariaLabel` | `string` | `'Carousel'` | Accessible name for the carousel region. |
-| `priority` | `boolean` | `false` | Load the first slide's image eagerly at high fetch priority. Set it when the carousel is above the fold — a hero image is usually the page's Largest Contentful Paint, and a lazy one is fetched only after layout. Later slides stay lazy either way. |
+| `deviceId` | `string (two-way)` | `''` | The chosen microphone's `deviceId` (two-way). `''` is the system default. |
+| `outputDeviceId` | `string (two-way)` | `''` | The chosen speaker's `deviceId` (two-way) — bind it to `sv-media-player`'s `sinkId`. `''` is the system default. |
+| `showOutput` | `boolean` | `false` | Also offer a speaker list, where the browser can route sound (`setSinkId`). |
+| `meter` | `boolean` | `true` | Offer **Test microphone** and the input-level meter. |
+| `disabled` | `boolean` | `false` | Disable both lists and every button. |
+| `size` | `SelectSize` | `'md'` | Size of the lists. |
+| `ariaLabel` | `string \| null` | `null` | The group's accessible name. |
+| `locale` | `string` | `svLocale()` | BCP-47 locale for the numbered fallback names and the meter value. |
+| `labels` | `Partial<SvAudioDeviceSelectLabels>` | `{}` | Per-instance text, merged over the registry's `display` labels. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
-| `retry` | `void` | The host should re-run the failed load. |
-| `slideChange` | `number` | Emitted with the active slide index when it changes. |
-| `pausedChange` | `boolean` | Emitted when the user toggles auto-play; payload is the paused state. |
-| `ctaClick` | `CarouselSlide` | Emitted with the slide whose call-to-action was activated (click, Enter or Space). A slide with `ctaLink` still navigates; this fires first, so it suits analytics. A slide without one has no other effect — handle it here. |
+| `inputChange` | `SvAudioDeviceChange` | A microphone was chosen — from the list, or as the fallback when the chosen one was unplugged. |
+| `outputChange` | `SvAudioDeviceChange` | A speaker was chosen — from the list, or as the fallback when the chosen one was unplugged. |
+| `permissionChange` | `SvMicPermission` | Microphone access changed state (`prompt`, `denied`, `granted`, …) — including when it was first read. |
+| `devicesChange` | `readonly SvAudioDevice[]` | The device list was read or changed (a device was plugged in or removed). |
+| `accessError` | `SvMicError` | Opening the microphone failed — blocked, missing, or busy in another app. |
+| `testChange` | `boolean` | The level test started (the microphone is open) or stopped (it is closed again). |
+| `deviceIdChange` | `string` | Emits the new `deviceId` whenever it changes — the output half of `[(deviceId)]`. |
+| `outputDeviceIdChange` | `string` | Emits the new `outputDeviceId` whenever it changes — the output half of `[(outputDeviceId)]`. |
 
 ## Documentation
 
-Full API reference and live demos: https://styloviz.dev/docs/carousel
+Full API reference and live demos: https://styloviz.dev/docs/audio-device-select
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

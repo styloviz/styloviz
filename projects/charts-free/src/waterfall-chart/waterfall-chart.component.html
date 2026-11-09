@@ -1,4 +1,12 @@
+<!--
+  The accessible alternative to the geometry. The bars are focusable and name
+  themselves, but two figures live nowhere a reader without the picture can
+  reach them: the running total after each step, which is drawn as a bar's
+  vertical position and spoken only by a hover tooltip, and the step number,
+  which is the part of a waterfall that carries the meaning. See `a11ySummary`.
+-->
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="resolvedError()"
   [isEmpty]="chartIsEmpty()"
@@ -170,7 +178,7 @@
           <text x="10" y="56"
             style="font-size:10px;font-family:inherit;"
             class="fill-gray-500 dark:fill-gray-400"
-          >Total:
+          >{{ labels.tooltipTotal }}
             <tspan
               style="font-weight:600;"
               class="fill-gray-700 dark:fill-gray-200"
@@ -190,21 +198,21 @@
           class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
           [style.background]="posColor()"
         ></span>
-        Increase
+        {{ labels.legendIncrease }}
       </span>
       <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
         <span
           class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
           [style.background]="negColor()"
         ></span>
-        Decrease
+        {{ labels.legendDecrease }}
       </span>
       <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
         <span
           class="inline-block h-2.5 w-3 shrink-0 rounded-sm"
           [style.background]="totColor()"
         ></span>
-        Total
+        {{ labels.legendTotal }}
       </span>
       <!-- The key for the dashed outline in the plot. Shown only when something
            carries it, so a healthy chart is not asked to explain a mark it does
@@ -215,20 +223,11 @@
             class="inline-block h-2.5 w-3 shrink-0 rounded-sm border border-dashed"
             [style.border-color]="FLAGGED_STROKE"
           ></span>
-          Does not add up
+          {{ labels.legendDoesNotAddUp }}
         </span>
       }
     </div>
   }
-
-  <!--
-    The accessible alternative to the geometry. The bars are focusable and name
-    themselves, but two figures live nowhere a reader without the picture can
-    reach them: the running total after each step, which is drawn as a bar's
-    vertical position and spoken only by a hover tooltip, and the step number,
-    which is the part of a waterfall that carries the meaning. See `a11ySummary`.
-  -->
-  <sv-data-summary-table [summary]="a11ySummary()" />
 
 </div>
 

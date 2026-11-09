@@ -1,4 +1,5 @@
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
@@ -23,7 +24,7 @@
       [attr.height]="svgH()"
       class="w-full"
       role="group"
-      [attr.aria-label]="title() || 'Axis label template chart'"
+      [attr.aria-label]="resolvedAriaLabel()"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g [attr.transform]="'translate(' + PAD.left + ',' + PAD.top + ')'">

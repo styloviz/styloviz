@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `copy` icon. */
 export const copyNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const copyNodes: readonly IconNode[] = [
 export const copySolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm16.9 7.1h1.1q2.9 0 2.9 2.9v8q0 2.9-2.9 2.9h-8q-2.9 0-2.9-2.9v-1.1h-1.1q-2.9 0-2.9-2.9v-8q0-2.9 2.9-2.9h8q2.9 0 2.9 2.9zm-6.9 0h5.1v-1.1q0-1.1-1.1-1.1h-8q-1.1 0-1.1 1.1v8q0 1.1 1.1 1.1h1.1v-5.1q0-2.9 2.9-2.9z' },
 ];
+
+/** `copy` as a registrable glyph — `registerSvIcons([copyIcon])` / `provideSvIcons([copyIcon])`. */
+export const copyIcon: SvIconDef = { name: 'copy', nodes: copyNodes, solid: copySolidNodes };
 
 /** `copy` — tree-shakable standalone icon. Use `<sv-copy-icon />`. */
 @Component({

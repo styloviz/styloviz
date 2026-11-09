@@ -122,7 +122,7 @@ describe('SvSearchBarComponent — sizes and variants', () => {
     for (const size of sizes) {
       const withIcon = await setup({ size, showSearchIcon: true });
       const without = await setup({ size, showSearchIcon: false });
-      expect(withIcon.fixture.componentInstance.inputNativePadClass()).toContain('pl-0');
+      expect(withIcon.fixture.componentInstance.inputNativePadClass()).toContain('ps-0');
       expect(without.fixture.componentInstance.inputNativePadClass())
         .toBe(without.fixture.componentInstance.inputPaddingClass());
     }
@@ -187,7 +187,7 @@ describe('SvSearchBarComponent — sizes and variants', () => {
     expect(seen.size).toBe(6);
 
     const floated = await setup({ label: 'Search', value: 'x' });
-    expect(floated.fixture.componentInstance.floatingLabelClasses()).toContain('left-3');
+    expect(floated.fixture.componentInstance.floatingLabelClasses()).toContain('start-3');
     focusIn(floated.fixture);
     expect(floated.fixture.componentInstance.floatingLabelClasses())
       .toContain('text-primary-600');

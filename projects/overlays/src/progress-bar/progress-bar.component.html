@@ -4,14 +4,14 @@
     to   { background-position: 0 0; }
   }
   @keyframes progress-indeterminate {
-    0%   { left: -35%; right: 100%; }
-    60%  { left: 100%; right: -90%; }
-    100% { left: 100%; right: -90%; }
+    0%   { inset-inline-start: -35%; inset-inline-end: 100%; }
+    60%  { inset-inline-start: 100%; inset-inline-end: -90%; }
+    100% { inset-inline-start: 100%; inset-inline-end: -90%; }
   }
   @keyframes progress-indeterminate-short {
-    0%   { left: -200%; right: 100%; }
-    60%  { left: 107%; right: -8%;  }
-    100% { left: 107%; right: -8%;  }
+    0%   { inset-inline-start: -200%; inset-inline-end: 100%; }
+    60%  { inset-inline-start: 107%; inset-inline-end: -8%; }
+    100% { inset-inline-start: 107%; inset-inline-end: -8%; }
   }
 </style>
 
@@ -40,30 +40,24 @@
 
   <!-- Track + fill row -->
   <div class="flex items-center gap-3">
-    <div class="relative flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/60"
+    <!-- Forced colours: the track keeps an edge (the tinted fill is gone). -->
+    <div class="relative flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/60
+                forced-colors:border forced-colors:border-[CanvasText]"
          [class]="trackHeight()">
 
       @if (indeterminate()) {
-        <!-- Indeterminate: two animated bars -->
+        <!-- Indeterminate: two animated bars.
+             Reduced motion (OF-14-I9 / OF-14-M5): the sweep stops and a still,
+             half-strength full track stands in — the bar still says "working"
+             through aria-busy and its fill, without anything sliding. -->
         <div class="absolute inset-0 overflow-hidden rounded-full">
-          <div class="absolute top-0 bottom-0 w-[35%] rounded-full [animation:progress-indeterminate_2.1s_cubic-bezier(0.65,0.815,0.735,0.395)_infinite]"
-               [ngClass]="{
-                 'bg-primary-500': variant() === 'primary',
-                 'bg-accent-500': variant() === 'success',
-                 'bg-warning-500':   variant() === 'warning',
-                 'bg-danger-500':     variant() === 'danger',
-                 'bg-info-500':     variant() === 'info',
-                 'bg-gray-500':    variant() === 'neutral'
-               }"></div>
-          <div class="absolute top-0 bottom-0 w-[35%] rounded-full [animation:progress-indeterminate-short_2.1s_cubic-bezier(0.165,0.84,0.44,1)_1.15s_infinite]"
-               [ngClass]="{
-                 'bg-primary-400': variant() === 'primary',
-                 'bg-accent-400': variant() === 'success',
-                 'bg-warning-400':   variant() === 'warning',
-                 'bg-danger-400':     variant() === 'danger',
-                 'bg-info-400':     variant() === 'info',
-                 'bg-gray-400':    variant() === 'neutral'
-               }"></div>
+          <div data-sv-progress-static
+               class="absolute inset-0 hidden rounded-full opacity-40 motion-reduce:block"
+               [class]="sweepClass()"></div>
+          <div class="absolute top-0 bottom-0 w-[35%] rounded-full motion-reduce:hidden [animation:progress-indeterminate_2.1s_cubic-bezier(0.65,0.815,0.735,0.395)_infinite]"
+               [class]="sweepClass()"></div>
+          <div class="absolute top-0 bottom-0 w-[35%] rounded-full motion-reduce:hidden [animation:progress-indeterminate-short_2.1s_cubic-bezier(0.165,0.84,0.44,1)_1.15s_infinite]"
+               [class]="sweepClass()"></div>
         </div>
 
       } @else {

@@ -1,6 +1,6 @@
 @if (loading()) {
   <div class="p-4" data-sv-state="loading">
-    <sv-skeleton-shell variant="list" [rows]="3" ariaLabel="Loading" />
+    <sv-skeleton-shell variant="list" [rows]="3" [ariaLabel]="labels.loading" />
   </div>
 } @else if (error()) {
   <sv-error-shell [error]="error()" (retry)="retry.emit()" data-sv-state="error" />
@@ -10,8 +10,8 @@
      how an unsourced answer passes for a missing one. -->
 } @else if (isEmpty()) {
   <sv-empty-shell
-    title="No answer yet"
-    message="Citations appear alongside an answer once one has been generated." />
+    [title]="labels.emptyTitle"
+    [message]="labels.emptyMessage" />
 } @else {
 
 <div class="rounded-2xl border border-gray-100 bg-white shadow-sm
@@ -49,7 +49,7 @@
       reader to the passage; a `<sup>` that does nothing when clicked is the
       commonest form this component takes and the least useful.
    --><button type="button"
-              class="ml-0.5 align-super rounded px-1 text-[10px] font-semibold
+              class="ms-0.5 align-super rounded px-1 text-[10px] font-semibold
                      text-primary-700 hover:bg-primary-100 focus-visible:outline-none
                      focus-visible:ring-2 focus-visible:ring-primary-500
                      dark:text-primary-300 dark:hover:bg-primary-900/40"
@@ -86,7 +86,8 @@
          [attr.aria-valuenow]="cov.citedPct.toFixed(0)"
          [attr.aria-valuemin]="0"
          [attr.aria-valuemax]="100"
-         [attr.aria-label]="coverageLabel()">
+         [attr.aria-label]="coverageLabel()"
+         [attr.aria-describedby]="citeId('coverage-caveat')">
       <!-- ★★ Coloured by how much is NOT attributed: a green bar at 60 % reads as
            a pass mark, and the reader's question is whether the missing 40 %
            matters. -->
@@ -106,6 +107,16 @@
       }
     </ul>
     }
+
+    <!-- ★★★ ATTRIBUTED IS NOT SUPPORTED (AI-16-I4). The figure counts passages that
+         carry a chip; it cannot tell whether the source actually says what the
+         passage claims. A 100% bar over an answer its sources contradict looks
+         exactly like a checked one, so the limit is said here, in the surface. -->
+    <p class="mt-2 text-[10px] leading-relaxed text-gray-600 dark:text-gray-400"
+       [attr.id]="citeId('coverage-caveat')"
+       data-sv-coverage-caveat>
+      {{ labels.coverageAttributionCaveat }}
+    </p>
   </div>
   }
   }
@@ -119,13 +130,14 @@
   <div class="border-t border-gray-100 dark:border-gray-800">
     <p class="px-5 pt-3 text-[10px] font-semibold uppercase tracking-wide
               text-gray-500 dark:text-gray-400">
-      {{ numbered().length }} source{{ numbered().length === 1 ? '' : 's' }}
+      {{ labels.sourceCount | svLabel: { count: numbered().length } }}
     </p>
     <ul class="px-3 py-2 space-y-1">
-      @for (entry of numbered(); track entry.source.id) {
+      @for (row of sourceRows(); track row.entry.source.id) {
+      @let entry = row.entry;
       <li [attr.data-sv-source]="entry.source.id">
         <button type="button"
-                class="flex w-full items-start gap-2 rounded-xl px-2 py-2 text-left
+                class="flex w-full items-start gap-2 rounded-xl px-2 py-2 text-start
                        hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2
                        focus-visible:ring-primary-500 dark:hover:bg-gray-800/60"
                 [attr.aria-expanded]="isOpen(entry.source.id)"
@@ -153,12 +165,30 @@
               @if (entry.spanCount > 1) {
               <span class="rounded-full bg-gray-100 px-1.5 py-px text-[9px] font-medium
                            text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                    title="How many separate passages of the answer rest on this one source. It is one source, whatever that number says."
+                    [title]="labels.spanCountHint"
                     data-sv-source-spans>
                 ×{{ entry.spanCount }}
               </span>
               }
+              @if (row.access; as access) {
+              <span class="rounded-full bg-warning-50 px-1.5 py-px text-[9px] font-semibold
+                           text-warning-800 dark:bg-warning-950/40 dark:text-warning-200"
+                    [attr.data-sv-source-access]="access.access">
+                {{ access.label }}
+              </span>
+              }
             </span>
+            <!-- ★★ THE AGE OF THE EVIDENCE (AI-16-M3). A passage is what the source said
+                 when it was read; the age says whether to go and look again. -->
+            @if (row.freshness; as fresh) {
+            <span class="mt-0.5 block text-[10px] text-gray-500 dark:text-gray-400" data-sv-source-retrieved>
+              @if (fresh.datetime) {
+              <time [attr.datetime]="fresh.datetime" [title]="fresh.absolute">{{ labels.retrieved | svLabel: { when: fresh.relative } }}</time>
+              } @else {
+              {{ labels.retrieved | svLabel: { when: fresh.relative } }}
+              }
+            </span>
+            }
           </span>
           <sv-icon name="chevron-down"
                    cssClass="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-500 transition-transform"
@@ -174,7 +204,7 @@
              [attr.id]="citeId('src-' + entry.source.id)"
              data-sv-source-passage>
           @for (c of entry.citations; track c.id) {
-          <blockquote class="border-l-2 border-primary-300 pl-2 text-[11px] leading-relaxed
+          <blockquote class="border-s-2 border-primary-300 ps-2 text-[11px] leading-relaxed
                              text-gray-600 dark:border-primary-700 dark:text-gray-300
                              [&:not(:first-child)]:mt-2"
                       [attr.data-sv-placement]="placementOf(c)"
@@ -187,7 +217,19 @@
                refused scheme is shown as TEXT rather than hidden: that the
                answer cited something unreachable is evidence about the answer,
                and a dead `unsafe:` link teaches the reader nothing. -->
-          @if (linkFor(entry.source); as link) {
+          <!-- ★★★ A SOURCE THE READER CANNOT OPEN IS NOT A LINK (AI-16-M4). A paywall,
+               a 404 or a permission wall behind an "Open the source" link reads as a
+               fabricated citation; the named state, with the address as text, says
+               the source exists and why it cannot be opened from here. -->
+          @if (row.access; as access) {
+          <p class="mt-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400"
+             [attr.data-sv-access-note]="access.access">
+            {{ access.note }}
+            @if (entry.source.url) {
+            <span class="break-all font-mono text-[10px] text-gray-500 dark:text-gray-400">{{ entry.source.url }}</span>
+            }
+          </p>
+          } @else if (linkFor(entry.source); as link) {
             @if (link.href) {
             <a class="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary-700
                       hover:underline dark:text-primary-300"
@@ -196,7 +238,7 @@
                rel="noopener noreferrer"
                data-sv-source-link>
               <sv-icon name="external-link" cssClass="h-3 w-3" [strokeWidth]="2" />
-              Open the source
+              {{ labels.openSource }}
             </a>
             } @else if (link.reason) {
             <p class="mt-2 text-[11px] leading-relaxed text-gray-600 dark:text-gray-400"
@@ -218,7 +260,7 @@
             text-danger-700 dark:border-gray-800 dark:text-danger-400"
      data-sv-unsourced>
     <sv-icon name="alert-triangle" cssClass="mt-px h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
-    <span>Nothing in this answer is attributed to a source.</span>
+    <span>{{ labels.unsourced }}</span>
   </p>
   }
 </div>

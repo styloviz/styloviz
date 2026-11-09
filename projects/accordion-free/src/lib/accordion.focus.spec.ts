@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { provideSvNavLocation, svQueryParamNavLocation } from '@styloviz/core';
+import { provideSvNavLocation, svQueryParamNavLocation } from '@styloviz/core/nav';
 import { SvAccordionComponent, type AccordionItem } from './accordion.component';
 
 /**

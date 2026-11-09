@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `at-sign` icon. */
 export const atSignNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const atSignNodes: readonly IconNode[] = [
 export const atSignSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm16.9 8v5q0 2.1 2.1 2.1 2.1 0 2.1-2.1v-1q0-3.2-1.9-5.7-2-2.5-5.1-3.2-3.1-.7-6 .6-2.8 1.4-4.3 4.2-1.4 2.9-.7 6 .6 3.1 3.1 5.1 2.4 2 5.6 2.1 3.1.1 5.7-1.8.7-.5 1.2.2.5.7-.2 1.2-3 2.3-6.8 2.2-3.8-.1-6.7-2.6-2.9-2.4-3.6-6.1-.8-3.7.9-7.1 1.7-3.3 5.1-4.9 3.4-1.7 7.1-.8 3.7.9 6 3.9 2.4 2.9 2.4 6.7v1q0 3.9-3.9 3.9-2.5 0-3.4-1.6-.1.1-.2.1-1.4 1.5-3.4 1.5-2 0-3.4-1.5-1.5-1.4-1.5-3.4 0-2 1.5-3.4 1.4-1.5 3.4-1.5 1.8 0 3.1 1.2v-.3q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `at-sign` as a registrable glyph — `registerSvIcons([atSignIcon])` / `provideSvIcons([atSignIcon])`. */
+export const atSignIcon: SvIconDef = { name: 'at-sign', nodes: atSignNodes, solid: atSignSolidNodes };
 
 /** `at-sign` — tree-shakable standalone icon. Use `<sv-at-sign-icon />`. */
 @Component({

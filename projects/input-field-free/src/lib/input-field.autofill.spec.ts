@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { SV_AUTOFILL_END, SV_AUTOFILL_START } from '@styloviz/core';
+import { SV_AUTOFILL_END, SV_AUTOFILL_START } from '@styloviz/core/forms';
 import { SvInputFieldComponent } from './input-field.component';
 
 /**
@@ -114,7 +114,7 @@ describe('SvInputFieldComponent — floating label over an autofilled value', ()
   it('does not float for an animation that belongs to something else', () => {
     const { field, input, tick } = setup();
 
-    animation(input, 'sv-popout-in-below');
+    animation(input, 'sv-shake');
     tick();
 
     expect(field.labelIsFloated()).toBe(false);

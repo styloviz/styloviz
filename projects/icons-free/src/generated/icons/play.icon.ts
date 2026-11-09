@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `play` icon. */
 export const playNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const playNodes: readonly IconNode[] = [
 export const playSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M7 4.2 a1 1 0 0 1 1.5 -0.85 l10.5 7.15 a1 1 0 0 1 0 1.7 l-10.5 7.15 A1 1 0 0 1 7 19.8 Z' },
 ];
+
+/** `play` as a registrable glyph — `registerSvIcons([playIcon])` / `provideSvIcons([playIcon])`. */
+export const playIcon: SvIconDef = { name: 'play', nodes: playNodes, solid: playSolidNodes };
 
 /** `play` — tree-shakable standalone icon. Use `<sv-play-icon />`. */
 @Component({

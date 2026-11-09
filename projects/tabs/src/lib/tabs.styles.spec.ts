@@ -1,6 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { SvTabsComponent, type TabItem, type TabsStyle } from './tabs.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * ============================================================================
@@ -32,6 +37,7 @@ const TABS: TabItem[] = [
 async function setup(inputs: Partial<ComponentInput<SvTabsComponent>> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvTabsComponent, {
+    providers: [HOST_ICONS],
     inputs: { tabs: TABS, activeId: 'a', ...inputs } as ComponentInput<SvTabsComponent>,
   });
   fixture.detectChanges();
@@ -110,8 +116,8 @@ describe('SvTabsComponent — where the rule sits', () => {
     expect(h.c.listClasses()).toContain('border-b border-gray-200/80');
 
     const v = await setup({ tabsStyle: 'underline', layout: 'vertical' });
-    expect(v.c.tabClasses(ACTIVE)).toContain('border-r-2 -mr-px');
-    expect(v.c.listClasses()).toContain('border-r border-gray-200/80');
+    expect(v.c.tabClasses(ACTIVE)).toContain('border-e-2 -me-px');
+    expect(v.c.listClasses()).toContain('border-e border-gray-200/80');
   });
 
   it('lifted: a raised card horizontally, a left-side rule vertically', async () => {
@@ -120,9 +126,9 @@ describe('SvTabsComponent — where the rule sits', () => {
     expect(h.c.listClasses()).toContain('border-b');
 
     const v = await setup({ tabsStyle: 'lifted', layout: 'vertical' });
-    expect(v.c.tabClasses(ACTIVE)).toContain('border-r-2 -mr-px');
+    expect(v.c.tabClasses(ACTIVE)).toContain('border-e-2 -me-px');
     expect(v.c.tabClasses(ACTIVE)).toContain('bg-primary-50/50');
-    expect(v.c.listClasses()).toContain('border-r');
+    expect(v.c.listClasses()).toContain('border-e');
   });
 
   it('border-card: the tab joins the panel edge on the correct side', async () => {
@@ -132,8 +138,8 @@ describe('SvTabsComponent — where the rule sits', () => {
     expect(h.c.listClasses()).toContain('border-b border-gray-200');
 
     const v = await setup({ tabsStyle: 'border-card', layout: 'vertical' });
-    expect(v.c.tabClasses(ACTIVE)).toContain('-mr-px rounded-l-lg border border-r-0');
-    expect(v.c.listClasses()).toContain('border-r border-gray-200');
+    expect(v.c.tabClasses(ACTIVE)).toContain('-me-px rounded-s-lg border border-e-0');
+    expect(v.c.listClasses()).toContain('border-e border-gray-200');
   });
 
   it('pills and boxed round the tab in both layouts, and only boxed wraps the list', async () => {

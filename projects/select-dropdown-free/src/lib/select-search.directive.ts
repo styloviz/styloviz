@@ -1,9 +1,5 @@
 import { computed, Directive, forwardRef, input, output } from '@angular/core';
-import {
-  SV_SELECT_FEATURE,
-  type SvSelectFeature,
-  type SvSelectFeatureConfig,
-} from '@styloviz/core';
+import { SV_SELECT_FEATURE, type SvSelectFeature, type SvSelectFeatureConfig } from '@styloviz/core/forms';
 
 /**
  * `svSelectSearch` — the search feature of a select, as a content child
@@ -16,8 +12,8 @@ import {
  * ```
  *
  * Its presence turns the search box on. Every other input is optional and,
- * left unbound, falls through to the select's own input of the same name — so
- * adopting the directive changes nothing you did not bind.
+ * left unbound, keeps the select's default: `'Search…'`, `'No results found'`,
+ * `'Loading…'`, no `minChars`, a 300 ms debounce, client-side filtering.
  *
  * It renders nothing. The search box lives in a panel the select owns, and a
  * directive cannot contribute template to it; it registers its settings

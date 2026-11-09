@@ -26,7 +26,7 @@
       <p
         class="px-1 leading-5"
         [ngClass]="valueClasses(row.kind)"
-        [style.padding-left]="indentFor(row.depth)"
+        [style.padding-inline-start]="indentFor(row.depth)"
       >{{ row.preview }}</p>
     } @else {
       <div
@@ -40,7 +40,7 @@
           [attr.data-sv-json-row]="row.path"
           [attr.tabindex]="tabIndexFor(row.path)"
           [class]="rowClasses(isFocused(row.path))"
-          [style.padding-left]="indentFor(row.depth)"
+          [style.padding-inline-start]="indentFor(row.depth)"
           (click)="onRowClick(row)"
         >
           <!-- Twisty. A leaf gets a same-size spacer so keys stay in one column;
@@ -48,7 +48,7 @@
           @if (row.expandable) {
             <sv-icon
               [name]="row.expanded ? 'chevron-down' : 'chevron-right'"
-              cssClass="mt-0.5 h-3 w-3 shrink-0 text-gray-500 dark:text-gray-400"
+              cssClass="mt-0.5 h-3 w-3 shrink-0 text-gray-500 dark:text-gray-400 rtl:-scale-x-100"
               [strokeWidth]="2"
             />
           } @else {
@@ -74,21 +74,21 @@
         </button>
 
         @if (showCopy() && isFocused(row.path)) {
-          <span class="ml-1 inline-flex gap-1 align-middle">
+          <span class="ms-1 inline-flex gap-1 align-middle">
             <button
               type="button"
               tabindex="-1"
-              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-              [attr.aria-label]="'Copy value of ' + row.path"
+              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              [attr.aria-label]="labels.copyValueOf | svLabel: { path: row.path }"
               (click)="copy(row, 'value')"
-            >{{ justCopied() === row.path ? 'copied' : 'value' }}</button>
+            >{{ justCopied() === row.path ? labels.copiedButton : labels.copyValueButton }}</button>
             <button
               type="button"
               tabindex="-1"
-              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
-              [attr.aria-label]="'Copy path ' + row.path"
+              class="rounded px-1 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              [attr.aria-label]="labels.copyPath | svLabel: { path: row.path }"
               (click)="copy(row, 'path')"
-            >path</button>
+            >{{ labels.copyPathButton }}</button>
           </span>
         }
       </div>

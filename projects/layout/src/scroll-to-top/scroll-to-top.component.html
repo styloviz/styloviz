@@ -1,8 +1,7 @@
-<div #wrapper
+<!-- sv-physical: the position input names a physical side (bottom-right / bottom-left), which RTL keeps, like the toast positions -->
+<div #wrapper [style.left]="sideInset().left" [style.right]="sideInset().right"
   [class]="positionClass()"
   [style.bottom]="bottomInset()"
-  [style.left]="sideInset().left"
-  [style.right]="sideInset().right"
   [attr.data-sv-floating]="bottomInset() ? position() : null">
   <button #button type="button"
     [class]="btnClass() + ' ' + visibilityClass()"
@@ -33,7 +32,7 @@
     <sv-icon name="chevron-up" cssClass="relative h-5 w-5 shrink-0" [strokeWidth]="2.5" />
 
     @if (variant() === 'pill') {
-      <span class="text-sm font-semibold">{{ label() || 'Top' }}</span>
+      <span class="text-sm font-semibold">{{ label() || labels.scrollToTopShort }}</span>
     }
   </button>
 </div>

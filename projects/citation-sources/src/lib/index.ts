@@ -3,6 +3,7 @@ export type {
   AnswerClaim,
   CitationVariant,
   SourceKind,
+  SourceAccess,
   SourceRef,
   CitationSpan,
 } from './citation-sources.types';
@@ -19,6 +20,8 @@ export {
   svNumberSources,
   svRefLabel,
   svSegmentAnswer,
+  svSourceAccess,
+  svSourceFreshness,
   svSourceLabel,
 } from './citation-sources.attribution';
 export type {
@@ -29,5 +32,9 @@ export type {
   SvCitationPlacements,
   SvNumberedSource,
   SvPlacedCitation,
+  SvSourceAccessState,
+  SvSourceFreshness,
   SvSourceLink,
 } from './citation-sources.attribution';
+export { SV_CITATION_SOURCES_LABELS } from './citation-sources.labels';
+export type { SvCitationAttributionLabels, SvCitationSourcesLabels } from './citation-sources.labels';

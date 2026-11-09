@@ -17,14 +17,31 @@ import { SvButtonComponent } from '@styloviz/button';
 import { SvDataTableComponent } from '@styloviz/data-table';
 ```
 
-Prefer to install only what you use? Every component is also available individually, e.g. `npm install @styloviz/button`. Each package lists its own peer dependencies — most are self-contained; some (e.g. `@styloviz/charts`, `@styloviz/toast`, `@styloviz/layout`) also need `@styloviz/core`.
+Prefer to install only what you use? Every component is also available individually, e.g. `npm install @styloviz/button`. Each package lists its own peer dependencies: almost every one needs `@styloviz/core`, and many need another kit package such as `@styloviz/icons` or `@styloviz/overlays`. Your package manager names any that are missing.
+
+## Icons
+
+2.0 draws a glyph you name (`icon="plus"`) only once the app registers it, in the app config:
+`provideSvIcons([plusIcon])` with `import { plusIcon } from '@styloviz/icons/glyph/plus'`, or
+`provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. An unregistered name
+warns in the console with the line to add.
+
+## Upgrading
+
+Run `ng update` on the bundle, not on `@styloviz/core` — the bundle is what your `package.json` lists:
+
+```bash
+ng update @styloviz/all
+```
+
+It moves every Styloviz package to the new version together and runs the kit's migrations.
 
 ## Reproducible installs
 
-The bundle pins each dependency to an **exact** version, so `@styloviz/all@1.0.2` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
+The bundle pins each dependency to an **exact** version, so `@styloviz/all@2.0.0` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
 
 ```bash
-npm install @styloviz/all@1.0.2
+npm install @styloviz/all@2.0.0
 ```
 
 ## Upgrading to Pro

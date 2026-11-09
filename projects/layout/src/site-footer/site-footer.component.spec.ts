@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
+import { provideSvIcons } from '@styloviz/icons';
+import { amexIcon } from '@styloviz/icons/glyph/amex';
+import { visaIcon } from '@styloviz/icons/glyph/visa';
 import {
   SvSiteFooterComponent,
   type FooterColumn,
@@ -30,6 +33,8 @@ async function setup(inputs: Partial<ComponentInput<SvSiteFooterComponent>> = {}
   TestBed.resetTestingModule();
   return render(SvSiteFooterComponent, {
     inputs: inputs as ComponentInput<SvSiteFooterComponent>,
+    // Payment marks are host-supplied names, so the host registers them (FL-B4).
+    providers: [provideSvIcons([amexIcon, visaIcon])],
   });
 }
 

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `close` icon. */
 export const closeNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const closeNodes: readonly IconNode[] = [
 export const closeSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6.6 5.4l5.4 5.4 5.4-5.4q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6l-5.4 5.4 5.4 5.4q.6.6 0 1.2-.6.6-1.2 0l-5.4-5.4-5.4 5.4q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l5.4-5.4-5.4-5.4q-.6-.6 0-1.2.6-.6 1.2 0z' },
 ];
+
+/** `close` as a registrable glyph — `registerSvIcons([closeIcon])` / `provideSvIcons([closeIcon])`. */
+export const closeIcon: SvIconDef = { name: 'close', nodes: closeNodes, solid: closeSolidNodes };
 
 /** `close` — tree-shakable standalone icon. Use `<sv-close-icon />`. */
 @Component({

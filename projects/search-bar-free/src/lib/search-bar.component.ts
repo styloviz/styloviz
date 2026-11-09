@@ -1,5 +1,6 @@
 import {
   ApplicationRef,
+  DestroyRef,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -20,17 +21,19 @@ import {
   ViewChild,
   viewChild,
 } from '@angular/core';
-import {
-  SvErrorShellComponent,
-  SvStaleDirective,
-  type SvDataError, type SvEmptyReason, SvSpinnerArcComponent, svHighlightSegments,
-  svUniqueId,
-} from '@styloviz/core';
+import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
+import { SvErrorShellComponent, SvStaleDirective, type SvDataError, type SvEmptyReason } from '@styloviz/core/data';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { svFormatCount, svLocale, injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { createPortalHost, type SvPortalHost } from '@styloviz/core/overlay';
+import { svHighlightSegments } from '@styloviz/core/security';
 import { isPlatformBrowser, NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 import { SvKbdComponent } from '@styloviz/kbd';
 import { FormsModule } from '@angular/forms';
+import { SV_SEARCH_BAR_LABELS } from './search-bar-free.labels';
 
+import { registerSearchBarIcons } from './search-bar.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SearchBarSize    = 'sm' | 'md' | 'lg';
@@ -118,11 +121,17 @@ const PANEL_PREFERRED_HEIGHT = 288;
   selector: 'sv-search-bar',
   standalone: true,
   imports: [SvErrorShellComponent, NgClass, FormsModule, SvIconComponent, SvSpinnerArcComponent, SvKbdComponent,
-    SvStaleDirective],
+    SvStaleDirective, SvLabelPipe],
   templateUrl: './search-bar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvSearchBarComponent implements OnInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerSearchBarIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ searchBar })` says otherwise. */
+  protected readonly labels = injectSvLabels('searchBar', SV_SEARCH_BAR_LABELS);
+
   // ── Async state ───────────────────────────────────────────────────────────
 
   /**
@@ -137,6 +146,10 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
 
   private readonly platformId = inject(PLATFORM_ID);
   private readonly appRef     = inject(ApplicationRef);
+  private readonly host       = inject<ElementRef<HTMLElement>>(ElementRef);
+  /** The kit's locale, for folding the highlighted query. */
+  private readonly matchLocale = svLocale();
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── Value ─────────────────────────────────────────────────────────────────
 
@@ -152,7 +165,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   label = input<string>('');
 
   /** Placeholder text. @default 'Search…' */
-  placeholder = input<string>('Search…');
+  placeholder = input<string>(this.labels.searchPlaceholder);
 
   /** Explicit accessible name for the input. Falls back to `label` then `placeholder`. */
   ariaLabel = input<string>('');
@@ -198,7 +211,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   /** Field size: sm, md or lg. @default 'md' */
   size    = input<SearchBarSize>('md');
 
-  /** Visual variant: default, floating, minimal… @default 'default' */
+  /** Visual variant: default, filled or borderless… @default 'default' */
   variant = input<SearchBarVariant>('default');
 
   /** Show the magnifier icon on the left. @default true */
@@ -253,10 +266,10 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   readonly emptyReason = input<SvEmptyReason | null>(null);
 
   /** Copy for the opening state — nothing searched for yet. @default 'Type to search' */
-  noDataLabel = input<string>('Type to search');
+  noDataLabel = input<string>(this.labels.typeToSearch);
 
   /** Copy for a search that answered with nothing. @default 'No results found' */
-  noResultsLabel = input<string>('No results found');
+  noResultsLabel = input<string>(this.labels.noResults);
 
   /**
    * A second line under `noResultsLabel` — "Check your spelling or try a
@@ -334,7 +347,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
 
   // ── Body-portal state ────────────────────────────────────────────────────
   // Portals the suggestions panel into document.body so ancestor overflow/
-  // transform containers can never clip it (see dropdown-instruction.md).
+  // transform containers can never clip it (see docs/dropdown-instruction.md).
 
   /** True once the panel has flipped to open above the track (space below is tight). */
   readonly openAbove = signal(false);
@@ -344,6 +357,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   readonly panelStyle = signal<Record<string, string>>({});
 
   private portalEl:   HTMLElement | null = null;
+  private portalHost: SvPortalHost | null = null;
   private portalView: EmbeddedViewRef<object> | null = null;
 
   /** The ng-template holding the suggestions panel — never rendered inline; instantiated into <body> on open. */
@@ -421,7 +435,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   readonly emptyDetail = computed(() => {
     if (this.emptyReason() !== 'no-results') return '';
     const term = this.value().trim();
-    return this.noResultsHint() || (term ? `Nothing matched “${term}”` : '');
+    return this.noResultsHint() || (term ? svFormatLabel(this.labels.nothingMatched, { term }) : '');
   });
 
   /**
@@ -430,8 +444,9 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
    * The panel is portalled into `<body>` and torn down on close, and a live
    * region that is inserted with its text already in it is frequently not
    * announced at all — so the region lives in the component's own template,
-   * mounted for the life of the control, and only its contents change. This is
-   * also where `FI-20-M4`'s result counts belong when they land.
+   * mounted for the life of the control, and only its contents change. The
+   * result COUNT (`FI-20-M4`) goes through the shared announcer instead — see
+   * `countAnnouncement`.
    */
   readonly emptyAnnouncement = computed(() =>
     this.showEmptyState() && this.isFocused()
@@ -456,10 +471,10 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
     //   md: pl-3(12)   + 16px + 6px = 34px
     //   lg: pl-4(16)   + 20px + 6px = 42px
     const notFloatedLeftMap: Record<SearchBarSize, string> = hasIcon
-      ? { sm: 'left-[30px]', md: 'left-[34px]', lg: 'left-[42px]' }
-      : { sm: 'left-2',      md: 'left-3',       lg: 'left-4' };
+      ? { sm: 'start-[30px]', md: 'start-[34px]', lg: 'start-[42px]' }
+      : { sm: 'start-2',      md: 'start-3',       lg: 'start-4' };
     const notFloatedLeft = notFloatedLeftMap[this.size()];
-    const floatedLeft    = 'left-3';
+    const floatedLeft    = 'start-3';
 
     const textSizeMap: Record<SearchBarSize, string> = {
       sm: 'text-xs',
@@ -533,8 +548,8 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
    */
   inputNativePadClass = computed<string>(() => {
     if (this.showSearchIcon()) {
-      const rp: Record<SearchBarSize, string> = { sm: 'pr-2', md: 'pr-3', lg: 'pr-4' };
-      return `pl-0 ${rp[this.size()]}`;
+      const rp: Record<SearchBarSize, string> = { sm: 'pe-2', md: 'pe-3', lg: 'pe-4' };
+      return `ps-0 ${rp[this.size()]}`;
     }
     return this.inputPaddingClass();
   });
@@ -549,9 +564,9 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
 
   iconPaddingClass = computed<string>(() => {
     switch (this.size()) {
-      case 'sm': return 'pl-2.5';
-      case 'lg': return 'pl-4';
-      default:   return 'pl-3';
+      case 'sm': return 'ps-2.5';
+      case 'lg': return 'ps-4';
+      default:   return 'ps-3';
     }
   });
 
@@ -583,7 +598,8 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
    *    where it would be undone.
    */
   highlightMatch(text: string): { pre: string; match: string; post: string } {
-    const segments = svHighlightSegments(text, this.value());
+    // Accent- and case-folded in the kit's locale (`FI-01-I4`): `jose` marks José.
+    const segments = svHighlightSegments(text, this.value(), { locale: this.matchLocale });
     const at = segments.findIndex((s) => s.match);
     if (at === -1) return { pre: text, match: '', post: '' };
     return {
@@ -683,7 +699,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
   @HostListener('window:resize')
   onWindowResize(): void {
     // Viewport resize invalidates the layout — close rather than reposition
-    // with now-stale coordinates (dropdown-instruction.md §8). Reopens
+    // with now-stale coordinates (docs/dropdown-instruction.md §8). Reopens
     // naturally on the next focus/input.
     if (this.showDropdown()) this.resizeSuppressed.set(true);
   }
@@ -717,7 +733,35 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
+  // ── Result count, announced (`FI-20-M4`) ──────────────────────────────────
+
+  /** The shared live regions — never a node of this component's own. */
+  private readonly _live = inject(SvLiveAnnouncer).scoped();
+  /** One key per instance, so a count supersedes its own last value. */
+  private readonly _countKey = `sv-search-bar-count-${svUniqueId('sb')}`; // sv-i18n-ignore: announcer key
+
+  /**
+   * "5 suggestions" — what a screen reader hears when the list settles, the
+   * parity Autocomplete already had. Empty while there is nothing to count or
+   * the list is still loading (the count would be of a list about to change).
+   */
+  readonly countAnnouncement = computed(() => {
+    const n = this.computedSuggestions().length;
+    if (!this.showDropdown() || n === 0 || this.loading() || this.stale()) return '';
+    return svFormatLabel(this.labels.suggestionCount, { count: n, n: svFormatCount(n, this.matchLocale) }, this.matchLocale);
+  });
+
   constructor() {
+    // Announce a settled count once, throttled and keyed, so typing "inv" →
+    // "invo" → "invoi" says the latest count rather than three stale ones.
+    let last = '';
+    effect(() => {
+      const text = this.countAnnouncement();
+      if (!text || text === last) { last = text; return; }
+      last = text;
+      this._live.announce(text, { key: this._countKey, throttleMs: 500 });
+    });
+
     // Mount/unmount the body-portaled panel whenever the dropdown's open
     // state changes — the reactive equivalent of Color Picker's toggle().
     effect(() => {
@@ -760,8 +804,15 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
     if (!this.panelTpl) return;
     this._calcPos();
 
-    this.portalEl = document.createElement('div');
-    this.portalEl.className = 'sv-search-portal';
+    // Context-carrying host: dir, lang and a locally scoped theme reach the
+    // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+    this.portalHost = createPortalHost({
+      origin: this.host.nativeElement,
+      className: 'sv-search-portal',
+      label: 'search-bar',
+      destroyRef: this.destroyRef,
+    });
+    this.portalEl = this.portalHost.element;
 
     this.portalView = this.panelTpl.createEmbeddedView({});
     this.appRef.attachView(this.portalView);
@@ -771,7 +822,7 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
     // scripts/fix-portal-insertion-order.mjs.
     this.portalView.detectChanges();
     this.portalView.rootNodes.forEach((n: Node) => this.portalEl!.appendChild(n));
-    document.body.appendChild(this.portalEl);
+    this.portalHost.attach();
   }
 
   private _closePanel(): void {
@@ -780,7 +831,8 @@ export class SvSearchBarComponent implements OnInit, OnDestroy {
       this.portalView.destroy();
       this.portalView = null;
     }
-    this.portalEl?.remove();
+    this.portalHost?.destroy();
+    this.portalHost = null;
     this.portalEl = null;
   }
 }

@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output } from '@angular/core';
-import { SvErrorShellComponent, SvSkeletonShellComponent, type SvDataError, svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { SvErrorShellComponent, SvSkeletonShellComponent, type SvDataError } from '@styloviz/core/data';
+import { SvLabelPipe, injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
 import {
   svBarcodeWidth,
@@ -11,8 +13,10 @@ import {
   type SvEncoded,
 } from './barcode-1d.encode';
 import { svScanSize, type SvBarcodeScanSize } from './barcode-1d.scan';
+import { SV_BARCODE_1D_LABELS } from './barcode-1d.labels';
 import type { BarcodeModule, BarcodeSymbology, BarcodeVariant } from './barcode-1d.types';
 
+import { registerBarcode1dIcons } from './barcode-1d.component.icons';
 /**
  * `<sv-barcode-1d>` — Code 128 and EAN barcodes, encoded properly.
  *
@@ -25,7 +29,7 @@ import type { BarcodeModule, BarcodeSymbology, BarcodeVariant } from './barcode-
   selector: 'sv-barcode-1d',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvIconComponent, SvErrorShellComponent, SvSkeletonShellComponent],
+  imports: [SvIconComponent, SvErrorShellComponent, SvSkeletonShellComponent, SvLabelPipe],
   templateUrl: './barcode-1d.component.html',
   /**
    * ★★★ PRINT IS WHERE A CORRECT BARCODE STOPS SCANNING. Three things a print
@@ -69,6 +73,10 @@ import type { BarcodeModule, BarcodeSymbology, BarcodeVariant } from './barcode-
   `],
 })
 export class SvBarcode1dComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerBarcode1dIcons();
+
+  protected readonly labels = injectSvLabels('barcode1d', SV_BARCODE_1D_LABELS);
   private readonly uid = svUniqueId('sv-bc');
 
   // ── Async state ───────────────────────────────────────────────────────────
@@ -161,7 +169,7 @@ export class SvBarcode1dComponent {
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
-  readonly encoded = computed<SvEncoded>(() => svEncode(this.value(), this.symbology()));
+  readonly encoded = computed<SvEncoded>(() => svEncode(this.value(), this.symbology(), this.labels));
 
   /** The width actually drawn, after snapping to whole device pixels. */
   readonly moduleWidth = computed(() =>
@@ -192,7 +200,7 @@ export class SvBarcode1dComponent {
       : null,
   );
 
-  readonly encodingLabel = computed(() => svEncodingLabel(this.encoded()));
+  readonly encodingLabel = computed(() => svEncodingLabel(this.encoded(), this.labels));
 
   readonly isRefused = computed(() => this.encoded().error !== null);
 
@@ -219,6 +227,7 @@ export class SvBarcode1dComponent {
       this.totalModules(),
       this.barHeight(),
       this.printModuleWidthMm(),
+      this.labels,
     ),
   );
 
@@ -271,7 +280,8 @@ export class SvBarcode1dComponent {
    */
   ariaLabel(): string {
     const e = this.encoded();
-    if (e.error) return `Barcode could not be generated: ${e.error}`;
-    return `${e.symbology === 'code128' ? 'Code 128' : e.symbology === 'ean13' ? 'EAN-13' : 'EAN-8'} barcode: ${e.text}`;
+    if (e.error) return svFormatLabel(this.labels.barcodeFailed, { error: e.error });
+    const name = e.symbology === 'code128' ? 'Code 128' : e.symbology === 'ean13' ? 'EAN-13' : 'EAN-8';
+    return svFormatLabel(this.labels.barcodeName, { name, text: e.text });
   }
 }

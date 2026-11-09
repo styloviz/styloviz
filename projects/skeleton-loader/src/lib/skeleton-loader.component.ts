@@ -9,6 +9,7 @@ import {
   inject,
   input,
   output,
+  untracked,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 /*
@@ -31,7 +32,10 @@ import { isPlatformBrowser } from '@angular/common';
  *   stops at the first failure, so the earlier `ng build pro` collision was
  *   hiding it. Two independent causes, one symptom.
  */
-import { SvLiveAnnouncer, createWaitEscalation, type SvWaitStage } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { createDelayedVisibility, createWaitEscalation, type SvWaitStage } from '@styloviz/core/feedback';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_SKELETON_LOADER_LABELS } from './skeleton-loader.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,10 +113,16 @@ export type SkeletonPreset =
   // The wave's sheen per theme, read by `.skeleton-wave::after` — see the
   // stylesheet for why this cannot be a `:where(.dark)` rule there.
   host: {
-    class: '[--sv-skeleton-sheen:rgb(255_255_255/0.35)] dark:[--sv-skeleton-sheen:rgb(255_255_255/0.06)]',
+    // ★ Balanced per theme (FL-J3-OF-19, `OF-17-I4`): at 0.35 the light sheen
+    //   moved the bone's contrast by 1.08:1 — invisible — while the dark one
+    //   was already 1.2:1. 0.5 brings light to 1.11:1, inside the same "seen,
+    //   not dazzling" band (`skeleton-loader.contrast.spec.ts`).
+    class: '[--sv-skeleton-sheen:rgb(255_255_255/0.5)] dark:[--sv-skeleton-sheen:rgb(255_255_255/0.06)]',
   },
 })
 export class SvSkeletonLoaderComponent {
+  protected readonly labels = injectSvLabels('skeletonLoader', SV_SKELETON_LOADER_LABELS);
+
   // ── Mode ──────────────────────────────────────────────────────────────────
 
   /**
@@ -176,7 +186,7 @@ export class SvSkeletonLoaderComponent {
   customClass = input<string>('');
 
   /** Accessible label announced to screen readers while content loads. @default 'Loading content…' */
-  ariaLabel = input<string>('Loading content…');
+  ariaLabel = input<string>(this.labels.loading);
 
   /**
    * Whether this skeleton announces the wait itself. @default true
@@ -219,11 +229,11 @@ export class SvSkeletonLoaderComponent {
    */
   stalledAfterMs = input<number>(0);
 
-  /** Message shown at the `slow` stage. */
-  slowMessage = input<string>('This is taking longer than usual…');
+  /** Message shown at the `slow` stage. @default 'This is taking longer than usual…' */
+  slowMessage = input<string>(this.labels.slow);
 
-  /** Message shown at the `stalled` stage. */
-  stalledMessage = input<string>('This content could not be loaded.');
+  /** Message shown at the `stalled` stage. @default 'This content could not be loaded.' */
+  stalledMessage = input<string>(this.labels.stalled);
 
   /**
    * Label for the retry offer shown once the wait is `stalled`. `null` = none.
@@ -238,6 +248,50 @@ export class SvSkeletonLoaderComponent {
 
   /** The user pressed the retry offer on a stalled skeleton. */
   readonly retry = output<void>();
+
+  // ── Delayed show / minimum duration (FL-J3-OF-06, `OF-17-M4`) ──────────────
+
+  /**
+   * Whether the wait is in progress. Bind it — `[active]="loading()"` — and
+   * keep the skeleton mounted when using `showAfterMs` / `minVisibleMs`: a
+   * skeleton the host removes cannot stay for its minimum. @default true
+   */
+  active = input<boolean>(true);
+
+  /**
+   * Appear only once the wait has lasted this long, in ms, so a fast response
+   * never flashes bones. `0` shows at once. @default 0
+   */
+  showAfterMs = input<number>(0);
+
+  /**
+   * Once shown, stay at least this long, in ms — a skeleton visible for 80 ms
+   * is a flicker. `0` hides with `active`. Watch `(visibleChange)` (or use
+   * `createDelayedVisibility` from `@styloviz/core`) to swap the content in at
+   * the same moment. @default 0
+   */
+  minVisibleMs = input<number>(0);
+
+  /** Emits whenever the skeleton appears (`true`) or leaves (`false`). */
+  readonly visibleChange = output<boolean>();
+
+  private readonly _delayed = createDelayedVisibility(() => this.active(), {
+    showAfterMs: () => this.showAfterMs(),
+    minVisibleMs: () => this.minVisibleMs(),
+  });
+
+  /**
+   * Whether anything renders. With both delays at 0 it IS `active`, read
+   * synchronously — today's behaviour exactly.
+   */
+  readonly shown = computed<boolean>(() =>
+    this.showAfterMs() <= 0 && this.minVisibleMs() <= 0 ? this.active() : this._delayed(),
+  );
+
+  /** Set after the first browser render — see the visibility effect. */
+  private _rendered = false;
+  /** What `shown()` was at the last render or transition. */
+  private _wasShown = false;
 
   /** Fires on each escalation: `'slow'`, then `'stalled'`. */
   readonly escalated = output<SvWaitStage>();
@@ -297,8 +351,22 @@ export class SvSkeletonLoaderComponent {
         // ★ Explicit: `afterNextRender` keys off the build-time `ngServerMode`
         //   flag, not the injected PLATFORM_ID.
         if (!isPlatformBrowser(this._platformId)) return;
-        if (this.announce()) this._announcer.announce(this.ariaLabel(), { priority: 'polite' });
+        this._rendered = true;
+        this._wasShown = this.shown();
+        if (this._wasShown && this.announce()) this._announcer.announce(this.ariaLabel(), { priority: 'polite' });
       },
+    });
+
+    // ★ A skeleton that appears LATE (`showAfterMs`) is announced when it
+    //   appears, not at mount when nothing was on screen.
+    effect(() => {
+      const shown = this.shown();
+      untracked(() => {
+        if (!this._rendered || shown === this._wasShown) return;
+        this._wasShown = shown;
+        this.visibleChange.emit(shown);
+        if (shown && this.announce()) this._announcer.announce(this.ariaLabel(), { priority: 'polite' });
+      });
     });
 
     effect(() => {
@@ -329,7 +397,9 @@ export class SvSkeletonLoaderComponent {
       none:  '',
     };
     return [
-      'bg-gray-200 dark:bg-gray-700',
+      // ★ Forced colours repaint a tinted `div` as Canvas, and every bone
+      //   vanished into the page. `GrayText` keeps the placeholder's shape.
+      'bg-gray-200 dark:bg-gray-700 forced-colors:bg-[GrayText]',
       anim[this.animation()],
     ].filter(Boolean).join(' ');
   });

@@ -9,9 +9,13 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { SV_LINK_ADAPTER, SvSpinnerArcComponent, svIsModifiedClick } from '@styloviz/core';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_LINK_ADAPTER, svIsModifiedClick } from '@styloviz/core/nav';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerButtonIcons } from './button.component.icons';
+import { SV_BUTTON_LABELS } from './button.labels';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /**
@@ -75,7 +79,7 @@ export type ButtonIconTemplate = TemplateRef<unknown> | null;
  * Import:  import { SvButtonComponent } from '@styloviz/button';
  *
  * Features:
- * - 9 variants × 6 styles × 5 sizes × 3 shapes
+ * - 10 variants × 6 styles × 5 sizes × 3 shapes
  * - 3 loading animations: spinner · dots · pulse
  * - Leading, trailing, and icon-only modes
  * - Dual-icon layout via trailingIcon
@@ -94,6 +98,10 @@ export type ButtonIconTemplate = TemplateRef<unknown> | null;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvButtonComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerButtonIcons();
+  protected readonly labels = injectSvLabels('button', SV_BUTTON_LABELS);
+
   // ── Appearance ────────────────────────────────────────────────────────────
 
   /** Semantic color/intent: primary, secondary, success, danger, etc. @default 'primary' */
@@ -115,14 +123,8 @@ export class SvButtonComponent {
   label            = input<string>('');
   /**
    * Icon-library NAME for the built-in leading/trailing icon — e.g. `'plus'`.
-   * Ignored when `iconTemplate` is set.
-   *
-   * ★ BREAKING (icon sweep): was `iconPath`, a raw SVG `d` string. A name
-   * resolves through `@styloviz/icons`, so `check:icons` catches a typo that a
-   * `d` string rendered as a blank button. ⚠️ The old attribute was usually
-   * written STATICALLY (`iconPath="M12 4.5v15…"`), and Angular silently ignores
-   * an unknown static attribute — so a missed call site renders no icon rather
-   * than failing the build. All 157 in-repo sites were rewritten tag-scoped.
+   * Ignored when `iconTemplate` is set. A raw SVG `d` string is not a name and
+   * renders no icon.
    */
   icon             = input<string>('');
   /**
@@ -167,7 +169,7 @@ export class SvButtonComponent {
   disabled     = input<boolean>(false);
   /** Show a loading indicator and block activation. @default false */
   loading      = input<boolean>(false);
-  /** Loading indicator style: spinner or dots. @default 'spinner' */
+  /** Loading indicator style: spinner, dots or pulse. @default 'spinner' */
   loadingStyle = input<ButtonLoader>('spinner');
   /** Optional text shown beside the loading indicator. */
   loadingLabel = input<string>('');
@@ -293,7 +295,7 @@ export class SvButtonComponent {
    *    on a button is thin enough that it cannot be the only signal.
    */
   readonly busyAnnouncement = computed(() =>
-    this.loading() && this.announceLoading() ? (this.loadingLabel() || 'Loading') : '',
+    this.loading() && this.announceLoading() ? (this.loadingLabel() || this.labels.loading) : '',
   );
 
   /** True when a counter badge should be shown. */
@@ -379,7 +381,7 @@ export class SvButtonComponent {
   readonly customIconWrapperClass = computed(
     () =>
       `${this.iconSizeClass()} inline-flex shrink-0 items-center justify-center ` +
-      '[&>svg]:h-full [&>svg]:w-full [&>img]:h-full [&>img]:w-full [&>img]:object-contain'
+      '[&>svg]:h-full [&>svg]:w-full [&>img]:h-full [&>img]:w-full [&>img]:object-contain' // sv-i18n-ignore: Tailwind classes
   );
 
   /** Same as `customIconWrapperClass`, dimmed to match `trailingIconPath`'s dual-icon treatment. */
@@ -517,7 +519,7 @@ export class SvButtonComponent {
     const map: Record<ButtonVariant, string> = {
       primary:   'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus-visible:ring-primary-500',
       brand:     'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 focus-visible:ring-brand-500',
-      secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 focus-visible:ring-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600',
+      secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 active:bg-gray-300 focus-visible:ring-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:active:bg-gray-800',
       success:   'bg-accent-700 text-white hover:bg-accent-800 active:bg-accent-900 focus-visible:ring-accent-500',
       warning:   'bg-warning-500 text-gray-900 hover:bg-warning-400 active:bg-warning-300 focus-visible:ring-warning-500',
       danger:    'bg-danger-600 text-white hover:bg-danger-700 active:bg-danger-800 focus-visible:ring-danger-500',
@@ -571,7 +573,7 @@ export class SvButtonComponent {
       danger:    'bg-transparent text-danger-600 hover:bg-danger-50 hover:text-danger-700 focus-visible:ring-danger-400 dark:text-danger-400 dark:hover:bg-danger-900/20',
       info:      'bg-transparent text-info-700 hover:bg-info-50 focus-visible:ring-info-400 dark:text-info-400 dark:hover:bg-info-900/20',
       neutral:   'bg-transparent text-gray-600 hover:bg-gray-100 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-gray-800',
-      ghost:     'bg-transparent text-gray-500 hover:bg-gray-100 focus-visible:ring-gray-300 dark:text-gray-400 dark:hover:bg-gray-800',
+      ghost:     'bg-transparent text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus-visible:ring-gray-300 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200',
       link:      'bg-transparent text-primary-600 hover:text-primary-700 focus-visible:ring-primary-400 dark:text-primary-400 dark:hover:text-primary-300',
     };
     return map[v];
@@ -579,16 +581,16 @@ export class SvButtonComponent {
 
   private _link(v: ButtonVariant): string {
     const map: Record<ButtonVariant, string> = {
-      primary:   'bg-transparent text-primary-600 underline-offset-4 hover:underline hover:text-primary-700 focus-visible:ring-primary-400 dark:text-primary-400',
-      brand:     'bg-transparent text-brand-700 underline-offset-4 hover:underline hover:text-brand-800 focus-visible:ring-brand-400 dark:text-brand-300',
-      secondary: 'bg-transparent text-gray-600 underline-offset-4 hover:underline hover:text-gray-900 focus-visible:ring-gray-400 dark:text-gray-400',
-      success:   'bg-transparent text-accent-700 underline-offset-4 hover:underline hover:text-accent-700 focus-visible:ring-accent-400 dark:text-accent-400',
+      primary:   'bg-transparent text-primary-600 underline-offset-4 hover:underline hover:text-primary-700 focus-visible:ring-primary-400 dark:text-primary-400 dark:hover:text-primary-300',
+      brand:     'bg-transparent text-brand-700 underline-offset-4 hover:underline hover:text-brand-800 focus-visible:ring-brand-400 dark:text-brand-300 dark:hover:text-brand-200',
+      secondary: 'bg-transparent text-gray-600 underline-offset-4 hover:underline hover:text-gray-900 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:text-gray-200',
+      success:   'bg-transparent text-accent-700 underline-offset-4 hover:underline hover:text-accent-700 focus-visible:ring-accent-400 dark:text-accent-400 dark:hover:text-accent-300',
       warning:   'bg-transparent text-warning-700 underline-offset-4 hover:underline focus-visible:ring-warning-400 dark:text-warning-400',
-      danger:    'bg-transparent text-danger-600 underline-offset-4 hover:underline hover:text-danger-700 focus-visible:ring-danger-400 dark:text-danger-400',
-      info:      'bg-transparent text-info-700 underline-offset-4 hover:underline hover:text-info-700 focus-visible:ring-info-400 dark:text-info-400',
-      neutral:   'bg-transparent text-gray-600 underline-offset-4 hover:underline hover:text-gray-900 focus-visible:ring-gray-400 dark:text-gray-300',
-      ghost:     'bg-transparent text-gray-500 underline-offset-4 hover:underline hover:text-gray-700 focus-visible:ring-gray-300 dark:text-gray-400',
-      link:      'bg-transparent text-primary-600 underline underline-offset-4 hover:text-primary-800 focus-visible:ring-primary-400 dark:text-primary-400',
+      danger:    'bg-transparent text-danger-600 underline-offset-4 hover:underline hover:text-danger-700 focus-visible:ring-danger-400 dark:text-danger-400 dark:hover:text-danger-300',
+      info:      'bg-transparent text-info-700 underline-offset-4 hover:underline hover:text-info-700 focus-visible:ring-info-400 dark:text-info-400 dark:hover:text-info-300',
+      neutral:   'bg-transparent text-gray-600 underline-offset-4 hover:underline hover:text-gray-900 focus-visible:ring-gray-400 dark:text-gray-300 dark:hover:text-gray-100',
+      ghost:     'bg-transparent text-gray-500 underline-offset-4 hover:underline hover:text-gray-700 focus-visible:ring-gray-300 dark:text-gray-400 dark:hover:text-gray-200',
+      link:      'bg-transparent text-primary-600 underline underline-offset-4 hover:text-primary-800 focus-visible:ring-primary-400 dark:text-primary-400 dark:hover:text-primary-300',
     };
     return map[v];
   }

@@ -7,6 +7,7 @@ import {
   DestroyRef,
   ElementRef,
   inject,
+  Injectable,
   input,
   signal,
   untracked,
@@ -14,18 +15,15 @@ import {
 } from '@angular/core';
 import { DOCUMENT, NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  ToastService,
-  SvLiveAnnouncer,
-  SvOverlayStackService,
-  createPortalHost,
-  svAnnouncePriorityFor,
-  type SvPortalHost,
-  Toast,
-  ToastPosition,
-  ToastVariant,
-} from '@styloviz/core';
+import { SvLiveAnnouncer, svAnnouncePriorityFor } from '@styloviz/core/a11y';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SvOverlayStackService, createPortalHost, createSheetMode, type SvPortalHost } from '@styloviz/core/overlay';
+import { ToastService, Toast, ToastPosition, ToastVariant } from '@styloviz/core/services';
+import { SV_TOAST_LABELS } from './toast.labels';
 
+import { registerToastHostIcons } from './toast-host.component.icons';
 // ─── Icon paths keyed to variant ──────────────────────────────────────────────
 
 /** Toast variant → icon-library NAME (was five hand-copied `d` strings). */
@@ -61,14 +59,60 @@ const VARIANT_COLORS: Record<ToastVariant, { icon: string; progress: string }> =
  * this.toast.error('Failed to delete', { title: 'Error', duration: 0 });
  * ```
  */
+/**
+ * Which positions have a mounted host (FL-J3-OF-10, `OF-19-I6`).
+ *
+ * ★★ TWO HOSTS AT ONE POSITION DUPLICATE EVERY TOAST AND ITS ANNOUNCEMENT.
+ *    Each host renders the service's toasts for its own `position`, so a
+ *    second `<sv-toast-host>` at the same corner — one in the app shell, one
+ *    left in a lazily-loaded layout — paints every toast twice and speaks it
+ *    twice. The docs say "mount one"; this says so where the mistake is made,
+ *    once per position, in dev builds only (`svWarnOnce`).
+ */
+@Injectable({ providedIn: 'root' })
+class SvToastHostRegistry {
+  private readonly _count = new Map<ToastPosition, number>();
+
+  /** Register a host at `position`; returns the release. */
+  claim(position: ToastPosition): () => void {
+    const next = (this._count.get(position) ?? 0) + 1;
+    this._count.set(position, next);
+    if (next > 1) {
+      svWarnOnce(
+        `sv-toast-host/duplicate-position:${position}`,
+        `${next} <sv-toast-host> elements are rendering position "${position}". Each ` +
+          'host renders every toast for its position, so every toast — and its ' +
+          'screen-reader announcement — appears twice. Mount one host per position, ' +
+          'near the app root.',
+      );
+    }
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const left = (this._count.get(position) ?? 1) - 1;
+      if (left <= 0) this._count.delete(position);
+      else this._count.set(position, left);
+    };
+  }
+}
+
 @Component({
   selector: 'sv-toast-host',
   standalone: true,
-  imports: [NgClass, SvIconComponent],
+  imports: [NgClass, SvIconComponent, SvSpinnerArcComponent],
   templateUrl: './toast-host.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvToastHostComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerToastHostIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ toast })` says otherwise. */
+  protected readonly labels = injectSvLabels('toast', SV_TOAST_LABELS);
+  /** The kit's locale — picks the plural form of the repeat badge's name. */
+  private readonly locale = svLocale();
+
   private readonly toastService = inject(ToastService);
   private readonly _el = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly _doc = inject(DOCUMENT);
@@ -175,10 +219,18 @@ export class SvToastHostComponent {
    */
   private readonly _announced = new Map<string, string>();
 
+  private readonly _registry = inject(SvToastHostRegistry);
+
   constructor() {
     inject(DestroyRef).onDestroy(() => {
       this._unportal();
       this._layer.release();
+    });
+
+    // Re-claimed when `position` changes; released on change and on destroy.
+    effect((onCleanup) => {
+      const release = this._registry.claim(this.position());
+      onCleanup(release);
     });
 
     // [portal]: move the rendered region into a `<body>` portal, and back.
@@ -266,16 +318,55 @@ export class SvToastHostComponent {
   // bottom positions stack UP (flex-col-reverse) so new toasts appear
   // closest to the screen edge.
 
+  /**
+   * Edge offsets clear of the notch, the rounded corners and the home
+   * indicator (FL-J3-OF-09, `OF-19-I9`): `max(1rem, env(safe-area-inset-*))`,
+   * so a desktop keeps its 1rem and a phone in `viewport-fit=cover` keeps the
+   * stack out from under the system UI.
+   *
+   * ★ `right` / `left` stay physical on purpose: the position names say which
+   *   SIDE of the screen (`'top-right'`), not which end of the reading
+   *   direction, and an RTL page that asked for the right still gets the right.
+   */
   positionClass = computed<string>(() => {
+    const top = 'top-[max(1rem,env(safe-area-inset-top))]';
+    const bottom = 'bottom-[max(1rem,env(safe-area-inset-bottom))]';
+    const right = 'right-[max(1rem,env(safe-area-inset-right))]'; // sv-physical: the position names a side of the SCREEN ('top-right'), which RTL does not move
+    const left = 'left-[max(1rem,env(safe-area-inset-left))]';
+    // The cross-axis alignment is logical, so it is flipped back to the
+    // physical side the stack is pinned to: under `dir="rtl"` `items-end` is
+    // the LEFT, and a narrow toast in a right-hand stack would hang off it.
+    const toRight = 'items-end rtl:items-start';
+    const toLeft = 'items-start rtl:items-end';
     const map: Record<ToastPosition, string> = {
-      'top-right':     'top-4 right-4    items-end    flex-col',
-      'top-left':      'top-4 left-4     items-start  flex-col',
-      'top-center':    'top-4 left-1/2   -translate-x-1/2 items-center flex-col',
-      'bottom-right':  'bottom-4 right-4  items-end    flex-col-reverse',
-      'bottom-left':   'bottom-4 left-4   items-start  flex-col-reverse',
-      'bottom-center': 'bottom-4 left-1/2 -translate-x-1/2 items-center flex-col-reverse',
+      'top-right':     `${top} ${right} ${toRight} flex-col`,
+      'top-left':      `${top} ${left} ${toLeft} flex-col`,
+      // sv-physical: centring
+      'top-center':    `${top} left-1/2 -translate-x-1/2 items-center flex-col`,
+      'bottom-right':  `${bottom} ${right} ${toRight} flex-col-reverse`,
+      'bottom-left':   `${bottom} ${left} ${toLeft} flex-col-reverse`,
+      // sv-physical: centring
+      'bottom-center': `${bottom} left-1/2 -translate-x-1/2 items-center flex-col-reverse`,
     };
     return map[this.position()];
+  });
+
+  /**
+   * Pixels of the viewport the virtual keyboard covers (`X-16`'s measurement).
+   * A bottom stack sits on top of the keyboard instead of behind it: a toast
+   * raised by a form's Save is otherwise hidden by the keyboard that form
+   * raised (`OF-19-M7`).
+   */
+  private readonly _keyboard = createSheetMode({ enabled: () => false }).keyboardInset;
+
+  /**
+   * The bottom offset while the keyboard is up, or `null` to leave the class's
+   * safe-area offset alone.
+   */
+  readonly bottomOffset = computed<string | null>(() => {
+    const inset = this._keyboard();
+    if (inset <= 0 || !this.position().startsWith('bottom')) return null;
+    return `calc(max(1rem, env(safe-area-inset-bottom)) + ${inset}px)`;
   });
 
   // ── Hover-pause (WCAG 2.2.1) ──────────────────────────────────────────────
@@ -349,7 +440,7 @@ export class SvToastHostComponent {
 
   /** Text for the overflow line. */
   overflowLabel(count: number): string {
-    return `+${count} more`;
+    return svFormatLabel(this.labels.overflowMore, { n: String(count) }, this.locale);
   }
 
   // ── Per-toast helpers ─────────────────────────────────────────────────────
@@ -386,7 +477,7 @@ export class SvToastHostComponent {
 
   /** Screen-reader text for the repeat badge. */
   repeatLabel(toast: Toast): string {
-    return `Repeated ${toast.count} times`;
+    return svFormatLabel(this.labels.repeated, { count: toast.count, n: String(toast.count) }, this.locale);
   }
 
   dismiss(toast: Toast): void {

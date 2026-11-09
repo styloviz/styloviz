@@ -1,8 +1,10 @@
 # @styloviz/data
 
-> A premium, accessible Data component for building SaaS dashboards, admin panels and internal tools.
+> Opt-in adapters that connect a Styloviz table, list or picker to a backend: a data controller with debounce, abort and retry, array, fetch and HttpClient sources, query presets, and latency and failure decorators for demos and tests.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -44,4 +46,4 @@ Full API reference and live demos: https://styloviz.dev/docs
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

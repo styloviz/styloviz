@@ -1,10 +1,8 @@
 import {
-  afterNextRender,
-  booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   computed,
-  Directive,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -14,49 +12,46 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import {
-  SvErrorShellComponent,
-  SvLiveAnnouncer,
-  svRestoreFocusedItem,
-  svSnapshotFocusedItem,
-  svWarnUnvirtualizedCeiling,
-  patchQuery,
-  createQuery,
-  resolveItemKey,
-  svUniqueId,
-  warnOnDuplicateItemKeys,
-  type SvDataError,
-  type SvDataQuery,
-  type SvItemKey,
-  type SvSort, SvStopPropagationDirective, svToCsv, svDownloadText, SvSpinnerArcComponent } from '@styloviz/core';
+import { SvLiveAnnouncer, svWarnUnvirtualizedCeiling, svUniqueId, SvRevealFocusDirective, svCollectionTarget, svIsRtl, svLogicalArrowKey } from '@styloviz/core/a11y';
+import { SvErrorShellComponent, createDebouncer, resolveItemKey, warnOnDuplicateItemKeys, type SvDataError, type SvDataQuery, type SvItemKey } from '@styloviz/core/data';
+import { SvStopPropagationDirective } from '@styloviz/core/directives';
+import { svToCsv, svDownloadText } from '@styloviz/core/export';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { svRestoreFocusedItem, svSnapshotFocusedItem } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
+import { SV_DATA_TABLE_LABELS } from './data-table-free.labels';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { registerDataTableIcons } from './data-table.component.icons';
+import { DtAutoFocusDirective } from './auto-focus.directive';
+import { buildServerQuery, ServerRequestLedger } from './server-query';
 
-// ─── Auto-focus directive (colocated) ────────────────────────────────────────
-
-@Directive({ selector: '[svDtAutoFocus]', standalone: true })
-export class DtAutoFocusDirective {
-  /**
-   * Focus the host element once it has rendered. A bare `svDtAutoFocus`
-   * attribute counts as on (it used to bind `''` and switch focusing off).
-   * @default true
-   */
-  readonly enabled = input(true, { alias: 'svDtAutoFocus', transform: booleanAttribute });
-  private readonly el = inject<ElementRef<HTMLElement>>(ElementRef);
-
-  constructor() {
-    // After the first render rather than a 0 ms timer: the element is attached
-    // by then, nothing runs on the server, and nothing is left pending when the
-    // editor closes before the timer would have fired.
-    afterNextRender(() => {
-      if (this.enabled()) this.el.nativeElement.focus();
-    });
-  }
-}
+export { DtAutoFocusDirective };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type SortDirection = 'asc' | 'desc' | null;
+
+/**
+ * How the table behaves when there is no room to be a table (FL-C13).
+ *
+ * - `'none'`    — always the table; it scrolls sideways.
+ * - `'cards'`   — below the `sm` breakpoint, a compact card per row, every
+ *                 column as a label/value pair. (1.x `cardOnMobile`.)
+ * - `'records'` — below `recordBreakpoint`, a **list of records**: each row an
+ *                 `<article>` titled by `recordTitleKey`, its fields a real
+ *                 `<dl>`, `priority: 'secondary'` columns behind a per-record
+ *                 disclosure, a labelled sort control (a card list has no
+ *                 header to click), selection and row actions. Nothing is
+ *                 dropped and nothing pretends to be a table. (1.x
+ *                 `sv-record-grid`.) The server renders the table; the switch
+ *                 happens on the first client frame, where it can be measured.
+ */
+export type DataTableResponsive = 'none' | 'cards' | 'records';
+
+/** `responsive="records"`: switch below the breakpoint (`'auto'`), or always show records. */
+export type DataTableRecordView = 'auto' | 'always';
 export type ColumnAlign   = 'left' | 'center' | 'right';
 export type TableVariant  = 'default' | 'striped' | 'bordered' | 'borderless';
 export type TableDensity  = 'compact' | 'comfortable' | 'spacious';
@@ -86,7 +81,7 @@ export interface TableColumn<T = Record<string, unknown>> {
   /**
    * How important this column is when there is not room for all of them.
    *
-   * ★ Used by `sv-record-grid`, which turns each row into a card on a narrow
+   * ★ Used by `responsive="records"`, which turns each row into a record on a narrow
    * screen. `'secondary'` fields sit behind a per-card disclosure instead of
    * being dropped — a responsive table that HIDES columns silently is the
    * defect the card view exists to fix, not a lighter version of it.
@@ -111,7 +106,7 @@ export interface TableColumn<T = Record<string, unknown>> {
    * which is exactly why this needs saying.
    */
   footerFn?:       (rows: readonly T[]) => string;
-  /** Allow double-click inline cell editing. Emit editComplete to persist. */
+  /** Allow inline cell editing — double-click the cell, or F2 on it from the keyboard. Emit editComplete to persist. */
   editable?:       boolean;
   /**
    * Rejects a draft edit before it can commit. Return the message to show the
@@ -173,20 +168,6 @@ export interface EditCompleteEvent<T = Record<string, unknown>> {
   newValue: string;
 }
 
-export interface ServerPageEvent {
-  page:     number;
-  pageSize: number;
-  sorts:    SortState[];
-  filters:  Record<string, string>;
-  search:   string;
-  /**
-   * Monotonic id of this request, starting at 1. Pass it back to
-   * `acceptsResponse()` before applying a response — see the ordering guarantee
-   * documented on that method. Always set by the table; optional in the type
-   * only so objects a host builds by hand keep compiling.
-   */
-  requestId?: number;
-}
 
 // ─── Default badge colors ─────────────────────────────────────────────────────
 
@@ -205,15 +186,19 @@ const DEFAULT_BADGE_COLORS: Record<string, string> = {
 
 // ─── Density icon paths (16×16 SVG viewBox) ────────────────────────────────────
 
-const DENSITY_OPTIONS: readonly { value: TableDensity; label: string; icon: string }[] = [
+const DENSITY_OPTIONS: readonly {
+  value: TableDensity;
+  labelKey: 'densityCompact' | 'densityComfortable' | 'densitySpacious';
+  icon: string;
+}[] = [
   // ★ Icon-library NAMES (were 16-box `d` strings). The three are chosen as a
   //   FAMILY — 4 lines / 3 lines / 2 lines — so the control reads as a
   //   progression the way the hand-drawn 5/3/2 set did. `rows-2` was tried and
   //   rejected: a boxed shape next to two line stacks does not read as one
   //   scale. Rendered all three at 72px and 14px before choosing.
-  { value: 'compact',     label: 'Compact',     icon: 'align-justify' },
-  { value: 'comfortable', label: 'Comfortable', icon: 'menu' },
-  { value: 'spacious',    label: 'Spacious',    icon: 'equal' },
+  { value: 'compact',     labelKey: 'densityCompact',     icon: 'align-justify' },
+  { value: 'comfortable', labelKey: 'densityComfortable', icon: 'menu' },
+  { value: 'spacious',    labelKey: 'densitySpacious',    icon: 'equal' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -228,7 +213,7 @@ const DENSITY_OPTIONS: readonly { value: TableDensity; label: string; icon: stri
  * - Multi-column sort via Shift+click
  * - Per-column text/select filters with active filter chips
  * - Expandable rows with auto key-value detail panel
- * - Inline cell editing (double-click) → emits editComplete
+ * - Inline cell editing (double-click, or F2 on a focused cell) → emits editComplete
  * - Bulk actions toolbar
  * - Footer summary row via column footerFn
  * - Single-select mode (radio buttons)
@@ -243,16 +228,33 @@ const DENSITY_OPTIONS: readonly { value: TableDensity; label: string; icon: stri
 @Component({
   selector: 'sv-data-table',
   standalone: true,
-  imports: [NgClass, DtAutoFocusDirective, SvIconComponent, SvErrorShellComponent, SvStopPropagationDirective, SvSpinnerArcComponent],
+  imports: [NgClass, DtAutoFocusDirective, SvIconComponent, SvErrorShellComponent, SvStopPropagationDirective, SvSpinnerArcComponent, SvLabelPipe, SvRevealFocusDirective],
   templateUrl: './data-table.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvDataTableComponent<T extends Record<string, unknown> = Record<string, unknown>> {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerDataTableIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ dataTable })` says otherwise. */
+  protected readonly labels = injectSvLabels('dataTable', SV_DATA_TABLE_LABELS);
+
+  /**
+   * The filter row's classes. In TS rather than the template because the
+   * `[&>td]` variants' `>` reads as a tag end to the template scanners.
+   */
+  protected readonly filterRowClass =
+    'border-t border-gray-100 dark:border-gray-800 [&>td:not(.sticky)]:relative [&>td]:before:pointer-events-none [&>td]:before:absolute [&>td]:before:inset-x-0 [&>td]:before:-top-px [&>td]:before:h-0.5 [&>td]:before:bg-white [&>td]:before:bg-linear-to-r [&>td]:before:from-gray-50/80 [&>td]:before:to-gray-50/80 dark:[&>td]:before:bg-gray-900 dark:[&>td]:before:from-gray-800/40 dark:[&>td]:before:to-gray-800/40';
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly announcer = inject(SvLiveAnnouncer);
 
   constructor() {
+    effect(() => {
+      if (this.typed.value() === 0) return;
+      untracked(() => this.emitServerEvent());
+    });
+
     // `X-10`: this table is paginated by default, so the page size is its
     // ceiling. With pagination off it renders every row — past the documented
     // ceiling, say so once in dev mode.
@@ -268,7 +270,7 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
       setTimeout(() =>
         svRestoreFocusedItem(this._rowEls(), 'data-sv-row-key', snapshot, {
           fallback: this.host.nativeElement.querySelector('[data-sv-table-scroller]'),
-          announce: 'The focused row is no longer shown. Focus moved to the next row.',
+          announce: this.labels.focusedRowHidden,
           announcer: this.announcer,
         }), 0);
     });
@@ -359,8 +361,6 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   variant        = input<TableVariant>('default');
   /** Row density: comfortable, compact, etc. @default 'comfortable' */
   density        = input<TableDensity>('comfortable');
-  /** Deprecated shorthand for compact density. @deprecated Use density="compact". */
-  compact        = input<boolean>(false);
   /** Max body height (CSS length) before the table scrolls. */
   maxHeight      = input<string | null>(null);
   /** Show a hint when the table is horizontally scrollable. @default true */
@@ -371,14 +371,12 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   // ── Inputs — Toolbar ──────────────────────────────────────────────────────
 
   /**
-   * Show the toolbar strip. Left unset it DERIVES from whether the toolbar has
-   * anything to put in it — binding `tableTitle` or `[searchable]` used to
-   * render nothing at all unless you also remembered this flag, which is a
-   * silent no-op: the API accepted your input and ignored it.
+   * Show the toolbar strip. Left unset it is derived from whether the toolbar
+   * has anything to put in it — binding `tableTitle` or `[searchable]` is
+   * enough to show it.
    *
    * Set it explicitly to force the strip on (an empty bar as a spacer) or off
-   * (a title used only as the accessible name). Every existing call site passes
-   * it, so nothing changes for them.
+   * (a title used only as the accessible name).
    */
   showToolbar       = input<boolean | undefined>(undefined);
 
@@ -409,13 +407,35 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   expandRender  = input<((row: T) => string) | null>(null);
   /** Show a table footer row. @default false */
   showFooter    = input<boolean>(false);
-  /** Render rows as cards on small screens. @default false */
-  cardOnMobile  = input<boolean>(false);
+  /**
+   * What the table becomes when there is no room to be a table — see
+   * `DataTableResponsive`. `'none'` keeps the table and scrolls it sideways;
+   * `'cards'` shows a compact label/value card per row below the `sm`
+   * breakpoint; `'records'` shows a list of records below `recordBreakpoint`.
+   * @default 'none'
+   */
+  readonly responsive = input<DataTableResponsive>('none');
+
+  /** `responsive="records"`: the column that titles each record. Empty uses the first shown column. @default '' */
+  readonly recordTitleKey = input<string>('');
+
+  /** `responsive="records"`: width below which the records replace the table, in px. @default 768 */
+  readonly recordBreakpoint = input<number>(768);
+
+  /** `responsive="records"`: `'always'` shows the records at any width — a narrow panel on a wide screen. @default 'auto' */
+  readonly recordView = input<DataTableRecordView>('auto');
+
+  /**
+   * `responsive="records"`: row keys whose secondary fields are open (two-way),
+   * keyed by `rowKey`, never by position, so a host can restore them.
+   * @default new Set()
+   */
+  readonly recordExpandedIds = model<ReadonlySet<string | number>>(new Set());
 
   // ── Inputs — Other ────────────────────────────────────────────────────────
 
   /** Message shown when there are no rows. @default 'No data to display.' */
-  emptyMessage = input<string>('No data to display.');
+  emptyMessage = input<string>(this.labels.emptyMessage);
   /** Extra CSS classes for the root element. */
   customClass  = input<string>('');
 
@@ -429,7 +449,7 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   rowClick         = output<T>();
   /** Emitted with the clicked cell context. */
   cellClick        = output<CellClickEvent<T>>();
-  /** Emitted when an inline cell edit completes (Pro). */
+  /** Emitted when an inline cell edit completes. */
   editComplete     = output<EditCompleteEvent<T>>();
   /**
    * Load failure. Use `toSvDataError()` from `@styloviz/core` to normalize an
@@ -453,13 +473,14 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   readonly queryChange = output<SvDataQuery>();
 
   /**
-   * Emitted in `serverSide` mode with the page, page size, sorts, column filters,
-   * search text and request id whenever the user changes any of them.
-   * @deprecated Use `queryChange`, which carries the same information in the
-   * kit-wide `SvDataQuery` shape. Still emitted, and will be for one more
-   * minor.
+   * Milliseconds typing in the search box or a text column filter waits before
+   * `queryChange` asks the server again (`serverSide` only). The rows on screen
+   * still filter on every keystroke; sorting, paging and clearing ask at once.
+   * `0` asks on every keystroke.
+   * @default 300
    */
-  serverPageChange = output<ServerPageEvent>();
+  readonly debounceMs = input<number>(300);
+
   /** Emitted with the row when the user expands or collapses its detail panel. */
   rowExpand        = output<T>();
   /** Emitted with the bulk action and the selected row ids. */
@@ -475,25 +496,18 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   /**
    * Which columns the user has hidden (two-way).
    *
-   * A `model` rather than internal state so a saved table layout can be restored
-   * by binding it — the free tier had no other way in at all, and the Pro tier
-   * could only reach it through a whole-state snapshot. Declared here with the
-   * rest of the internal view state because that is where the column toggle lives;
-   * it is nonetheless part of the public API.
+   * Bind it to restore a saved set of hidden columns, and read
+   * `(hiddenColumnKeysChange)` to store what the user changes.
    */
   readonly hiddenColumnKeys    = model<Set<string>>(new Set());
   /**
    * Columns declared `hidden: true` that the user has since shown from the
-   * Columns menu.
-   *
-   * ★ `hidden` is documented as "initially hidden — the user can show it from
-   * the column-toggle panel", but the table used to filter `!col.hidden`
-   * unconditionally: the column could never come back, and its checkbox (bound
-   * to `hiddenColumnKeys` alone) sat TICKED for a column that was not on screen.
+   * Columns menu. A `hidden` column starts hidden and stays in the Columns menu,
+   * so the user can show it.
    *
    * Two-way, like `hiddenColumnKeys`: together the two ARE the column-visibility
    * view, and a host that persists one without the other restores a table whose
-   * revealed columns have vanished again (`check:collection-identity`).
+   * revealed columns have vanished again.
    */
   readonly revealedColumnKeys  = model<ReadonlySet<string>>(new Set());
   readonly editingCell         = signal<{ rowId: string | number; key: string } | null>(null);
@@ -501,7 +515,8 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   readonly columnToggleOpen    = signal<boolean>(false);
   readonly densityOverride     = signal<TableDensity | null>(null);
 
-  readonly densityOptions = DENSITY_OPTIONS;
+  readonly densityOptions: readonly { value: TableDensity; label: string; icon: string }[] =
+    DENSITY_OPTIONS.map(({ labelKey, ...d }) => ({ ...d, label: this.labels[labelKey] }));
 
   // ── Computed — columns ────────────────────────────────────────────────────
 
@@ -514,7 +529,7 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   // ── Computed — density ────────────────────────────────────────────────────
 
   effectiveDensity = computed<TableDensity>(() =>
-    this.densityOverride() ?? (this.compact() ? 'compact' : this.density())
+    this.densityOverride() ?? this.density()
   );
 
   rowPadding = computed<string>(() => {
@@ -630,7 +645,7 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   activeFilterChips = computed<{ key: string; label: string; value: string }[]>(() => {
     const chips: { key: string; label: string; value: string }[] = [];
     const q = this.searchQuery().trim();
-    if (q) chips.push({ key: '__search__', label: 'Search', value: q });
+    if (q) chips.push({ key: '__search__', label: this.labels.searchChip, value: q });
     const cols = this.columns();
     for (const [key, value] of Object.entries(this.columnFiltersRecord())) {
       if (!value) continue;
@@ -817,6 +832,117 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
     this.selectionChange.emit(new Set());
   }
 
+  // ── responsive="records" (FL-C13 — what sv-record-grid was) ────────────────
+
+  /** `responsive="cards"`: the 1.x `cardOnMobile` card list. */
+  protected readonly cardsOn = computed(() => this.responsive() === 'cards');
+
+  /**
+   * Whether the viewport is under `recordBreakpoint`.
+   *
+   * ★ Seeded `false`, so the server renders the table: a prerender cannot
+   *   measure, and the table is the safe guess — every field and label is in
+   *   it. The switch happens on the first client frame.
+   */
+  private readonly recordNarrow = signal(false);
+
+  /** Measures the viewport against `recordBreakpoint`, only while `responsive` is `records`. */
+  protected readonly recordQuery = effect((onCleanup) => {
+    if (this.responsive() !== 'records') return;
+    const breakpoint = this.recordBreakpoint();
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    this.recordNarrow.set(query.matches);
+    const onChange = (e: MediaQueryListEvent) => this.recordNarrow.set(e.matches);
+    query.addEventListener('change', onChange);
+    onCleanup(() => query.removeEventListener('change', onChange));
+  });
+
+  /** The record list is what is on screen. */
+  readonly recordsOn = computed(
+    () => this.responsive() === 'records' && (this.recordView() === 'always' || this.recordNarrow()),
+  );
+
+  /** The column that titles a record. */
+  readonly recordTitleColumn = computed<TableColumn<T> | null>(() => {
+    const key = this.recordTitleKey();
+    const shown = this.visibleColumns();
+    return (key ? shown.find((c) => c.key === key) : shown[0]) ?? null;
+  });
+
+  /** The record's fields, title excluded, split by `priority`. */
+  readonly recordPrimaryFields = computed(() =>
+    this.visibleColumns().filter((c) => c.key !== this.recordTitleColumn()?.key && c.priority !== 'secondary'),
+  );
+  readonly recordSecondaryFields = computed(() =>
+    this.visibleColumns().filter((c) => c.key !== this.recordTitleColumn()?.key && c.priority === 'secondary'),
+  );
+
+  /**
+   * The records on screen as a view-model, so the template reads fields rather
+   * than calling per record: title, ids, selection, the disclosure state, the
+   * formatted fields and the actions the row allows.
+   */
+  readonly recordItems = computed(() => {
+    const primary = this.recordPrimaryFields();
+    const secondary = this.recordSecondaryFields();
+    const expanded = this.recordExpandedIds();
+    return this.pagedRows().map((row) => {
+      const id = this.getRowId(row);
+      const field = (c: TableColumn<T>) => ({ key: c.key, label: c.label, value: this.cellValue(row, c) });
+      return {
+        row,
+        id,
+        title: this.recordTitle(row),
+        titleId: `${this._uid}-record-${String(id)}-title`, // sv-i18n-ignore: element id
+        selected: this.isSelected(row),
+        expanded: expanded.has(id),
+        primary: primary.map(field),
+        secondary: secondary.map(field),
+        actions: this.visibleActions(row),
+      };
+    });
+  });
+
+  /** The sortable columns, for the records' sort control. */
+  readonly recordSortableColumns = computed(() => this.visibleColumns().filter((c) => c.sortable));
+
+  readonly recordSortKey = computed(() => this.sorts()[0]?.key ?? '');
+  readonly recordSortDirection = computed(() => this.sorts()[0]?.direction ?? 'asc');
+
+  recordTitle(row: T): string {
+    const column = this.recordTitleColumn();
+    return column ? this.cellValue(row, column) : '';
+  }
+
+  /** The table's own sort, set from the records' control — both views agree. */
+  onRecordSortKeyChange(key: string): void {
+    this.applyRecordSort(key ? [{ key, direction: this.sorts()[0]?.direction ?? 'asc' }] : []);
+  }
+
+  toggleRecordSortDirection(): void {
+    const current = this.sorts()[0];
+    if (!current) return;
+    this.applyRecordSort([{ key: current.key, direction: current.direction === 'asc' ? 'desc' : 'asc' }]);
+  }
+
+  private applyRecordSort(next: SortState[]): void {
+    this.sorts.set(next);
+    this.currentPage.set(1);
+    this.sortChange.emit(this.sorts());
+    if (this.serverSide()) this.emitServerEvent();
+  }
+
+  toggleRecordExpanded(row: T): void {
+    const id = this.getRowId(row);
+    this.recordExpandedIds.update((set) => {
+      const next = new Set(set);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   // ── Row actions ───────────────────────────────────────────────────────────
 
   visibleActions(row: T): TableRowAction<T>[] {
@@ -827,6 +953,11 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
     event.stopPropagation();
     const id = this.getRowId(row);
     this.openActionRowId.update(cur => cur === id ? null : id);
+  }
+
+  toggleColumnMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.columnToggleOpen.update(open => !open);
   }
 
   isActionMenuOpen(row: T): boolean {
@@ -867,13 +998,15 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   }
 
   alignClass(col: TableColumn<T>): string {
-    return { left: 'text-left', center: 'text-center', right: 'text-right' }[col.align ?? 'left'];
+    return { left: 'text-start', center: 'text-center', right: 'text-end' }[col.align ?? 'left'];
   }
 
   // ── CSS class helpers ─────────────────────────────────────────────────────
 
   getRowClass(row: T, index: number): string[] {
-    const classes: string[] = ['group', 'transition-colors', 'duration-75'];
+    // The roving row cursor (FL-L1) needs a visible focus indicator.
+    const classes: string[] = ['group', 'transition-colors', 'duration-75',
+      'outline-none', 'focus-visible:outline-2', 'focus-visible:-outline-offset-2', 'focus-visible:outline-primary-500'];
 
     if (this.variant() === 'striped') {
       classes.push(
@@ -898,12 +1031,26 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   }
 
   /**
+   * Which edge each pinned column holds, by key, for `svRevealFocus` on the
+   * scroller (WCAG 2.2 SC 2.4.11): a cell that takes focus is scrolled clear
+   * of it. Worked out once per column change, not per cell.
+   */
+  readonly stickySides = computed<Readonly<Record<string, 'start' | 'end'>>>(() => {
+    const sides: Record<string, 'start' | 'end'> = {};
+    for (const col of this.columns()) {
+      if (col.pinned === 'left') sides[col.key] = 'start';
+      else if (col.pinned === 'right') sides[col.key] = 'end';
+    }
+    return sides;
+  });
+
+  /**
    * The filter cell under a pinned header stays pinned with it — otherwise a
    * sideways scroll slid the Ticket filter away from the Ticket heading above it.
    */
   pinnedFilterClass(col: TableColumn<T>): string {
-    if (col.pinned === 'left') return 'sticky left-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40';
-    if (col.pinned === 'right') return 'sticky right-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40';
+    if (col.pinned === 'left') return 'sticky start-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40';
+    if (col.pinned === 'right') return 'sticky end-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40';
     return '';
   }
 
@@ -920,9 +1067,9 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
       classes.push('border border-gray-200 dark:border-gray-700');
     }
     if (col.pinned === 'left') {
-      classes.push('sticky left-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)]');
+      classes.push('sticky start-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)] rtl:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)]');
     } else if (col.pinned === 'right') {
-      classes.push('sticky right-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40 shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)]');
+      classes.push('sticky end-0 z-[25] bg-white bg-linear-to-r from-gray-50/80 to-gray-50/80 dark:bg-gray-900 dark:from-gray-800/40 dark:to-gray-800/40 shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)] rtl:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)]');
     }
     return classes;
   }
@@ -933,14 +1080,16 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
       this.cellTextSize(),
       'text-gray-700 dark:text-gray-300',
       this.alignClass(col),
+      // The cell cursor's ring — the same one the row cursor draws.
+      'outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary-500',
     ];
     if (this.variant() === 'bordered') {
       classes.push('border border-gray-200 dark:border-gray-700');
     }
     if (col.pinned === 'left') {
-      classes.push('sticky left-0 z-[5] bg-inherit shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)]');
+      classes.push('sticky start-0 z-[5] bg-inherit shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)] rtl:shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)]');
     } else if (col.pinned === 'right') {
-      classes.push('sticky right-0 z-[5] bg-inherit shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)]');
+      classes.push('sticky end-0 z-[5] bg-inherit shadow-[-2px_0_4px_-1px_rgba(0,0,0,0.07)] rtl:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.07)]');
     }
     if (col.editable) classes.push('cursor-pointer');
     return classes;
@@ -981,11 +1130,11 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   });
 
   /** `id` of the error message, for the editor's `aria-describedby`. One editor is open at a time, so one id is enough. */
-  readonly editErrorId = `${this._uid}-edit-error`;
+  readonly editErrorId = `${this._uid}-edit-error`; // sv-i18n-ignore: element id
   /** ★ Per instance (1.0 audit, M1): a literal `dt-page-size` id made a second table's "Rows" label point at the first table's select. */
-  readonly pageSizeId = `${this._uid}-page-size`;
+  readonly pageSizeId = `${this._uid}-page-size`; // sv-i18n-ignore: element id
 
-  startEdit(row: T, col: TableColumn<T>, event: MouseEvent): void {
+  startEdit(row: T, col: TableColumn<T>, event: Event): void {
     if (!col.editable) return;
     event.stopPropagation();
     this.editingCell.set({ rowId: this.getRowId(row), key: col.key });
@@ -1025,6 +1174,135 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
 
   onRowClick(row: T): void { this.rowClick.emit(row); }
 
+  // ── Rows from the keyboard (FL-L1) ──────────────────────────────────────
+  //
+  // ★★★ `(rowClick)` was mouse-only on the table layout: the `<tr>` had a
+  //     click handler and no tabindex, while the phone cards already were tab
+  //     stops. The body is ONE tab stop (roving tabindex) — Tab still leaves
+  //     the table in one press — the arrows, Home and End walk the page, and
+  //     Enter or Space activates the row. Keys from a control inside the row
+  //     (the select checkbox) keep their own meaning.
+
+  private readonly activeRowKey = signal<string | null>(null);
+
+  /** The one row in the tab order: the last one focused, else the first. */
+  private readonly tabStopRowKey = computed<string | null>(() => {
+    const rows = this.pagedRows();
+    const active = this.activeRowKey();
+    if (active !== null && rows.some(row => String(this.getRowId(row)) === active)) return active;
+    return rows.length ? String(this.getRowId(rows[0])) : null;
+  });
+
+  /** Each paged row's `tabindex`, by position — read as `rowTabIndexes()[i]` in the `@for`. */
+  readonly rowTabIndexes = computed<readonly number[]>(() => {
+    const stop = this.tabStopRowKey();
+    return this.pagedRows().map(row => (String(this.getRowId(row)) === stop ? 0 : -1));
+  });
+
+  onRowFocusIn(row: T): void {
+    this.activeRowKey.set(String(this.getRowId(row)));
+  }
+
+  onRowKeydown(event: KeyboardEvent, row: T): void {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.rowClick.emit(row);
+      return;
+    }
+    if (svLogicalArrowKey(event.key, svIsRtl(event.currentTarget as Element)) === 'ArrowRight' && this.visibleColumns().length) {
+      event.preventDefault();
+      this.focusCell(row, this.visibleColumns()[0]);
+      return;
+    }
+    const rows = this.pagedRows();
+    const next = svCollectionTarget(event.key, rows.length, rows.indexOf(row));
+    if (next === null || !['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) return;
+    event.preventDefault();
+    this.focusRow(rows[next]);
+  }
+
+  // ── Cells from the keyboard (FL-L1-02b) ─────────────────────────────────
+  //
+  // ★★ The row stays the one tab stop; ArrowRight steps into its cells (mirrored
+  //    under RTL), the arrows move the cursor, Home / End jump to the row's ends,
+  //    ArrowLeft from the first cell returns to the row. Enter or Space is the
+  //    click (`cellClick`, then `rowClick`), F2 the double-click (edit), and a
+  //    keyboard edit puts the cursor back on its cell.
+
+  onCellKeydown(event: KeyboardEvent, row: T, col: TableColumn<T>): void {
+    // The editor inside the cell keeps its own keys.
+    if (event.target !== event.currentTarget) return;
+    const cols = this.visibleColumns();
+    const at = cols.indexOf(col);
+    const rows = this.pagedRows();
+    switch (svLogicalArrowKey(event.key, svIsRtl(event.currentTarget as Element))) {
+      case 'Enter':
+      case ' ':
+        event.preventDefault();
+        this.cellClick.emit({ row, column: col, value: this.cellValue(row, col) });
+        this.rowClick.emit(row);
+        return;
+      case 'F2':
+        if (!col.editable) return;
+        event.preventDefault();
+        this.startEdit(row, col, event);
+        return;
+      case 'ArrowLeft':
+        event.preventDefault();
+        if (at > 0) this.focusCell(row, cols[at - 1]);
+        else this.focusRow(row);
+        return;
+      case 'ArrowRight':
+        if (at >= cols.length - 1) return;
+        event.preventDefault();
+        this.focusCell(row, cols[at + 1]);
+        return;
+      case 'Home':
+      case 'End':
+        event.preventDefault();
+        this.focusCell(row, cols[event.key === 'Home' ? 0 : cols.length - 1]);
+        return;
+      case 'ArrowUp':
+      case 'ArrowDown':
+      case 'PageUp':
+      case 'PageDown': {
+        const next = svCollectionTarget(event.key, rows.length, rows.indexOf(row));
+        if (next === null) return;
+        event.preventDefault();
+        this.focusCell(rows[next], col);
+        return;
+      }
+    }
+  }
+
+  /** After an edit closed from the keyboard, the cursor goes back to its cell — unless the editor is still open (a failed validation). */
+  refocusCell(row: T, col: TableColumn<T>): void {
+    setTimeout(() => {
+      if (!this.isEditing(row, col)) this.focusCell(row, col);
+    });
+  }
+
+  private rowEl(row: T): HTMLElement | undefined {
+    const key = String(this.getRowId(row));
+    return [...this.host.nativeElement.querySelectorAll<HTMLElement>('tr[data-sv-row-key]')]
+      .find(tr => tr.getAttribute('data-sv-row-key') === key);
+  }
+
+  private focusRow(row: T): void {
+    const el = this.rowEl(row);
+    if (!el) return;
+    this.activeRowKey.set(String(this.getRowId(row)));
+    el.tabIndex = 0;
+    el.focus();
+  }
+
+  private focusCell(row: T, col: TableColumn<T>): void {
+    // The row stays the tab stop, so Tab out and back lands on this row.
+    this.activeRowKey.set(String(this.getRowId(row)));
+    this.rowEl(row)?.querySelector<HTMLElement>(svAttrSelector('data-sv-col-key', col.key))?.focus();
+  }
+
   /**
    * Keyboard equivalent of clicking a mobile card row. Ignores key events that
    * bubbled up from a nested control (the row select checkbox) so Enter/Space
@@ -1061,7 +1339,12 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
   }
 
   onColumnFilterChange(key: string, event: Event): void {
-    this.setColFilter(key, (event.target as HTMLInputElement | HTMLSelectElement).value);
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    if (!(target instanceof HTMLInputElement)) return this.setColFilter(key, target.value);
+    const rec = { ...this.columnFiltersRecord() };
+    if (target.value) rec[key] = target.value; else delete rec[key];
+    this.columnFiltersRecord.set(rec);
+    this.typedQueryChanged();
   }
 
   clearFilter(key: string): void {
@@ -1082,8 +1365,15 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
 
   onSearchInput(event: Event): void {
     this.searchQuery.set((event.target as HTMLInputElement).value);
+    this.typedQueryChanged();
+  }
+
+  /** A keystroke's change: back to page 1 now, and ask the server once typing settles. */
+  private typedQueryChanged(): void {
     this.currentPage.set(1);
-    if (this.serverSide()) this.emitServerEvent();
+    if (!this.serverSide()) return;
+    if (this.debounceMs() > 0) this.typed.set(this.typed.raw() + 1);
+    else this.emitServerEvent();
   }
 
   // ── Column visibility ─────────────────────────────────────────────────────
@@ -1134,66 +1424,40 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
 
   // ── Server-side ───────────────────────────────────────────────────────────
 
-  // ## The ordering guarantee
-  //
-  // In `serverSide` mode the table renders `rows` verbatim, so response order is
-  // the host's problem: a slow response to an older query must not overwrite a
-  // newer one. Every emission carries a monotonic `requestId`, and
-  // `acceptsResponse(id)` is false once a newer one has gone out:
-  //
-  // ```ts
-  // onPage(event: ServerPageEvent): void {
-  //   this.api.fetch(event).subscribe(page => {
-  //     if (!this.table().acceptsResponse(event.requestId ?? 0)) return;
-  //     this.rows.set(page.items);
-  //   });
-  // }
-  // ```
+  // The ordering guarantee: `./server-query`.
 
-  private readonly latestRequestId = signal(0);
+  private readonly requests = new ServerRequestLedger();
+
+  /**
+   * Typing settles here before it becomes a request: each keystroke bumps the
+   * count, and the settled count asks the server once (FL-I11).
+   */
+  private readonly typed = createDebouncer(0, { delayMs: this.debounceMs, destroyRef: inject(DestroyRef) });
 
   /**
    * Id of the request the table most recently asked for — read it at the top of
    * a `queryChange` handler, which runs synchronously with the emission.
-   * `serverPageChange` carries the same value as `requestId` on the event.
    */
-  readonly serverRequestId = this.latestRequestId.asReadonly();
+  readonly serverRequestId = this.requests.id;
 
   /**
    * Whether a response to request `requestId` is still the one worth applying.
    * `false` once the user has asked for something newer, so a late response is
    * discarded instead of overwriting fresher rows.
    */
-  acceptsResponse(requestId: number): boolean {
-    return requestId === this.latestRequestId();
-  }
+  acceptsResponse(requestId: number): boolean { return this.requests.accepts(requestId); }
 
   private emitServerEvent(): void {
-    const sorts = this.sorts().filter(s => !!s.direction);
-    const requestId = this.latestRequestId() + 1;
-    this.latestRequestId.set(requestId);
-
-    this.serverPageChange.emit({
+    // This request carries the latest search and filters, so one still settling is spent.
+    this.typed.cancel();
+    this.requests.next();
+    this.queryChange.emit(buildServerQuery({
       page:     this.currentPage(),
       pageSize: this.pageSize(),
-      sorts,
+      sorts:    this.sorts(),
       filters:  this.columnFiltersRecord(),
       search:   this.searchQuery(),
-      requestId,
-    });
-
-    this.queryChange.emit(
-      patchQuery(createQuery(), {
-        page:     this.currentPage(),
-        pageSize: this.pageSize(),
-        // `SortState.direction` is nullable; `SvSort` is not — an unsorted
-        // column is one absent from the array, so every consumer does not have
-        // to filter it out first. The nulls are already dropped above.
-        sorts:    sorts.map(s => ({ key: s.key, direction: s.direction }) as SvSort),
-        filters:  this.columnFiltersRecord(),
-        search:   this.searchQuery(),
-      }),
-    );
+    }));
   }
 
   // ── CSV export ────────────────────────────────────────────────────────────
@@ -1205,7 +1469,7 @@ export class SvDataTableComponent<T extends Record<string, unknown> = Record<str
       cols.map((c) => c.label),
       data.map((row) => cols.map((col) => this.cellValue(row, col))),
     );
-    svDownloadText(document, `export-${Date.now()}.csv`, csv);
+    svDownloadText(document, `export-${Date.now()}.csv`, csv); // sv-i18n-ignore: download filename
   }
 
   // ── Track helpers ─────────────────────────────────────────────────────────

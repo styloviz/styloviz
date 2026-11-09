@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `video` icon. */
 export const videoNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const videoNodes: readonly IconNode[] = [
 export const videoSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 5.1h8q2.9 0 2.9 2.9v.6l4.7-2.4q.4-.2.7-.1.3.1.5.5.1.2.1.4v10q0 .9-.9.9-.2 0-.4-.1l-4.7-2.4v.6q0 2.9-2.9 2.9h-8q-2.9 0-2.9-2.9v-8q0-2.9 2.9-2.9z' },
 ];
+
+/** `video` as a registrable glyph — `registerSvIcons([videoIcon])` / `provideSvIcons([videoIcon])`. */
+export const videoIcon: SvIconDef = { name: 'video', nodes: videoNodes, solid: videoSolidNodes };
 
 /** `video` — tree-shakable standalone icon. Use `<sv-video-icon />`. */
 @Component({

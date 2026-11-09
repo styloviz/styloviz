@@ -7,12 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  type SvDataError,
-  type SvValuePolicy,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 import type { DrilldownDataset, DrilldownLevel, BarChartOptions, TooltipState } from './bar-chart.types';
 import {
@@ -71,6 +70,9 @@ interface DrilldownBar {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvColumnDrilldownChartComponent {
+  /** @internal Accessible names — English unless `provideSvLabels({ charts })` says otherwise. */
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -85,7 +87,7 @@ export class SvColumnDrilldownChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -104,9 +106,8 @@ export class SvColumnDrilldownChartComponent {
   datasets    = input<DrilldownDataset[]>([]);
   /**
    * What to do with a column this chart cannot draw — a negative value, `NaN`,
-   * `Infinity` — at whichever level is showing. Such a column used to be hidden
-   * outright (and a drillable one became unreachable), and one `NaN` blanked the
-   * axis.
+   * `Infinity` — at whichever level is showing. Hiding such a column would
+   * also hide its drill-down, and one `NaN` would blank the axis.
    *
    * - `clamp` (default) — draw a marked stub at the baseline and disclose the
    *   real value under the plot.
@@ -121,7 +122,7 @@ export class SvColumnDrilldownChartComponent {
   /** Heading shown above the chart (omitted when empty); also used in the generated accessible name. @default '' */
   title       = input<string>('');
   /** Label of the first breadcrumb, which stands for the top level and stays visible while drilled down. @default 'Root' */
-  rootTitle   = input<string>('Root');
+  rootTitle   = input<string>(this.labels.drilldownRoot);
   /** Chart height in px. @default 320 */
   height      = input<number>(320);
   /** Rendering options: `showGrid`, `showLabels`, `showLegend`, `showValues`, `barGap` (default 0.35), `barRadius` (default 6) and `animationDuration`. */
@@ -132,15 +133,19 @@ export class SvColumnDrilldownChartComponent {
   /** Accessible-name override; otherwise a structure summary is generated. @default '' */
   ariaLabel = input<string>('');
 
-  /** Resolved accessible name describing the chart structure. */
+  /** Resolved accessible name describing the level that is showing. */
   readonly resolvedAriaLabel = computed<string>(() => {
     if (this.ariaLabel()) return this.ariaLabel();
-    const cats = this.categories();
-    const sets = this.datasets();
-    const base = this.title() || 'Column drilldown chart';
+    const cats = this.displayCategories();
+    const sets = this.displayDatasets();
+    const base = this.title() || this.labels.chartColumnDrilldown;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
   animDuration = computed(() => { const d = this.options().animationDuration; return d != null ? d + 'ms' : null; });
 
@@ -167,12 +172,49 @@ export class SvColumnDrilldownChartComponent {
   });
 
   /** The level's columns this chart can draw, and what it has to say about the rest. */
-  protected readonly plotted = computed(() => resolveBarValues(this.displayDatasets(), this.valuePolicy(), 'sv-column-drilldown-chart'));
+  protected readonly plotted = computed(() => resolveBarValues(this.displayDatasets(), this.valuePolicy(), 'sv-column-drilldown-chart', { nounCount: this.labels.valueCountBar, labels: this.labels, locale: this.locale }));
 
   /** A host error wins; otherwise a `reject` policy's refusal. */
   readonly resolvedError = computed<SvDataError | string | null>(() => this.error() ?? this.plotted().error);
 
+  /**
+   * Cell value for the screen-reader data table: the real number, with a column
+   * the chart had to stub at the baseline named as such.
+   */
+  private cellValue(seriesIndex: number, catIndex: number): string {
+    const value = this.displayDatasets()[seriesIndex]?.data[catIndex] ?? 0;
+    const text  = Number.isFinite(value) ? this.formatValue(value) : this.labels.noValue;
+    return this.plotted().isClamped(seriesIndex, catIndex)
+      ? svFormatLabel(this.labels.valueNotToScale, { value: text })
+      : text;
+  }
+
+  /**
+   * The CURRENT level's columns as rows — one category per row, one column per
+   * series. A drilled-into level lists only its own bars, and the caption names
+   * the level, because that is what is drawn.
+   *
+   * ★ No `overview`: the SVG's name already counts the series and categories.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets  = this.displayDatasets();
+    const base  = this.title() || this.labels.chartColumnDrilldown;
+    const crumbs = this.breadcrumbs();
+    return {
+      caption: this.canDrillBack()
+        ? svFormatLabel(this.labels.captionWithLevel, { title: base, level: crumbs[crumbs.length - 1] })
+        : base,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: this.displayCategories().map((cat, ci) => ({
+        key: cat,
+        header: cat,
+        cells: sets.map((_, si) => this.cellValue(si, ci)),
+      })),
+    };
+  });
+
   readonly SVG_WIDTH = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PADDING   = { top: 16, right: 24, bottom: 40, left: 40 };
 
   svgHeight = computed(() => this.height());
@@ -297,9 +339,10 @@ export class SvColumnDrilldownChartComponent {
    * only cue a screen-reader user gets — the visual one is a pulsing dot.
    */
   barAriaLabel(bar: DrilldownBar): string {
-    const base = `${bar.series ? `${bar.series}, ` : ''}${bar.cat}: ${this.formatValue(bar.value)}`
-      + (bar.clamped ? ', not drawn to scale' : '');
-    return bar.hasDrilldown ? `${base}. Drill down into ${bar.cat}` : base;
+    const point = { series: bar.series, category: bar.cat, value: this.formatValue(bar.value) };
+    const named = svFormatLabel(bar.series ? this.labels.barPoint : this.labels.barPointUnnamed, point);
+    const base = bar.clamped ? svFormatLabel(this.labels.drillBarNotToScale, { name: named }) : named;
+    return bar.hasDrilldown ? svFormatLabel(this.labels.drillInto, { name: base, category: bar.cat }) : base;
   }
 
   /** Enter or Space drills into a focused bar, exactly as a click does. */

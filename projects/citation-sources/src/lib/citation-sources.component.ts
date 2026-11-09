@@ -7,13 +7,14 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
+import { svUniqueId } from '@styloviz/core/a11y';
 import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
   type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
 import {
   SV_UNCITED_MIN_CHARS,
@@ -23,6 +24,8 @@ import {
   svNumberSources,
   svPlaceCitations,
   svPlacementLabel,
+  svSourceAccess,
+  svSourceFreshness,
   svSourceLink,
   SV_SOURCE_URL_PROTOCOLS,
   svRefLabel,
@@ -31,7 +34,10 @@ import {
   type SvAnswerSegment,
   type SvCitationPlacement,
   type SvNumberedSource,
+  type SvSourceAccessState,
+  type SvSourceFreshness,
 } from './citation-sources.attribution';
+import { SV_CITATION_SOURCES_LABELS } from './citation-sources.labels';
 import type {
   AnswerClaim,
   CitationSpan,
@@ -40,6 +46,7 @@ import type {
   SourceRef,
 } from './citation-sources.types';
 
+import { registerCitationSourcesIcons } from './citation-sources.component.icons';
 /**
  * Sample data, for showcases and tests.
  *
@@ -51,29 +58,39 @@ import type {
  * also cited twice, so the numbering has something to deduplicate.
  */
 export const DEMO_ANSWER =
-  'A refund can be requested within thirty days of the invoice date. After that window the account is credited rather than refunded to the card. ' +
-  'We generally waive the restocking fee for enterprise customers, at the agent’s discretion. ' +
-  'Chargebacks opened with the card issuer suspend the account until they are resolved.';
+  'A refund can be requested within thirty days of the invoice date. After that window the account is credited rather than refunded to the card. ' + // sv-i18n-ignore: demo sample data the host replaces
+  'We generally waive the restocking fee for enterprise customers, at the agent’s discretion. ' + // sv-i18n-ignore: demo sample data the host replaces
+  'Chargebacks opened with the card issuer suspend the account until they are resolved.'; // sv-i18n-ignore: demo sample data the host replaces
 
 export const DEMO_SOURCES: readonly SourceRef[] = [
   {
     id: 'policy',
-    title: 'Refunds policy',
+    title: 'Refunds policy', // sv-i18n-ignore: demo sample data the host replaces
     kind: 'document',
     locator: 'p.4',
     url: 'https://example.internal/handbook/refunds#p4',
     score: 0.91,
-    retrievedAt: '09:41',
+    retrievedAt: '2026-10-21T09:41:00Z',
   },
   {
     id: 'disputes',
-    title: 'Chargebacks & disputes',
+    title: 'Chargebacks & disputes', // sv-i18n-ignore: demo sample data the host replaces
     kind: 'document',
     locator: 'p.6',
     url: 'https://example.internal/handbook/disputes#p6',
     score: 0.78,
-    retrievedAt: '09:41',
+    retrievedAt: '2026-10-21T09:41:00Z',
   },
+];
+
+/**
+ * The same two sources as `DEMO_SOURCES`, one of them behind a paywall and
+ * retrieved long ago — for showing source freshness (`retrievedAt`) and an
+ * access state (`access`) rendering instead of a broken link.
+ */
+export const DEMO_SOURCES_RESTRICTED: readonly SourceRef[] = [
+  DEMO_SOURCES[0],
+  { ...DEMO_SOURCES[1], access: 'paywalled', retrievedAt: '2025-03-02T14:05:00Z' },
 ];
 
 export const DEMO_CITATIONS: readonly CitationSpan[] = [
@@ -82,21 +99,21 @@ export const DEMO_CITATIONS: readonly CitationSpan[] = [
     sourceId: 'policy',
     start: 0,
     end: 65,
-    quote: 'A refund may be requested within thirty days of the invoice date.',
+    quote: 'A refund may be requested within thirty days of the invoice date.', // sv-i18n-ignore: demo sample data the host replaces
   },
   {
     id: 'c2',
     sourceId: 'policy',
     start: 66,
     end: 141,
-    quote: 'Requests after that window are handled as account credit rather than a card refund.',
+    quote: 'Requests after that window are handled as account credit rather than a card refund.', // sv-i18n-ignore: demo sample data the host replaces
   },
   {
     id: 'c3',
     sourceId: 'disputes',
     start: 234,
     end: DEMO_ANSWER.length,
-    quote: 'A chargeback opened with the card issuer suspends the account until it is resolved.',
+    quote: 'A chargeback opened with the card issuer suspends the account until it is resolved.', // sv-i18n-ignore: demo sample data the host replaces
   },
 ];
 
@@ -114,11 +131,17 @@ export const DEMO_CITATIONS: readonly CitationSpan[] = [
   selector: 'sv-citation-sources',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgClass, SvIconComponent, SvEmptyShellComponent, SvErrorShellComponent, SvSkeletonShellComponent],
+  imports: [NgClass, SvIconComponent, SvEmptyShellComponent, SvErrorShellComponent, SvSkeletonShellComponent, SvLabelPipe],
   templateUrl: './citation-sources.component.html',
 })
 export class SvCitationSourcesComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerCitationSourcesIcons();
+
+  protected readonly labels = injectSvLabels('citationSources', SV_CITATION_SOURCES_LABELS);
   private readonly uid = svUniqueId('sv-cite');
+  /** The kit's locale, for the counts in composed names. */
+  private readonly locale = svLocale();
 
   // ── Async state ───────────────────────────────────────────────────────────
 
@@ -159,8 +182,8 @@ export class SvCitationSourcesComponent {
    *
    * ★★★ SUPPLY THESE AND A CITATION'S `claimId` IS ITS ANCHOR, ahead of
    *     `anchorText` and the offsets. A claim id that is not in this list is
-   *     reported in the placement notice as a claim the answer no longer
-   *     contains — never quietly re-placed by arithmetic. Leave it empty and
+   *     reported in the placement notice as a claim the answer does not
+   *     contain — never quietly re-placed by arithmetic. Leave it empty and
    *     `claimId` is identity only, handed back through `(claimsOpened)`.
    * @default []
    */
@@ -236,7 +259,7 @@ export class SvCitationSourcesComponent {
   );
 
   /** Non-empty when a citation moved or vanished. Rendered, not swallowed. */
-  readonly placementLabel = computed(() => svPlacementLabel(this.placements()));
+  readonly placementLabel = computed(() => svPlacementLabel(this.placements(), this.labels));
 
   /** The citations with their resolved offsets, for everything downstream. */
   private readonly anchored = computed(() =>
@@ -257,9 +280,44 @@ export class SvCitationSourcesComponent {
     }),
   );
 
+  /**
+   * Per source: whether it can be opened (`AI-16-M4`) and how fresh it is
+   * (`AI-16-M3`). Memoized on `sources`, so the template does no date
+   * arithmetic per change-detection pass.
+   */
+  private readonly sourceMeta = computed(() => {
+    const now = Date.now();
+    return new Map<string, { access: SvSourceAccessState | null; freshness: SvSourceFreshness | null }>(
+      this.sources().map((s) => [
+        s.id,
+        { access: svSourceAccess(s, this.labels), freshness: svSourceFreshness(s.retrievedAt, this.locale, now) },
+      ]),
+    );
+  });
+
+  /** The source list's rows: each numbered source with its access state and age, derived once. */
+  readonly sourceRows = computed(() => {
+    const meta = this.sourceMeta();
+    return this.numbered().map((entry) => ({
+      entry,
+      access: meta.get(entry.source.id)?.access ?? null,
+      freshness: meta.get(entry.source.id)?.freshness ?? null,
+    }));
+  });
+
+  /** The named state a source renders instead of a link, or `null` to link it. */
+  accessFor(source: SourceRef): SvSourceAccessState | null {
+    return this.sourceMeta().get(source.id)?.access ?? null;
+  }
+
+  /** When the source was retrieved, ready to render, or `null` when the host did not say. */
+  freshnessFor(source: SourceRef): SvSourceFreshness | null {
+    return this.sourceMeta().get(source.id)?.freshness ?? null;
+  }
+
   /** A source's link, or the reason it is not one. */
   linkFor(source: SourceRef) {
-    return svSourceLink(source.url, this.allowedUrlProtocols());
+    return svSourceLink(source.url, this.allowedUrlProtocols(), this.labels);
   }
 
   /**
@@ -326,7 +384,7 @@ export class SvCitationSourcesComponent {
   }
 
   coverageLabel(): string {
-    return svCoverageLabel(this.coverage());
+    return svCoverageLabel(this.coverage(), this.labels);
   }
 
   numberedFor(n: number): SvNumberedSource | undefined {
@@ -374,15 +432,21 @@ export class SvCitationSourcesComponent {
       .map((n) => this.numberedFor(n))
       .filter((s): s is SvNumberedSource => s !== undefined)
       .map((s) => svSourceLabel(s.source));
-    return names.length === 0 ? '' : `Cited from ${names.join('; ')}`;
+    return names.length === 0 ? '' : svFormatLabel(this.labels.chipCitedFrom, { sources: names.join('; ') }, this.locale);
   }
 
   sourceAriaLabel(entry: SvNumberedSource): string {
     const parts = [
-      `Source ${entry.number}`,
+      svFormatLabel(this.labels.sourceNumber, { number: String(entry.number) }, this.locale),
       svSourceLabel(entry.source),
-      `cited ${entry.spanCount} time${entry.spanCount === 1 ? '' : 's'}`,
+      svFormatLabel(this.labels.sourceCitedTimes, { count: entry.spanCount }, this.locale),
     ];
+    // ★★ The state and the age are part of what the reader is about to open, so
+    //    they are in the name — a chip only the eye can see is not a warning.
+    const access = this.accessFor(entry.source);
+    if (access) parts.push(access.label);
+    const fresh = this.freshnessFor(entry.source);
+    if (fresh) parts.push(svFormatLabel(this.labels.retrieved, { when: fresh.relative }, this.locale));
     return parts.join('. ');
   }
 }

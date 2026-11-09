@@ -1,4 +1,5 @@
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="resolvedError()"
   [isEmpty]="chartIsEmpty()"
@@ -16,7 +17,7 @@
     @if (title()) {
       <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ title() }}</h3>
     }
-    <nav class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" aria-label="Chart breadcrumbs">
+    <nav class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400" [attr.aria-label]="labels.drilldownBreadcrumbs">
       @for (crumb of breadcrumbs(); track crumb; let last = $last; let first = $first) {
         @if (!first) {
           <span class="text-gray-300 dark:text-gray-600 select-none">/</span>
@@ -30,14 +31,14 @@
         <button
           type="button"
           (click)="drillBack()"
-          class="ml-2 flex items-center gap-1 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-          aria-label="Go back one level"
+          class="ms-2 flex items-center gap-1 rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          [attr.aria-label]="labels.drillUp"
         >
           <svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" class="shrink-0">
             <path d="M7 2L3 5l4 3" stroke="currentColor" stroke-width="1.5" fill="none"
                   stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          Back
+          {{ labels.back }}
         </button>
       }
     </nav>
@@ -134,7 +135,7 @@
                   [attr.cy]="bar.y - 6"
                   r="3"
                   [attr.fill]="bar.color"
-                  class="animate-pulse"
+                  class="animate-pulse motion-reduce:animate-none"
                 />
               }
               @if (showValues() && bar.barH > 16) {
@@ -196,11 +197,11 @@
 
   @if (canDrillBack()) {
     <p class="text-center text-xs text-gray-500 dark:text-gray-400">
-      Click a bar to drill deeper &bull; Use <strong>Back</strong> to return
+      {{ labels.drillHintBefore }} <strong>{{ labels.back }}</strong> {{ labels.drillHintAfter }}
     </p>
   } @else {
     <p class="text-center text-xs text-gray-500 dark:text-gray-400">
-      Click a highlighted bar to drill down
+      {{ labels.drillHintRoot }}
     </p>
   }
 

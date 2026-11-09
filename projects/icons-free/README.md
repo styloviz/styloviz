@@ -1,8 +1,10 @@
 # @styloviz/icons
 
-> 174 original glyphs on a 24px grid, resolved by name through one component or imported per icon for the smallest bundle. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 513 more glyphs and the `sharp` and `duotone` weights.
+> 183 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 514 more glyphs and the `sharp` and `duotone` weights.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -58,7 +60,7 @@ export class DemoComponent {}
 
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
-| `name` | `IconName \| (string & {})` | `—` | Icon name. Built-in names are type-checked; custom (provided) names are also accepted. |
+| `name` | `IconName \| (string & {})` | `—` | Icon name. Built-in names are type-checked; registered custom names are also accepted. |
 | `size` | `IconSize` | `'md'` | Rendered size in px, or a named token (`sm`/`md`/`lg`). |
 | `strokeWidth` | `number` | `1.75` | Stroke width in viewBox units (line weight only). |
 | `weight` | `IconWeight` | `'line'` | Visual weight. |
@@ -100,4 +102,4 @@ brand icons is permitted, and accept no liability for how they are used.
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

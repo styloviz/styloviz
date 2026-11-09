@@ -1,7 +1,8 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svResetWarnOnce, type SvUnresolvedValue } from '@styloviz/core';
+import { type SvUnresolvedValue } from '@styloviz/core/data';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { untilRendered } from '../../../../src/testing/async';
 import { SvAnchorComponent, type AnchorItem } from './anchor.component';
 

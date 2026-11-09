@@ -3,6 +3,7 @@
  * for every spec. Referenced by `vitest.config.ts` → `test.setupFiles`.
  */
 import '@analogjs/vite-plugin-angular/setup-vitest';
+import { destroyPlatform } from '@angular/core';
 import { getTestBed, ɵgetCleanupHook as getCleanupHook } from '@angular/core/testing';
 import {
   BrowserDynamicTestingModule,
@@ -43,6 +44,18 @@ assertSuiteTimeZone();
  */
 const testBed = getTestBed();
 testBed.resetTestEnvironment();
+/**
+ * ★★ AND DESTROY WHATEVER PLATFORM THE LAST FILE LEFT. `@angular/core` is
+ *    externalised, so its one-platform-per-process slot outlives a spec file.
+ *    An SSR spec (`renderApplication`) that hands back a different testing
+ *    platform — `platformBrowserTesting()` where this file creates
+ *    `platformBrowserDynamicTesting()` — made the next file in the worker die
+ *    here with NG0400 "A platform with a different configuration has been
+ *    created", before any of its tests ran. ci.yml lost 2 shards and 7 files to
+ *    it on 2 Nov (FL-A8-02). Destroying first makes this line independent of
+ *    what ran before it; with nothing to destroy it is a no-op.
+ */
+destroyPlatform();
 testBed.initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting(),

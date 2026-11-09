@@ -375,6 +375,43 @@ describe('SvImageGalleryComponent — lightbox keyboard', () => {
     expect(key('Tab').defaultPrevented).toBe(false);
     expect(document.activeElement).toBe(controls[1]);
   });
+
+  /**
+   * FL-B9 — the lightbox is appended to <body>, outside any `dir` the gallery
+   * sits in. Under RTL it carries the direction, its Previous/Next controls sit
+   * on the inline start/end (Next on the left), and the arrows follow them.
+   */
+  describe('under dir="rtl"', () => {
+    afterEach(() => document.documentElement.removeAttribute('dir'));
+
+    it('carries the direction and places Previous / Next on the inline start / end', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup();
+      await openFirst(f);
+      expect(lb()!.getAttribute('dir')).toBe('rtl');
+      const prev = lb()!.querySelector<HTMLElement>('[data-sv-lightbox-prev]')!;
+      const next = lb()!.querySelector<HTMLElement>('[data-sv-lightbox-next]')!;
+      expect(prev.getAttribute('style')).toContain('inset-inline-start:');
+      expect(next.getAttribute('style')).toContain('inset-inline-end:');
+      expect(prev.getAttribute('style')).not.toMatch(/(^|;)\s*(left|right):/);
+    });
+
+    it('ArrowLeft shows the next image and ArrowRight the previous one', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup();
+      await openFirst(f);
+      key('ArrowLeft');
+      expect(f.componentInstance.lightboxIndex()).toBe(1);
+      key('ArrowRight');
+      expect(f.componentInstance.lightboxIndex()).toBe(0);
+    });
+
+    it('stays left-to-right in an LTR page', async () => {
+      const f = await setup();
+      await openFirst(f);
+      expect(lb()!.getAttribute('dir')).toBe('ltr');
+    });
+  });
 });
 
 describe('SvImageGalleryComponent — product viewer', () => {

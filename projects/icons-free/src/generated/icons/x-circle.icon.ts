@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `x-circle` icon. */
 export const xCircleNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const xCircleNodes: readonly IconNode[] = [
 export const xCircleSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 3 a9 9 0 1 0 0 18 a9 9 0 0 0 0 -18 Z M12 10.6 L14.3 8.3 L15.7 9.7 L13.4 12 L15.7 14.3 L14.3 15.7 L12 13.4 L9.7 15.7 L8.3 14.3 L10.6 12 L8.3 9.7 L9.7 8.3 Z', fillRule: 'evenodd' },
 ];
+
+/** `x-circle` as a registrable glyph — `registerSvIcons([xCircleIcon])` / `provideSvIcons([xCircleIcon])`. */
+export const xCircleIcon: SvIconDef = { name: 'x-circle', nodes: xCircleNodes, solid: xCircleSolidNodes };
 
 /** `x-circle` — tree-shakable standalone icon. Use `<sv-x-circle-icon />`. */
 @Component({

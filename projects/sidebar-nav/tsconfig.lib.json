@@ -10,20 +10,21 @@
       "@styloviz/core": [
         "../../dist/@styloviz/core/types/styloviz-core.d.ts"
       ],
+      "@styloviz/core/*": ["../../dist/@styloviz/core/types/styloviz-core-*.d.ts"],
       "@styloviz/icons": [
         "../../dist/@styloviz/icons/types/styloviz-icons.d.ts"
+      ],
+      "@styloviz/icons/glyph/*": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/icons/registry": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/overlays": [
+        "../../dist/@styloviz/overlays/types/styloviz-overlays.d.ts"
+      ],
+      "@styloviz/scroll-area": [
+        "../../dist/@styloviz/scroll-area/types/styloviz-scroll-area.d.ts"
       ]
     }
   },
   "exclude": [
     "**/*.spec.ts"
-  ],
-  "angularCompilerOptions": {
-    "extendedDiagnostics": {
-      "checks": {
-        "nullishCoalescingNotNullable": "suppress",
-        "optionalChainNotNullable": "suppress"
-      }
-    }
-  }
+  ]
 }

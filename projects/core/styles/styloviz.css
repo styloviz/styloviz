@@ -17,10 +17,12 @@
    What it contains:
      • the design tokens (primary, accent, brand, brandaccent,
        warning, danger, info, radii) as a Tailwind @theme;
+     • four preset themes — put .sv-theme-material, -fluent,
+       -paper or -high-contrast on <html> to repaint the kit;
      • the class-based dark variant — add class="dark" to <html>
        (ThemeService from @styloviz/core does this for you);
      • a gray default for bare `border`, layered as base;
-     • the component runtime CSS: modal, popout, toast, command
+     • the component runtime CSS: modal, toast, command
        palette and chart animations, skeleton shimmer, reveal.
 
    Rebrand by redeclaring any token in your own @theme block
@@ -154,6 +156,223 @@
   --radius-xl: 1rem;
 }
 
+/* >>> theme-preset: material */
+.sv-theme-material {
+  /* Material 3-like: the baseline tonal purple, softly tinted neutrals and
+     M3's shape scale (8 / 12 / 16 / 28 px). Roboto when the visitor has it. */
+  --font-sans: "Roboto", "Google Sans Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  --color-primary-50: #f6f4fb;
+  --color-primary-100: #e9e6f5;
+  --color-primary-200: #dad4ee;
+  --color-primary-300: #c3b8e4;
+  --color-primary-400: #a593d6;
+  --color-primary-500: #8d74ca;
+  --color-primary-600: #7a59be;
+  --color-primary-700: #6948aa;
+  --color-primary-800: #553c89;
+  --color-primary-900: #47376c;
+  --color-primary-950: #2c2342;
+  --color-gray-50: #fafafb;
+  --color-gray-100: #f4f4f6;
+  --color-gray-200: #e7e6eb;
+  --color-gray-300: #d6d3dc;
+  --color-gray-400: #a39dae;
+  --color-gray-500: #746e81;
+  --color-gray-600: #575064;
+  --color-gray-700: #433c52;
+  --color-gray-800: #2b2438;
+  --color-gray-900: #1b1427;
+  --color-gray-950: #090511;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2rem;
+}
+/* <<< theme-preset: material */
+
+/* >>> theme-preset: fluent */
+.sv-theme-fluent {
+  /* Fluent 2-like: the communication blue, true (untinted) greys and small
+     corners (2 / 4 / 6 / 8 px). Segoe UI Variable where Windows has it.
+     An untinted grey is a shade lighter than a tinted one at the same OKLCH
+     lightness, so grey 500 and 800 sit a nudge darker to keep muted text at
+     AA in light mode and a gray-500 icon at 3:1 on gray-800 in dark. */
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  --color-primary-50: #f0f6fc;
+  --color-primary-100: #deeaf8;
+  --color-primary-200: #c7ddf7;
+  --color-primary-300: #9ec4ee;
+  --color-primary-400: #69a3e5;
+  --color-primary-500: #3788dc;
+  --color-primary-600: #0071cc;
+  --color-primary-700: #0060af;
+  --color-primary-800: #004f91;
+  --color-primary-900: #0b4378;
+  --color-primary-950: #0e2b49;
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f4f4f4;
+  --color-gray-200: #e7e7e7;
+  --color-gray-300: #d5d5d5;
+  --color-gray-400: #a0a0a0;
+  --color-gray-500: #6f6f6f;
+  --color-gray-600: #545454;
+  --color-gray-700: #404040;
+  --color-gray-800: #252525;
+  --color-gray-900: #181818;
+  --color-gray-950: #070707;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.75rem;
+}
+/* <<< theme-preset: fluent */
+
+/* >>> theme-preset: paper */
+.sv-theme-paper {
+  /* Paper: ink-blue on a cream canvas, warm greys, a book serif and nearly
+     square corners. Cards stay white: `--color-white` is also `text-white`,
+     so a cream white would drop every white-on-fill label below AA (it did,
+     on rose-600). Grey 500 sits a step darker than a straight re-hue so muted
+     text keeps AA on the cream, and 800 a step darker so a gray-500 icon
+     still clears 3:1 on it in dark mode. */
+  --font-sans: Charter, "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+  font-family: var(--font-sans);
+  --color-primary-50: #f3f5f9;
+  --color-primary-100: #e3e9f2;
+  --color-primary-200: #d2dcec;
+  --color-primary-300: #afc1dc;
+  --color-primary-400: #86a1c9;
+  --color-primary-500: #5f81b4;
+  --color-primary-600: #4168a2;
+  --color-primary-700: #396099;
+  --color-primary-800: #304e7b;
+  --color-primary-900: #2d4363;
+  --color-primary-950: #1e2a3d;
+  --color-gray-50: #fbfaf5;
+  --color-gray-100: #f4f2eb;
+  --color-gray-200: #e9e7e4;
+  --color-gray-300: #d8d4d0;
+  --color-gray-400: #a69f96;
+  --color-gray-500: #766e63;
+  --color-gray-600: #564d42;
+  --color-gray-700: #483f33;
+  --color-gray-800: #2a2217;
+  --color-gray-900: #1f170c;
+  --color-gray-950: #0b0602;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.1875rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.625rem;
+}
+/* <<< theme-preset: paper */
+
+/* >>> theme-preset: high-contrast */
+.sv-theme-high-contrast {
+  /* High contrast: every family pushed away from the surfaces it sits on, in
+     both modes at once. 600–950 are darker (light-mode text and fills, and
+     the dark-mode canvas), 300/400 lighter (dark-mode text), 200 a touch
+     darker (light-mode borders); 50/100 stay, and so does 500 — the
+     indicator stop, which dark mode also paints text and fills with, so
+     moving it either way breaks one of the modes. Body text clears 7:1. */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #b8d5f9;
+  --color-primary-300: #9fceff;
+  --color-primary-400: #89bfff;
+  --color-primary-500: #2b7fff;
+  --color-primary-600: #0044d8;
+  --color-primary-700: #042acc;
+  --color-primary-800: #0c25a3;
+  --color-primary-900: #0f287c;
+  --color-primary-950: #0d1a4a;
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d0fae5;
+  --color-accent-200: #9eeec9;
+  --color-accent-300: #67f1bc;
+  --color-accent-400: #3deba8;
+  --color-accent-500: #00bc7d;
+  --color-accent-600: #007a51;
+  --color-accent-700: #006143;
+  --color-accent-800: #004c36;
+  --color-accent-900: #003e2e;
+  --color-accent-950: #002119;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c6;
+  --color-warning-200: #f8e07f;
+  --color-warning-300: #ffd95f;
+  --color-warning-400: #ffd079;
+  --color-warning-500: #fe9a00;
+  --color-warning-600: #b55a00;
+  --color-warning-700: #963c00;
+  --color-warning-800: #792e00;
+  --color-warning-900: #632600;
+  --color-warning-950: #371100;
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #ffe2e2;
+  --color-danger-200: #f9c3c3;
+  --color-danger-300: #ffb1b0;
+  --color-danger-400: #ff9b97;
+  --color-danger-500: #fb2c36;
+  --color-danger-600: #ba0006;
+  --color-danger-700: #9b0004;
+  --color-danger-800: #80000a;
+  --color-danger-900: #6d000a;
+  --color-danger-950: #3a0002;
+  --color-info-50: #f0f9ff;
+  --color-info-100: #dff2fe;
+  --color-info-200: #b2e0f8;
+  --color-info-300: #8cdbff;
+  --color-info-400: #7ad1ff;
+  --color-info-500: #00a6f4;
+  --color-info-600: #0069a8;
+  --color-info-700: #005387;
+  --color-info-800: #00466e;
+  --color-info-900: #003a59;
+  --color-info-950: #00243c;
+  --color-brand-50: #f5f3ff;
+  --color-brand-100: #ede9fe;
+  --color-brand-200: #d7d0f9;
+  --color-brand-300: #ccbfff;
+  --color-brand-400: #bfabff;
+  --color-brand-500: #8e51ff;
+  --color-brand-600: #6700d5;
+  --color-brand-700: #5900bb;
+  --color-brand-800: #4a009d;
+  --color-brand-900: #3e0083;
+  --color-brand-950: #250059;
+  --color-brandaccent-50: #eef2ff;
+  --color-brandaccent-100: #e0e7ff;
+  --color-brandaccent-200: #c0ccf9;
+  --color-brandaccent-300: #b0bfff;
+  --color-brandaccent-400: #a0acff;
+  --color-brandaccent-500: #615fff;
+  --color-brandaccent-600: #400ddb;
+  --color-brandaccent-700: #3601bf;
+  --color-brandaccent-800: #2b1098;
+  --color-brandaccent-900: #251b74;
+  --color-brandaccent-950: #161042;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #dfe1e5;
+  --color-gray-300: #d7dbe2;
+  --color-gray-400: #b4bdcb;
+  --color-gray-500: #6a7282;
+  --color-gray-600: #384352;
+  --color-gray-700: #283244;
+  --color-gray-800: #141f2e;
+  --color-gray-900: #091120;
+  --color-gray-950: #01040e;
+}
+/* <<< theme-preset: high-contrast */
+
 /* Tailwind v4 draws a bare `border` in `currentColor`; every component in the
    kit was designed against this gray default instead. Layered as `base`, so any
    `border-*` utility still wins. */
@@ -161,6 +380,67 @@
   * {
     @apply border-gray-200 dark:border-gray-800;
   }
+}
+
+/* ============================================================
+   Target size — `.sv-target` (WCAG 2.2 SC 2.5.8, FL-B5)
+   ============================================================
+   A control drawn smaller than 24×24 CSS px keeps its look and gets an
+   invisible hit area of at least 24×24, centred on it: an ::after that
+   takes clicks and taps for the element it belongs to. `check:ui`
+   (`target-size-minimum`) requires it on every control a template pins
+   below 24 px, and rejects it where it cannot work — on an element that
+   clips its own ::after (`overflow-hidden`) or already uses one (`after:`).
+   An <input> cannot carry it; wrap the input in a <label class="sv-target">.
+
+   Neighbours still need room: two hit areas that overlap share the
+   overlap, so a row of small targets keeps centres 24 px apart (axe's
+   `target-size` rule measures that on the rendered page).
+   ★ In @layer components, so `absolute` / `fixed` on the element still win
+     over the `position: relative` here — both are containing blocks.
+   ============================================================ */
+@layer components {
+  .sv-target {
+    position: relative;
+  }
+  .sv-target::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%; /* sv-physical: centring with translate(-50%, -50%) */
+    width: max(100%, 24px);
+    height: max(100%, 24px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ============================================================
+   Focus not obscured — `[data-sv-sticky]` (WCAG 2.2 SC 2.4.11, FL-B5)
+   ============================================================
+   A bar that sticks to the PAGE covers whatever the page scrolls under it,
+   and a focused control scrolled into view lands right at the edge — under
+   the bar. Marking the bar `data-sv-sticky="page-top"` (or `page-bottom`)
+   reserves that band for every scroll the browser makes to reveal focus.
+   A taller bar (or one stacked under the header) adds
+   `data-sv-sticky-reach="tall"` (8rem) or `"taller"` (10rem); set
+   `--sv-page-sticky-top` / `--sv-page-sticky-bottom` on <html> for an exact
+   band. Bars INSIDE a scroll container use `data-sv-sticky="top|bottom|start|end"`
+   and the `svRevealFocus` directive from @styloviz/core on the scroller, which
+   measures them; a page whose scroller is its layout shell's <main> adds
+   `data-sv-sticky-in="shell"`, and the shell's <main> carries `svRevealFocus`.
+   ============================================================ */
+html:has([data-sv-sticky='page-top']) {
+  scroll-padding-top: var(--sv-page-sticky-top, 4.5rem);
+}
+html:has([data-sv-sticky='page-bottom']) {
+  scroll-padding-bottom: var(--sv-page-sticky-bottom, 4.5rem);
+}
+/* A taller bar, or a bar stacked under the header, says how far it reaches. */
+html:has([data-sv-sticky='page-top'][data-sv-sticky-reach='tall']) {
+  scroll-padding-top: var(--sv-page-sticky-top, 8rem);
+}
+html:has([data-sv-sticky='page-top'][data-sv-sticky-reach='taller']) {
+  scroll-padding-top: var(--sv-page-sticky-top, 10rem);
 }
 
 /* ============================================================
@@ -255,42 +535,6 @@
   .modal-backdrop,
   .modal-panel,
   .modal-panel--up {
-    animation-duration: 0.01ms;
-  }
-}
-
-/* ============================================================
-   Popout Panel — directional entrance / exit animations
-   ============================================================
-   SvPopoutComponent sets .sv-popout-enter-* / .sv-popout-exit-*
-   based on the panel's resolved side (after flip), so the panel
-   slides out of / back toward the trigger edge with a smooth,
-   spring-like ease. Suffix = the side the panel sits on.
-   ============================================================ */
-
-@keyframes sv-popout-in-below { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes sv-popout-in-above { from { opacity: 0; transform: translateY(6px) scale(0.98);  } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes sv-popout-in-right { from { opacity: 0; transform: translateX(-6px) scale(0.98); } to { opacity: 1; transform: translateX(0) scale(1); } }
-@keyframes sv-popout-in-left  { from { opacity: 0; transform: translateX(6px) scale(0.98);  } to { opacity: 1; transform: translateX(0) scale(1); } }
-
-@keyframes sv-popout-out-below { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-4px) scale(0.98); } }
-@keyframes sv-popout-out-above { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(4px) scale(0.98);  } }
-@keyframes sv-popout-out-right { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(-4px) scale(0.98); } }
-@keyframes sv-popout-out-left  { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(4px) scale(0.98);  } }
-
-.sv-popout-enter-bottom { animation: sv-popout-in-below 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sv-popout-enter-top    { animation: sv-popout-in-above 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sv-popout-enter-right  { animation: sv-popout-in-right 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.sv-popout-enter-left   { animation: sv-popout-in-left  0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
-
-.sv-popout-exit-bottom { animation: sv-popout-out-below 0.14s ease-in both; }
-.sv-popout-exit-top    { animation: sv-popout-out-above 0.14s ease-in both; }
-.sv-popout-exit-right  { animation: sv-popout-out-right 0.14s ease-in both; }
-.sv-popout-exit-left   { animation: sv-popout-out-left  0.14s ease-in both; }
-
-@media (prefers-reduced-motion: reduce) {
-  .sv-popout-enter-bottom, .sv-popout-enter-top, .sv-popout-enter-right, .sv-popout-enter-left,
-  .sv-popout-exit-bottom,  .sv-popout-exit-top,  .sv-popout-exit-right,  .sv-popout-exit-left {
     animation-duration: 0.01ms;
   }
 }
@@ -459,32 +703,64 @@
    the shimmer sweeps left-to-right to mimic content loading.
    ============================================================ */
 
+/* ★ COMPOSITOR-ONLY (STYLOVIZ_SCROLL_FLICKER_TODO SF-11). This used to animate
+     the element's own `background-position`, which is not a compositor
+     property: every shimmering bone was repainted 60 times a second, and a
+     loading data table puts ~36 on screen at once. The sheen is now a band on
+     `::after` that moves with `transform`, so the bones are painted once and
+     the GPU only slides a layer. The look is unchanged: the old background was
+     200% wide and REPEATED, so its band (base → gray-100 → base, one bone-width
+     wide) recurs every 2W and passes twice per 1.5 s cycle. `::after` is a
+     repeating strip 6W wide — tiles 2W, the same gradient — translated across
+     exactly the range the background-position covered (+2W → −2W), so the
+     phase of every tile matches the original at every instant.
+   ★ Only `background-color` is set on the bone itself. sv-skeleton-loader
+     draws its own (more specific) `::after` sheen; when this rule also set the
+     bone's background and animation, every loader bone ran two counter-moving
+     shimmers. */
 @keyframes skeleton-shimmer {
-  from { background-position: -200% 0; }
-  to   { background-position:  200% 0; }
+  from { transform: translateX(33.3333%); }
+  to   { transform: translateX(-33.3333%); }
 }
 
+/* ★ @layer components so a utility on a bone (`absolute`, `bg-*`) still wins —
+     unlayered, `position: relative` here would beat every Tailwind class. */
+@layer components {
 .skeleton-wave {
-  background: linear-gradient(
-    90deg,
-    var(--color-gray-200, #e5e7eb) 25%,
-    var(--color-gray-100, #f3f4f6) 50%,
-    var(--color-gray-200, #e5e7eb) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  --sv-skeleton-base: var(--color-gray-200, #e5e7eb);
+  --sv-skeleton-band: var(--color-gray-100, #f3f4f6);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--sv-skeleton-base);
 }
 
 /* Dark-mode variant — Tailwind's dark class strategy */
 :where(.dark, .dark *) .skeleton-wave {
-  background: linear-gradient(
-    90deg,
-    var(--color-gray-700, #374151) 25%,
-    var(--color-gray-600, #4b5563) 50%,
-    var(--color-gray-700, #374151) 75%
-  );
-  background-size: 200% 100%;
+  --sv-skeleton-base: var(--color-gray-700, #374151);
+  --sv-skeleton-band: var(--color-gray-600, #4b5563);
+}
+
+.skeleton-wave::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -200%; /* sv-physical: a decorative shimmer band that sweeps the same way in both directions */
+  width: 600%;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, transparent 25%, var(--sv-skeleton-band) 50%, transparent 75%);
+  background-size: 33.3333% 100%;
+  background-repeat: repeat-x;
+  transform: translateX(33.3333%);
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-wave::after {
+    animation: none;
+    background: none;
+  }
+}
 }
 
 /* ============================================================
@@ -725,6 +1001,45 @@
 .sv-animate .bc-wf-right { animation-play-state: running; }
 .sv-animate .bc-wf-left  { animation-play-state: running; }
 
+/* ── Reduced motion (FL-J3-CH-01, X-10) ─────────────────────
+   Every chart entrance above is a hand-written class, so Tailwind's
+   `motion-reduce:` variant cannot reach it — the guard has to live
+   here. Under `prefers-reduced-motion: reduce` the marks are simply
+   THERE: no grow, no draw, no fade. The base state of each class is
+   already the drawn one, except `.lc-fade` (starts transparent) and
+   `.lc-line` (carries the draw dash), which are restored explicitly.
+   `check:reduced-motion` fails any keyframe rule this block misses. */
+@media (prefers-reduced-motion: reduce) {
+  .bc-bar-v,
+  .bc-bar-h,
+  .bc-bar-hr,
+  .bc-range-v,
+  .bc-range-h,
+  .bc-cap,
+  .bc-bar-v2,
+  .bc-bubble,
+  .bc-funnel-seg,
+  .bc-pyramid-seg,
+  .bc-fade-in,
+  .bc-pie-slice,
+  .bc-pie-label,
+  .bc-pie-connector,
+  .bc-wf-up,
+  .bc-wf-down,
+  .bc-wf-right,
+  .bc-wf-left,
+  .lc-line,
+  .lc-fade {
+    animation: none;
+  }
+  .lc-line {
+    stroke-dasharray: none;
+  }
+  .lc-fade {
+    opacity: 1;
+  }
+}
+
 /* ============================================================
    Command Palette — Panel Entrance Animation
    ============================================================
@@ -753,6 +1068,14 @@
 
 .cp-panel {
   animation: cp-panel-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* The spring is decoration on top of the palette's own (already stilled)
+   opacity/scale transition — under reduced motion the panel just appears. */
+@media (prefers-reduced-motion: reduce) {
+  .cp-panel {
+    animation: none;
+  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -835,4 +1158,227 @@
     opacity: 1;
     transform: none;
   }
+}
+/* >>> generated: sv-glow (scripts/generate-glow-css.mjs) */
+/* ============================================================
+   Glow — `.sv-glow` / `.sv-glow-rect`
+   ============================================================
+   A soft ambient glow with the look of `blur-*` on a coloured shape, and no
+   GPU filter. A filter is re-applied every frame its layer is drawn — every
+   scroll frame behind scrolling content (STYLOVIZ_SCROLL_FLICKER_TODO SF-03).
+
+   Usage — swap the blur utility, keep everything else:
+       blur-3xl     →  sv-glow                      (σ = 64 px)
+       blur-2xl     →  sv-glow sv-glow-2xl          (σ = 40 px)
+       blur-xl      →  sv-glow sv-glow-xl           (σ = 24 px)
+       blur-[120px] →  sv-glow [--sv-glow-blur:120px]
+   The element keeps its size, position, `bg-*` (solid, gradient, conic, or a
+   style binding), opacity and animation. Discs and near-circles use
+   `sv-glow`; rectangles, card-backing glows and long thin shapes (aspect over
+   1.5:1) use `sv-glow-rect`. The element must be empty — it is decoration.
+
+   The element stops painting itself (visibility: hidden — a child that sets
+   visible still renders) and becomes a size container; ::before extends 3σ
+   past it, inherits the background, and is masked with the profile the blur
+   would have produced. The models and their measured accuracy are documented
+   in scripts/generate-glow-css.mjs. GENERATED — edit the script, not this.
+   Without CSS math (exp, atan2, container units) the original filter stays.
+   ============================================================ */
+@property --sv-glow-rho { syntax: '<number>'; inherits: false; initial-value: 2.25; }
+@property --sv-glow-c { syntax: '<number>'; inherits: false; initial-value: 2.2; }
+@property --sv-glow-w { syntax: '<number>'; inherits: false; initial-value: 0.6; }
+@property --sv-glow-peak { syntax: '<number>'; inherits: false; initial-value: 1; }
+@property --sv-glow-lx { syntax: '<number>'; inherits: false; initial-value: 6; }
+@property --sv-glow-ly { syntax: '<number>'; inherits: false; initial-value: 6; }
+
+/* ★★ IN @layer components, NOT unlayered. An unlayered rule beats every
+     cascade layer whatever its specificity, so `.sv-glow { --sv-glow-blur }`
+     here silently overrode Tailwind's `[--sv-glow-blur:120px]` (utilities
+     layer): every custom-radius glow rendered at 64px. Utilities must win. */
+@layer components {
+  .sv-glow,
+  .sv-glow-rect {
+    --sv-glow-blur: 64px;
+    pointer-events: none;
+    /* Fallback, and the exact behaviour this replaces. */
+    filter: blur(var(--sv-glow-blur));
+  }
+
+  .sv-glow-2xl {
+    --sv-glow-blur: 40px;
+  }
+
+  .sv-glow-xl {
+    --sv-glow-blur: 24px;
+  }
+
+  @supports (width: calc(exp(1) * 1px)) and (width: calc(tan(atan2(1px, 2px)) * 1px)) and (container-type: size) {
+    .sv-glow,
+    .sv-glow-rect {
+      filter: none;
+      container-type: size;
+      /* ★ ::before reaches 3σ past the box. Without layout containment that is
+           SCROLLABLE overflow — a glow near the page edge widened /templates/dev
+           by 100px. A filter's spill is ink overflow; containment makes this
+           the same. */
+      contain: layout;
+      visibility: hidden;
+    }
+
+    .sv-glow::before,
+    .sv-glow-rect::before {
+      content: '';
+      position: absolute;
+      inset: calc(-3 * var(--sv-glow-blur));
+      pointer-events: none;
+      background: inherit;
+      visibility: visible;
+    }
+
+    .sv-glow::before {
+      --sv-glow-rho: max(0.05, tan(atan2(50cqw, var(--sv-glow-blur))));
+      --sv-glow-c: calc(var(--sv-glow-rho) + 0.96 * exp(-1 * var(--sv-glow-rho) * var(--sv-glow-rho) / 1.5583) - 0.3246 * var(--sv-glow-rho) * exp(-1 * var(--sv-glow-rho) / 1.5012) - 0.0467);
+      --sv-glow-w: calc(0.6003 - (0.6003 - 0.39) * exp(-1 * var(--sv-glow-rho) * var(--sv-glow-rho) / 1.603));
+      --sv-glow-peak: calc((1 - exp(-0.5 * var(--sv-glow-rho) * var(--sv-glow-rho))) * (1 + exp(-1 * var(--sv-glow-c) / var(--sv-glow-w))));
+      mask-image: radial-gradient(closest-side,
+        rgb(0 0 0 / calc(1 - exp(-0.5 * var(--sv-glow-rho) * var(--sv-glow-rho)))) 0%,
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.99331)) calc((var(--sv-glow-c) - 5.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.98901)) calc((var(--sv-glow-c) - 4.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.98201)) calc((var(--sv-glow-c) - 4.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.97069)) calc((var(--sv-glow-c) - 3.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.95257)) calc((var(--sv-glow-c) - 3.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.92414)) calc((var(--sv-glow-c) - 2.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.88080)) calc((var(--sv-glow-c) - 2.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.81757)) calc((var(--sv-glow-c) - 1.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.73106)) calc((var(--sv-glow-c) - 1.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.62246)) calc((var(--sv-glow-c) - 0.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.50000)) calc((var(--sv-glow-c) + 0.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.37754)) calc((var(--sv-glow-c) + 0.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.26894)) calc((var(--sv-glow-c) + 1.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.18243)) calc((var(--sv-glow-c) + 1.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.11920)) calc((var(--sv-glow-c) + 2.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.07586)) calc((var(--sv-glow-c) + 2.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.04743)) calc((var(--sv-glow-c) + 3.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.02931)) calc((var(--sv-glow-c) + 3.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.01799)) calc((var(--sv-glow-c) + 4.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.01099)) calc((var(--sv-glow-c) + 4.5 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        rgb(0 0 0 / calc(var(--sv-glow-peak) * 0.00669)) calc((var(--sv-glow-c) + 5.0 * var(--sv-glow-w)) / (var(--sv-glow-rho) + 3) * 100%),
+        transparent 100%);
+    }
+
+    .sv-glow-rect::before {
+      /* Box length along each axis, in units of σ. */
+      --sv-glow-lx: tan(atan2(100cqw, var(--sv-glow-blur)));
+      --sv-glow-ly: tan(atan2(100cqh, var(--sv-glow-blur)));
+      /* The exact 1-D blur at every σ/2 from the edge, per axis. */
+      --sv-glow-x0: calc(1 / (1 + exp(-1.5976 * (min(0.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(0.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(0.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(0.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x1: calc(1 / (1 + exp(-1.5976 * (min(0.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(0.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(0.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(0.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x2: calc(1 / (1 + exp(-1.5976 * (min(1.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(1.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(1.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(1.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x3: calc(1 / (1 + exp(-1.5976 * (min(1.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(1.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(1.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(1.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x4: calc(1 / (1 + exp(-1.5976 * (min(2.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(2.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(2.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(2.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x5: calc(1 / (1 + exp(-1.5976 * (min(2.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(2.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(2.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(2.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x6: calc(1 / (1 + exp(-1.5976 * (min(3.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(3.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(3.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(3.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x7: calc(1 / (1 + exp(-1.5976 * (min(3.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(3.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(3.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(3.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x8: calc(1 / (1 + exp(-1.5976 * (min(4.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(4.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(4.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(4.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x9: calc(1 / (1 + exp(-1.5976 * (min(4.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(4.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(4.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(4.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x10: calc(1 / (1 + exp(-1.5976 * (min(5.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(5.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(5.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(5.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x11: calc(1 / (1 + exp(-1.5976 * (min(5.5, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(5.5, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(5.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(5.5, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-x12: calc(1 / (1 + exp(-1.5976 * (min(6.0, (var(--sv-glow-lx) + 6) / 2) - 3) - 0.07056 * pow(min(6.0, (var(--sv-glow-lx) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(6.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx)) - 0.07056 * pow(min(6.0, (var(--sv-glow-lx) + 6) / 2) - 3 - var(--sv-glow-lx), 3))));
+      --sv-glow-y0: calc(1 / (1 + exp(-1.5976 * (min(0.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(0.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(0.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(0.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y1: calc(1 / (1 + exp(-1.5976 * (min(0.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(0.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(0.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(0.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y2: calc(1 / (1 + exp(-1.5976 * (min(1.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(1.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(1.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(1.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y3: calc(1 / (1 + exp(-1.5976 * (min(1.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(1.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(1.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(1.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y4: calc(1 / (1 + exp(-1.5976 * (min(2.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(2.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(2.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(2.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y5: calc(1 / (1 + exp(-1.5976 * (min(2.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(2.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(2.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(2.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y6: calc(1 / (1 + exp(-1.5976 * (min(3.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(3.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(3.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(3.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y7: calc(1 / (1 + exp(-1.5976 * (min(3.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(3.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(3.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(3.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y8: calc(1 / (1 + exp(-1.5976 * (min(4.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(4.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(4.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(4.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y9: calc(1 / (1 + exp(-1.5976 * (min(4.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(4.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(4.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(4.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y10: calc(1 / (1 + exp(-1.5976 * (min(5.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(5.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(5.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(5.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y11: calc(1 / (1 + exp(-1.5976 * (min(5.5, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(5.5, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(5.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(5.5, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      --sv-glow-y12: calc(1 / (1 + exp(-1.5976 * (min(6.0, (var(--sv-glow-ly) + 6) / 2) - 3) - 0.07056 * pow(min(6.0, (var(--sv-glow-ly) + 6) / 2) - 3, 3))) - 1 / (1 + exp(-1.5976 * (min(6.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly)) - 0.07056 * pow(min(6.0, (var(--sv-glow-ly) + 6) / 2) - 3 - var(--sv-glow-ly), 3))));
+      mask-image:
+        linear-gradient(to right,
+          rgb(0 0 0 / var(--sv-glow-x0)) min(calc(var(--sv-glow-blur) * 0.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x1)) min(calc(var(--sv-glow-blur) * 0.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x2)) min(calc(var(--sv-glow-blur) * 1.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x3)) min(calc(var(--sv-glow-blur) * 1.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x4)) min(calc(var(--sv-glow-blur) * 2.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x5)) min(calc(var(--sv-glow-blur) * 2.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x6)) min(calc(var(--sv-glow-blur) * 3.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x7)) min(calc(var(--sv-glow-blur) * 3.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x8)) min(calc(var(--sv-glow-blur) * 4.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x9)) min(calc(var(--sv-glow-blur) * 4.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x10)) min(calc(var(--sv-glow-blur) * 5.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x11)) min(calc(var(--sv-glow-blur) * 5.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x12)) min(calc(var(--sv-glow-blur) * 6.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x12)) max(calc(100% - var(--sv-glow-blur) * 6.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x11)) max(calc(100% - var(--sv-glow-blur) * 5.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x10)) max(calc(100% - var(--sv-glow-blur) * 5.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x9)) max(calc(100% - var(--sv-glow-blur) * 4.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x8)) max(calc(100% - var(--sv-glow-blur) * 4.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x7)) max(calc(100% - var(--sv-glow-blur) * 3.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x6)) max(calc(100% - var(--sv-glow-blur) * 3.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x5)) max(calc(100% - var(--sv-glow-blur) * 2.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x4)) max(calc(100% - var(--sv-glow-blur) * 2.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x3)) max(calc(100% - var(--sv-glow-blur) * 1.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x2)) max(calc(100% - var(--sv-glow-blur) * 1.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-x1)) max(calc(100% - var(--sv-glow-blur) * 0.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-x0)) max(calc(100% - var(--sv-glow-blur) * 0.0), 50%)),
+        linear-gradient(to bottom,
+          rgb(0 0 0 / var(--sv-glow-y0)) min(calc(var(--sv-glow-blur) * 0.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y1)) min(calc(var(--sv-glow-blur) * 0.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y2)) min(calc(var(--sv-glow-blur) * 1.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y3)) min(calc(var(--sv-glow-blur) * 1.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y4)) min(calc(var(--sv-glow-blur) * 2.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y5)) min(calc(var(--sv-glow-blur) * 2.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y6)) min(calc(var(--sv-glow-blur) * 3.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y7)) min(calc(var(--sv-glow-blur) * 3.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y8)) min(calc(var(--sv-glow-blur) * 4.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y9)) min(calc(var(--sv-glow-blur) * 4.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y10)) min(calc(var(--sv-glow-blur) * 5.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y11)) min(calc(var(--sv-glow-blur) * 5.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y12)) min(calc(var(--sv-glow-blur) * 6.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y12)) max(calc(100% - var(--sv-glow-blur) * 6.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y11)) max(calc(100% - var(--sv-glow-blur) * 5.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y10)) max(calc(100% - var(--sv-glow-blur) * 5.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y9)) max(calc(100% - var(--sv-glow-blur) * 4.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y8)) max(calc(100% - var(--sv-glow-blur) * 4.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y7)) max(calc(100% - var(--sv-glow-blur) * 3.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y6)) max(calc(100% - var(--sv-glow-blur) * 3.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y5)) max(calc(100% - var(--sv-glow-blur) * 2.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y4)) max(calc(100% - var(--sv-glow-blur) * 2.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y3)) max(calc(100% - var(--sv-glow-blur) * 1.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y2)) max(calc(100% - var(--sv-glow-blur) * 1.0), 50%),
+          rgb(0 0 0 / var(--sv-glow-y1)) max(calc(100% - var(--sv-glow-blur) * 0.5), 50%),
+          rgb(0 0 0 / var(--sv-glow-y0)) max(calc(100% - var(--sv-glow-blur) * 0.0), 50%));
+      mask-composite: intersect;
+    }
+  }
+
+  /* Decoration only — nothing to keep when the user has asked for system colours. */
+  @media (forced-colors: active) {
+    .sv-glow,
+    .sv-glow-rect {
+      display: none;
+    }
+  }
+}
+/* <<< generated: sv-glow */
+
+/* ============================================================
+   Pause off-screen — SvPauseOffscreenDirective (@styloviz/core)
+   ============================================================
+   The directive marks its host `data-sv-offscreen` while it is out of view;
+   every CSS animation under it — pseudo-elements included — holds its place
+   until it returns. `!important` on this one property because components set
+   the `animation` shorthand, which resets play-state with its own specificity.
+   ============================================================ */
+[data-sv-offscreen],
+[data-sv-offscreen]::before,
+[data-sv-offscreen]::after,
+[data-sv-offscreen] *,
+[data-sv-offscreen] *::before,
+[data-sv-offscreen] *::after {
+  animation-play-state: paused !important;
 }

@@ -1,0 +1,214 @@
+@if (open()) {
+  <section
+    data-sv-survey
+    [attr.data-kind]="kind()"
+    [attr.data-layout]="layout()"
+    [attr.data-state]="state()"
+    [attr.data-band]="band()"
+    [attr.aria-labelledby]="state() === 'thanks' ? thanksId : questionId"
+    [class]="rootClass()">
+
+    @if (dismissible()) {
+      <button
+        type="button"
+        data-sv-survey-dismiss
+        [class]="closeClass"
+        [attr.aria-label]="text().surveyDismiss"
+        (click)="dismiss()">
+        <sv-icon name="close" cssClass="h-4 w-4" />
+      </button>
+    }
+
+    @if (state() === 'thanks') {
+
+      <!-- ── Thank-you ───────────────────────────────────────────────────────── -->
+      <div class="flex flex-col items-center px-2 py-3 text-center" data-sv-survey-thanks>
+        <span class="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary-50 text-primary-700
+                     dark:bg-primary-900/40 dark:text-primary-300">
+          <sv-icon name="check-circle" cssClass="h-6 w-6" />
+        </span>
+        <!-- Focus lands here after submit, so the thank-you is read rather than lost. -->
+        <p #thanks tabindex="-1" [id]="thanksId"
+           class="rounded text-base font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-white">
+          {{ thanksTitle() || text().surveyThanksTitle }}
+        </p>
+        <p class="mt-1 max-w-sm text-sm text-gray-600 dark:text-gray-300">{{ thanksMessage() || text().surveyThanksMessage }}</p>
+
+        @if (thanksActionText(); as actionText) {
+          @if (safeThanksHref(); as href) {
+            <a [attr.href]="href"
+               data-sv-survey-thanks-action
+               class="mt-4 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-primary-700 hover:bg-primary-50
+                      hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                      dark:text-primary-300 dark:hover:bg-primary-900/30 dark:hover:text-primary-200"
+               (click)="thanksAction.emit()">
+              {{ actionText }}
+              <sv-icon name="arrow-right" cssClass="h-4 w-4 rtl:-scale-x-100" />
+            </a>
+          } @else {
+            <button type="button"
+                    data-sv-survey-thanks-action
+                    class="mt-4 inline-flex min-h-10 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold
+                           text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2
+                           focus-visible:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
+                    (click)="thanksAction.emit()">
+              {{ actionText }}
+            </button>
+          }
+        }
+      </div>
+
+    } @else {
+
+      <!-- ── Question ────────────────────────────────────────────────────────── -->
+      <form novalidate (submit)="onSubmit($event)" [class]="dismissible() ? 'pe-8' : ''">
+
+        @if (freeText()) {
+          <!-- One question, no options: the question labels a free-text answer. -->
+          <label [for]="commentId" [id]="questionId" class="block text-base font-semibold text-gray-900 dark:text-white">
+            {{ questionText() }}
+          </label>
+          @if (description()) {
+            <p [id]="descriptionId" class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ description() }}</p>
+          }
+          <textarea
+            #answer
+            data-sv-survey-comment
+            rows="3"
+            [id]="commentId"
+            [value]="comment()"
+            [attr.maxlength]="maxLength()"
+            [attr.aria-invalid]="showRequired() ? 'true' : null"
+            [attr.aria-describedby]="describedBy()"
+            class="mt-3 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
+                   focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                   dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100"
+            (input)="onComment($event)"></textarea>
+        } @else {
+          <fieldset
+            data-sv-survey-scale
+            [attr.aria-describedby]="describedBy()">
+            <legend [id]="questionId" class="block w-full text-base font-semibold text-gray-900 dark:text-white">
+              {{ questionText() }}
+            </legend>
+            @if (description()) {
+              <p [id]="descriptionId" class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ description() }}</p>
+            }
+
+            @switch (kind()) {
+              @case ('nps') {
+                <!-- 0–10: six to a row on a phone, all eleven from sm up. -->
+                <div class="mt-4 grid grid-cols-6 gap-1.5 sm:grid-cols-11">
+                  @for (row of choices(); track row.value; let first = $first, last = $last) {
+                    <label class="relative block">
+                      <input
+                        #answer
+                        type="radio"
+                        class="peer sr-only"
+                        [name]="radioName"
+                        [value]="row.value"
+                        [checked]="checkedValue() === row.value"
+                        [attr.aria-describedby]="first ? lowId : last ? highId : null"
+                        (change)="pick(row.value)" />
+                      <span [class]="npsPillClass">{{ row.text }}</span>
+                    </label>
+                  }
+                </div>
+                <div class="mt-2 flex justify-between gap-4 text-xs text-gray-600 dark:text-gray-400">
+                  <span [id]="lowId">{{ text().surveyNpsLow }}</span>
+                  <span [id]="highId" class="text-end">{{ text().surveyNpsHigh }}</span>
+                </div>
+              }
+              @case ('csat') {
+                <div class="mt-3 flex flex-wrap items-center gap-x-1 gap-y-2">
+                  @for (row of choices(); track row.value) {
+                    <label class="relative block">
+                      <input
+                        #answer
+                        type="radio"
+                        class="peer sr-only"
+                        [name]="radioName"
+                        [value]="row.value"
+                        [checked]="checkedValue() === row.value"
+                        (change)="pick(row.value)" />
+                      <span [class]="starClass">
+                        @if (row.filled) {
+                          <sv-icon name="star" weight="solid"
+                                   cssClass="h-7 w-7 text-warning-500 forced-colors:text-[Highlight]" />
+                        } @else {
+                          <sv-icon name="star" cssClass="h-7 w-7 text-gray-500 dark:text-gray-400" />
+                        }
+                        <span class="sr-only">{{ row.name }}</span>
+                      </span>
+                    </label>
+                  }
+                  <!-- The chosen level in words, so the stars never carry the answer by colour alone. -->
+                  <span class="ms-2 min-h-5 text-sm font-medium text-gray-700 dark:text-gray-200" data-sv-survey-level aria-hidden="true">
+                    {{ csatLevel() }}
+                  </span>
+                </div>
+              }
+              @default {
+                <div class="mt-3 flex flex-wrap gap-2">
+                  @for (row of choices(); track row.value) {
+                    <label class="relative block">
+                      <input
+                        #answer
+                        type="radio"
+                        class="peer sr-only"
+                        [name]="radioName"
+                        [value]="row.value"
+                        [checked]="checkedValue() === row.value"
+                        (change)="pick(row.value)" />
+                      <span [class]="optionPillClass">{{ row.text }}</span>
+                    </label>
+                  }
+                </div>
+              }
+            }
+          </fieldset>
+
+          @if (showFollowUp()) {
+            <!-- ── Follow-up ─────────────────────────────────────────────────── -->
+            <div class="mt-4" data-sv-survey-follow-up>
+              <div class="flex items-baseline justify-between gap-3">
+                <label [for]="commentId" class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ followUpText() }}</label>
+                <span [id]="optionalId" class="shrink-0 text-xs text-gray-600 dark:text-gray-400">{{ text().surveyOptional }}</span>
+              </div>
+              <textarea
+                data-sv-survey-comment
+                rows="3"
+                [id]="commentId"
+                [value]="comment()"
+                [attr.maxlength]="maxLength()"
+                [attr.aria-describedby]="optionalId"
+                class="mt-2 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
+                       focus-visible:border-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                       dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100"
+                (input)="onComment($event)"></textarea>
+            </div>
+          }
+        }
+
+        <!-- ── Submit ──────────────────────────────────────────────────────────── -->
+        <div class="mt-4 flex flex-wrap items-center justify-end gap-3">
+          <!-- Polite, and present before it has anything to say, so the message is announced. -->
+          <p class="me-auto text-sm font-medium text-danger-700 dark:text-danger-300" aria-live="polite" [id]="requiredId">
+            @if (showRequired()) {
+              {{ text().surveyRequired }}
+            }
+          </p>
+          <button
+            type="submit"
+            data-sv-survey-submit
+            class="inline-flex min-h-10 items-center rounded-lg bg-primary-600 px-4 text-sm font-semibold text-white transition-colors
+                   hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                   focus-visible:ring-offset-2 dark:bg-primary-400 dark:text-gray-950 dark:hover:bg-primary-300
+                   dark:focus-visible:ring-offset-gray-900">
+            {{ text().surveySubmit }}
+          </button>
+        </div>
+      </form>
+    }
+  </section>
+}

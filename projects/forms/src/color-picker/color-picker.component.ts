@@ -1,5 +1,6 @@
 import {
   ApplicationRef,
+  DestroyRef,
   ChangeDetectionStrategy,
   Component,
   computed,
@@ -21,24 +22,25 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import type { ColorPickerFormat, ColorPickerSize, ColorSwatch } from './color-picker.types';
-import { DEFAULT_SWATCHES } from './color-picker.types';
+import { defaultSwatches } from './color-picker.types';
 import {
-  svStackedPopup,
-  SvFieldErrorComponent,
-  createFieldError,
-  svColorName,
+  svIsRtl,
+  injectSvColorNamer,
   svContrastRatio,
   svFormatRatio,
   svHexToRgb,
   svWcagGrade,
-  type SvServerError,
   type SvWcagGrade,
-  svListenWhile,
-  type SvListenWhileRef,
   svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/a11y';
+import { svListenWhile, type SvListenWhileRef } from '@styloviz/core/directives';
+import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
+import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
+import { createPortalHost, svInlineAnchor, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
+import { registerColorPickerIcons } from './color-picker.component.icons';
 // ─── Colour math helpers ──────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -130,7 +132,16 @@ const MARGIN = 8;
   ],
 })
 export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerColorPickerIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+  /** The default namer, in core's colour words. */
+  private readonly defaultColorNamer = injectSvColorNamer();
+
   private readonly el     = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly appRef = inject(ApplicationRef);
 
   // ── Inputs ──
@@ -140,8 +151,8 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
   format    = input<ColorPickerFormat>('hex');
   /** Picker size: sm, md or lg. @default 'md' */
   size      = input<ColorPickerSize>('md');
-  /** Preset swatch palette. @default DEFAULT_SWATCHES */
-  swatches  = input<readonly ColorSwatch[]>(DEFAULT_SWATCHES);
+  /** Preset swatch palette. @default DEFAULT_SWATCHES — named in the `forms` labels */
+  swatches  = input<readonly ColorSwatch[]>(defaultSwatches(this.labels));
   /** Disable the picker. @default false */
   disabled  = input<boolean>(false);
   /** Accessible label for the control. */
@@ -172,17 +183,16 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
   contrastBackground = input<string>('');
 
   /**
-   * Turn the hex into words for assistive tech. @default `svColorName`
+   * Turn the hex into words for assistive tech. @default `svColorName`, in the app's `core` labels
    *
    * ★★★ `#3B82F6` IS NOT AN ANNOUNCEMENT. A screen reader reads it one character
    *     at a time and the user learns nothing about what they picked.
    *
-   * ⚠️ The default is English. A component cannot translate, so a host that
-   *    needs another language passes its own namer — the point is that the
-   *    default is a description rather than a code, not that this particular
-   *    vocabulary is the right one everywhere.
+   * The default names colours in the words of `provideSvLabels({ core })` —
+   * English unless the app provides others; a host with a better vocabulary
+   * passes its own namer.
    */
-  colorNamer = input<(hex: string) => string>(svColorName);
+  colorNamer = input<(hex: string) => string>(this.defaultColorNamer);
 
   // ── Outputs ──
   /** Emitted with the new color whenever it changes. */
@@ -209,6 +219,7 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
 
   // ── Portal state ──
   private portalEl: HTMLElement | null = null;
+  private portalHost: SvPortalHost | null = null;
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
    * this popup sits in stays "topmost", and one Escape closes both.
@@ -284,8 +295,8 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     const name = this.label();
     // ★ The NAME first and the code after it. A reader gets the useful half
     //   immediately and can keep listening for the exact value if it wants it.
-    const said = `${this.colorName()}, ${this.displayValue()}`;
-    return name ? `${name}: ${said}` : `Pick colour: ${said}`;
+    const params = { label: name, color: this.colorName(), value: this.displayValue() };
+    return svFormatLabel(name ? this.labels.colorPickerTriggerName : this.labels.colorPickerTriggerNameDefault, params);
   });
 
   // ── Contrast against a supplied background ────────────────────────────────
@@ -331,11 +342,10 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
   readonly contrastSummary = computed<string>(() => {
     if (!this.hasContrast()) return '';
     const grade = this.contrastGrade();
-    const detail =
-      grade === 'Fail' ? 'fails WCAG for any text size'
-      : grade === 'AA Large' ? 'passes for large text only'
-      : `passes ${grade} for body text`;
-    return `Contrast ${this.contrastText()} — ${detail}`;
+    const ratio = this.contrastText();
+    if (grade === 'Fail') return svFormatLabel(this.labels.contrastFails, { ratio });
+    if (grade === 'AA Large') return svFormatLabel(this.labels.contrastLargeOnly, { ratio }); // sv-i18n-ignore: WCAG grade identifier
+    return svFormatLabel(this.labels.contrastPasses, { ratio, grade });
   });
 
   /** Colour of the contrast chip. Never colour ALONE — the words carry it. */
@@ -343,6 +353,7 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     switch (this.contrastGrade()) {
       case 'AAA':
       case 'AA':       return 'bg-accent-50 text-accent-700 ring-accent-200 dark:bg-accent-950/60 dark:text-accent-300 dark:ring-accent-800';
+      // sv-i18n-ignore: WCAG grade identifier
       case 'AA Large': return 'bg-warning-50 text-warning-700 ring-warning-200 dark:bg-warning-950/60 dark:text-warning-300 dark:ring-warning-800';
       default:         return 'bg-danger-50 text-danger-700 ring-danger-200 dark:bg-danger-950/60 dark:text-danger-300 dark:ring-danger-800';
     }
@@ -381,7 +392,10 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
 
   /** Accessible name for the 2D saturation/brightness area. */
   readonly gradientValueText = computed(() =>
-    `Saturation ${Math.round(this.saturation() * 100)}%, brightness ${Math.round(this.brightness() * 100)}%`
+    svFormatLabel(this.labels.colorPickerAreaValue, {
+      saturation: String(Math.round(this.saturation() * 100)),
+      brightness: String(Math.round(this.brightness() * 100)),
+    }),
   );
   /**
    * ARIA has no two-axis slider, and `role="slider"` requires `aria-valuenow`.
@@ -488,7 +502,12 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
     const above = spaceBelow < PANEL_H && spaceAbove > spaceBelow;
-    const right  = rect.left + PANEL_W > vw;
+    // Start-edge alignment through the shared engine: the trigger's RIGHT edge
+    // under dir="rtl", the end edge as the fallback when it would overflow (`X-7`).
+    const inline = svInlineAnchor({
+      anchor: rect, panelWidth: PANEL_W, viewportWidth: vw, rtl: svIsRtl(trigger), margin: MARGIN,
+    });
+    const right = inline.edge === 'right';
 
     this.openAbove.set(above);
     this.alignRight.set(right);
@@ -509,9 +528,8 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     // anchor to the opposite edge. A CSS `max-w` bounds SIZE, not POSITION — so
     // without this cap a far-edge-anchored panel still renders off-screen on a
     // narrow viewport (the bug that put Mega Menu's left edge at x=-220).
-    const anchor = right ? Math.max(MARGIN, vw - rect.right) : Math.max(MARGIN, rect.left);
-    style[right ? 'right' : 'left'] = `${anchor}px`;
-    style['maxWidth'] = `${vw - anchor - MARGIN}px`;
+    style[inline.edge] = `${inline.offset}px`;
+    style['maxWidth'] = `${inline.maxWidth}px`;
 
     this.panelStyle.set(style);
   }
@@ -527,8 +545,15 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     // Mount the panel into document.body via a lightweight portal.
     if (!this.panelTpl) return;
 
-    this.portalEl = document.createElement('div');
-    this.portalEl.className = 'sv-cp-portal';
+    // Context-carrying host: dir, lang and a locally scoped theme reach the
+    // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+    this.portalHost = createPortalHost({
+      origin: this.el.nativeElement,
+      className: 'sv-cp-portal',
+      label: 'color-picker',
+      destroyRef: this.destroyRef,
+    });
+    this.portalEl = this.portalHost.element;
 
     this.portalView = this.panelTpl.createEmbeddedView({});
     this.appRef.attachView(this.portalView);
@@ -538,7 +563,7 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
     // scripts/fix-portal-insertion-order.mjs.
     this.portalView.detectChanges();
     this.portalView.rootNodes.forEach((n: Node) => this.portalEl!.appendChild(n));
-    document.body.appendChild(this.portalEl);
+    this.portalHost.attach();
 
     this.open.set(true);
     // Move focus into the panel for keyboard users.
@@ -750,7 +775,8 @@ export class SvColorPickerComponent implements OnInit, OnDestroy, ControlValueAc
       this.portalView.destroy();
       this.portalView = null;
     }
-    this.portalEl?.remove();
+    this.portalHost?.destroy();
+    this.portalHost = null;
     this.portalEl = null;
   }
 

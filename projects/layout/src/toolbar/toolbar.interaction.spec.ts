@@ -98,7 +98,7 @@ describe('SvToolbarComponent — toggles vs plain actions', () => {
   });
 
   /**
-   * ★ REGRESSION TEST — PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1 (backlog
+   * ★ REGRESSION TEST — docs/audit/PHASE3_LAYOUT_UTILITIES_AUDIT.md finding #1 (backlog
    * `X-1` / `X-3`): the pressed-flash timer used to survive `ngOnDestroy` and
    * write to a destroyed component's signal. The assertion below is what
    * proves the clear: had the 150ms timer fired, `isActive` would read false.

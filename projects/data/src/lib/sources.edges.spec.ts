@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { createQuery } from '@styloviz/core';
+import { createQuery } from '@styloviz/core/data';
 import { createArrayDataSource } from './array-source';
 import { withLatency } from './decorators';
 import { createFetchDataSource, defaultResponseMapper } from './fetch-source';

@@ -13,6 +13,9 @@ import {
   DEFAULT_COLORS,
 } from './bar-chart.utils';
 import type { BarChartDataset } from './bar-chart.types';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
+
+const WORDING = { nounCount: SV_CHARTS_LABELS.valueCountBar, labels: SV_CHARTS_LABELS, locale: 'en-US' };
 
 describe('charts/bar-chart.utils — axis helpers', () => {
   it('niceMax rounds up to a clean ceiling', () => {
@@ -80,7 +83,7 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
     data.map((d, i) => ({ label: `S${i}`, data: d }));
 
   it('hands back the same numbers, and no notice, when every bar is drawable', () => {
-    const result = resolveBarValues(series([10, 20, 0]), 'clamp', 'sv-bar-chart');
+    const result = resolveBarValues(series([10, 20, 0]), 'clamp', 'sv-bar-chart', WORDING);
     expect(result.max).toBe(20);
     expect(result.notice).toBeNull();
     expect(result.error).toBeNull();
@@ -92,7 +95,7 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
     //     `niceMax(NaN)` is NaN, so one blank source cell made every bar height
     //     and every grid tick NaN — and SVG drops a NaN dimension silently, so
     //     the entire plot went blank with no error anywhere.
-    const result = resolveBarValues(series([10, NaN, 20]), 'clamp', 'sv-bar-chart-nan');
+    const result = resolveBarValues(series([10, NaN, 20]), 'clamp', 'sv-bar-chart-nan', WORDING);
     expect(result.max).toBe(20);
     expect(Number.isFinite(result.max)).toBe(true);
     expect(result.isClamped(0, 1)).toBe(true);
@@ -102,7 +105,7 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
     // ★ `clamp` replaces the offending number with 0, so a set of VALUES would
     //   hold just 0 — and category 2, which really is 0, would test as clamped
     //   and be drawn as a stub with "not drawn to scale" in its name.
-    const result = resolveBarValues(series([-50, 30, 0]), 'clamp', 'sv-bar-chart-pos');
+    const result = resolveBarValues(series([-50, 30, 0]), 'clamp', 'sv-bar-chart-pos', WORDING);
     expect(result.isClamped(0, 0)).toBe(true);
     expect(result.isClamped(0, 1)).toBe(false);
     expect(result.isClamped(0, 2)).toBe(false);
@@ -110,26 +113,26 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
   });
 
   it('keys the mark to its own series, not to a flattened index', () => {
-    const result = resolveBarValues(series([10, 20], [-5, 40]), 'clamp', 'sv-bar-chart-multi');
+    const result = resolveBarValues(series([10, 20], [-5, 40]), 'clamp', 'sv-bar-chart-multi', WORDING);
     expect(result.isClamped(1, 0)).toBe(true);
     expect(result.isClamped(0, 0)).toBe(false);
     expect(result.max).toBe(40);
   });
 
   it('discloses what it clamped in the rendered output, not only to the console', () => {
-    const notice = resolveBarValues(series([-50, 30]), 'clamp', 'sv-bar-chart-notice').notice!;
+    const notice = resolveBarValues(series([-50, 30]), 'clamp', 'sv-bar-chart-notice', WORDING).notice!;
     expect(notice).toContain('1 bar');
     expect(notice).toContain('-50');
   });
 
   it('leaves the host datasets alone', () => {
     const datasets = series([-50, 30]);
-    resolveBarValues(datasets, 'clamp', 'sv-bar-chart-pure');
+    resolveBarValues(datasets, 'clamp', 'sv-bar-chart-pure', WORDING);
     expect(datasets[0].data).toEqual([-50, 30]);
   });
 
   it('refuses the dataset under reject, with an error the frame can show', () => {
-    const result = resolveBarValues(series([-50, 30]), 'reject', 'sv-bar-chart-reject');
+    const result = resolveBarValues(series([-50, 30]), 'reject', 'sv-bar-chart-reject', WORDING);
     expect(result.error?.code).toBe('SV_UNPLOTTABLE_VALUE');
     // Re-fetching cannot change the numbers, so offering a retry is a loop.
     expect(result.error?.retryable).toBe(false);
@@ -145,7 +148,7 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
       // `omit` would shift every later bar out from under its own label, since a
       // bar's position is its index within its series. `render` has no room
       // below the baseline to draw in. Both fall back rather than pretend.
-      const omitted = resolveBarValues(series([-50, 30]), 'omit', 'sv-bar-chart-omit');
+      const omitted = resolveBarValues(series([-50, 30]), 'omit', 'sv-bar-chart-omit', WORDING);
       expect(omitted.isClamped(0, 0)).toBe(true);
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls[0][0]).toContain("does not support the 'omit' value policy");
@@ -162,7 +165,7 @@ describe('charts/bar-chart.utils — resolveBarValues (values a bar cannot draw)
       // The old `clampBarValue` warned in dev only, which is why production drew
       // a missing bar and said nothing. The build mode may change the logging; it
       // must not change what the reader sees.
-      const result = resolveBarValues(series([-50, 30]), 'clamp', 'sv-bar-chart-prod');
+      const result = resolveBarValues(series([-50, 30]), 'clamp', 'sv-bar-chart-prod', WORDING);
       expect(result.isClamped(0, 0)).toBe(true);
       expect(result.notice).toContain('1 bar');
       expect(warn).not.toHaveBeenCalled();

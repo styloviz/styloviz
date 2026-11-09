@@ -14,8 +14,11 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import { svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_DISPLAY_LABELS } from '../display.labels';
 
+import { registerLineClampIcons } from './line-clamp.component.icons';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 /**
@@ -62,6 +65,12 @@ import { svUniqueId } from '@styloviz/core';
   `],
 })
 export class SvLineClampComponent implements OnInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerLineClampIcons();
+
+  /** @internal English unless `provideSvLabels({ display })` says otherwise; first, because input defaults read it. */
+  protected readonly labels = injectSvLabels('display', SV_DISPLAY_LABELS);
+
   private readonly zone = inject(NgZone);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -71,10 +80,10 @@ export class SvLineClampComponent implements OnInit, OnDestroy {
   lines = input<number>(3);
 
   /** Label for the expand button. @default 'Show more' */
-  expandLabel = input<string>('Show more');
+  expandLabel = input<string>(this.labels.showMore);
 
   /** Label for the collapse button. @default 'Show less' */
-  collapseLabel = input<string>('Show less');
+  collapseLabel = input<string>(this.labels.showLess);
 
   /** Show the toggle button when overflowing. @default true */
   showToggle = input<boolean>(true);
@@ -151,11 +160,36 @@ export class SvLineClampComponent implements OnInit, OnDestroy {
     }
 
     // Also check on next tick so content is rendered
-    setTimeout(() => this.checkOverflow(), 0);
+    setTimeout(() => {
+      if (!this.destroyed) this.checkOverflow();
+    }, 0);
+
+    // ★ DD-23-I3: A WEB FONT ARRIVING CHANGES WHERE THE TEXT WRAPS WITHOUT
+    //   RESIZING THE CLAMPED BOX. The box is pinned at N lines either way, so
+    //   the ResizeObserver never fires — and the toggle stays as the fallback
+    //   font measured it: missing on a paragraph that now overflows, or offered
+    //   on one that no longer does. Re-measure when the fonts are ready, and
+    //   again whenever a later font finishes loading.
+    const fonts = typeof document !== 'undefined' ? (document as Document & { fonts?: FontFaceSet }).fonts : undefined;
+    if (fonts) {
+      fonts.ready?.then(() => {
+        if (!this.destroyed) this.checkOverflow();
+      });
+      fonts.addEventListener?.('loadingdone', this.onFontsLoaded);
+      this.fontSet = fonts;
+    }
   }
 
+  private destroyed = false;
+  private fontSet: FontFaceSet | null = null;
+  private readonly onFontsLoaded = (): void => {
+    if (!this.destroyed) this.checkOverflow();
+  };
+
   ngOnDestroy(): void {
+    this.destroyed = true;
     this.resizeObserver?.disconnect();
+    this.fontSet?.removeEventListener?.('loadingdone', this.onFontsLoaded);
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

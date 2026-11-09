@@ -1,6 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { SvToggleSwitchComponent } from './toggle-switch.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { checkIcon } from '@styloviz/icons/glyph/check';
+import { closeIcon } from '@styloviz/icons/glyph/close';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([checkIcon, closeIcon]);
 
 /**
  * The switch's behaviour is covered in `toggle-switch.component.spec.ts`. What
@@ -13,6 +19,7 @@ import { SvToggleSwitchComponent } from './toggle-switch.component';
 async function setup(inputs: Partial<ComponentInput<SvToggleSwitchComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvToggleSwitchComponent, {
+    providers: [HOST_ICONS],
     inputs: inputs as ComponentInput<SvToggleSwitchComponent>,
   });
 }
@@ -440,5 +447,40 @@ describe('SvToggleSwitchComponent — icons come from the library', () => {
     // satisfy "no hand-drawn glyphs" without proving anything at all.
     expect(host(fixture).querySelectorAll('svg').length).toBeGreaterThan(0);
     expect(byHand(fixture)).toEqual([]);
+  });
+});
+
+/**
+ * FL-B9 — right to left. The thumb is a flex child at the track's INLINE
+ * START, so in RTL it starts at the right; a physical `translate-x-*` then
+ * pushed the ON thumb out of the track. Every step carries its `rtl:` mirror,
+ * and the track labels sit at the logical ends the thumb leaves free.
+ */
+describe('SvToggleSwitchComponent — right to left', () => {
+  afterEach(() => document.documentElement.removeAttribute('dir'));
+
+  it('mirrors every thumb step under dir="rtl"', async () => {
+    document.documentElement.setAttribute('dir', 'rtl');
+    const off = ['rtl:-translate-x-0.5', 'rtl:-translate-x-0.5', 'rtl:-translate-x-0.5', 'rtl:-translate-x-1'];
+    const on = ['rtl:-translate-x-3.5', 'rtl:-translate-x-4.5', 'rtl:-translate-x-5.5', 'rtl:-translate-x-7.5'];
+    for (const [i, size] of SIZES.entries()) {
+      const cold = await setup({ size, checked: false });
+      const coldThumb = track(cold.fixture).querySelector(':scope > span[aria-hidden="true"]:last-of-type') as HTMLElement;
+      expect(coldThumb.className.split(/\s+/)).toContain(off[i]);
+
+      const hot = await setup({ size, checked: true });
+      const hotThumb = track(hot.fixture).querySelector(':scope > span[aria-hidden="true"]:last-of-type') as HTMLElement;
+      expect(hotThumb.className.split(/\s+/)).toContain(on[i]);
+    }
+  });
+
+  it('puts the ON label at the inline start and the OFF label at the inline end', async () => {
+    const hot = await setup({ checked: true, onLabel: 'ON' });
+    const onLabel = [...track(hot.fixture).querySelectorAll('span')].find((s) => s.textContent?.trim() === 'ON')!;
+    expect(onLabel.classList).toContain('start-1.5');
+
+    const cold = await setup({ checked: false, offLabel: 'OFF' });
+    const offLabel = [...track(cold.fixture).querySelectorAll('span')].find((s) => s.textContent?.trim() === 'OFF')!;
+    expect(offLabel.classList).toContain('end-1.5');
   });
 });

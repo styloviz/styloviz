@@ -7,12 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  type SvDataError,
-  type SvValuePolicy,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 import type { RangeChartDataset, BarChartOptions, TooltipState } from './bar-chart.types';
 import { DEFAULT_COLORS, formatChartValue, gridTicks, niceMax, resolveOmittedBars } from './bar-chart.utils';
@@ -46,6 +45,8 @@ export type { RangeChartDataset };
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvRangeColumnChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ export class SvRangeColumnChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -79,9 +80,8 @@ export class SvRangeColumnChartComponent {
   datasets    = input<RangeChartDataset[]>([]);
   /**
    * What to do with a range this chart cannot draw — a `NaN` or unbounded end,
-   * a low below zero (the axis starts at zero, so it hung outside the plot), or
-   * a high below its low. Such ranges used to be drawn wrong without a word, and
-   * one `NaN` blanked the axis.
+   * a low below zero (the axis starts at zero, so it would hang outside the
+   * plot), or a high below its low. One `NaN` would blank the axis.
    *
    * - `omit` (default) — leave the range out and say how many under the plot.
    *   Safe here: every range keeps its own slot, so no other bar moves.
@@ -100,7 +100,10 @@ export class SvRangeColumnChartComponent {
       policy: this.valuePolicy(),
       selector: 'sv-range-column-chart',
       noun: 'range',
-      reason: 'a range must be finite, start at or above zero and end at or above its start.',
+      nounCount: this.labels.valueCountRange,
+      labels: this.labels,
+      locale: this.locale,
+      reason: this.labels.rangeOmitReason,
     }),
   );
 
@@ -123,16 +126,62 @@ export class SvRangeColumnChartComponent {
     if (this.ariaLabel()) return this.ariaLabel();
     const cats = this.categories();
     const sets = this.datasets();
-    const base = this.title() || 'Range column chart';
+    const base = this.title() || this.labels.chartRangeColumn;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
   animDuration = computed(() => { const d = this.options().animationDuration; return d != null ? d + 'ms' : null; });
+
+  /**
+   * The ranges as rows: low and high per category, and per series when there is
+   * more than one. A range the chart left out keeps its row and says it is not
+   * drawn, so the table never claims a bar the plot does not show.
+   *
+   * ★ No `overview`: the SVG's name already counts the series and categories.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets    = this.datasets();
+    const plotted = this.plotted();
+    const multi   = sets.length > 1;
+    const end = (v: number, omitted: boolean): string => {
+      const text = Number.isFinite(v) ? this.formatValue(v) : this.labels.noValue;
+      return omitted ? svFormatLabel(this.labels.valueNotDrawn, { value: text }) : text;
+    };
+    return {
+      caption: this.title() || this.labels.chartRangeColumn,
+      columns: [
+        this.labels.categoryColumn,
+        ...(multi ? [this.labels.seriesColumn] : []),
+        this.labels.lowColumn,
+        this.labels.highColumn,
+      ],
+      rows: this.categories().flatMap((cat, ci) =>
+        sets.map((s, si) => {
+          const pt      = s.data[ci];
+          const omitted = plotted.isOmitted(si, ci);
+          return {
+            key: multi ? `${s.label || si}::${cat}` : cat,
+            header: cat,
+            cells: [
+              ...(multi ? [s.label] : []),
+              pt ? end(pt.low, omitted) : this.labels.noValue,
+              pt ? end(pt.high, omitted) : this.labels.noValue,
+            ],
+          };
+        }),
+      ),
+    };
+  });
 
   readonly tooltip = signal<TooltipState>({ visible: false, x: 0, y: 0, label: '', items: [] });
 
   readonly SVG_WIDTH = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PADDING   = { top: 24, right: 24, bottom: 56, left: 56 };
 
   svgHeight = computed(() => this.height());

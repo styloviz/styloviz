@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import type { SvUnresolvedValue } from '@styloviz/core';
+import type { SvUnresolvedValue } from '@styloviz/core/data';
 import { SvAccordionComponent, type AccordionItem } from './accordion.component';
 
 /**

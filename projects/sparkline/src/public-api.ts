@@ -22,3 +22,8 @@ export {
   toValues,
 } from './lib/sparkline-geometry';
 export type { SparklineMissing } from './lib/sparkline-geometry';
+export { SV_SPARKLINE_LABELS } from './lib/sparkline.labels';
+export type { SvSparklineLabels } from './lib/sparkline.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/sparkline.labels.packs';

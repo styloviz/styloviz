@@ -20,6 +20,14 @@ async function setup(inputs: Partial<ComponentInput<SvPriceComponent>> = {}) {
 const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
 const text = (f: { nativeElement: unknown }) => el(f).textContent?.replace(/\s+/g, ' ').trim() ?? '';
 
+/** What a sighted shopper sees: the text with the screen-reader-only spans removed. */
+const seen = (f: { nativeElement: unknown }) => {
+  const clone = (f.nativeElement as HTMLElement).cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.sr-only').forEach((n) => n.remove());
+  return clone.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+};
+
+
 describe('SvPriceComponent — the number', () => {
   it('formats as currency for its locale', async () => {
     const { fixture } = await setup({ amount: 49.99 });
@@ -47,7 +55,7 @@ describe('SvPriceComponent — the number', () => {
   it('formats a real zero when there is no free label', async () => {
     const { fixture } = await setup({ amount: 0 });
     expect(fixture.componentInstance.isFree()).toBe(false);
-    expect(text(fixture)).toBe('$0.00');
+    expect(seen(fixture)).toBe('$0.00');
   });
 });
 

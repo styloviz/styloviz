@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
+import { provideSvLocale } from '@styloviz/core/i18n';
 import { SvDatePickerComponent } from './date-picker.component';
 
 /**
@@ -64,14 +65,14 @@ const setView = (c: SvDatePickerComponent, year: number, month: number): void =>
 };
 
 describe('which day the week starts on', () => {
-  it('is Monday by default, exactly as before', async () => {
+  it("is Monday for '' — the explicit keep-Monday — exactly as before", async () => {
     /**
      * ⚠️ THE COMPATIBILITY CLAIM. These calendars shipped Monday-first;
      *    defaulting to the runtime's locale would move every existing caller's
      *    columns on upgrade — a change a host should make on purpose rather
      *    than discover from a support ticket.
      */
-    const { c } = await setup();
+    const { c } = await setup({ locale: '' });
     expect(c.firstDay()).toBe(1);
     expect(c.weekDays()).toEqual(['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']);
     expect(firstCellDay(c)).toBe(1);
@@ -170,8 +171,8 @@ describe('which day the week starts on', () => {
   });
 
   it('keeps Home and End on the Monday week when the grid is Monday-first', async () => {
-    // The compatibility half of the same claim: the default must not move.
-    const { c } = await setup();
+    // The compatibility half of the same claim: `''` must not move.
+    const { c } = await setup({ locale: '' });
     setView(c, 2026, 2);
 
     c.activeKey.set('2026-03-18');
@@ -181,6 +182,48 @@ describe('which day the week starts on', () => {
     c.activeKey.set('2026-03-18');
     c.onDayKeydown(new KeyboardEvent('keydown', { key: 'End', cancelable: true }));
     expect(c.activeKey()).toBe('2026-03-22'); // Sunday
+  });
+});
+
+describe('the language it is written in (FL-B1a)', () => {
+  /** Open on March 2024 and read the day cell's accessible name from the portal. */
+  const march10Label = (r: { fixture: { componentInstance: SvDatePickerComponent; detectChanges(): void } }): string | null => {
+    r.fixture.componentInstance.toggle();
+    r.fixture.detectChanges();
+    const label = document.querySelector('[data-day="2024-03-10"]')?.getAttribute('aria-label') ?? null;
+    r.fixture.componentInstance.close();
+    r.fixture.detectChanges();
+    return label;
+  };
+
+  it('writes German for locale="de-DE": header, month view, day names and the trigger', async () => {
+    const r = await setup({ locale: 'de-DE', value: '2024-03-10' });
+    expect(march10Label(r)).toBe('10. März 2024');
+    expect(r.c.headerLabel()).toBe('März 2024');
+    expect(r.c.monthNames()[2]).toBe('März');
+    expect(r.c.displayValue()).toBe('10. März 2024');
+    expect(r.c.weekDays()[0]).toBe('Mo');
+  });
+
+  it("follows the kit's locale when none is passed", async () => {
+    TestBed.resetTestingModule();
+    const r = await render(SvDatePickerComponent, {
+      inputs: { value: '2024-03-10' } as ComponentInput<SvDatePickerComponent>,
+      providers: [provideSvLocale('de-DE')],
+    });
+    const c = r.fixture.componentInstance;
+    expect(c.monthNames()[2]).toBe('März');
+    expect(c.displayValue()).toBe('10. März 2024');
+    expect(c.firstDay()).toBe(1);
+  });
+
+  it("keeps English for '' and for en-US", async () => {
+    for (const locale of ['', 'en-US']) {
+      const r = await setup({ locale, value: '2024-03-10' });
+      expect(march10Label(r)).toBe('March 10, 2024');
+      expect(r.c.headerLabel()).toBe('March 2024');
+      expect(r.c.displayValue()).toBe('Mar 10, 2024');
+    }
   });
 });
 

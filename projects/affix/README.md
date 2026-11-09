@@ -2,7 +2,9 @@
 
 > Pin an element while the page scrolls, with the placeholder that stops the jump. Optional container boundary so a pinned sidebar parks at the end of its section instead of floating over the footer.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -61,10 +63,10 @@ export class DemoComponent {}
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `offsetTop` | `number` | `0` | Gap between the viewport top and the pinned element, in px. |
-| `container` | `HTMLElement \| null` | `null` | Stop the element at the bottom of this container. WITHOUT A BOUNDARY, A PINNED SIDEBAR FLOATS OVER THE FOOTER — and, being fixed, over whatever the reader scrolled down to look at. |
+| `container` | `HTMLElement \| null` | `null` | Stop the element at the bottom of this container. Without a boundary, a pinned sidebar floats over the footer — and, being fixed, over whatever the reader scrolled down to look at. |
 | `disabled` | `boolean` | `false` | Disable pinning entirely, e.g. below a breakpoint. |
-| `holdRestingHeight` | `boolean` | `false` | Keep the placeholder at the height the content had IN FLOW while it is pinned, instead of following the content's live height. FOR SHRINK-ON-SCROLL HEADERS. A header that compacts from 80px to 48px once pinned would otherwise pull everything below it up by 32px mid-scroll. With this on, the page below never moves while the header animates; the pin threshold is measured from the placeholder either way, so a changing header height never moves the threshold and cannot re-pin it. |
-| `floatingAnchor` | `SvFloatingAnchor \| null` | `null` | Join the shared floating layer while PINNED, as an occupied region at this anchor — usually `'top'` for a full-width bar, or a corner for a pinned card. Floating controls at that edge then stack clear of it, and regions ranked before it (a host's top banner) push it down through `collisionOffset`, which is added to `offsetTop`. `null` registers nothing and leaves the offset at 0 — the behaviour before this input existed. |
+| `holdRestingHeight` | `boolean` | `false` | Keep the placeholder at the height the content had IN FLOW while it is pinned, instead of following the content's live height. For shrink-on-scroll headers. A header that compacts from 80px to 48px once pinned would otherwise pull everything below it up by 32px mid-scroll. With this on, the page below never moves while the header animates; the pin threshold is measured from the placeholder either way, so a changing header height never moves the threshold and cannot re-pin it. |
+| `floatingAnchor` | `SvFloatingAnchor \| null` | `null` | Join the shared floating layer while PINNED, as an occupied region at this anchor — usually `'top'` for a full-width bar, or a corner for a pinned card. Floating controls at that edge then stack clear of it, and regions ranked before it (a host's top banner) push it down through `collisionOffset`, which is added to `offsetTop`. `null` registers nothing and leaves the offset at 0. |
 | `floatingOrder` | `number` | `SV_FLOATING_ORDER.affix` | Rank in the floating layer; lower sits nearer the edge. |
 
 ## Outputs
@@ -80,4 +82,4 @@ Full API reference and live demos: https://styloviz.dev/docs/affix
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

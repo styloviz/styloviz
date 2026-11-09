@@ -462,6 +462,25 @@ describe('SvDndListComponent — kanban', () => {
     f.detectChanges();
     expect(f.componentInstance.items()[0].column).toBe('todo');
   });
+
+  it('under dir="rtl" names each button by the way it moves — back a column is to the right', async () => {
+    document.documentElement.setAttribute('dir', 'rtl');
+    try {
+      const f = await setup({ variant: 'kanban', items: [ITEMS[0]] });
+      await f.whenStable();
+      f.detectChanges();
+      // In To do, the only way is forward — which under RTL is to the left.
+      expect(qa(f, '[title="Move right"]').length).toBe(0);
+      q(f, '[title="Move left"]')!.click();
+      f.detectChanges();
+      expect(f.componentInstance.items()[0].column).toBe('in-progress');
+      q(f, '[title="Move right"]')!.click();
+      f.detectChanges();
+      expect(f.componentInstance.items()[0].column).toBe('todo');
+    } finally {
+      document.documentElement.removeAttribute('dir');
+    }
+  });
 });
 
 /**

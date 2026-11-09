@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ThemeService } from '@styloviz/core';
+import { ThemeService } from '@styloviz/core/services';
 import { SvIconComponent } from '@styloviz/icons';
 import { ERRORS_BRAND, ERRORS_BASE } from './errors.config';
 import { ERROR_CATALOGUE, type ErrorDefinition } from './errors.data';

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `refresh` icon. */
 export const refreshNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const refreshNodes: readonly IconNode[] = [
 export const refreshSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm19.9 12q0 2.8-1.8 5-1.8 2.2-4.5 2.7-2.8.6-5.3-.7-2.5-1.4-3.6-4-1-2.5-.2-5.2.7-2.7 3.1-4.3 2.3-1.6 5.1-1.3 1.8.1 3.3 1v-1.7q0-.9.9-.9.9 0 .9.9v3.2q.1.3-.1.6-.1.4-.5.5-.1.1-.3.1-.1 0-.3 0h-3.2q-.9 0-.9-.9 0-.9.9-.9h.8q-2.7-1.2-5.6.8-4.2 2.8-2.2 7.5 1.9 4.6 6.8 3.6 4.9-1 4.9-6 0-.9.9-.9.4 0 .7.2.2.3.2.7z' },
 ];
+
+/** `refresh` as a registrable glyph — `registerSvIcons([refreshIcon])` / `provideSvIcons([refreshIcon])`. */
+export const refreshIcon: SvIconDef = { name: 'refresh', nodes: refreshNodes, solid: refreshSolidNodes };
 
 /** `refresh` — tree-shakable standalone icon. Use `<sv-refresh-icon />`. */
 @Component({

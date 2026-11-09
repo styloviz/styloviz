@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `sun` icon. */
 export const sunNodes: readonly IconNode[] = [
@@ -21,6 +22,9 @@ export const sunNodes: readonly IconNode[] = [
 export const sunSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm16.9 12q0 2-1.5 3.4-1.4 1.5-3.4 1.5-2 0-3.4-1.5-1.5-1.4-1.5-3.4 0-2 1.5-3.4 1.4-1.5 3.4-1.5 2 0 3.4 1.5 1.5 1.4 1.5 3.4zm.9 4.6l1.8 1.8q.6.6 0 1.2-.6.6-1.2 0l-1.8-1.8q-.6-.6 0-1.2.6-.6 1.2 0zm-10.4 1.2l-1.8 1.8q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l1.8-1.8q.6-.6 1.2 0 .6.6 0 1.2zm-1.8-13.4l1.8 1.8q.6.6 0 1.2-.6.6-1.2 0l-1.8-1.8q-.6-.6 0-1.2.6-.6 1.2 0zm14 1.2l-1.8 1.8q-.6.6-1.2 0-.6-.6 0-1.2l1.8-1.8q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6zm-6.7-3.6v2.5q0 .9-.9.9-.9 0-.9-.9v-2.5q0-.9.9-.9.9 0 .9.9zm0 17.5v2.5q0 .9-.9.9-.9 0-.9-.9v-2.5q0-.9.9-.9.9 0 .9.9zm-10.9-8.4h2.5q.9 0 .9.9 0 .9-.9.9h-2.5q-.9 0-.9-.9 0-.9.9-.9zm17.5 0h2.5q.9 0 .9.9 0 .9-.9.9h-2.5q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `sun` as a registrable glyph — `registerSvIcons([sunIcon])` / `provideSvIcons([sunIcon])`. */
+export const sunIcon: SvIconDef = { name: 'sun', nodes: sunNodes, solid: sunSolidNodes };
 
 /** `sun` — tree-shakable standalone icon. Use `<sv-sun-icon />`. */
 @Component({

@@ -61,7 +61,7 @@
         [id]="panelDomId(item.id)"
         role="region"
         [attr.aria-labelledby]="headerDomId(item.id)"
-        class="grid transition-[grid-template-rows] duration-[250ms] ease-in-out"
+        class="grid transition-[grid-template-rows] duration-[250ms] ease-in-out print:transition-none"
         [style.grid-template-rows]="isOpen(item.id) ? '1fr' : '0fr'"
       >
         <!-- Inner wrapper MUST have overflow:hidden for the grid trick.
@@ -81,7 +81,7 @@
              skipped; browsers without it simply snap. -->
         <div
           class="overflow-hidden transition-[content-visibility] duration-[250ms]
-                 [transition-behavior:allow-discrete]"
+                 [transition-behavior:allow-discrete] print:transition-none"
           [attr.hidden]="panelHidden(item)"
           [attr.inert]="panelInert(item)"
           (beforematch)="onBeforeMatch(item)"
@@ -154,7 +154,7 @@
 
     <!-- ── Right chevron (when iconPosition = 'right', default) ──── -->
     @if (iconPosition() === 'right') {
-      <span class="ml-auto shrink-0" aria-hidden="true">
+      <span class="ms-auto shrink-0" aria-hidden="true">
         @if (customIcon()) {
           <sv-icon [name]="customIconOpen() && isOpen(item.id) ? customIconOpen() : customIcon()"
                    [cssClass]="customIconClasses(item)"

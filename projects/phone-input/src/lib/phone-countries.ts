@@ -45,16 +45,16 @@ export interface PhoneCountry {
 export const PHONE_COUNTRIES: readonly PhoneCountry[] = [
   // NANP: the one plan in this list that really is fixed, and the one whose
   // punctuation readers recognise on sight.
-  { code: 'US', name: 'United States',  dialCode: '+1',  nationalDigits: 10,      groups: [3, 3, 4], nationalMask: '(###) ###-####' },
-  { code: 'CA', name: 'Canada',         dialCode: '+1',  nationalDigits: 10,      groups: [3, 3, 4], nationalMask: '(###) ###-####' },
+  { code: 'US', name: 'United States',  dialCode: '+1',  nationalDigits: 10,      groups: [3, 3, 4], nationalMask: '(###) ###-####' }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
+  { code: 'CA', name: 'Canada',         dialCode: '+1',  nationalDigits: 10,      groups: [3, 3, 4], nationalMask: '(###) ###-####' }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
   // 10 national digits, conventionally grouped 4-6 for mobiles and 2-4-4 for
   // London. One grouping cannot serve both, which is the point of `plans`.
-  { code: 'GB', name: 'United Kingdom', dialCode: '+44', nationalDigits: [9, 10], groups: [4, 6] },
-  { code: 'AU', name: 'Australia',      dialCode: '+61', nationalDigits: 9,       groups: [1, 4, 4] },
+  { code: 'GB', name: 'United Kingdom', dialCode: '+44', nationalDigits: [9, 10], groups: [4, 6] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
+  { code: 'AU', name: 'Australia',      dialCode: '+61', nationalDigits: 9,       groups: [1, 4, 4] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
   // Germany's plan is genuinely variable: subscriber numbers run from 3 to 11
   // digits after the area code. A single mask cannot express it and does not try.
-  { code: 'DE', name: 'Germany',        dialCode: '+49', nationalDigits: [6, 11], groups: [4, 7] },
-  { code: 'FR', name: 'France',         dialCode: '+33', nationalDigits: 9,       groups: [1, 2, 2, 2, 2] },
-  { code: 'IN', name: 'India',          dialCode: '+91', nationalDigits: 10,      groups: [5, 5] },
-  { code: 'JP', name: 'Japan',          dialCode: '+81', nationalDigits: [9, 10], groups: [2, 4, 4] },
+  { code: 'DE', name: 'Germany',        dialCode: '+49', nationalDigits: [6, 11], groups: [4, 7] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
+  { code: 'FR', name: 'France',         dialCode: '+33', nationalDigits: 9,       groups: [1, 2, 2, 2, 2] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
+  { code: 'IN', name: 'India',          dialCode: '+91', nationalDigits: 10,      groups: [5, 5] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
+  { code: 'JP', name: 'Japan',          dialCode: '+81', nationalDigits: [9, 10], groups: [2, 4, 4] }, // sv-i18n-ignore: English fallback; the picker shows Intl.DisplayNames in the locale
 ];

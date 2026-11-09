@@ -2,7 +2,9 @@
 
 > Command-palette style search with suggestions, filters and loading states.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -56,6 +58,8 @@ import { SvSearchBarComponent } from '@styloviz/search-bar';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -71,7 +75,7 @@ export class DemoComponent {}
 | `footerLabel` | `string` | `''` | Text displayed at the bottom of the dropdown — useful for "View all results". Empty string hides the footer. |
 | `filters` | `SearchFilter[]` | `[]` | Active filter chips rendered inside the input track. Each chip has an × button that emits `filterRemoved`. |
 | `size` | `SearchBarSize` | `'md'` | Field size: sm, md or lg. |
-| `variant` | `SearchBarVariant` | `'default'` | Visual variant: default, floating, minimal… |
+| `variant` | `SearchBarVariant` | `'default'` | Visual variant: default, filled or borderless… |
 | `showSearchIcon` | `boolean` | `true` | Show the magnifier icon on the left. |
 | `loading` | `boolean` | `false` | Show the spinning loader inside the search icon area. |
 | `stale` | `boolean` | `false` | The results on screen answer an **older** query — a newer request is still in flight. Distinct from `loading`, which cannot separate the two cases it covers: the first fetch (nothing on screen — show a skeleton) and a refinement of results already visible (keep them, and say they are provisional). Blanking the panel on the second is the most jarring thing a picker can do; showing the old list with no indication is a quiet lie. Bind `svSuggestController(...).stale` from `@styloviz/data`, or `createRequestGuard().stale` from `@styloviz/core`. The results dim and report `aria-busy` while staying fully interactive. |
@@ -96,10 +100,18 @@ export class DemoComponent {}
 | `cleared` | `void` | Emitted when the input is cleared via the × button. |
 | `valueChange` | `string` | Emits the new `value` whenever it changes — the output half of `[(value)]`. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-search-bar` | Output-driven — An event-driven search workflow, not a field: `(searched)` while typing, `(submitted)` on Enter, suggestions and filters — the results live elsewhere. Two-way bind `[(value)]` for the query text. |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs/search-bar
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

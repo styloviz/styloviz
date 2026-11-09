@@ -2,7 +2,7 @@
   [ngClass]="rootClasses()"
   [attr.role]="clickable() ? 'button' : null"
   [attr.tabindex]="clickable() ? 0 : null"
-  [attr.aria-label]="clickable() ? (name() || alt() || 'Avatar') : null"
+  [attr.aria-label]="clickable() ? (name() || alt() || labels.avatar) : null"
   (click)="onClick($event)"
   (keydown.enter)="onClick($event)"
   (keydown.space)="onClick($event)"
@@ -56,7 +56,7 @@
 
       <!-- Generic fallback icon (no image, no name) -->
       @if (showIcon()) {
-        <sv-icon name="user" cssClass="h-[55%] w-[55%] opacity-60" />
+        <sv-icon name="user" [size]="fallbackIconPx()" cssClass="block shrink-0 opacity-60" />
       }
     </span>
 
@@ -70,8 +70,8 @@
       -->
       <span
         class="absolute flex items-center justify-center rounded-full ring-2 ring-white dark:ring-gray-900"
-        [ngClass]="[statusSizeClasses(), statusShape() === 'hollow' ? 'bg-white dark:bg-gray-900 border-2 ' + statusBorderClass() : statusColorClass(), (verified() && !showBadge()) ? 'top-0 right-0' : 'bottom-0 right-0']"
-        [attr.aria-label]="statusTextVisible() ? null : 'Status: ' + statusText()"
+        [ngClass]="[statusSizeClasses(), statusShape() === 'hollow' ? 'bg-white dark:bg-gray-900 border-2 ' + statusBorderClass() : statusColorClass(), (verified() && !showBadge()) ? 'top-0 end-0' : 'bottom-0 end-0']"
+        [attr.aria-label]="statusTextVisible() ? null : (labels.statusOf | svLabel: { status: statusText() })"
         [attr.role]="statusTextVisible() ? null : 'img'"
         [attr.aria-hidden]="statusTextVisible() ? 'true' : null"
         data-sv-avatar-status
@@ -90,7 +90,7 @@
     <!-- ── Notification badge ─────────────────────────────────────────── -->
     @if (showBadge()) {
       <span
-        class="absolute -right-1 -top-1 flex items-center justify-center rounded-full
+        class="absolute -end-1 -top-1 flex items-center justify-center rounded-full
                bg-danger-600 font-bold leading-none text-white tabular-nums
                ring-2 ring-white dark:ring-gray-900"
         [ngClass]="badgeSizeClasses()"
@@ -105,11 +105,11 @@
     <!-- ── Verified checkmark ─────────────────────────────────────────── -->
     @if (verified() && !showBadge()) {
       <span
-        class="absolute bottom-0 right-0 flex items-center justify-center rounded-full
+        class="absolute bottom-0 end-0 flex items-center justify-center rounded-full
                bg-primary-500 ring-2 ring-white dark:ring-gray-900"
         [ngClass]="size() === 'xs' || size() === 'sm' ? 'h-3.5 w-3.5' :
                    size() === 'md' ? 'h-4 w-4' : 'h-5 w-5'"
-        aria-label="Verified"
+        [attr.aria-label]="labels.verified"
         role="img"
       >
         <svg class="h-[65%] w-[65%] text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6l3 3 5-5" /></svg>

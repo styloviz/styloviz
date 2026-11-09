@@ -1,0 +1,166 @@
+@if (open()) {
+  <section
+    data-sv-onboarding-checklist
+    [attr.data-variant]="variant()"
+    [attr.data-complete]="loaded() && complete() ? 'true' : null"
+    [attr.aria-labelledby]="titleId"
+    [attr.aria-busy]="loading() ? 'true' : null"
+    [class]="rootClass()">
+
+    <!-- ── Header: ring, heading, progress, controls ───────────────────────── -->
+    <div class="flex items-start gap-4">
+      @if (loaded()) {
+        <sv-progress-ring
+          class="shrink-0"
+          [size]="isCard() ? 'sm' : 'xs'"
+          [value]="progress().pct"
+          [ariaLabel]="text().onboardingProgressName"
+          [valueText]="progressText()" />
+      }
+
+      <div class="min-w-0 flex-1">
+        <div role="heading" [attr.aria-level]="headingLevel()" [id]="titleId"
+             class="text-base font-semibold text-gray-900 dark:text-white">
+          {{ heading() }}
+        </div>
+        @if (description()) {
+          <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-300">{{ description() }}</p>
+        }
+        @if (loaded()) {
+          <p class="mt-1 text-sm font-medium text-gray-700 tabular-nums dark:text-gray-200" data-sv-onboarding-progress>
+            {{ progressText() }}
+          </p>
+          @if (hasOptional()) {
+            <p class="mt-0.5 text-xs text-gray-600 dark:text-gray-400">{{ text().onboardingOptionalNote }}</p>
+          }
+        }
+      </div>
+
+      @if (collapsible() || dismissible()) {
+        <div class="-me-1 -mt-1 flex shrink-0 items-center gap-1">
+          @if (collapsible()) {
+            <button
+              type="button"
+              data-sv-onboarding-collapse
+              [class]="iconButtonClass"
+              [attr.aria-expanded]="!collapsed()"
+              [attr.aria-controls]="bodyId"
+              [attr.aria-label]="collapsed() ? text().onboardingExpand : text().onboardingCollapse"
+              (click)="toggleCollapsed()">
+              <sv-icon name="chevron-down"
+                       [cssClass]="collapsed() ? 'h-4 w-4 transition-transform motion-reduce:transition-none' : 'h-4 w-4 rotate-180 transition-transform motion-reduce:transition-none'" />
+            </button>
+          }
+          @if (dismissible()) {
+            <button
+              type="button"
+              data-sv-onboarding-dismiss
+              [class]="iconButtonClass"
+              [attr.aria-label]="text().onboardingDismiss"
+              (click)="dismiss()">
+              <sv-icon name="close" cssClass="h-4 w-4" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+    <div [id]="bodyId" [hidden]="collapsed()" class="mt-4">
+      @if (loading()) {
+        <sv-skeleton-shell variant="list" [rows]="3" [ariaLabel]="text().onboardingLoading" />
+      } @else if (error()) {
+        <sv-error-shell [error]="error()" [compact]="true" [title]="text().onboardingErrorTitle" (retry)="retry.emit()" />
+      } @else if (rows().length === 0) {
+        <sv-empty-shell [compact]="true" [title]="text().onboardingEmptyTitle" [message]="text().onboardingEmptyMessage" />
+      } @else {
+        <ol role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
+          @for (row of rows(); track row.id) {
+            <li class="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                [attr.data-sv-onboarding-step]="row.id"
+                [attr.data-done]="row.done ? 'true' : null">
+              @if (checkable()) {
+                <!-- The wrapping label is the 24×24 hit area (sv-target); the title's label names it. -->
+                <label class="sv-target mt-0.5 inline-flex shrink-0">
+                  <input
+                    type="checkbox"
+                    [id]="row.inputId"
+                    [checked]="row.done"
+                    [attr.aria-describedby]="row.description ? row.descriptionId : null"
+                    class="h-4 w-4 cursor-pointer rounded accent-primary-600 focus-visible:outline-none
+                           focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+                           dark:accent-primary-500 dark:focus-visible:ring-offset-gray-900"
+                    (change)="toggle(row, $event)" />
+                </label>
+              } @else if (row.done) {
+                <sv-icon name="check-circle" cssClass="mt-0.5 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" />
+              } @else {
+                <span class="mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 border-gray-300 dark:border-gray-600" aria-hidden="true"></span>
+              }
+
+              <div class="min-w-0 flex-1">
+                @if (checkable()) {
+                  <label [for]="row.inputId" [id]="row.titleId"
+                         class="cursor-pointer text-sm font-medium"
+                         [class]="row.done ? 'text-gray-600 line-through dark:text-gray-400' : 'text-gray-900 dark:text-white'">
+                    {{ row.title }}
+                    @if (row.optional) {
+                      <span class="ms-1.5 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 align-middle text-[11px] font-medium text-gray-700 no-underline dark:bg-gray-800 dark:text-gray-300">{{ text().onboardingOptional }}</span>
+                    }
+                  </label>
+                } @else {
+                  <p [id]="row.titleId" class="text-sm font-medium"
+                     [class]="row.done ? 'text-gray-600 line-through dark:text-gray-400' : 'text-gray-900 dark:text-white'">
+                    {{ row.title }}<span class="sr-only">, {{ row.done ? text().onboardingStepDone : text().onboardingStepTodo }}</span>
+                    @if (row.optional) {
+                      <span class="ms-1.5 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 align-middle text-[11px] font-medium text-gray-700 no-underline dark:bg-gray-800 dark:text-gray-300">{{ text().onboardingOptional }}</span>
+                    }
+                  </p>
+                }
+                @if (row.description) {
+                  <p [id]="row.descriptionId" class="mt-0.5 text-xs leading-relaxed text-gray-600 dark:text-gray-400">{{ row.description }}</p>
+                }
+              </div>
+
+              @if (!row.done && row.actionLabel) {
+                @if (row.href) {
+                  <a [attr.href]="row.href"
+                     data-sv-onboarding-action
+                     [attr.aria-describedby]="row.titleId"
+                     class="inline-flex shrink-0 items-center gap-1 rounded-md text-sm font-semibold text-primary-700 hover:text-primary-800
+                            hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
+                            dark:text-primary-300 dark:hover:text-primary-200"
+                     (click)="act(row)">
+                    {{ row.actionLabel }}
+                    <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5 rtl:-scale-x-100" />
+                  </a>
+                } @else {
+                  <button type="button"
+                          data-sv-onboarding-action
+                          [attr.aria-describedby]="row.titleId"
+                          class="inline-flex min-h-8 shrink-0 items-center rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs font-semibold
+                                 text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2
+                                 focus-visible:ring-primary-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
+                          (click)="act(row)">
+                    {{ row.actionLabel }}
+                  </button>
+                }
+              }
+            </li>
+          }
+        </ol>
+      }
+
+      <!-- Polite, and present before it has anything to say, so the change is announced. -->
+      <div role="status" aria-live="polite">
+        @if (loaded() && complete()) {
+          <p class="mt-4 flex items-center gap-2 rounded-xl bg-primary-50 px-3 py-2 text-sm font-medium text-primary-800
+                    dark:bg-primary-900/30 dark:text-primary-200" data-sv-onboarding-complete>
+            <sv-icon name="check-circle" cssClass="h-4 w-4 shrink-0" />
+            {{ text().onboardingComplete }}
+          </p>
+        }
+      </div>
+    </div>
+  </section>
+}

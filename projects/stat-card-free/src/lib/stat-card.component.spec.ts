@@ -1,12 +1,17 @@
 import { render } from '@testing-library/angular';
 import { TestBed } from '@angular/core/testing';
 import { SvStatCardComponent } from './stat-card.component';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /** Resets TestBed so a single test can render more than once. */
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvStatCardComponent, { inputs });
+  const { fixture } = await render(SvStatCardComponent, { providers: [HOST_ICONS], inputs });
   return fixture.componentInstance;
 }
 
@@ -72,6 +77,7 @@ describe('SvStatCardComponent — glyphs come from the library', () => {
    */
   it('renders the icon from the library, not from a path', async () => {
     const { fixture } = await render(SvStatCardComponent, {
+      providers: [HOST_ICONS],
       inputs: { title: 'Revenue', value: 100, icon: 'star' },
     });
     const host = fixture.nativeElement as HTMLElement;
@@ -82,6 +88,7 @@ describe('SvStatCardComponent — glyphs come from the library', () => {
 
   it('draws no glyph by hand', async () => {
     const { fixture } = await render(SvStatCardComponent, {
+      providers: [HOST_ICONS],
       inputs: { title: 'Revenue', value: 100, icon: 'star', trend: 'up', trendPercent: 4 },
     });
     const host = fixture.nativeElement as HTMLElement;
@@ -100,7 +107,7 @@ describe('SvStatCardComponent — load failure', () => {
   // to suggest otherwise.
   async function el(inputs: Record<string, unknown>) {
     TestBed.resetTestingModule();
-    const { fixture } = await render(SvStatCardComponent, { inputs });
+    const { fixture } = await render(SvStatCardComponent, { providers: [HOST_ICONS], inputs });
     return fixture.nativeElement as HTMLElement;
   }
 
@@ -142,7 +149,10 @@ describe('SvStatCardComponent — trend period and freshness in EVERY layout', (
 
   async function mount(inputs: Record<string, unknown>) {
     TestBed.resetTestingModule();
-    const { fixture } = await render(SvStatCardComponent, { inputs: { title: 'Revenue', value: 4821, ...inputs } });
+    const { fixture } = await render(SvStatCardComponent, {
+      providers: [HOST_ICONS],
+      inputs: { title: 'Revenue', value: 4821, ...inputs },
+    });
     return fixture.nativeElement as HTMLElement;
   }
 

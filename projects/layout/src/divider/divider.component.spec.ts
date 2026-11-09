@@ -1,7 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import { SvDividerComponent } from './divider.component';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * A separator whose whole job is a line and, sometimes, a label sitting in a
@@ -13,7 +18,10 @@ import { ICON_REGISTRY } from '@styloviz/icons';
 
 async function setup(inputs: Partial<ComponentInput<SvDividerComponent>> = {}) {
   TestBed.resetTestingModule();
-  return render(SvDividerComponent, { inputs: inputs as ComponentInput<SvDividerComponent> });
+  return render(SvDividerComponent, {
+    providers: [HOST_ICONS],
+    inputs: inputs as ComponentInput<SvDividerComponent>,
+  });
 }
 
 const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
@@ -97,7 +105,7 @@ describe('SvDividerComponent — the line itself', () => {
     expect(h.componentInstance.lineStyle()).toContain('border-top-width:3px');
 
     const { fixture: v } = await setup({ orientation: 'vertical', thickness: 3 });
-    expect(v.componentInstance.lineStyle()).toContain('border-left-width:3px');
+    expect(v.componentInstance.lineStyle()).toContain('border-inline-start-width:3px');
   });
 
   it.each(['dashed', 'dotted'] as const)('draws a %s rule', async (variant) => {

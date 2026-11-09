@@ -9,8 +9,19 @@ import {
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { SvFieldErrorComponent, createFieldError, svDigitsOnly, svNormalizeDigits, type SvServerError, svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import {
+  SvFieldErrorComponent,
+  createCompositionGuard,
+  createFieldError,
+  type SvServerError,
+} from '@styloviz/core/forms';
+import { svDigitsOnly, svNormalizeDigits, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
+
+import { registerInputMaskIcons } from './input-mask.component.icons';
+type SvMaskLabelKey = Extract<keyof SvFormsLabels, `mask${string}`>;
 
 export type InputMaskPreset = 'phone-us' | 'phone-intl' | 'credit-card' | 'date' | 'time' | 'ssn' | 'zip' | 'ip' | 'custom';
 export type InputMaskSize   = 'sm' | 'md' | 'lg';
@@ -48,16 +59,18 @@ export type InputMaskSize   = 'sm' | 'md' | 'lg';
 export type InputMaskSensitivity = 'auto' | 'sensitive' | 'ordinary';
 export type InputMaskVariant = 'default' | 'filled' | 'ghost';
 
-const PRESETS: Record<InputMaskPreset, { mask: string; placeholder: string; label: string }> = {
-  'phone-us':    { mask: '(###) ###-####',     placeholder: '(555) 555-1234',  label: 'Phone (US)'      },
-  'phone-intl':  { mask: '+# (###) ###-####',  placeholder: '+1 (555) 555-1234', label: 'Phone (Intl)' },
-  'credit-card': { mask: '#### #### #### ####', placeholder: '1234 5678 9012 3456', label: 'Credit Card' },
-  'date':        { mask: '##/##/####',          placeholder: 'MM/DD/YYYY',      label: 'Date'            },
-  'time':        { mask: '##:##',               placeholder: 'HH:MM',           label: 'Time'            },
-  'ssn':         { mask: '###-##-####',         placeholder: '123-45-6789',      label: 'SSN'             },
-  'zip':         { mask: '#####-####',          placeholder: '12345-6789',       label: 'ZIP+4'           },
-  'ip':          { mask: '###.###.###.###',     placeholder: '192.168.001.001',  label: 'IP Address'      },
-  'custom':      { mask: '',                    placeholder: '',                  label: 'Custom'          },
+/** Each preset's mask, placeholder, and the `SvFormsLabels` key of its default label. */
+const PRESETS: Record<InputMaskPreset, { mask: string; placeholder: string; label: SvMaskLabelKey }> = {
+  'phone-us':    { mask: '(###) ###-####',      placeholder: '(555) 555-1234',      label: 'maskPhoneUs'    },
+  'phone-intl':  { mask: '+# (###) ###-####',   placeholder: '+1 (555) 555-1234',   label: 'maskPhoneIntl'  },
+  'credit-card': { mask: '#### #### #### ####', placeholder: '1234 5678 9012 3456', label: 'maskCreditCard' },
+  // `date` and `time` are built from the locale — see `activeMask` / `activePlaceholder`.
+  'date':        { mask: '',                    placeholder: '',                    label: 'maskDate'       },
+  'time':        { mask: '',                    placeholder: '',                    label: 'maskTime'       },
+  'ssn':         { mask: '###-##-####',         placeholder: '123-45-6789',         label: 'maskSsn'        },
+  'zip':         { mask: '#####-####',          placeholder: '12345-6789',          label: 'maskZip'        },
+  'ip':          { mask: '###.###.###.###',     placeholder: '192.168.001.001',     label: 'maskIp'         },
+  'custom':      { mask: '',                    placeholder: '',                    label: 'maskCustom'     },
 };
 
 /**
@@ -176,54 +189,92 @@ function isLeapYear(year: number): boolean {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
+/**
+ * The numeric date's field order and separator in `locale`, from `Intl`
+ * (`FI-13-I4`): `{ order: ['d','m','y'], separator: '.' }` for German.
+ * Falls back to US `MM/DD/YYYY` where `Intl` cannot answer.
+ */
+export function svDateMaskFormat(locale: string): { order: InputMaskDateOrder; separator: string } {
+  try {
+    const parts = new Intl.DateTimeFormat(locale || undefined, { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC' })
+      .formatToParts(new Date(Date.UTC(2006, 10, 22)));
+    const order = parts
+      .filter((p) => p.type === 'day' || p.type === 'month' || p.type === 'year')
+      .map((p) => (p.type === 'day' ? 'd' : p.type === 'month' ? 'm' : 'y') as 'd' | 'm' | 'y');
+    // The literal BETWEEN the first two fields — a trailing `.` (de) or `日` is not a separator.
+    const first = parts.findIndex((p) => p.type === 'day' || p.type === 'month' || p.type === 'year');
+    const separator = (parts[first + 1]?.type === 'literal' ? parts[first + 1].value : '/').trim() || '/';
+    if (order.length === 3 && new Set(order).size === 3 && /^[^\p{L}\p{N}]{1,2}$/u.test(separator)) return { order, separator };
+  } catch {
+    // An unknown locale: the US form below.
+  }
+  return { order: ['m', 'd', 'y'], separator: '/' };
+}
+
+/** The hour/minute separator of a 24-hour time in `locale` — `:` almost everywhere, `.` in Finnish. */
+export function svTimeMaskSeparator(locale: string): string {
+  try {
+    const parts = new Intl.DateTimeFormat(locale || undefined, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' })
+      .formatToParts(new Date(Date.UTC(2006, 10, 22, 13, 45)));
+    const hour = parts.findIndex((p) => p.type === 'hour');
+    const sep = parts[hour + 1]?.type === 'literal' ? parts[hour + 1].value.trim() : '';
+    if (/^[^\p{L}\p{N}]$/u.test(sep)) return sep;
+  } catch {
+    // An unknown locale: the colon.
+  }
+  return ':';
+}
+
 function daysInMonth(month: number, year: number): number {
   const days = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return days[month - 1] ?? 31;
 }
 
+/** A date field's order in the locale: `['m','d','y']` is MM/DD/YYYY. */
+export type InputMaskDateOrder = readonly ('d' | 'm' | 'y')[];
+
+const FIELD_LEN = { d: 2, m: 2, y: 4 } as const;
+
 /**
- * Validates a partial or complete MMDDYYYY digit string against real calendar
- * rules, so an invalid date (month 13, day 32, Feb 30, Feb 29 on a non-leap
- * year…) can never be fully typed — invalid keystrokes are rejected the
- * moment they'd make the date impossible, not just after the fact.
- * An empty string is always valid (nothing typed yet).
+ * Validates a partial or complete date digit string in `order` (MMDDYYYY,
+ * DDMMYYYY, YYYYMMDD…) against real calendar rules, so an invalid date
+ * (month 13, day 32, Feb 30, Feb 29 on a non-leap year…) can never be fully
+ * typed — invalid keystrokes are rejected the moment they would make the date
+ * impossible, not just after the fact. An empty string is always valid.
+ *
+ * ★ A day typed BEFORE its month (DD.MM) is checked against 31 until the month
+ *   arrives, then against that month; a Feb 29 is accepted tentatively until
+ *   the year completes — the same leniency the MM/DD order always had.
  */
-function isValidPartialDate(raw: string): boolean {
+function isValidPartialDate(raw: string, order: InputMaskDateOrder = ['m', 'd', 'y']): boolean {
   if (!raw) return true;
-
-  // Month, first digit: only 0 or 1 can ever start a valid month.
-  if (raw[0] !== '0' && raw[0] !== '1') return false;
-
-  // Month, both digits: must be 01–12.
-  if (raw.length >= 2) {
-    const month = Number(raw.slice(0, 2));
-    if (month < 1 || month > 12) return false;
+  const parts: Partial<Record<'d' | 'm' | 'y', string>> = {};
+  let at = 0;
+  for (const f of order) {
+    if (at >= raw.length) break;
+    parts[f] = raw.slice(at, at + FIELD_LEN[f]);
+    at += FIELD_LEN[f];
   }
+  const m = parts.m ?? '';
+  const d = parts.d ?? '';
+  const y = parts.y ?? '';
 
-  const month = raw.length >= 2 ? Number(raw.slice(0, 2)) : 0;
+  // Month: only 0 or 1 can start one; both digits must be 01–12.
+  if (m.length >= 1 && m[0] !== '0' && m[0] !== '1') return false;
+  const month = m.length === 2 ? Number(m) : 0;
+  if (m.length === 2 && (month < 1 || month > 12)) return false;
 
-  // Day, first digit: bounded by the tens digit of the month's max day count.
-  // Feb is checked leniently (up to 29) until the year narrows it down below.
-  if (raw.length >= 3) {
-    const maxDay = month ? daysInMonth(month, 2000 /* leap-tentative */) : 31;
-    if (Number(raw[2]) > Math.floor(maxDay / 10)) return false;
-  }
-
-  // Day, both digits: must be within the month's day count.
-  if (raw.length >= 4) {
-    const day = Number(raw.slice(2, 4));
-    const maxDay = month ? daysInMonth(month, 2000) : 31;
+  // Day: bounded by the month's day count once the month is known (Feb leniently).
+  const year = y.length === 4 ? Number(y) : 2000; /* leap-tentative */
+  const maxDay = month ? daysInMonth(month, year) : 31;
+  if (d.length >= 1 && Number(d[0]) > Math.floor(maxDay / 10)) return false;
+  if (d.length === 2) {
+    const day = Number(d);
     if (day < 1 || day > maxDay) return false;
   }
 
-  // Once the year is fully typed, re-check the day against the *real*
-  // leap-year rule — a Feb 29 accepted tentatively above may turn out
-  // invalid once the year completes.
-  if (raw.length === 8) {
-    const day  = Number(raw.slice(2, 4));
-    const year = Number(raw.slice(4, 8));
-    if (year < 1 || day > daysInMonth(month, year)) return false;
-  }
+  // A complete year: no year 0, and a Feb 29 must now be a real one.
+  if (y.length === 4 && Number(y) < 1) return false;
 
   return true;
 }
@@ -246,9 +297,9 @@ function isValidPartialTime(raw: string): boolean {
  * validity, silently dropping anything after it. Presets other than
  * `date`/`time` are returned unchanged.
  */
-function buildValidRaw(fullRaw: string, preset: InputMaskPreset): string {
+function buildValidRaw(fullRaw: string, preset: InputMaskPreset, order: InputMaskDateOrder = ['m', 'd', 'y']): string {
   if (preset !== 'date' && preset !== 'time') return fullRaw;
-  const validate = preset === 'date' ? isValidPartialDate : isValidPartialTime;
+  const validate = preset === 'date' ? (r: string) => isValidPartialDate(r, order) : isValidPartialTime;
   let acc = '';
   for (const ch of Array.from(fullRaw)) {
     const next = acc + ch;
@@ -330,15 +381,32 @@ function withoutCountryCode(text: string, mask: string, preset: InputMaskPreset)
   ],
 })
 export class SvInputMaskComponent implements ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerInputMaskIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+  /** The kit's locale, for the rejection announcement's plural form. */
+  private readonly labelLocale = svLocale();
+
+  /**
+   * BCP 47 locale for the `date` and `time` presets (`FI-13-I4`): the date's
+   * field order and separator — `MM/DD/YYYY` in en-US, `DD.MM.YYYY` in German,
+   * `YYYY/MM/DD` in Japanese — and the time separator come from `Intl`, and the
+   * placeholder letters from the labels. `phone-us`, `ssn` and `zip` are US
+   * formats whatever the locale, and say so in their default labels.
+   * @default the kit's locale (`SV_LOCALE`)
+   */
+  readonly locale = input<string>(svLocale());
+
   /** Built-in mask preset (phone, credit card, date, SSN, ZIP, IP…). @default 'phone-us' */
   preset      = input<InputMaskPreset>('phone-us');
   /**
    * Custom mask pattern, used when `preset` is `custom`.
    *
-   * `#` is the only placeholder character and it accepts a digit; every other
-   * character is a literal that is typed in for the user (e.g. '###-##' or
-   * '## / ##'). A mask with no `#` in it can never accept input, because the
-   * only characters this control reads from a keystroke are digits.
+   * Tokens: `#` a digit, `A` a letter, `*` either; every other character is
+   * a literal that is typed in for the user (e.g. '###-##' or 'AA-####'). A
+   * mask with no token in it can never accept input.
    */
   customMask  = input<string>('');
   /** Formatted value (two-way). */
@@ -349,16 +417,24 @@ export class SvInputMaskComponent implements ControlValueAccessor {
   variant     = input<InputMaskVariant>('default');
   /** Disable the field. @default false */
   disabled    = input<boolean>(false);
-  /** Accessible label for the field. */
+  /** Visible field label rendered above the input. @default '' */
   label       = input<string>('');
+  /**
+   * Accessible name applied via `aria-label` on the actual `<input>` while
+   * `label` is hidden. Use when a parent component owns the visible label
+   * and only needs the input to announce its purpose (e.g. `sv-phone-input`,
+   * which renders a single shared label for the country button + number
+   * field) — `SR-03`.
+   * @default ''
+   */
+  ariaLabel   = input<string>('');
   /** Error message shown below the field. */
   error       = input<string>('');
   /**
    * Name of an icon in `@styloviz/icons`, e.g. `'credit-card'`.
    *
-   * This used to be a raw `<path d="…">` string. That put SVG geometry in
-   * every consumer's config and skipped the library's sizing, stroke and
-   * dark-mode handling — pass a name instead.
+   * A name, not a raw `<path d="…">` string: the library supplies the sizing,
+   * stroke and dark-mode handling.
    */
   icon        = input<string>('');
 
@@ -371,6 +447,33 @@ export class SvInputMaskComponent implements ControlValueAccessor {
    * why the second one is the part that surprises people.
    */
   sensitivity = input<InputMaskSensitivity>('auto');
+  /** Placeholder override. Empty uses the mask's own underscores. @default '' */
+  placeholder = input<string>('');
+  /** Mark the field required (native `required` + `aria-required`). @default false */
+  required    = input<boolean>(false);
+  /** The `name` the input submits under in a native form. @default '' */
+  name        = input<string>('');
+  /**
+   * Virtual-keyboard override. `null` keeps the preset's choice (`tel` for the
+   * phone presets, `numeric` for the digit presets, `text` for `custom`) — a
+   * `custom` mask that only takes digits wants `'tel'` or `'numeric'` here, or
+   * a phone shows the full QWERTY keyboard.
+   * @default null
+   */
+  inputmode   = input<'tel' | 'numeric' | 'decimal' | 'text' | null>(null);
+  /**
+   * `autocomplete` token override, e.g. `'tel-national'`. Empty keeps the
+   * preset's token. Ignored on a sensitive field, which is always `off`.
+   * @default ''
+   */
+  autocomplete = input<string>('');
+  /**
+   * Text direction of the input itself. `'ltr'` keeps a number's digits and
+   * separators in reading order inside a right-to-left page, where `(555) 010`
+   * would otherwise be laid out around its punctuation. `null` inherits.
+   * @default null
+   */
+  inputDir    = input<'ltr' | 'rtl' | 'auto' | null>(null);
 
   /** Emitted with the masked/formatted value. */
   changed     = output<string>();
@@ -411,7 +514,9 @@ export class SvInputMaskComponent implements ControlValueAccessor {
   readonly errorId = `${this._uid}-error`;
 
   /** Virtual-keyboard hint based on the preset. */
-  readonly inputMode = computed<'tel' | 'numeric' | 'text'>(() => {
+  readonly inputMode = computed<'tel' | 'numeric' | 'decimal' | 'text'>(() => {
+    const override = this.inputmode();
+    if (override) return override;
     const p = this.preset();
     if (p === 'phone-us' || p === 'phone-intl') return 'tel';
     if (p === 'custom') return 'text';
@@ -444,6 +549,8 @@ export class SvInputMaskComponent implements ControlValueAccessor {
    */
   readonly autocompleteToken = computed<string>(() => {
     if (this.isSensitive()) return 'off';
+    const override = this.autocomplete().trim();
+    if (override) return override;
     switch (this.preset()) {
       case 'phone-us':
       case 'phone-intl': return 'tel';
@@ -570,33 +677,76 @@ export class SvInputMaskComponent implements ControlValueAccessor {
   readonly rejectedMessage = computed<string>(() => {
     const n = this.rejectedCount();
     if (n === 0) return '';
-    return n === 1
-      ? '1 character did not fit this format and was not entered.'
-      : `${n} characters did not fit this format and were not entered.`;
+    return svFormatLabel(this.labels.maskRejected, { count: n, n: String(n) }, this.labelLocale);
   });
 
+  /** The `date` preset's field order and separator in `locale`, read from `Intl`. */
+  readonly dateFormat = computed(() => svDateMaskFormat(this.locale()));
+  /** The `time` preset's separator in `locale` (24-hour, `HH:MM`). */
+  readonly timeSeparator = computed(() => svTimeMaskSeparator(this.locale()));
+
   readonly activeMask = computed(() => {
-    if (this.preset() === 'custom') return this.customMask();
-    return PRESETS[this.preset()].mask;
+    const preset = this.preset();
+    if (preset === 'custom') return this.customMask();
+    if (preset === 'date') {
+      const { order, separator } = this.dateFormat();
+      return order.map((f) => '#'.repeat(FIELD_LEN[f])).join(separator);
+    }
+    if (preset === 'time') return `##${this.timeSeparator()}##`;
+    return PRESETS[preset].mask;
   });
 
   readonly activePlaceholder = computed(() => {
+    if (this.placeholder()) return this.placeholder();
     // Every token becomes an underscore, not just `#` — `A` and `*` are
     // slots too, and a placeholder showing a literal `A` reads as a letter
     // the user is supposed to type.
     if (this.preset() === 'custom') return this.customMask().replace(/[#A*]/g, '_');
+    if (this.preset() === 'date') {
+      // The locale's order and separator, spelled with the locale's letters (TT.MM.JJJJ).
+      const { order, separator } = this.dateFormat();
+      const letter = { d: this.labels.maskDayLetters, m: this.labels.maskMonthLetters, y: this.labels.maskYearLetters };
+      return order.map((f) => letter[f]).join(separator);
+    }
+    if (this.preset() === 'time') {
+      return `${this.labels.maskHourLetters}${this.timeSeparator()}${this.labels.maskMinuteLetters}`;
+    }
     return PRESETS[this.preset()].placeholder;
   });
 
   readonly activeLabel = computed(() => {
+    // The mask renders no <label> when a parent owns the visible label and
+    // supplies `ariaLabel` instead — `SR-03`.
+    if (this.ariaLabel() && !this.label()) return '';
     if (this.label()) return this.label();
-    if (this.preset() === 'custom') return 'Custom Mask';
-    return PRESETS[this.preset()].label;
+    return this.labels[PRESETS[this.preset()].label];
   });
 
   readonly displayValue = computed(() => this.value());
 
+  // ── IME composition (`FI-13-M5`) ─────────────────────────────────────────
+  //
+  // ★★★ A CJK IME COMPOSES IN THE FIELD. Full-width digits typed through a
+  //     Japanese or Chinese IME arrive as a run of `input` events carrying
+  //     uncommitted text; reformatting each one rewrites the field under the
+  //     IME, which loses its composition (the candidate window jumps or the
+  //     text doubles). The mask waits for `compositionend` and formats the
+  //     committed text once — the same guard `sv-mention` uses.
+
+  /** Whose keystrokes these are while an IME is composing. */
+  protected readonly ime = createCompositionGuard();
+
+  onCompositionStart(): void { this.ime.start(); }
+
+  onCompositionEnd(e: CompositionEvent): void {
+    this.ime.end();
+    const el = e.target as HTMLInputElement | null;
+    if (el) this.accept(el.value, el);
+  }
+
   onInput(e: Event): void {
+    // Uncommitted IME text is the IME's, not the mask's.
+    if (this.ime.composing() || (e as InputEvent).isComposing === true) return;
     this.accept((e.target as HTMLInputElement).value, e.target as HTMLInputElement);
   }
 
@@ -633,7 +783,7 @@ export class SvInputMaskComponent implements ControlValueAccessor {
   private shape(text: string): { masked: string; raw: string; rejected: number } {
     const mask = this.activeMask();
     const { filled, skipped } = extractForMask(withoutCountryCode(text, mask, this.preset()), mask);
-    const raw = buildValidRaw(filled, this.preset());
+    const raw = buildValidRaw(filled, this.preset(), this.dateFormat().order);
     // ★★★ `buildValidRaw` can drop characters too — it is the date/time
     //     partial validator — and those are refusals just as much as a letter
     //     in a digit slot. Counting them here is what makes `28/03` in a
@@ -674,6 +824,8 @@ export class SvInputMaskComponent implements ControlValueAccessor {
   }
 
   onKeydown(e: KeyboardEvent): void {
+    // A Backspace inside a composition edits the IME's candidate, not the mask.
+    if (this.ime.blocks(e)) return;
     // Allow backspace to remove last digit
     if (e.key === 'Backspace') {
       const el = e.target as HTMLInputElement;

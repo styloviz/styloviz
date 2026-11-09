@@ -1,6 +1,6 @@
 # Adding the Styloviz Errors Template to an existing app
 
-Version: **1.0.2**
+Version: **2.0.0**
 
 > **Just want to run it?** You don't need this file. This download is a complete
 > Angular project — see **README.md** (`npm install && npm start`).
@@ -27,8 +27,9 @@ npm i \
   @styloviz/core \
   @styloviz/icons \
   @styloviz/input-field \
+  @styloviz/kbd \
   @styloviz/layout \
-  @styloviz/toast
+  @styloviz/overlays
 ```
 
 ## 3. Copy the files
@@ -101,4 +102,4 @@ navigation, adding pages, wiring real data, and theming.
 
 ---
 
-_Package manifest: `template.manifest.json`. Licence: `LICENSE.txt`._
+_Package manifest: `template.manifest.json`. License: `LICENSE.txt`._

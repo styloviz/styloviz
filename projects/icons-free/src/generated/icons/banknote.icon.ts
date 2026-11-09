@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `banknote` icon. */
 export const banknoteNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const banknoteNodes: readonly IconNode[] = [
 export const banknoteSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 5.1h14q2.9 0 2.9 2.9v8q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-8q0-2.9 2.9-2.9zm10.4 6.9q0-3.4-3.4-3.4-3.4 0-3.4 3.4 0 3.4 3.4 3.4 3.4 0 3.4-3.4zm-1.8 0q0 1.6-1.6 1.6-1.6 0-1.6-1.6 0-1.6 1.6-1.6 1.6 0 1.6 1.6zm4.4 2.1q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9zm-12-6q-.9 0-.9.9 0 .9.9.9.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `banknote` as a registrable glyph — `registerSvIcons([banknoteIcon])` / `provideSvIcons([banknoteIcon])`. */
+export const banknoteIcon: SvIconDef = { name: 'banknote', nodes: banknoteNodes, solid: banknoteSolidNodes };
 
 /** `banknote` — tree-shakable standalone icon. Use `<sv-banknote-icon />`. */
 @Component({

@@ -13,28 +13,23 @@ import {
   untracked,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  createAsyncAction,
-  SvLiveAnnouncer,
-  svNavParam,
-  svNavRecorder,
-  svRecoverFocus,
-  svUniqueId,
-  svWarnOnce,
-  type SvDataError,
-  type SvNavIntent,
-  type SvRequest,
-  type SvUnresolvedValue,
-  svAttrSelector,
-} from '@styloviz/core';
+import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
+import { createAsyncAction, type SvDataError, type SvRequest, type SvUnresolvedValue } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
+import { svNavParam, svNavRecorder, type SvNavIntent } from '@styloviz/core/nav';
+import { svRecoverFocus } from '@styloviz/core/overlay';
+import { svAttrSelector } from '@styloviz/core/security';
 import { SvIconComponent } from '@styloviz/icons';
 import { FormsModule } from '@angular/forms';
 import { createSvCursorPager } from './cursor-pager';
+import { SV_PAGINATION_LABELS } from './pagination.labels';
 
+import { registerPaginationIcons } from './pagination.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type PaginationSize    = 'sm' | 'md' | 'lg';
-export type PaginationVariant = 'default' | 'simple' | 'compact';
+export type PaginationVariant = 'default' | 'simple' | 'compact' | 'load-more';
 
 /**
  * How pages are addressed — `NV-04-M1`, `NV-04-I11`.
@@ -136,11 +131,19 @@ export interface SvPageRequest {
 @Component({
   selector: 'sv-pagination',
   standalone: true,
-  imports: [NgClass, FormsModule, SvIconComponent],
+  imports: [NgClass, FormsModule, SvIconComponent, SvLabelPipe],
   templateUrl: './pagination.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvPaginationComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerPaginationIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ pagination })` says otherwise. */
+  protected readonly labels = injectSvLabels('pagination', SV_PAGINATION_LABELS);
+  /** The kit's locale — fills the position label and the page announcements. */
+  private readonly locale = svLocale();
+
   private readonly host = inject(ElementRef);
   private readonly announcer = inject(SvLiveAnnouncer);
 
@@ -150,7 +153,8 @@ export class SvPaginationComponent implements OnDestroy {
    * the second "Rows per page" label pointed at the first control.
    */
   private readonly uid = svUniqueId('sv-pagination');
-  protected readonly pageSizeSelectId = `${this.uid}-page-size`;
+  protected readonly pageSizeSelectId = `${this.uid}-page-size`; // sv-i18n-ignore: DOM id
+  protected readonly jumpInputId = `${this.uid}-jump`; // sv-i18n-ignore: DOM id
 
   /**
    * One entry per page move, in the vocabulary every navigation family shares
@@ -240,7 +244,7 @@ export class SvPaginationComponent implements OnDestroy {
   loading = input<boolean>(false);
 
   /**
-   * A failed page load, normalized — `docs/async-contract-adr.md`. Rendered as a
+   * A failed page load, normalized with `toSvDataError()`. Rendered as a
    * `role="alert"` beside the controls. Unnecessary when `pageAction` is bound.
    * @default null
    */
@@ -326,8 +330,18 @@ export class SvPaginationComponent implements OnDestroy {
    */
   surfaceId = input<string | null>(null);
 
-  /** Visual variant. @default 'default' */
+  /**
+   * Visual variant. `load-more` is one button that asks for the next page — the
+   * host appends it to what is already shown — and a "Showing 40 of 95" count;
+   * it disappears once there is nothing more. @default 'default'
+   */
   variant = input<PaginationVariant>('default');
+
+  /**
+   * A "Go to page" box beside the page buttons. Needs a known total; an entry
+   * past either end goes to the first or the last page. @default false
+   */
+  jumpToPage = input<boolean>(false);
 
   /** Control size. @default 'md' */
   size = input<PaginationSize>('md');
@@ -336,7 +350,7 @@ export class SvPaginationComponent implements OnDestroy {
   showSummary = input<boolean>(true);
 
   /** Accessible label for the navigation landmark. @default 'Pagination' */
-  ariaLabel = input<string>('Pagination');
+  ariaLabel = input<string>(this.labels.pagination);
 
   /** Additional CSS classes on the root wrapper. */
   customClass = input<string>('');
@@ -565,7 +579,9 @@ export class SvPaginationComponent implements OnDestroy {
   readonly positionLabel = computed(() => {
     const total = this.totalPages();
     const page = this.currentPage();
-    return total === null ? `Page ${page}` : `Page ${page} of ${total}`;
+    return total === null
+      ? svFormatLabel(this.labels.positionPage, { page: String(page) }, this.locale)
+      : svFormatLabel(this.labels.positionPageOf, { page: String(page), total: String(total) }, this.locale);
   });
 
   /**
@@ -869,7 +885,7 @@ export class SvPaginationComponent implements OnDestroy {
           `user was on page ${page}. Offset paging asks for "rows 71–80 of whatever ` +
           'matches now", so a total that changes between requests shifts rows across ' +
           'the page boundary — the user can miss a row or see it twice, and no ' +
-          'component-side fix exists (NV-04-I11). If the dataset changes under the ' +
+          'component-side fix exists. If the dataset changes under the ' +
           'user, switch to [mode]="\'cursor\'". Warns once.',
       );
     });
@@ -912,6 +928,15 @@ export class SvPaginationComponent implements OnDestroy {
     this.goTo(this.currentPage() + 1, 'next');
   }
 
+  /** The "Go to page" box: a whole number goes there (clamped to the pages there are); anything else is ignored. */
+  protected jump(event: Event, field: HTMLInputElement): void {
+    event.preventDefault();
+    const page = Number.parseInt(field.value, 10);
+    if (!Number.isFinite(page)) return;
+    field.value = '';
+    this.goTo(page, 'jump');
+  }
+
   /** Go to the last page. A no-op without a total, which is the honest answer. */
   last(): void {
     const total = this.totalPages();
@@ -938,7 +963,7 @@ export class SvPaginationComponent implements OnDestroy {
         'pagination-cursor-goto',
         '<sv-pagination>: goTo() was called in [mode]="\'cursor\'", where a page ' +
           'number is not a fetchable address — a keyset cursor names a row, and ' +
-          'the cursor for an arbitrary page is not derivable (NV-04-M1). Use ' +
+          'the cursor for an arbitrary page is not derivable. Use ' +
           'next() / previous() / first(). The call was ignored.',
       );
       return;
@@ -1039,11 +1064,13 @@ export class SvPaginationComponent implements OnDestroy {
         // something rather than on `<body>`.
         to: [
           byLabel,
-          root.querySelector<HTMLElement>('[aria-label="Previous page"]'),
-          root.querySelector<HTMLElement>('[aria-label="Next page"]'),
+          root.querySelector<HTMLElement>(svAttrSelector('aria-label', this.labels.previousPage)),
+          root.querySelector<HTMLElement>(svAttrSelector('aria-label', this.labels.nextPage)),
         ],
         fallback: root.querySelector('nav'),
-        announce: loading ? `Loading page ${page}.` : `${this.positionLabel()}.`,
+        announce: loading
+          ? svFormatLabel(this.labels.announceLoadingPage, { page: String(page) }, this.locale)
+          : svFormatLabel(this.labels.announcePosition, { position: this.positionLabel() }, this.locale),
         announcer: this.announcer,
       });
     });
@@ -1066,7 +1093,9 @@ export class SvPaginationComponent implements OnDestroy {
       this.owedAnnouncement = false;
       const failure = this.activeError();
       this.announcer.announce(
-        failure ? `Could not load page ${this.currentPage()}. ${failure.message}` : `${this.positionLabel()}.`,
+        failure
+          ? svFormatLabel(this.labels.announceLoadFailed, { page: String(this.currentPage()), message: failure.message }, this.locale)
+          : svFormatLabel(this.labels.announcePosition, { position: this.positionLabel() }, this.locale),
       );
     });
   });

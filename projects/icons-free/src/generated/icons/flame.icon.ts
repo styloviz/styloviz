@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `flame` icon. */
 export const flameNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const flameNodes: readonly IconNode[] = [
 export const flameSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.8 2.6q.6 1.2 1.9 3.1 2.8 3.9 2.2 7.3 1 3.3-1.9 5.4-3 2.1-6 0-2.9-2.1-1.9-5.5-.3-2 .7-3.1.5-.5 1.2-.6.5-4.3 2.3-6.7.3-.4.6-.4.3-.1.6.2.2.1.3.3z' },
 ];
+
+/** `flame` as a registrable glyph — `registerSvIcons([flameIcon])` / `provideSvIcons([flameIcon])`. */
+export const flameIcon: SvIconDef = { name: 'flame', nodes: flameNodes, solid: flameSolidNodes };
 
 /** `flame` — tree-shakable standalone icon. Use `<sv-flame-icon />`. */
 @Component({

@@ -1,6 +1,7 @@
 import {
   ApplicationRef,
   ChangeDetectionStrategy,
+  DestroyRef,
   Component,
   computed,
   ElementRef,
@@ -19,18 +20,29 @@ import {
 import { booleanAttribute } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { forwardRef } from '@angular/core';
+import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
 import {
-  svStackedPopup,
+  svNumberOr,
   SvFieldErrorComponent,
   createFieldError,
+  type SvServerError,
+  svStringOr,
+} from '@styloviz/core/forms';
+import {
+  svLocale,
+  svDayPeriods,
+  svFormatLabel,
   svFormatTime,
   svParseTime,
   svResolveHour24,
-  type SvServerError,
-  svUniqueId,
-} from '@styloviz/core';
+  injectSvLabels,
+  SvLabelPipe,
+} from '@styloviz/core/i18n';
+import { createPortalHost, svInlineAnchor, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '../forms.labels';
 
+import { registerTimePickerIcons } from './time-picker.component.icons';
 export type TimePickerFormat = '12h' | '24h';
 export type TimePickerSize   = 'sm' | 'md' | 'lg';
 
@@ -66,7 +78,7 @@ function toMinutes(v: string): number | null {
   selector: 'sv-time-picker',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SvIconComponent, FormsModule, SvFieldErrorComponent],
+  imports: [SvIconComponent, FormsModule, SvFieldErrorComponent, SvLabelPipe],
   templateUrl: './time-picker.component.html',
   providers: [
     {
@@ -77,7 +89,14 @@ function toMinutes(v: string): number | null {
   ],
 })
 export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAccessor {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerTimePickerIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ forms })` says otherwise. */
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
+
   private readonly el     = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly appRef = inject(ApplicationRef);
 
   /**
@@ -120,11 +139,23 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   /** Accessible label for the control. */
   label       = input<string>('');
   /** Earliest selectable time ("HH:mm"). Earlier cells are disabled. */
-  min         = input<string>('');
+  min         = input('', { transform: svStringOr('') });
   /** Latest selectable time ("HH:mm"). Later cells are disabled. */
-  max         = input<string>('');
+  max         = input('', { transform: svStringOr('') });
   /** Include a seconds column. @default false */
   withSeconds = input<boolean>(false);
+  /**
+   * BCP 47 locale for the day periods on a 12-hour clock — `午前`/`午後` (written
+   * first) in Japanese, `a. m.`/`p. m.` in Spanish — read from `Intl`.
+   * @default the kit's locale (`SV_LOCALE`)
+   */
+  readonly locale = input<string>(svLocale());
+  /**
+   * Minutes between the cells of the minute column — `15` offers :00, :15, :30
+   * and :45. A typed or "now" time snaps down to the step. Whole numbers 1–59;
+   * anything else is 1. @default 1
+   */
+  readonly minuteStep = input(1, { transform: svNumberOr(1) });
   /**
    * Offer a text field inside the panel so the time can be TYPED.
    * @default true
@@ -165,6 +196,7 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
 
   // ── Portal state ──
   private portalEl: HTMLElement | null = null;
+  private portalHost: SvPortalHost | null = null;
   /**
    * On the overlay stack while open (`X-4`, `OF-09-I1`): without it a modal
    * this popup sits in stays "topmost", and one Escape closes both.
@@ -200,7 +232,27 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   readonly hours12 = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   readonly hours24 = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
   readonly minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-  readonly seconds = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  /** The step actually used: a whole number 1–59, else 1. */
+  readonly resolvedMinuteStep = computed(() => {
+    const step = this.minuteStep();
+    return Number.isInteger(step) && step >= 1 && step <= 59 ? step : 1;
+  });
+  /** The minute column's cells, every `minuteStep` minutes (`FI-28-M3`). */
+  readonly visibleMinutes = computed(() => {
+    const step = this.resolvedMinuteStep();
+    return step === 1 ? this.minutes : this.minutes.filter((_, i) => i % step === 0);
+  });
+
+  /** This locale's AM/PM markers and whether they come first (`FI-28-M4`). */
+  readonly dayPeriods = computed(() => svDayPeriods(this.locale()));
+  /** The period buttons, in clock order, each with its localised label. */
+  readonly periodOptions = computed(() => {
+    const { am, pm } = this.dayPeriods();
+    return [
+      { value: 'AM' as const, label: am },
+      { value: 'PM' as const, label: pm },
+    ];
+  });  readonly seconds = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
   // `||`, not `??`: an empty value splits to [''], which is present but not a
   // number. `??` let that through, and the next selection built a time around it.
@@ -326,7 +378,12 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     const spaceBelow = vh - rect.bottom;
     const spaceAbove = rect.top;
     const above = spaceBelow < PANEL_H && spaceAbove > spaceBelow;
-    const right  = rect.left + PANEL_W > vw;
+    // Start-edge alignment through the shared engine: the trigger's RIGHT edge
+    // under dir="rtl", with the end edge as the fallback when it would overflow.
+    const inline = svInlineAnchor({
+      anchor: rect, panelWidth: PANEL_W, viewportWidth: vw, rtl: svIsRtl(trigger), margin: MARGIN,
+    });
+    const right = inline.edge === 'right';
 
     this.openAbove.set(above);
     this.alignRight.set(right);
@@ -346,9 +403,8 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     // anchor to the opposite edge. A CSS `max-w` bounds SIZE, not POSITION — so
     // without this cap a far-edge-anchored panel still renders off-screen on a
     // narrow viewport (the bug that put Mega Menu's left edge at x=-220).
-    const anchor = right ? Math.max(MARGIN, vw - rect.right) : Math.max(MARGIN, rect.left);
-    style[right ? 'right' : 'left'] = `${anchor}px`;
-    style['maxWidth'] = `${vw - anchor - MARGIN}px`;
+    style[inline.edge] = `${inline.offset}px`;
+    style['maxWidth'] = `${inline.maxWidth}px`;
 
     this.panelStyle.set(style);
   }
@@ -369,8 +425,15 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     // Mount the panel into document.body via a lightweight portal.
     if (!this.panelTpl) return;
 
-    this.portalEl = document.createElement('div');
-    this.portalEl.className = 'sv-tp-portal';
+    // Context-carrying host: dir, lang and a locally scoped theme reach the
+    // panel (`X-7`); the DestroyRef takes it down even if teardown is skipped.
+    this.portalHost = createPortalHost({
+      origin: this.el.nativeElement,
+      className: 'sv-tp-portal',
+      label: 'time-picker',
+      destroyRef: this.destroyRef,
+    });
+    this.portalEl = this.portalHost.element;
 
     this.portalView = this.panelTpl.createEmbeddedView({});
     this.appRef.attachView(this.portalView);
@@ -380,7 +443,7 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     // scripts/fix-portal-insertion-order.mjs.
     this.portalView.detectChanges();
     this.portalView.rootNodes.forEach((n: Node) => this.portalEl!.appendChild(n));
-    document.body.appendChild(this.portalEl);
+    this.portalHost.attach();
 
     this.open.set(true);
     if (this.typed()) this.focusTypedDeferred();
@@ -416,6 +479,12 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
 
   private readonly minMinutes = computed(() => toMinutes(this.min()));
   private readonly maxMinutes = computed(() => toMinutes(this.max()));
+
+  /** A minute snapped DOWN to `minuteStep` — :07 is :00 with a 15-minute step. */
+  private snapMinute(minute: number): number {
+    const step = this.resolvedMinuteStep();
+    return Math.floor(minute / step) * step;
+  }
 
   /** Pull a minutes-since-midnight value into the configured window. */
   private clampToWindow(t: number): number {
@@ -480,7 +549,14 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
       column === 'hours' ? this.activeHourCell()
       : column === 'minutes' ? this.currentMinute()
       : this.currentSecond();
-    return item === active ? 0 : -1;
+    if (item === active) return 0;
+    // ★ A value off the minute step (a host's 09:07 with `minuteStep` 15) has no
+    //   cell, and a column with no tab stop cannot be reached by Tab at all —
+    //   the first enabled cell takes it instead.
+    if (column === 'minutes' && !this.visibleMinutes().includes(active)) {
+      return item === this.visibleMinutes().find((m) => !this.isMinuteDisabled(m)) ? 0 : -1;
+    }
+    return -1;
   }
 
   /** The hour cell that is "current", in whichever format the column shows. */
@@ -510,7 +586,7 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
   onColumnKeydown(event: KeyboardEvent, column: 'hours' | 'minutes' | 'seconds'): void {
     const items =
       column === 'hours' ? this.visibleHours()
-      : column === 'minutes' ? this.minutes
+      : column === 'minutes' ? this.visibleMinutes()
       : this.seconds;
     const current =
       column === 'hours' ? this.activeHourCell()
@@ -632,7 +708,8 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
       this.draftInvalid.set(false);
       return true;
     }
-    const parsed = svParseTime(text);
+    // The locale's own markers parse back — `午後 02:30` is what this field shows in Japanese.
+    const parsed = svParseTime(text, { locale: this.locale() });
     if (!parsed) {
       this.draftInvalid.set(true);
       return false;
@@ -656,9 +733,10 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
      *     would dirty a form the user had not changed, and "unsaved changes"
      *     guards would fire on a value nobody touched.
      */
+    const minute = this.snapMinute(parsed.minute);
     const next = this.withSeconds()
-      ? svFormatTime(hour, parsed.minute, parsed.second, true)
-      : svFormatTime(hour, parsed.minute, 0);
+      ? svFormatTime(hour, minute, parsed.second, true)
+      : svFormatTime(hour, minute, 0);
     if (next === this.value()) {
       this.draft.set(this.typedText());
       return true;
@@ -666,7 +744,7 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
 
     this.emit(
       hour.toString().padStart(2, '0'),
-      parsed.minute.toString().padStart(2, '0'),
+      minute.toString().padStart(2, '0'),
       parsed.second.toString().padStart(2, '0'),
     );
     // Re-read from the value, so the field shows the canonical form of what was
@@ -697,11 +775,13 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
     const hour = parseInt(h, 10);   // `split` always yields a first element
     if (this.format() === '12h') {
       const h12 = hour % 12 === 0 ? 12 : hour % 12;
-      const p = hour >= 12 ? 'PM' : 'AM';
+      const { am, pm, before } = this.dayPeriods();
+      const p = hour >= 12 ? pm : am;
       const core = this.withSeconds()
         ? `${h12.toString().padStart(2, '0')}:${m}:${sec ?? '00'}`
         : `${h12.toString().padStart(2, '0')}:${m}`;
-      return `${core} ${p}`;
+      // The locale decides the order: `09:30 AM`, but `午前 09:30` (`FI-28-M4`).
+      return before ? `${p} ${core}` : `${core} ${p}`;
     }
     return svFormatTime(hour, parseInt(m ?? '0', 10), parseInt(sec ?? '0', 10), this.withSeconds());
   });
@@ -714,11 +794,16 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    *   This is rendered as persistent help text and referenced by
    *   `aria-describedby`.
    */
-  readonly typedHint = computed<string>(() =>
-    this.format() === '12h'
-      ? (this.withSeconds() ? 'e.g. 2:30:15 PM' : 'e.g. 2:30 PM')
-      : (this.withSeconds() ? 'e.g. 14:30:15' : 'e.g. 14:30'),
-  );
+  readonly typedHint = computed<string>(() => {
+    const clock = this.withSeconds() ? '2:30:15' : '2:30';
+    let time = this.withSeconds() ? '14:30:15' : '14:30';
+    if (this.format() === '12h') {
+      // The example uses this locale's own afternoon marker, in its own place.
+      const { pm, before } = this.dayPeriods();
+      time = before ? `${pm} ${clock}` : `${clock} ${pm}`;
+    }
+    return svFormatLabel(this.labels.timePickerExample, { time }, this.locale());
+  });
 
   // ── Selection ─────────────────────────────────────────────────────────────
 
@@ -749,7 +834,8 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
    * Now — which makes this the one place the window has to be enforced.
    */
   private emit(h: string, m: string, s: string): void {
-    const t = this.clampToWindow(parseInt(h, 10) * 60 + parseInt(m, 10));
+    // Snap to the minute step, then into the window — the bounds the host set win.
+    const t = this.clampToWindow(parseInt(h, 10) * 60 + this.snapMinute(parseInt(m, 10)));
     const hh = Math.floor(t / 60).toString().padStart(2, '0');
     const mm = (t % 60).toString().padStart(2, '0');
     const v = this.withSeconds() ? `${hh}:${mm}:${s}` : `${hh}:${mm}`;
@@ -790,7 +876,8 @@ export class SvTimePickerComponent implements OnInit, OnDestroy, ControlValueAcc
       this.portalView.destroy();
       this.portalView = null;
     }
-    this.portalEl?.remove();
+    this.portalHost?.destroy();
+    this.portalHost = null;
     this.portalEl = null;
   }
 

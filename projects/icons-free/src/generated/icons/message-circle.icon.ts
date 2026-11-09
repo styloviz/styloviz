@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `message-circle` icon. */
 export const messageCircleNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const messageCircleNodes: readonly IconNode[] = [
 export const messageCircleSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3.1 12q0-3.1 1.9-5.5 1.9-2.4 4.8-3.1 3-.8 5.8.5 2.8 1.2 4.2 3.9 1.5 2.7.9 5.7-.5 3.1-2.8 5.1-2.3 2-5.3 2.2-2.8.2-5.2-1.2l-3.1 1.2q-.4.2-.7.1-.2-.2-.4-.6-.1-.3 0-.6l1.2-3.1q-1.3-2.1-1.3-4.6z' },
 ];
+
+/** `message-circle` as a registrable glyph — `registerSvIcons([messageCircleIcon])` / `provideSvIcons([messageCircleIcon])`. */
+export const messageCircleIcon: SvIconDef = { name: 'message-circle', nodes: messageCircleNodes, solid: messageCircleSolidNodes };
 
 /** `message-circle` — tree-shakable standalone icon. Use `<sv-message-circle-icon />`. */
 @Component({

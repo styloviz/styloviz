@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `alert-triangle` icon. */
 export const alertTriangleNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const alertTriangleNodes: readonly IconNode[] = [
 export const alertTriangleSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.8 3.6l9.5 16.5q.4.7-.4 1.2-.2.1-.4.1h-19q-.9 0-.9-.9 0-.2.1-.4l9.5-16.5q.5-.8 1.2-.4.2.2.4.4zm.1 6.4q0-.9-.9-.9-.9 0-.9.9v4.5q0 .9.9.9.9 0 .9-.9zm-.1 7.5c0-.4-.4-.7-.8-.7-.4 0-.8.3-.8.7 0 .4.4.7.8.7.4 0 .8-.3.8-.7z' },
 ];
+
+/** `alert-triangle` as a registrable glyph — `registerSvIcons([alertTriangleIcon])` / `provideSvIcons([alertTriangleIcon])`. */
+export const alertTriangleIcon: SvIconDef = { name: 'alert-triangle', nodes: alertTriangleNodes, solid: alertTriangleSolidNodes };
 
 /** `alert-triangle` — tree-shakable standalone icon. Use `<sv-alert-triangle-icon />`. */
 @Component({

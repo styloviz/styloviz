@@ -15,3 +15,5 @@ export {
   svPositionLabel,
 } from './image-compare.geometry';
 export type { SvAspect, SvFrames, SvFrameVerdict } from './image-compare.geometry';
+export { SV_IMAGE_COMPARE_LABELS } from './image-compare.labels';
+export type { SvImageCompareLabels } from './image-compare.labels';

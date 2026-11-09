@@ -1,4 +1,13 @@
+<!--
+  The accessible alternative to the SVG: one semantic table saying what the
+  picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+  chart templates, and the CSS was the hard part, not the markup — the trap it
+  kept re-learning, and the reason the chart root no longer needs `relative`,
+  is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+  Renders nothing when there are no rows, so it needs no guard here.
+-->
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="resolvedError()"
   [isEmpty]="chartIsEmpty()"
@@ -107,16 +116,6 @@
       </g>
     </svg>
   </div>
-
-  <!--
-    The accessible alternative to the SVG: one semantic table saying what the
-    picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
-    chart templates, and the CSS was the hard part, not the markup — the trap it
-    kept re-learning, and the reason the chart root no longer needs `relative`,
-    is written up in `core/src/lib/a11y/data-summary-table.component.css`.
-    Renders nothing when there are no rows, so it needs no guard here.
-  -->
-  <sv-data-summary-table [summary]="a11ySummary()" />
 
   @if (showLegend() && datasets().length > 1) {
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center">

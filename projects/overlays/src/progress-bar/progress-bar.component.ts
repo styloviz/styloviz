@@ -8,8 +8,9 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { svWarnOnce } from '@styloviz/core';
-import { NgClass } from '@angular/common';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_OVERLAYS_LABELS } from '../overlays.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,11 +34,15 @@ export type ProgressBarLabelPos = 'top' | 'right' | 'inside' | 'none';
 @Component({
   selector: 'sv-progress-bar',
   standalone: true,
-  imports: [NgClass],
+  imports: [],
   templateUrl: './progress-bar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvProgressBarComponent {
+  protected readonly labels = injectSvLabels('overlays', SV_OVERLAYS_LABELS);
+  /** The kit's locale — fills the stage position and the announced value. */
+  private readonly locale = svLocale();
+
   // ── Value ─────────────────────────────────────────────────────────────────
 
   /** Progress value (0–100). Ignored when `indeterminate` is true. @default 0 */
@@ -60,7 +65,7 @@ export class SvProgressBarComponent {
   /** Animate stripes (only visible when `striped` is true). @default false */
   animated = input<boolean>(false);
 
-  /** Show pulsing glow on the fill. @default false */
+  /** Show a soft glow on the fill. Static — it never animates, so it is the same under reduced motion. @default false */
   glow = input<boolean>(false);
 
   // ── Label ─────────────────────────────────────────────────────────────────
@@ -263,7 +268,7 @@ export class SvProgressBarComponent {
     const stages = this.stages();
     if (stages.length === 0) return '';
     const i = Math.max(0, Math.min(stages.length - 1, Math.trunc(this.stageIndex())));
-    return `${i + 1} of ${stages.length}`;
+    return svFormatLabel(this.labels.progressStageOf, { n: String(i + 1), total: String(stages.length) }, this.locale);
   });
 
   /**
@@ -282,7 +287,7 @@ export class SvProgressBarComponent {
     const stage = this.stageLabel();
     const position = this.stagePosition();
     const named = stage
-      ? position ? `${stage} (${position})` : stage
+      ? position ? svFormatLabel(this.labels.progressStageWithPosition, { stage, position }, this.locale) : stage
       : this.label();
     if (named) return named;
     return this.showPercent() ? this.percentText() : '';
@@ -351,13 +356,13 @@ export class SvProgressBarComponent {
     const position = this.stagePosition();
     if (stage) parts.push(stage);
     else if (this.label()) parts.push(this.label());
-    if (position) parts.push(`step ${position}`);
+    if (position) parts.push(svFormatLabel(this.labels.progressStep, { position }, this.locale));
 
     const pct = this.announcedPercent();
-    if (this.estimated()) parts.push(`about ${pct}%`);
+    if (this.estimated()) parts.push(svFormatLabel(this.labels.progressAbout, { pct: String(pct) }, this.locale));
     else if (parts.length > 0) parts.push(`${pct}%`);
 
-    return parts.length > 0 ? parts.join(', ') : null;
+    return parts.length > 0 ? parts.join(this.labels.progressValueSeparator) : null;
   });
 
   /**
@@ -383,30 +388,42 @@ export class SvProgressBarComponent {
   readonly fillClasses = computed<string>(() => {
     const variantMap: Record<ProgressBarVariant, string> = {
       primary: 'bg-primary-500',
-      success: 'bg-accent-500',
-      warning: 'bg-warning-500',
+      success: 'bg-accent-600 dark:bg-accent-500',
+      warning: 'bg-warning-700 dark:bg-warning-500',
       danger:  'bg-danger-500',
-      info:    'bg-info-500',
-      neutral: 'bg-gray-500',
+      info:    'bg-info-600 dark:bg-info-500',
+      neutral: 'bg-gray-500 dark:bg-gray-400',
     };
 
     const classes = [
       // ★ No `transition-[width]` while the value is falling (`OF-14-I2`): a
       //   reverse glide is the most alarming thing a progress bar can do, and
       //   a snap reads as the reset it is.
-      this.decreasing() ? 'h-full rounded-full' : 'h-full rounded-full transition-[width] duration-500 ease-out',
+      // ★ Reduced motion (OF-14-I9): the fill jumps to each value instead of
+      //   gliding, and the animated stripes below stand still.
+      this.decreasing() ? 'h-full rounded-full' : 'h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none',
       variantMap[this.variant()],
+      // ★ Forced colours repaint a filled `div` as Canvas — the fill would
+      //   vanish into the track. `Highlight` is the system's "selected" colour.
+      'forced-colors:bg-[Highlight]',
     ];
 
-    if (this.striped()) {
+    // ★★ Non-text contrast at the fill boundary (FL-J3-OF-19, `OF-14-I6`).
+    //    The stripes used to LIGHTEN the fill by 15% white in both themes,
+    //    which on a light track pulled half the boundary under 3:1 (primary
+    //    2.78, success 1.99). They now push AWAY from the track — darker on a
+    //    light track, lighter on a dark one — so a stripe can only raise the
+    //    contrast. And an `xs` bar (4px) draws no stripes at all: a 1rem
+    //    pattern in a 4px strip is noise, not texture.
+    if (this.stripesShown()) {
       classes.push(
-        'bg-[length:1rem_1rem]',
-        'bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)]',
+        'bg-[length:1rem_1rem] [--sv-progress-stripe:rgba(0,0,0,.12)] dark:[--sv-progress-stripe:rgba(255,255,255,.15)]',
+        'bg-[linear-gradient(45deg,var(--sv-progress-stripe)_25%,transparent_25%,transparent_50%,var(--sv-progress-stripe)_50%,var(--sv-progress-stripe)_75%,transparent_75%,transparent)]',
       );
     }
 
-    if (this.animated() && this.striped()) {
-      classes.push('[animation:progress-stripe_1s_linear_infinite]');
+    if (this.animated() && this.stripesShown()) {
+      classes.push('[animation:progress-stripe_1s_linear_infinite] motion-reduce:[animation:none]'); // sv-i18n-ignore: Tailwind arbitrary-property class
     }
 
     if (this.glow()) {
@@ -435,6 +452,25 @@ export class SvProgressBarComponent {
     }
 
     return classes.join(' ');
+  });
+
+  /** Stripes render only when asked for and the bar is taller than `xs`. */
+  readonly stripesShown = computed<boolean>(() => this.striped() && this.size() !== 'xs');
+
+  /**
+   * The indeterminate sweep's colour — the same fill as a determinate bar, so
+   * the moving segment clears 3:1 against the track too (FL-J3-OF-19).
+   */
+  readonly sweepClass = computed<string>(() => {
+    const map: Record<ProgressBarVariant, string> = {
+      primary: 'bg-primary-500',
+      success: 'bg-accent-600 dark:bg-accent-500',
+      warning: 'bg-warning-700 dark:bg-warning-500',
+      danger:  'bg-danger-500',
+      info:    'bg-info-600 dark:bg-info-500',
+      neutral: 'bg-gray-500 dark:bg-gray-400',
+    };
+    return `${map[this.variant()]} forced-colors:bg-[Highlight]`;
   });
 
   readonly insideLabelVisible = computed<boolean>(() =>

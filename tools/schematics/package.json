@@ -1,0 +1,46 @@
+{
+  "name": "@styloviz/schematics",
+  "version": "2.0.0",
+  "description": "Angular schematics for the Styloviz UI kit — ng add (Tailwind 4, tokens, a demo page), migrate-primeng (PrimeNG 21 selectors to Styloviz) and the kit's ng update migrations.",
+  "keywords": [
+    "angular",
+    "schematics",
+    "ng-add",
+    "ng-update",
+    "tailwind",
+    "styloviz",
+    "primeng",
+    "migration"
+  ],
+  "license": "MIT",
+  "author": "sazzad-bs23",
+  "homepage": "https://styloviz.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/styloviz/styloviz.git",
+    "directory": "tools/schematics"
+  },
+  "bugs": {
+    "url": "https://github.com/styloviz/community/discussions"
+  },
+  "type": "commonjs",
+  "schematics": "./collection.json",
+  "ng-update": {
+    "migrations": "./migration.json"
+  },
+  "files": [
+    "collection.json",
+    "migration.json",
+    "ng-add",
+    "migrate-primeng",
+    "migrations",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@angular-devkit/schematics": ">=21.0.0 <23.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -2,14 +2,14 @@
 
   <!-- First page. A row-shaped placeholder so the list does not jump. -->
   <div class="p-3" data-sv-state="loading">
-    <sv-skeleton-shell variant="list" [rows]="6" ariaLabel="Loading list" />
+    <sv-skeleton-shell variant="list" [rows]="6" [ariaLabel]="labels.loadingList" />
   </div>
 
 } @else if (error()) {
 
   <sv-error-shell
     [error]="error()"
-    title="Could not load this list"
+    [title]="labels.errorTitle"
     (retry)="retry.emit()"
     data-sv-state="error"
   />
@@ -40,28 +40,188 @@
     whole list, a section numbers them against the section.
   -->
   <ng-template #rowTpl let-item="item" let-index="index" let-setsize="setsize">
-    <div
-      role="listitem"
-      [attr.aria-posinset]="index + 1"
-      [attr.aria-setsize]="setsize"
-      [ngClass]="[
-        rowPadding(),
-        'flex flex-wrap items-start gap-3',
-        item.unread ? 'bg-primary-50/45 dark:bg-primary-950/25' : '',
-        isSelected(item) ? 'bg-primary-100/60 dark:bg-primary-900/25' : '',
-        item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/55'
-      ]"
-      [style.height.px]="isVirtualized() && !isNested() && !isGrouped() ? rowHeightOf(item) : null"
-    >
+    @if (hasSwipeActions()) {
+      <!--
+        ★★ FL-F8 — A ROW WITH ACTIONS BEHIND IT. The trays sit under the row at
+        its start and end edges; the row slides over them with a horizontal
+        swipe (touch and pen — `touch-pan-y` leaves vertical scrolling to the
+        browser, and nothing moves until the gesture has locked onto the x axis).
+        While closed the trays are `inert` and hidden from assistive technology:
+        the way in without a swipe is the row's Actions button, which opens the
+        same actions as a strip over the row — for a mouse, a keyboard and a
+        screen reader alike.
+      -->
+      <div
+        role="listitem"
+        [attr.aria-posinset]="index + 1"
+        [attr.aria-setsize]="setsize"
+        class="relative overflow-hidden"
+        [attr.data-lv-swipe-row]="item.id"
+        [style.height.px]="isVirtualized() && !isNested() && !isGrouped() ? rowHeightOf(item) : null"
+      >
+        @if (!item.disabled) {
+          @if (swipeStartActions().length) {
+            <div
+              class="absolute inset-y-0 start-0 flex"
+              [attr.inert]="isSwipeRevealed(item, 'start') ? null : ''"
+              [attr.aria-hidden]="isSwipeRevealed(item, 'start') ? null : 'true'"
+              [style.--sv-swipe-edge]="swipeEdgeWidth(item, 'start')"
+              data-lv-swipe-tray="start"
+            >
+              @for (vm of swipeStartVm(); track vm.action.id; let first = $first) {
+                <button
+                  type="button"
+                  [ngClass]="vm.trayClass"
+                  [style.width]="first ? 'var(--sv-swipe-edge)' : null"
+                  [attr.data-lv-swipe-action]="vm.action.id"
+                  (click)="runSwipeAction(item, vm.action, 'start', 'tap')"
+                >
+                  @if (vm.action.icon) {
+                    <sv-icon [name]="vm.action.icon" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  <span class="max-w-full truncate">{{ vm.action.label }}</span>
+                </button>
+              }
+            </div>
+          }
+          @if (swipeEndActions().length) {
+            <div
+              class="absolute inset-y-0 end-0 flex flex-row-reverse"
+              [attr.inert]="isSwipeRevealed(item, 'end') ? null : ''"
+              [attr.aria-hidden]="isSwipeRevealed(item, 'end') ? null : 'true'"
+              [style.--sv-swipe-edge]="swipeEdgeWidth(item, 'end')"
+              data-lv-swipe-tray="end"
+            >
+              @for (vm of swipeEndVm(); track vm.action.id; let first = $first) {
+                <button
+                  type="button"
+                  [ngClass]="vm.trayClass"
+                  [style.width]="first ? 'var(--sv-swipe-edge)' : null"
+                  [attr.data-lv-swipe-action]="vm.action.id"
+                  (click)="runSwipeAction(item, vm.action, 'end', 'tap')"
+                >
+                  @if (vm.action.icon) {
+                    <sv-icon [name]="vm.action.icon" cssClass="h-5 w-5" [strokeWidth]="2" />
+                  }
+                  <span class="max-w-full truncate">{{ vm.action.label }}</span>
+                </button>
+              }
+            </div>
+          }
+        }
+
+        <!-- The row itself: opaque, so the trays only show where it has slid away. -->
+        <div
+          class="relative z-10 h-full touch-pan-y bg-white dark:bg-gray-900 motion-reduce:transition-none"
+          [ngClass]="isSwipeDragging(item) ? 'transition-none' : 'transition-transform duration-200 ease-out'"
+          [style.transform]="swipeTransform(item)"
+          (pointerdown)="onSwipeStart($event, item)"
+          data-lv-swipe-surface
+        >
+          <div
+            [ngClass]="[
+              rowPadding(),
+              'flex flex-wrap items-start gap-3',
+              item.unread ? 'bg-primary-50/45 dark:bg-primary-950/25' : '',
+              isSelected(item) ? 'bg-primary-100/60 dark:bg-primary-900/25' : '',
+              item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/55'
+            ]"
+            class="h-full"
+          >
+            <ng-container [ngTemplateOutlet]="rowBody" [ngTemplateOutletContext]="{ item: item }" />
+            @if (!item.disabled) {
+              <button
+                type="button"
+                class="sv-target mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                [attr.tabindex]="rowTabIndex(item)"
+                [attr.aria-expanded]="swipeMenuId() === item.id"
+                [attr.aria-label]="labels.swipeActionsFor | svLabel: { title: item.title }"
+                [attr.data-lv-swipe-toggle]="item.id"
+                (click)="toggleSwipeMenu(item); $event.stopPropagation()"
+              >
+                <sv-icon name="more-horizontal" cssClass="h-4 w-4" [strokeWidth]="2" />
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (swipeMenuId() === item.id) {
+          <!-- The same actions, without a swipe: ←/→ move, Escape closes and returns to the Actions button. -->
+          <div
+            role="group"
+            [attr.aria-label]="labels.swipeActionsFor | svLabel: { title: item.title }"
+            class="absolute inset-0 z-20 flex items-center gap-1.5 overflow-x-auto bg-white px-3 dark:bg-gray-900"
+            [attr.data-lv-swipe-menu]="item.id"
+            (keydown)="onSwipeMenuKeydown($event, item)"
+            (focusout)="onSwipeMenuFocusOut($event)"
+          >
+            @for (vm of swipeStartVm(); track vm.action.id) {
+              <button
+                type="button"
+                [ngClass]="vm.menuClass"
+                (click)="runSwipeAction(item, vm.action, 'start', 'menu')"
+              >
+                @if (vm.action.icon) {
+                  <sv-icon [name]="vm.action.icon" cssClass="h-4 w-4" [strokeWidth]="2" />
+                }
+                {{ vm.action.label }}
+              </button>
+            }
+            @for (vm of swipeEndVm(); track vm.action.id) {
+              <button
+                type="button"
+                [ngClass]="vm.menuClass"
+                (click)="runSwipeAction(item, vm.action, 'end', 'menu')"
+              >
+                @if (vm.action.icon) {
+                  <sv-icon [name]="vm.action.icon" cssClass="h-4 w-4" [strokeWidth]="2" />
+                }
+                {{ vm.action.label }}
+              </button>
+            }
+            <button
+              type="button"
+              class="ms-auto inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+              [attr.aria-label]="labels.closeSwipeActions"
+              (click)="closeSwipeMenu(item.id)"
+            >
+              <sv-icon name="close" cssClass="h-4 w-4" [strokeWidth]="2" />
+            </button>
+          </div>
+        }
+      </div>
+    } @else {
+      <div
+        role="listitem"
+        [attr.aria-posinset]="index + 1"
+        [attr.aria-setsize]="setsize"
+        [ngClass]="[
+          rowPadding(),
+          'flex flex-wrap items-start gap-3',
+          item.unread ? 'bg-primary-50/45 dark:bg-primary-950/25' : '',
+          isSelected(item) ? 'bg-primary-100/60 dark:bg-primary-900/25' : '',
+          item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/55'
+        ]"
+        [style.height.px]="isVirtualized() && !isNested() && !isGrouped() ? rowHeightOf(item) : null"
+      >
+        <ng-container [ngTemplateOutlet]="rowBody" [ngTemplateOutletContext]="{ item: item }" />
+      </div>
+    }
+  </ng-template>
+
+  <!-- What a row shows — one copy, drawn by both row shapes above. -->
+  <ng-template #rowBody let-item="item">
       @if (isCheckable()) {
-        <input
-          type="checkbox"
-          [checked]="isChecked(item)"
-          (change)="toggleCheck(item, ($any($event.target)).checked)"
-          [attr.aria-label]="'Check ' + item.title"
-          [disabled]="item.disabled"
-          class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
-        />
+        <label class="sv-target inline-flex shrink-0">
+          <input
+            type="checkbox"
+            [checked]="isChecked(item)"
+            (change)="toggleCheck(item, ($any($event.target)).checked)"
+            [attr.aria-label]="labels.checkItem | svLabel: { title: item.title }"
+            [disabled]="item.disabled"
+            class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+          />
+        </label>
       }
 
       @if (!isCheckable() && isSelectable()) {
@@ -70,7 +230,7 @@
           name="list-view-select"
           [checked]="isSelected(item)"
           (change)="toggleSelected(item, ($any($event.target)).checked)"
-          [attr.aria-label]="'Select ' + item.title"
+          [attr.aria-label]="labels.selectItem | svLabel: { title: item.title }"
           [disabled]="item.disabled"
           class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
         />
@@ -99,7 +259,7 @@
       -->
       <button
         type="button"
-        class="min-w-0 flex-1 text-left"
+        class="min-w-0 flex-1 text-start"
         data-lv-row-btn="1"
         [attr.data-lv-id]="item.id"
         [attr.tabindex]="rowTabIndex(item)"
@@ -196,13 +356,12 @@
           }
         </div>
       }
-    </div>
   </ng-template>
 
   <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200/80 px-4 py-3 dark:border-gray-700/70">
     @if (searchable() || mode() === 'scrolling' || mode() === 'virtualization') {
       <div class="relative min-w-[220px] flex-1">
-        <sv-icon name="search" cssClass="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
+        <sv-icon name="search" cssClass="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400" [strokeWidth]="2" />
 
         <input
           type="search"
@@ -210,7 +369,7 @@
           (input)="onSearchInput(($any($event.target)).value)"
           [placeholder]="searchPlaceholder()"
           [attr.aria-label]="searchPlaceholder()"
-          class="h-10 w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 text-sm text-gray-700 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+          class="h-10 w-full rounded-xl border border-gray-200 bg-white ps-9 pe-3 text-sm text-gray-700 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         />
       </div>
     }
@@ -223,24 +382,24 @@
           (change)="toggleAllChecks(($any($event.target)).checked)"
           class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
         />
-        Select all
+        {{ labels.selectAll }}
       </label>
     }
 
     <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-      {{ visibleItemCount() }} items
+      {{ labels.itemCount | svLabel: { count: visibleItemCount() } }}
     </span>
 
     @if (isSelectable()) {
       <span class="rounded-full bg-primary-100 px-2.5 py-1 text-xs font-semibold text-primary-700 dark:bg-primary-900/35 dark:text-primary-300">
-        {{ selectedCount() }} selected
+        {{ labels.selectedCount | svLabel: { count: selectedCount() } }}
       </span>
     }
   </div>
 
   @if (bulkActions().length > 0 && bulkSelectedCount() > 0) {
-    <div class="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-primary-200/80 bg-primary-50/90 px-4 py-2 backdrop-blur dark:border-primary-900/40 dark:bg-primary-950/70">
-      <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">{{ bulkSelectedCount() }} selected</span>
+    <div data-sv-sticky="page-top" class="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-b border-primary-200/80 bg-primary-50/90 px-4 py-2 backdrop-blur dark:border-primary-900/40 dark:bg-primary-950/70">
+      <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">{{ labels.selectedCount | svLabel: { count: bulkSelectedCount() } }}</span>
       @for (action of bulkActions(); track action.id) {
         <button
           type="button"
@@ -273,15 +432,15 @@
       @if (flattenedNestedItems().length === 0) {
         <sv-empty-shell
           [reason]="isFiltered() ? 'no-results' : 'no-data'"
-          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
-          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
-          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          [title]="isFiltered() ? labels.emptyFilteredTitle : labels.emptyTitle"
+          [message]="isFiltered() ? labels.emptyFilteredMessage : emptyMessage()"
+          [actionLabel]="isFiltered() ? labels.clearSearch : ''"
           (action)="query.set('')"
           data-sv-state="empty"
         />
       } @else {
         <!--
-          The hierarchy has to be spoken, not just indented: `padding-left` is
+          The hierarchy has to be spoken, not just indented: `padding-inline-start` is
           the only thing that carried depth here, so every branch read as one
           flat pile of rows. `listitem` supports aria-level / posinset / setsize,
           which is exactly the flattened-nested-list pattern.
@@ -299,7 +458,7 @@
                 node.item.disabled ? 'opacity-50' : 'hover:bg-gray-50/70 dark:hover:bg-gray-800/60',
                 isSelected(node.item) ? 'bg-primary-50/80 dark:bg-primary-950/35' : ''
               ]"
-              [style.padding-left]="nestedIndent(node.depth)"
+              [style.padding-inline-start]="nestedIndent(node.depth)"
             >
               @if (node.hasChildren) {
                 <button
@@ -307,7 +466,7 @@
                   class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
                   (click)="toggleExpand(node.item)"
                   [attr.aria-expanded]="isExpanded(node.item)"
-                  [attr.aria-label]="(isExpanded(node.item) ? 'Collapse ' : 'Expand ') + node.item.title"
+                  [attr.aria-label]="(isExpanded(node.item) ? labels.collapseItem : labels.expandItem) | svLabel: { title: node.item.title }"
                 >
                   <!-- The glyph must agree with the aria-label above it: a
                        collapsed node offers to open, not to close. -->
@@ -318,14 +477,16 @@
               }
 
               @if (isCheckable()) {
-                <input
-                  type="checkbox"
-                  [checked]="isChecked(node.item)"
-                  (change)="toggleCheck(node.item, ($any($event.target)).checked)"
-                  [attr.aria-label]="'Check ' + node.item.title"
-                  [disabled]="node.item.disabled"
-                  class="mt-1.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
-                />
+                <label class="sv-target inline-flex shrink-0">
+                  <input
+                    type="checkbox"
+                    [checked]="isChecked(node.item)"
+                    (change)="toggleCheck(node.item, ($any($event.target)).checked)"
+                    [attr.aria-label]="labels.checkItem | svLabel: { title: node.item.title }"
+                    [disabled]="node.item.disabled"
+                    class="mt-1.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                  />
+                </label>
               }
 
               @if (!isCheckable() && isSelectable()) {
@@ -334,7 +495,7 @@
                   name="list-view-select-nested"
                   [checked]="isSelected(node.item)"
                   (change)="toggleSelected(node.item, ($any($event.target)).checked)"
-                  [attr.aria-label]="'Select ' + node.item.title"
+                  [attr.aria-label]="labels.selectItem | svLabel: { title: node.item.title }"
                   [disabled]="node.item.disabled"
                   class="mt-1.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
                 />
@@ -342,7 +503,7 @@
 
               <button
                 type="button"
-                class="min-w-0 flex-1 text-left"
+                class="min-w-0 flex-1 text-start"
                 data-lv-row-btn="1"
                 [attr.data-lv-id]="node.item.id"
                 [attr.tabindex]="rowTabIndex(node.item)"
@@ -368,7 +529,7 @@
       }
     </div>
   } @else if (isGrouped()) {
-    <div
+    <div svRevealFocus
       class="max-h-[420px] overflow-auto"
       data-lv-viewport
       [attr.tabindex]="viewportTabIndex()"
@@ -378,9 +539,9 @@
       @if (groupedItems().length === 0) {
         <sv-empty-shell
           [reason]="isFiltered() ? 'no-results' : 'no-data'"
-          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
-          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
-          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          [title]="isFiltered() ? labels.emptyFilteredTitle : labels.emptyTitle"
+          [message]="isFiltered() ? labels.emptyFilteredMessage : emptyMessage()"
+          [actionLabel]="isFiltered() ? labels.clearSearch : ''"
           (action)="query.set('')"
           data-sv-state="empty"
         />
@@ -388,7 +549,7 @@
         <div>
           @for (group of groupedItems(); track group.label) {
             <section>
-              <header
+              <header [attr.data-sv-sticky]="stickyGroupHeaders() ? 'top' : null"
                 [ngClass]="stickyGroupHeaders() ? 'sticky top-0 z-10 bg-gray-50/90 dark:bg-gray-950/90 backdrop-blur' : 'bg-gray-50 dark:bg-gray-950/70'"
                 class="flex items-center gap-2 border-y border-gray-200/70 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:border-gray-700/80 dark:text-gray-400"
               >
@@ -399,14 +560,16 @@
                   announced as "mixed", which no dash in a box can be.
                 -->
                 @if (isCheckable()) {
-                  <input
-                    type="checkbox"
-                    [checked]="isGroupChecked(group.label)"
-                    [indeterminate]="isGroupIndeterminate(group.label)"
-                    (change)="toggleGroupChecks(group.label, ($any($event.target)).checked)"
-                    [attr.aria-label]="'Check all items in ' + group.label"
-                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
-                  />
+                  <label class="sv-target inline-flex shrink-0">
+                    <input
+                      type="checkbox"
+                      [checked]="isGroupChecked(group.label)"
+                      [indeterminate]="isGroupIndeterminate(group.label)"
+                      (change)="toggleGroupChecks(group.label, ($any($event.target)).checked)"
+                      [attr.aria-label]="labels.checkAllInGroup | svLabel: { group: group.label }"
+                      class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                    />
+                  </label>
                 }
                 {{ group.label }}
               </header>
@@ -437,9 +600,9 @@
       @if (renderItems().length === 0) {
         <sv-empty-shell
           [reason]="isFiltered() ? 'no-results' : 'no-data'"
-          [title]="isFiltered() ? 'No matching items' : 'Nothing here yet'"
-          [message]="isFiltered() ? 'Try a different search term.' : emptyMessage()"
-          [actionLabel]="isFiltered() ? 'Clear search' : ''"
+          [title]="isFiltered() ? labels.emptyFilteredTitle : labels.emptyTitle"
+          [message]="isFiltered() ? labels.emptyFilteredMessage : emptyMessage()"
+          [actionLabel]="isFiltered() ? labels.clearSearch : ''"
           (action)="query.set('')"
           data-sv-state="empty"
         />
@@ -504,13 +667,13 @@
               -->
               <span class="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current/25 border-t-current"
                     aria-hidden="true"></span>
-              Loading more items...
+              {{ labels.loadingMore }}
             </span>
           } @else if (hasMore()) {
-            <span class="text-xs text-gray-500 dark:text-gray-400">Scroll to load more</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ labels.scrollToLoadMore }}</span>
           } @else {
             <span class="text-xs text-gray-500 dark:text-gray-400" data-sv-state="end-of-list">
-              End of list · all {{ visibleItemCount() }} items loaded
+              {{ labels.endOfList | svLabel: { count: visibleItemCount() } }}
             </span>
           }
         </div>
@@ -520,7 +683,7 @@
 
   @if (isCheckable()) {
     <div class="border-t border-gray-200/80 px-4 py-2 text-xs text-gray-500 dark:border-gray-700/70 dark:text-gray-400">
-      {{ checkedCount() }} checked
+      {{ labels.checkedCount | svLabel: { count: checkedCount() } }}
     </div>
   }
 </div>

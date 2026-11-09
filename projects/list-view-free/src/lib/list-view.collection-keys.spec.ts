@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SV_UNVIRTUALIZED_ROW_CEILING, svResetWarnOnce } from '@styloviz/core';
+import { SV_UNVIRTUALIZED_ROW_CEILING } from '@styloviz/core/a11y';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvListViewComponent } from './list-view.component';
 import type { ListViewItem } from './list-view.component';
 import { untilRendered } from '../../../../src/testing/async';

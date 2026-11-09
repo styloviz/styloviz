@@ -1,4 +1,4 @@
-import { createQuery, type SvPage } from '@styloviz/core';
+import { createQuery, type SvPage } from '@styloviz/core/data';
 import { withFailure, withFlakiness, withLatency } from './decorators';
 import type { SvDataSource } from './types';
 

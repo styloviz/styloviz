@@ -38,12 +38,10 @@ mid-task, from a button that looked like housekeeping.
 
 ## Why this template exists
 
-The release backlog found "settings / account / profile / team" shipping
-**three times over** — once in the admin template's own settings page, again
-across `admin/pages/users/*`, and a third time in `store/pages/account/*`.
-Rather than a fourth bespoke build, this template packages the same
-well-tested composition (tabs, optimistic toggles, a member roster) as its
-own drop-in unit for buyers who want *only* this piece.
+Settings, account, profile and team pages are in almost every product, and
+the admin and store templates each carry their own inside a larger app. This
+template is the same composition (tabs, optimistic toggles, a member roster)
+on its own, as a drop-in unit for a product that wants *only* this piece.
 
 ## What's inside
 

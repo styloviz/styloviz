@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `maximize` icon. */
 export const maximizeNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const maximizeNodes: readonly IconNode[] = [
 export const maximizeSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm8 4.9h-3q-.1 0-.1.1v3q0 .9-.9.9-.9 0-.9-.9v-3q0-1.9 1.9-1.9h3q.9 0 .9.9 0 .9-.9.9zm8-1.8h3q1.9 0 1.9 1.9v3q0 .9-.9.9-.9 0-.9-.9v-3q0-.1-.1-.1h-3q-.9 0-.9-.9 0-.9.9-.9zm4.9 12.9v3q0 1.9-1.9 1.9h-3q-.9 0-.9-.9 0-.9.9-.9h3q.1 0 .1-.1v-3q0-.9.9-.9.9 0 .9.9zm-16 0v3q0 .1.1.1h3q.9 0 .9.9 0 .9-.9.9h-3q-1.9 0-1.9-1.9v-3q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `maximize` as a registrable glyph — `registerSvIcons([maximizeIcon])` / `provideSvIcons([maximizeIcon])`. */
+export const maximizeIcon: SvIconDef = { name: 'maximize', nodes: maximizeNodes, solid: maximizeSolidNodes };
 
 /** `maximize` — tree-shakable standalone icon. Use `<sv-maximize-icon />`. */
 @Component({

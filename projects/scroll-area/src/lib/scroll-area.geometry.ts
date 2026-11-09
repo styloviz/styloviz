@@ -13,6 +13,8 @@
  * reimplemented faithfully. So the element scrolls, `scrollbar-width: none`
  * hides the native chrome, and the drawn thumb is a read-out of `scrollTop`.
  */
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvScrollAreaLabels } from './scroll-area.labels';
 
 /**
  * The smallest thumb a person can reliably grab, in px.
@@ -133,13 +135,18 @@ export function svScrollEdges(viewport: number, content: number, scrollTop: numb
   return 'both';
 }
 
-/** `340 of 2,400px · 14% shown` */
-export function svScrollLabel(viewport: number, content: number, scrollTop: number): string {
+/** `Scrolled 50%; 50% of the content is visible.`, from `labels` (`SV_SCROLL_AREA_LABELS` for English). */
+export function svScrollLabel(
+  viewport: number,
+  content: number,
+  scrollTop: number,
+  labels: Pick<SvScrollAreaLabels, 'scrollNothing' | 'scrollPosition'>,
+): string {
   const geo = svThumbGeometry(viewport, content, scrollTop);
-  if (!geo.visible) return 'Everything fits; nothing to scroll.';
-  const pct = (geo.progress * 100).toFixed(0);
+  if (!geo.visible) return labels.scrollNothing;
+  const progress = (geo.progress * 100).toFixed(0);
   const shown = ((viewport / content) * 100).toFixed(0);
-  return `Scrolled ${pct}%; ${shown}% of the content is visible.`;
+  return svFormatLabel(labels.scrollPosition, { progress, shown });
 }
 
 // ── RTL horizontal scroll (`LU-06-I3` / `M3`) ────────────────────────────────

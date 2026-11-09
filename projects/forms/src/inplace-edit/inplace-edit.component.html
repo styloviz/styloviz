@@ -18,24 +18,24 @@
 
       <div class="flex w-full min-w-0 flex-col gap-2 sm:flex-row">
         <div class="min-w-0 flex-1 rounded-md border border-gray-200 p-2 dark:border-gray-700">
-          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Yours</p>
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ labels.conflictYours }}</p>
           <p class="break-words text-sm text-gray-900 dark:text-gray-100" data-sv-conflict="mine">{{ mine() }}</p>
           <button type="button" class="mt-2 rounded-md px-2 py-1 text-xs font-medium
                          text-primary-700 hover:bg-primary-50 focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-primary-500
                          dark:text-primary-300 dark:hover:bg-primary-950"
                   data-sv-conflict-action
-                  (click)="keepMine()">Keep mine</button>
+                  (click)="keepMine()">{{ labels.conflictKeepMine }}</button>
         </div>
 
         <div class="min-w-0 flex-1 rounded-md border border-gray-200 p-2 dark:border-gray-700">
-          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Theirs</p>
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ labels.conflictTheirs }}</p>
           <p class="break-words text-sm text-gray-900 dark:text-gray-100" data-sv-conflict="theirs">{{ conflict()!.theirs }}</p>
           <button type="button" class="mt-2 rounded-md px-2 py-1 text-xs font-medium
                          text-primary-700 hover:bg-primary-50 focus:outline-none
                          focus-visible:ring-2 focus-visible:ring-primary-500
                          dark:text-primary-300 dark:hover:bg-primary-950"
-                  (click)="takeTheirs()">Use theirs</button>
+                  (click)="takeTheirs()">{{ labels.conflictUseTheirs }}</button>
         </div>
       </div>
     </div>
@@ -51,9 +51,12 @@
               #editor
               [ngClass]="editorClasses()"
               [rows]="rows()"
+              [svAutosize]="autosize()"
+              [svAutosizeValue]="draft()"
+              [svAutosizeMaxRows]="maxRows()"
               [value]="draft()"
               [attr.placeholder]="placeholder() || null"
-              [attr.maxlength]="maxlength() > 0 ? maxlength() : null"
+              [attr.maxlength]="maxlengthAttr()"
               [attr.aria-label]="label() || null"
               [attr.aria-invalid]="message() ? 'true' : null"
               [attr.aria-describedby]="message() ? messageId : null"
@@ -88,7 +91,7 @@
               [ngClass]="editorClasses()"
               [value]="draft()"
               [attr.placeholder]="placeholder() || null"
-              [attr.maxlength]="maxlength() > 0 ? maxlength() : null"
+              [attr.maxlength]="maxlengthAttr()"
               [attr.aria-label]="label() || null"
               [attr.aria-invalid]="message() ? 'true' : null"
               [attr.aria-describedby]="message() ? messageId : null"
@@ -114,7 +117,7 @@
           <button
             type="button"
             [ngClass]="actionClasses"
-            [attr.aria-label]="'Save'"
+            [attr.aria-label]="labels.save"
             (mousedown)="$event.preventDefault()"
             (click)="commit()"
           >
@@ -123,7 +126,7 @@
           <button
             type="button"
             [ngClass]="actionClasses"
-            [attr.aria-label]="'Cancel'"
+            [attr.aria-label]="labels.cancel"
             (mousedown)="$event.preventDefault()"
             (click)="revert()"
           >

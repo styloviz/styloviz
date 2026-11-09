@@ -1,8 +1,10 @@
 # @styloviz/tabs
 
-> 6 visual styles (underline, pills, boxed, lifted, border-card, unstyled), dismissible and scrollable tabs, vertical layout, keyboard navigation and lazy panels.
+> 6 visual styles (underline, pills, boxed, lifted, border-card, unstyled), dismissible, icon-only and scrollable tabs with arrows, vertical layout, URL sync, keyboard navigation and lazy panels.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -55,6 +57,8 @@ import { SvTabsComponent } from '@styloviz/tabs';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -66,9 +70,11 @@ export class DemoComponent {}
 | `layout` | `TabsLayout` | `'horizontal'` | Layout direction. |
 | `fullWidth` | `boolean` | `false` | Whether tab buttons stretch to fill all available width. Only applicable to the `'horizontal'` layout. |
 | `scrollable` | `boolean` | `false` | Allows the tab list to scroll horizontally instead of wrapping/overflowing when there are more tabs than fit the available width. |
+| `scrollButtons` | `boolean` | `true` | Previous / next arrows at the ends of a horizontal `scrollable` strip, shown while its tabs overflow. They are for the pointer: the arrow keys already move along the strip and scroll the focused tab into view. |
 | `customClass` | `string` | `''` | Additional CSS classes on the root wrapper. |
 | `activation` | `TabsActivation \| null` | `null` | Whether the arrow keys select the tab they move to (`'automatic'`) or only move focus, leaving Enter/Space to select (`'manual'`). Prefer `'manual'` when a panel costs something to show — `lazy` panels that fetch, heavy charts, anything a keyboard user should not trigger five times on the way past. Leaving it unset resolves to `'automatic'`, and logs a dev-only warning if any tab is `lazy`. |
 | `lazyRetention` | `TabsLazyRetention` | `'retain'` | What happens to a `lazy` panel the user switches away from: `'retain'` keeps it mounted with its state (the long-standing behaviour), `'destroy'` unmounts it and rebuilds it on the next visit. Only `lazy` tabs are affected — a panel that was never deferred is never destroyed. Choose `'destroy'` for panels that must re-read their data on every visit, or hold enough DOM that keeping several alive is the real cost; and know that it discards whatever the user typed. |
+| `findInPage` | `boolean` | `true` | Let browser find-in-page (`Ctrl+F`) reach the text in INACTIVE panels that are mounted, by marking them `hidden="until-found"` where the browser supports it; a match selects its tab. Never-visited `lazy` panels and `lazyRetention="destroy"` panels are not in the DOM and cannot be found. |
 | `urlKey` | `string \| null` | `null` | Put the active tab in the URL under this key, so a tab can be shared and survives a refresh. Needs `provideSvNavLocation()` at the app root; give a nested tab strip a different key. |
 | `surfaceId` | `string \| null` | `null` | Names this tabset in the shared navigation-analytics stream, when a page has more than one. Ignored unless `provideSvNavTelemetry()` is wired up. |
 
@@ -86,4 +92,4 @@ Full API reference and live demos: https://styloviz.dev/docs/tabs
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

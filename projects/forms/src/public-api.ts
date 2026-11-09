@@ -44,11 +44,13 @@ export { SvRatingComponent } from './rating/rating.component';
 export type { RatingSize, RatingVariant, SvRatingChange } from './rating/rating.component';
 
 // ── Suggestion & hierarchy ───────────────────────────────────────────────────
-export { SvAutocompleteComponent } from './autocomplete/autocomplete.component';
+export { SvAutocompleteComponent, SvAutocompleteOptionDirective } from './autocomplete/autocomplete.component';
 export type {
   AutocompleteSize,
   AutocompleteVariant,
   AutocompleteOption,
+  AutocompleteMatch,
+  SvAutocompleteOptionContext,
 } from './autocomplete/autocomplete.component';
 
 
@@ -57,7 +59,7 @@ export type {
 export { SvOtpInputComponent } from './otp-input/otp-input.component';
 export type { OtpInputVariant, OtpInputSize, OtpInputStatus, OtpInputMode } from './otp-input/otp-input.types';
 
-export { SvInputMaskComponent } from './input-mask/input-mask.component';
+export { SvInputMaskComponent, svDateMaskFormat, svTimeMaskSeparator } from './input-mask/input-mask.component';
 export type {
   InputMaskPreset,
   InputMaskSize,
@@ -65,6 +67,7 @@ export type {
   // Whether the field carries a regulated value — suppresses autofill and opts
   // out of every session-replay recorder. `FI-13-I1`; see `docs/pci-scope.md`.
   InputMaskSensitivity,
+  InputMaskDateOrder,
 } from './input-mask/input-mask.component';
 
 export { SvColorPickerComponent } from './color-picker/color-picker.component';
@@ -127,3 +130,48 @@ export {
   svSignatureRecord,
   svVerifySignature,
 } from './signature-pad/signature-pad.types';
+export { SvSurveyComponent, svNpsBand } from './survey/survey.component';
+export type {
+  SvSurveyKind,
+  SvSurveyLayout,
+  SvSurveyCorner,
+  SvSurveyState,
+  SvNpsBand,
+  SvSurveyOption,
+  SvSurveyResponse,
+  SvSurveyLabels,
+} from './survey/survey.component';
+export { SvCronBuilderComponent } from './cron-builder/cron-builder.component';
+export type { SvCronBuilderLabels } from './cron-builder/cron-builder.component';
+export {
+  SV_CRON_HOUR_INTERVALS,
+  SV_CRON_MINUTE_INTERVALS,
+  SV_CRON_VISUAL_DEFAULTS,
+  svCronErrorMessage,
+  svCronFromVisual,
+  svCronToVisual,
+  svCronVisualHint,
+  svDescribeCron,
+  svFormatCron,
+  svNextCronRuns,
+  svParseCron,
+} from './cron-builder/cron';
+export type {
+  SvCron,
+  SvCronDescribeOptions,
+  SvCronError,
+  SvCronErrorCode,
+  SvCronField,
+  SvCronFieldName,
+  SvCronLabels,
+  SvCronMode,
+  SvCronParseResult,
+  SvCronRunOptions,
+  SvCronVisual,
+  SvCronVisualMode,
+} from './cron-builder/cron';
+export { SV_FORMS_LABELS } from './forms.labels';
+export type { SvFormsLabels } from './forms.labels';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './forms.labels.packs';

@@ -61,12 +61,11 @@
 
           <!-- Priority accent bar -->
           @if (item.priority) {
-            <div class="absolute left-0 top-3 bottom-3 w-1 rounded-full"
-                 [class]="priorityDot[item.priority]"
-                 style="left: 10px"></div>
+            <div class="absolute start-[10px] top-3 bottom-3 w-1 rounded-full"
+                 [class]="priorityDot[item.priority]"></div>
           }
 
-          <div class="flex items-start gap-3 px-4 py-3 pl-6">
+          <div class="flex items-start gap-3 px-4 py-3 ps-6">
             <!-- Drag handle -->
             @if (sortable()) {
               <!--
@@ -89,7 +88,8 @@
                    [class.text-primary-600]="isGrabbed(i)"
                    [class.dark:text-primary-400]="isGrabbed(i)"
                    [attr.aria-pressed]="isGrabbed(i)"
-                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   [attr.aria-disabled]="item.disabled ? 'true' : null"
+                   [attr.aria-label]="(isGrabbed(i) ? labels.dropItem : labels.reorderItem) | svLabel: { name: item.label }"
                    (mousedown)="armHandle()"
                    (keydown)="onHandleKeydown($event, i)">
                 <sv-icon name="grip-vertical" cssClass="h-4 w-4" />
@@ -139,7 +139,7 @@
                         [class.text-gray-500]="!isDue(item.dueDate) || item.completed"
                         [class.dark:text-gray-400]="!isDue(item.dueDate) || item.completed">
                     <sv-icon name="calendar" cssClass="h-3 w-3" [strokeWidth]="2" />
-                    {{ item.dueDate | date:'MMM d' }}
+                    {{ item.dueDate | date:'MMM d':undefined:locale() }}
                   </span>
                 }
               </div>
@@ -159,16 +159,16 @@
               <!-- Move buttons -->
               <div class="flex flex-col gap-0">
                 <button type="button"
-                  class="rounded p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
-                  [disabled]="i === 0 || null"
-                  aria-label="Move up"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
+                  [disabled]="i === 0 || item.disabled || null"
+                  [attr.aria-label]="labels.moveUp"
                   (click)="moveUp(i)">
                   <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
                 <button type="button"
-                  class="rounded p-0.5 text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
-                  [disabled]="i === items().length - 1 || null"
-                  aria-label="Move down"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-300 hover:text-gray-600 disabled:opacity-20 focus-visible:outline-none"
+                  [disabled]="i === items().length - 1 || item.disabled || null"
+                  [attr.aria-label]="labels.moveDown"
                   (click)="moveDown(i)">
                   <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
@@ -178,7 +178,7 @@
               <button type="button"
                 data-dnd-remove
                 class="rounded p-1 text-gray-300 transition-colors hover:text-danger-500 focus-visible:outline-none"
-                [attr.aria-label]="'Remove ' + item.label"
+                [attr.aria-label]="labels.removeItem | svLabel: { name: item.label }"
                 (click)="remove(item.id)">
                 <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
               </button>
@@ -197,7 +197,7 @@
     <!-- Progress -->
     <div class="mb-4">
       <div class="mb-1.5 flex items-center justify-between">
-        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Progress</span>
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ labels.progress }}</span>
         <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ completedCount() }}/{{ totalCount() }}</span>
       </div>
       <div class="h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
@@ -219,12 +219,12 @@
 
           <!-- Checkbox -->
           <button type="button"
-            class="shrink-0 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/50"
+            class="sv-target shrink-0 flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/50"
             [class.border-accent-500]="item.completed"
             [class.bg-accent-500]="item.completed"
             [class.border-gray-300]="!item.completed"
             [class.dark:border-gray-600]="!item.completed"
-            [attr.aria-label]="item.completed ? 'Mark incomplete' : 'Mark complete'"
+            [attr.aria-label]="item.completed ? labels.markIncomplete : labels.markComplete"
             (click)="toggleComplete(item.id)">
             @if (item.completed) {
               <sv-icon name="check" cssClass="h-3 w-3 text-white" />
@@ -257,7 +257,7 @@
                     [class.dark:text-danger-400]="isDue(item.dueDate)"
                     [class.text-gray-500]="!isDue(item.dueDate)"
                     [class.dark:text-gray-400]="!isDue(item.dueDate)">
-                {{ item.dueDate | date:'MMM d' }}
+                {{ item.dueDate | date:'MMM d':undefined:locale() }}
               </span>
             }
             <!-- Reorder: the same real handle (keyboard grab/drop) and
@@ -266,16 +266,16 @@
             @if (sortable()) {
               <div class="flex flex-col gap-0">
                 <button type="button"
-                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
-                  [disabled]="i === 0 || null"
-                  aria-label="Move up"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === 0 || item.disabled || null"
+                  [attr.aria-label]="labels.moveUp"
                   (click)="moveUp(i)">
                   <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
                 <button type="button"
-                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
-                  [disabled]="i === items().length - 1 || null"
-                  aria-label="Move down"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === items().length - 1 || item.disabled || null"
+                  [attr.aria-label]="labels.moveDown"
                   (click)="moveDown(i)">
                   <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
@@ -288,7 +288,8 @@
                    [class.text-primary-600]="isGrabbed(i)"
                    [class.dark:text-primary-400]="isGrabbed(i)"
                    [attr.aria-pressed]="isGrabbed(i)"
-                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   [attr.aria-disabled]="item.disabled ? 'true' : null"
+                   [attr.aria-label]="(isGrabbed(i) ? labels.dropItem : labels.reorderItem) | svLabel: { name: item.label }"
                    (mousedown)="armHandle()"
                    (keydown)="onHandleKeydown($event, i)">
                 <sv-icon name="grip-vertical" cssClass="h-3.5 w-3.5" />
@@ -322,7 +323,7 @@
           </div>
 
           <!-- Cards -->
-          @for (item of kanbanItems(col); track item.id) {
+          @for (item of kanbanItems(col); track item.id; let first = $first, last = $last) {
             <div class="group relative rounded-lg border border-gray-200 p-3 shadow-sm
                         transition-all hover:border-primary-300 hover:shadow-md
                         dark:border-gray-700"
@@ -373,31 +374,52 @@
                           [class.dark:text-danger-400]="isDue(item.dueDate) && !item.completed"
                           [class.text-gray-500]="!isDue(item.dueDate) || item.completed"
                           [class.dark:text-gray-400]="!isDue(item.dueDate) || item.completed">
-                      {{ item.dueDate | date:'MMM d' }}
+                      {{ item.dueDate | date:'MMM d':undefined:locale() }}
                     </span>
                   }
                 </div>
 
-                <!-- Move column buttons -->
-                <!-- Revealed on focus as well as hover: a keyboard user never hovers,
-                     and focus landing on an invisible control shows nothing. -->
-                <div class="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100">
+                <!-- Move buttons — the single-pointer path (WCAG 2.5.7) for every move a
+                     drag makes: up/down within the column, left/right between columns.
+                     Always visible: hover never happens on touch, and focus landing on
+                     an invisible control shows nothing. -->
+                <div class="flex gap-2" data-dnd-card-moves>
+                  <button type="button"
+                    data-dnd-move-up
+                    class="sv-target rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-500 focus-visible:outline-2 focus-visible:outline-primary-500"
+                    [title]="labels.moveUp"
+                    [disabled]="first || saving() || item.disabled"
+                    [attr.aria-label]="labels.moveItemUp | svLabel: { name: item.label }"
+                    (click)="moveInColumn(item.id, -1)">
+                    <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                  </button>
+                  <button type="button"
+                    data-dnd-move-down
+                    class="sv-target rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-500 focus-visible:outline-2 focus-visible:outline-primary-500"
+                    [title]="labels.moveDown"
+                    [disabled]="last || saving() || item.disabled"
+                    [attr.aria-label]="labels.moveItemDown | svLabel: { name: item.label }"
+                    (click)="moveInColumn(item.id, 1)">
+                    <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                  </button>
                   @if (col !== 'todo') {
                     <button type="button"
-                      class="rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary-500"
-                      title="Move left"
-                      [attr.aria-label]="'Move ' + item.label + ' left'"
+                      class="sv-target rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-500 focus-visible:outline-2 focus-visible:outline-primary-500"
+                      [title]="rtl() ? labels.moveRight : labels.moveLeft"
+                      [attr.aria-label]="(rtl() ? labels.moveItemRight : labels.moveItemLeft) | svLabel: { name: item.label }"
+                      [disabled]="saving() || item.disabled"
                       (click)="moveToCol(item.id, col === 'done' ? 'in-progress' : 'todo')">
-                      <sv-icon name="chevron-left" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                      <sv-icon name="chevron-left" cssClass="h-3 w-3 rtl:-scale-x-100" [strokeWidth]="2.5" />
                     </button>
                   }
                   @if (col !== 'done') {
                     <button type="button"
-                      class="rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-primary-500"
-                      title="Move right"
-                      [attr.aria-label]="'Move ' + item.label + ' right'"
+                      class="sv-target rounded p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 disabled:opacity-30 disabled:hover:text-gray-500 focus-visible:outline-2 focus-visible:outline-primary-500"
+                      [title]="rtl() ? labels.moveLeft : labels.moveRight"
+                      [attr.aria-label]="(rtl() ? labels.moveItemLeft : labels.moveItemRight) | svLabel: { name: item.label }"
+                      [disabled]="saving() || item.disabled"
                       (click)="moveToCol(item.id, col === 'todo' ? 'in-progress' : 'done')">
-                      <sv-icon name="chevron-right" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                      <sv-icon name="chevron-right" cssClass="h-3 w-3 rtl:-scale-x-100" [strokeWidth]="2.5" />
                     </button>
                   }
                 </div>
@@ -408,7 +430,7 @@
           <!-- Empty column placeholder -->
           @if (kanbanItems(col).length === 0) {
             <div class="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-200 py-6 dark:border-gray-700">
-              <p class="text-[11px] text-gray-500 dark:text-gray-400">No items</p>
+              <p class="text-[11px] text-gray-500 dark:text-gray-400">{{ labels.noItems }}</p>
             </div>
           }
         </div>
@@ -441,7 +463,8 @@
                    [class.text-primary-600]="isGrabbed(i)"
                    [class.dark:text-primary-400]="isGrabbed(i)"
                    [attr.aria-pressed]="isGrabbed(i)"
-                   [attr.aria-label]="(isGrabbed(i) ? 'Drop ' : 'Reorder ') + item.label"
+                   [attr.aria-disabled]="item.disabled ? 'true' : null"
+                   [attr.aria-label]="(isGrabbed(i) ? labels.dropItem : labels.reorderItem) | svLabel: { name: item.label }"
                    (mousedown)="armHandle()"
                    (keydown)="onHandleKeydown($event, i)">
                 <sv-icon name="grip-vertical" cssClass="h-3.5 w-3.5" />
@@ -469,16 +492,16 @@
           @if (sortable()) {
             <div class="flex flex-col gap-0">
                 <button type="button"
-                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
-                  [disabled]="i === 0 || null"
-                  aria-label="Move up"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === 0 || item.disabled || null"
+                  [attr.aria-label]="labels.moveUp"
                   (click)="moveUp(i)">
                   <sv-icon name="chevron-up" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
                 <button type="button"
-                  class="rounded p-0.5 text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
-                  [disabled]="i === items().length - 1 || null"
-                  aria-label="Move down"
+                  class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-20 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-gray-200"
+                  [disabled]="i === items().length - 1 || item.disabled || null"
+                  [attr.aria-label]="labels.moveDown"
                   (click)="moveDown(i)">
                   <sv-icon name="chevron-down" cssClass="h-3 w-3" [strokeWidth]="2.5" />
                 </button>
@@ -488,7 +511,7 @@
           <button type="button"
             data-dnd-remove
             class="shrink-0 rounded p-0.5 text-gray-500 hover:text-danger-600 focus-visible:outline-2 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:text-danger-400"
-            [attr.aria-label]="'Remove ' + item.label"
+            [attr.aria-label]="labels.removeItem | svLabel: { name: item.label }"
             (click)="remove(item.id)">
             <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2" />
           </button>

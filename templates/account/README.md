@@ -1,10 +1,10 @@
 # Styloviz Account Template
 
-Profile, security, notifications and team — packaged as its own drop-in template instead of a fourth bespoke build. Teal/cyan shell.
+Profile, security and notifications in tabs, a team roster with role filters and pending invites, and plan & billing with seats, payment method and invoices — a drop-in account area for any app. Teal/cyan shell.
 
 | | |
 |---|---|
-| Version | **1.0.2** |
+| Version | **2.0.0** |
 | Tier | **Free** |
 | Built with | Angular 22.2.0, Tailwind CSS 4, TypeScript (strict), standalone components, signals, zoneless change detection |
 | Opens at | `http://localhost:4200/templates/account` |
@@ -168,14 +168,15 @@ To deploy under a sub-path (e.g. `https://example.com/admin/`), build with
 | `@styloviz/forms` | Free — public npm |
 | `@styloviz/icons` | Free — public npm |
 | `@styloviz/input-field` | Free — public npm |
+| `@styloviz/kbd` | Free — public npm |
 | `@styloviz/layout` | Free — public npm |
 | `@styloviz/modal` | Free — public npm |
+| `@styloviz/overlays` | Free — public npm |
 | `@styloviz/password-strength` | Free — public npm |
 | `@styloviz/tabs` | Free — public npm |
-| `@styloviz/toast` | Free — public npm |
 | `@styloviz/toggle-switch` | Free — public npm |
 
-14 free · 0 Pro. They are ordinary npm dependencies —
+15 free · 0 Pro. They are ordinary npm dependencies —
 upgrade with `npm install <package>@latest`. Component docs and live examples:
 https://styloviz.dev/docs
 

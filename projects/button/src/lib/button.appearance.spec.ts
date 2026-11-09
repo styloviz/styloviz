@@ -1,6 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
+import { provideSvIcons } from '@styloviz/icons';
+import { chevronDownIcon } from '@styloviz/icons/glyph/chevron-down';
+import { plusIcon } from '@styloviz/icons/glyph/plus';
 import { SvButtonComponent } from './button.component';
 
 /**
@@ -13,6 +16,8 @@ async function setup(inputs: Partial<ComponentInput<SvButtonComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvButtonComponent, {
     inputs: inputs as ComponentInput<SvButtonComponent>,
+    // The host registers the glyphs it names in `icon` / `trailingIcon` (FL-B4).
+    providers: [provideSvIcons([plusIcon, chevronDownIcon])],
   });
 }
 

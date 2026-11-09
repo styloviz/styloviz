@@ -3,7 +3,7 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { render } from '@testing-library/angular';
 import { afterEach, vi } from 'vitest';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { until } from '@testing/async';
 import { SvToolbarComponent } from './toolbar.component';
 import type { ToolbarAction, ToolbarGroup } from './toolbar.component';
@@ -128,6 +128,34 @@ describe('SvToolbarComponent — panel placement', () => {
     expect(panel.style.minWidth).toBe('160px');
     // The height is clamped to the room above, within the hard ceiling.
     expect(panel.style.maxHeight).toBe('320px');
+  });
+
+  /**
+   * FL-B9 — the strip mirrors under dir="rtl", so the More button sits at the
+   * LEFT end and the panel lines up on its left edge (its inline end), opening
+   * toward the strip instead of away from it.
+   */
+  describe('under dir="rtl"', () => {
+    afterEach(() => document.documentElement.removeAttribute('dir'));
+
+    it('lines up on the More button\'s left edge, its inline end', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup(160, { top: 10, left: 500, width: 32, height: 32 });
+      await open(f);
+      const panel = menu() as HTMLElement;
+      expect(panel.style.left).toBe('500px');
+      expect(panel.style.right).toBe('');
+      expect(panel.style.maxWidth).toBe(`${1024 - 500 - 8}px`);
+    });
+
+    it('falls back to the right edge when the end side is too tight', async () => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      const f = await setup(160, { top: 10, left: 900, width: 32, height: 32 });
+      await open(f);
+      const panel = menu() as HTMLElement;
+      expect(panel.style.right).toBe(`${1024 - 932}px`);
+      expect(panel.style.left).toBe('');
+    });
   });
 });
 

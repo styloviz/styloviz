@@ -32,11 +32,11 @@
       <span class="absolute h-1.5 w-1.5 motion-safe:animate-ping rounded-full bg-rose-400"
             style="top:-6px; left:calc(50% - 3px); animation-delay:0ms"></span>
       <span class="absolute h-1 w-1 motion-safe:animate-ping rounded-full bg-amber-400"
-            style="top:20%; right:-6px; animation-delay:80ms"></span>
+            style="top:20%; inset-inline-end:-6px; animation-delay:80ms"></span>
       <span class="absolute h-1.5 w-1.5 motion-safe:animate-ping rounded-full bg-pink-400"
             style="bottom:-6px; left:calc(50% - 3px); animation-delay:50ms"></span>
       <span class="absolute h-1 w-1 motion-safe:animate-ping rounded-full bg-violet-400"
-            style="top:20%; left:-6px; animation-delay:120ms"></span>
+            style="top:20%; inset-inline-start:-6px; animation-delay:120ms"></span>
     </span>
   }
 
@@ -94,7 +94,8 @@
         class="tabular-nums transition-all duration-150"
         [ngClass]="liked() ? 'font-semibold' : 'font-medium'"
       >
-        {{ count() }}
+        <!-- Compact ("1.2K") on screen; the full number is in the button's name. -->
+        <span aria-hidden="true">{{ displayCount() }}</span>
       </span>
     }
 
@@ -120,7 +121,7 @@
     @if (errorMessage()) {
       <span [id]="errorId" data-sv-like-error
             class="mt-1 block text-xs text-danger-600 dark:text-danger-400">
-        Not saved: {{ errorMessage() }}
+        {{ labels.notSaved | svLabel: { message: errorMessage() } }}
       </span>
     }
   </span>

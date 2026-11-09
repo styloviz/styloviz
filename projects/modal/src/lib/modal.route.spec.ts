@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { SvOverlayRouteService, type SvCloseReason } from '@styloviz/core';
+import { SvOverlayRouteService, type SvCloseReason } from '@styloviz/core/overlay';
 import { SvModalComponent, type ModalCloseReason } from './modal.component';
 import { until } from '../../../../src/testing/async';
 

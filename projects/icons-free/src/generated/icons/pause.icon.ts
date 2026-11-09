@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `pause` icon. */
 export const pauseNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const pauseSolidNodes: readonly IconNode[] = [
   { tag: 'rect', x: 6, y: 4, width: 4, height: 16, rx: 1 },
   { tag: 'rect', x: 14, y: 4, width: 4, height: 16, rx: 1 },
 ];
+
+/** `pause` as a registrable glyph — `registerSvIcons([pauseIcon])` / `provideSvIcons([pauseIcon])`. */
+export const pauseIcon: SvIconDef = { name: 'pause', nodes: pauseNodes, solid: pauseSolidNodes };
 
 /** `pause` — tree-shakable standalone icon. Use `<sv-pause-icon />`. */
 @Component({

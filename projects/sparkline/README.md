@@ -2,7 +2,9 @@
 
 > Micro-chart small enough to live in a table cell, list row or stat card. Four encodings — line, area, bar and win/loss — with optional smoothing, last-point and extreme markers, a dashed reference baseline and a pinnable domain. Pure SVG, zero dependencies.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -62,7 +64,7 @@ export class DemoComponent {}
 | `data` | `readonly SparklineDatum[]` | `[]` | The series. Bare numbers, or objects carrying an optional label. |
 | `domainMin` | `number \| null` | `null` | Pin the bottom of the value range instead of using the series minimum. |
 | `domainMax` | `number \| null` | `null` | Pin the top of the value range instead of using the series maximum. |
-| `domain` | `readonly [number, number] \| null` | `null` | `[min, max]` for the whole group — the shared-domain mode for a table column. A COLUMN OF SPARKLINES EACH SCALED TO ITSELF INVITES EXACTLY THE COMPARISON IT CANNOT SUPPORT. Row A rising 2% and row B rising 900% draw the identical shape, side by side, and nothing on the page says otherwise. Compute one range with `svSharedDomain()` over every row's series and hand the same tuple to all of them. Takes precedence over `domainMin` / `domainMax`, which stay for pinning one end. When none of the three is set, the scale is per-series and the accessible label says so — because a reader who cannot see that is being invited to compare heights that do not mean the same thing. |
+| `domain` | `readonly [number, number] \| null` | `null` | `[min, max]` for the whole group — the shared-domain mode for a table column. A column of sparklines each scaled to itself invites exactly the comparison it cannot support. Row A rising 2% and row B rising 900% draw the identical shape, side by side, and nothing on the page says otherwise. Compute one range with `svSharedDomain()` over every row's series and hand the same tuple to all of them. Takes precedence over `domainMin` / `domainMax`, which stay for pinning one end. When none of the three is set, the scale is per-series and the accessible label says so — because a reader who cannot see that is being invited to compare heights that do not mean the same thing. |
 | `missing` | `SparklineMissing` | `'gap'` | What to do with a missing sample. |
 | `variant` | `SparklineVariant` | `'area'` | Drawing style. |
 | `width` | `number` | `120` | Width of the drawing box in px. |
@@ -90,4 +92,4 @@ Full API reference and live demos: https://styloviz.dev/docs/sparkline
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

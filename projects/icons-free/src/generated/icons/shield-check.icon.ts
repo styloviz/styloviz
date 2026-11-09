@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `shield-check` icon. */
 export const shieldCheckNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const shieldCheckNodes: readonly IconNode[] = [
 export const shieldCheckSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 2.5 L20 6 V11 C20 16 16.5 19.5 12 21 C7.5 19.5 4 16 4 11 V6 Z M15.5 9.8 L11 14.5 L9 12.5 L7.8 13.7 L11 17 L16.7 11 Z', fillRule: 'evenodd' },
 ];
+
+/** `shield-check` as a registrable glyph — `registerSvIcons([shieldCheckIcon])` / `provideSvIcons([shieldCheckIcon])`. */
+export const shieldCheckIcon: SvIconDef = { name: 'shield-check', nodes: shieldCheckNodes, solid: shieldCheckSolidNodes };
 
 /** `shield-check` — tree-shakable standalone icon. Use `<sv-shield-check-icon />`. */
 @Component({

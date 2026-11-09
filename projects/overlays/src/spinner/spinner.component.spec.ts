@@ -2,7 +2,8 @@ import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import { SvSpinnerComponent } from './spinner.component';
-import { SvLiveAnnouncer, SvOverlayStackService, svBodyScrollLockDepth, svResetBodyScrollLock } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { SvOverlayStackService, svBodyScrollLockDepth, svResetBodyScrollLock } from '@styloviz/core/overlay';
 
 /**
  * A spinner is a shape that means "wait". The shape is the part a screen reader
@@ -123,7 +124,7 @@ describe('SvSpinnerComponent — overlay duties', () => {
   afterEach(() => {
     svResetBodyScrollLock(document);
     document.body.style.overflow = '';
-    document.body.style.paddingRight = '';
+    document.body.style.paddingInlineEnd = '';
   });
 
   /**

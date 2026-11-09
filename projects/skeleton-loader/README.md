@@ -2,7 +2,9 @@
 
 > Loading placeholders with wave/pulse animations and preset layouts.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -69,17 +71,21 @@ export class DemoComponent {}
 | `customClass` | `string` | `''` | Additional CSS classes merged onto the root wrapper. |
 | `ariaLabel` | `string` | `'Loading content…'` | Accessible label announced to screen readers while content loads. |
 | `announce` | `boolean` | `true` | Whether this skeleton announces the wait itself. |
-| `slowAfterMs` | `number` | `0` | Say "this is taking longer than usual" after this many ms. `0` = never. A STUCK SKELETON IS INDISTINGUISHABLE FROM A FAILED REQUEST, AND IT LIES IN THE EXACT PLACE THE DATA WAS GOING. It says "the shape of your content is arriving" — permanently, if the host's request failed silently. There was no timeout, no error and no retry: the placeholder simply outlived the thing it was standing in for. Off by default, because the honest threshold depends on what is loading and because turning it on adds text to every existing layout. |
+| `slowAfterMs` | `number` | `0` | Say "this is taking longer than usual" after this many ms. `0` = never. A stuck skeleton is indistinguishable from a failed request, and it lies in the exact place the data was going. It says "the shape of your content is arriving" — permanently, if the host's request failed silently. There was no timeout, no error and no retry: the placeholder simply outlived the thing it was standing in for. Off by default, because the honest threshold depends on what is loading and because turning it on adds text to every existing layout. |
 | `stalledAfterMs` | `number` | `0` | Escalate to a stuck message (with a retry offer) after this many ms. Measured from the same start, not from `slowAfterMs`. `0` = never. |
 | `slowMessage` | `string` | `'This is taking longer than usual…'` | Message shown at the `slow` stage. |
 | `stalledMessage` | `string` | `'This content could not be loaded.'` | Message shown at the `stalled` stage. |
-| `retryLabel` | `string \| null` | `null` | Label for the retry offer shown once the wait is `stalled`. `null` = none. AN OUTPUT CANNOT BE ASKED WHETHER ANYONE IS LISTENING, so the offer is an input: a placeholder that renders "Try again" and does nothing when it is pressed is worse than one that never offered. |
+| `retryLabel` | `string \| null` | `null` | Label for the retry offer shown once the wait is `stalled`. `null` = none. An output cannot be asked whether anyone is listening, so the offer is an input: a placeholder that renders "Try again" and does nothing when it is pressed is worse than one that never offered. |
+| `active` | `boolean` | `true` | Whether the wait is in progress. Bind it — `[active]="loading()"` — and keep the skeleton mounted when using `showAfterMs` / `minVisibleMs`: a skeleton the host removes cannot stay for its minimum. |
+| `showAfterMs` | `number` | `0` | Appear only once the wait has lasted this long, in ms, so a fast response never flashes bones. `0` shows at once. |
+| `minVisibleMs` | `number` | `0` | Once shown, stay at least this long, in ms — a skeleton visible for 80 ms is a flicker. `0` hides with `active`. Watch `(visibleChange)` (or use `createDelayedVisibility` from `@styloviz/core`) to swap the content in at the same moment. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
 | `retry` | `void` | The user pressed the retry offer on a stalled skeleton. |
+| `visibleChange` | `boolean` | Emits whenever the skeleton appears (`true`) or leaves (`false`). |
 | `escalated` | `SvWaitStage` | Fires on each escalation: `'slow'`, then `'stalled'`. |
 
 ## Documentation
@@ -88,4 +94,4 @@ Full API reference and live demos: https://styloviz.dev/docs/skeleton-loader
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

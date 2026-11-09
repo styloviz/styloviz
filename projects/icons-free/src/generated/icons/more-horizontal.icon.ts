@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `more-horizontal` icon. */
 export const moreHorizontalNodes: readonly IconNode[] = [
@@ -10,6 +11,9 @@ export const moreHorizontalNodes: readonly IconNode[] = [
   { tag: 'circle', cx: 12, cy: 12, r: 1.6, fill: true },
   { tag: 'circle', cx: 19, cy: 12, r: 1.6, fill: true },
 ];
+
+/** `more-horizontal` as a registrable glyph — `registerSvIcons([moreHorizontalIcon])` / `provideSvIcons([moreHorizontalIcon])`. */
+export const moreHorizontalIcon: SvIconDef = { name: 'more-horizontal', nodes: moreHorizontalNodes };
 
 /** `more-horizontal` — tree-shakable standalone icon. Use `<sv-more-horizontal-icon />`. */
 @Component({

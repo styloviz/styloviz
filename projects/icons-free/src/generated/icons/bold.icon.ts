@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `bold` icon. */
 export const boldNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const boldNodes: readonly IconNode[] = [
 export const boldSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7 3.1h6q2 0 3.4 1.5 1.5 1.4 1.5 3.4 0 2-1.5 3.4-.1.2-.2.3.7.3 1.2.9 1.5 1.4 1.5 3.4 0 2-1.5 3.4-1.4 1.5-3.4 1.5h-7q-.9 0-.9-.9v-16q0-.9.9-.9z' },
 ];
+
+/** `bold` as a registrable glyph — `registerSvIcons([boldIcon])` / `provideSvIcons([boldIcon])`. */
+export const boldIcon: SvIconDef = { name: 'bold', nodes: boldNodes, solid: boldSolidNodes };
 
 /** `bold` — tree-shakable standalone icon. Use `<sv-bold-icon />`. */
 @Component({

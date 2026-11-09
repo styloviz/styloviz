@@ -3,7 +3,10 @@
      still on screen and still in the tab order, so Tab could land on a button
      inside a panel that is shrinking to 0. `inert` takes the whole subtree out
      of the tab order and pointer hit-testing the moment the collapse starts.
-     Focus that was already inside is moved out first (see `returnFocusTo`). -->
+     Focus that was already inside is moved out first (see `returnFocusTo`).
+     ★ `[style.display]` is the INITIAL state only (FL-J3-LU-08): it is rendered
+     — on the server too — so a collapsed panel ships hidden; after that the
+     transitions own `display`. -->
 <div
   #wrapper
   [attr.id]="panelId() || null"
@@ -12,6 +15,7 @@
   [attr.aria-label]="!ariaLabelledby() && ariaLabel() ? ariaLabel() : null"
   [attr.aria-hidden]="!expanded()"
   [attr.inert]="expanded() ? null : ''"
+  [style.display]="initialDisplay()"
 >
   @if (isVisible()) {
     <!-- The observed box (`X-4`): the wrapper's own height is pinned while it

@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { provideSvIcons } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
+import { starIcon } from '@styloviz/icons/glyph/star';
 import { render } from '@testing-library/angular';
 import { SvStepperComponent } from './stepper.component';
 import type { StepperItem, StepperSize, StepperVariant } from './stepper.component';
@@ -27,6 +29,8 @@ async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvStepperComponent, {
     inputs: { items: STEPS, ...inputs },
+    // `star` is a host-supplied step glyph, so the host registers it (FL-B4).
+    providers: [provideSvIcons([starIcon])],
   });
   return fixture;
 }
@@ -83,23 +87,23 @@ describe('SvStepperComponent — indicator colours by state', () => {
 });
 
 describe('SvStepperComponent — indicator size by variant and size', () => {
-  const sizes: StepperSize[] = ['sm', 'md', 'lg'];
+  const sizes: StepperSize[] = ['xs', 'sm', 'md', 'lg'];
 
   it.each(sizes)('sizes a dot indicator for %s', async (size) => {
     const f = await setup({ variant: 'dot', size });
-    const expected = { sm: 'h-2.5 w-2.5', md: 'h-3 w-3', lg: 'h-4 w-4' }[size];
+    const expected = { xs: 'h-2 w-2', sm: 'h-2.5 w-2.5', md: 'h-3 w-3', lg: 'h-4 w-4' }[size];
     expect(f.componentInstance.indicatorClass(asState('pending'))).toContain(expected);
   });
 
   it.each(sizes)('sizes a pill indicator for %s', async (size) => {
     const f = await setup({ variant: 'pill', size });
-    const expected = { sm: 'h-7 min-w-7', md: 'h-8 min-w-8', lg: 'h-10 min-w-10' }[size];
+    const expected = { xs: 'h-6 min-w-6', sm: 'h-7 min-w-7', md: 'h-8 min-w-8', lg: 'h-10 min-w-10' }[size];
     expect(f.componentInstance.indicatorClass(asState('pending'))).toContain(expected);
   });
 
   it.each(sizes)('sizes a default indicator for %s', async (size) => {
     const f = await setup({ size });
-    const expected = { sm: 'h-7 w-7', md: 'h-8 w-8', lg: 'h-10 w-10' }[size];
+    const expected = { xs: 'h-6 w-6', sm: 'h-7 w-7', md: 'h-8 w-8', lg: 'h-10 w-10' }[size];
     expect(f.componentInstance.indicatorClass(asState('pending'))).toContain(expected);
   });
 });
@@ -131,24 +135,18 @@ describe('SvStepperComponent — connectors', () => {
   /** The last step has nothing to connect to. */
   it('renders no connector after the final step', async () => {
     const f = await setup({ showConnectors: true });
-    expect((f.nativeElement as HTMLElement).querySelectorAll('.ml-3')).toHaveLength(
+    expect((f.nativeElement as HTMLElement).querySelectorAll('.ms-3')).toHaveLength(
       STEPS.length - 1,
     );
   });
 });
 
 describe('SvStepperComponent — vertical layout tokens', () => {
-  const sizes: StepperSize[] = ['sm', 'md', 'lg'];
-
-  it.each(sizes)('indents the vertical row for %s', async (size) => {
-    const f = await setup({ orientation: 'vertical', size });
-    const expected = { sm: 'pl-11', md: 'pl-14', lg: 'pl-16' }[size];
-    expect(f.componentInstance.verticalRowPaddingClass()).toBe(expected);
-  });
+  const sizes: StepperSize[] = ['xs', 'sm', 'md', 'lg'];
 
   it.each(sizes)('positions the vertical connector for %s', async (size) => {
     const f = await setup({ orientation: 'vertical', size });
-    const expectedLeft = { sm: 'left-[13px]', md: 'left-[15px]', lg: 'left-[19px]' }[size];
+    const expectedLeft = { xs: 'start-[11px]', sm: 'start-[13px]', md: 'start-[15px]', lg: 'start-[19px]' }[size];
     const cls = f.componentInstance.verticalConnectorLayoutClass();
     expect(cls).toContain(expectedLeft);
     expect(cls).toContain('w-0.5');
@@ -157,6 +155,8 @@ describe('SvStepperComponent — vertical layout tokens', () => {
   it('widens the vertical connector in the line variant', async () => {
     const f = await setup({ orientation: 'vertical', variant: 'line' });
     expect(f.componentInstance.verticalConnectorLayoutClass()).toContain('w-1');
+    // A pixel further left, so the 4px rail's centre stays on the indicator's.
+    expect(f.componentInstance.verticalConnectorLayoutClass()).toContain('start-[14px]');
   });
 
   it('switches the root to a column when vertical', async () => {
@@ -188,9 +188,9 @@ describe('SvStepperComponent — labels and descriptions', () => {
     expect(c.labelClass(asState('pending'))).toContain('text-gray-600');
   });
 
-  it.each(['sm', 'md', 'lg'] as StepperSize[])('sizes the label for %s', async (size) => {
+  it.each(['xs', 'sm', 'md', 'lg'] as StepperSize[])('sizes the label for %s', async (size) => {
     const f = await setup({ size });
-    const expected = { sm: 'text-xs', md: 'text-sm', lg: 'text-base' }[size];
+    const expected = { xs: 'text-xs', sm: 'text-xs', md: 'text-sm', lg: 'text-base' }[size];
     expect(f.componentInstance.labelClass(asState('pending'))).toContain(expected);
   });
 

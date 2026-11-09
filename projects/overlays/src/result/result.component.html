@@ -89,7 +89,7 @@
   @if (reference(); as ref) {
     <p data-sv-reference class="mt-6 flex items-center justify-center gap-2 text-xs
                                 text-gray-500 dark:text-gray-400">
-      <span>Reference</span>
+      <span>{{ labels.resultReference }}</span>
       <code class="select-all rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[0.6875rem]
                    text-gray-700 dark:bg-gray-800 dark:text-gray-200">{{ ref }}</code>
       @if (copyLabel()) {
@@ -115,7 +115,7 @@
     photograph and paste into chat.
   -->
   @if (detailsOffered()) {
-    <details data-sv-details class="mt-4 text-left text-xs text-gray-500 dark:text-gray-400">
+    <details data-sv-details class="mt-4 text-start text-xs text-gray-500 dark:text-gray-400">
       <summary class="cursor-pointer select-none text-center focus-visible:outline-none
                       focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
         {{ detailsLabel() }}

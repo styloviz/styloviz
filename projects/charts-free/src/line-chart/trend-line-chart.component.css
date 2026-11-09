@@ -15,3 +15,11 @@
 .tl-line-anim {
   animation: tl-line-in 1.2s cubic-bezier(0.4, 0, 0.2, 1) 200ms both;
 }
+
+/* Reduced motion (FL-J3-CH-01): dots and the trend line are simply there. */
+@media (prefers-reduced-motion: reduce) {
+  .tl-dot-anim,
+  .tl-line-anim {
+    animation: none;
+  }
+}

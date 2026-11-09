@@ -4,6 +4,7 @@ import {
   computed,
   ElementRef,
   input,
+  linkedSignal,
   model,
   output,
   signal,
@@ -19,8 +20,11 @@ import {
   svPositionFromPointer,
   svPositionLabel,
 } from './image-compare.geometry';
-import { svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_IMAGE_COMPARE_LABELS } from './image-compare.labels';
 
+import { registerImageCompareIcons } from './image-compare.component.icons';
 export type ImageCompareVariant =
   /** The wipe with a draggable handle. */
   | 'slider'
@@ -61,6 +65,13 @@ export type ImageCompareLandmarks = 'none' | 'crosshair' | 'thirds' | 'grid';
   templateUrl: './image-compare.component.html',
 })
 export class SvImageCompareComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerImageCompareIcons();
+
+  /** @internal English unless `provideSvLabels({ imageCompare })` says otherwise; first, because input defaults read it. */
+  protected readonly labels = injectSvLabels('imageCompare', SV_IMAGE_COMPARE_LABELS);
+  private readonly locale = svLocale();
+
   private readonly uid = svUniqueId('sv-ic');
 
   private readonly box = viewChild<ElementRef<HTMLElement>>('box');
@@ -83,9 +94,9 @@ export class SvImageCompareComponent {
    * the sentence a sighted reader gets from looking.
    * @default 'the before image' / 'the after image'
    */
-  readonly beforeAlt = input<string>('the before image');
+  readonly beforeAlt = input<string>(this.labels.beforeAlt);
   /** Alt text for the after image, also used as its name in the slider's spoken value. @default 'the after image' */
-  readonly afterAlt = input<string>('the after image');
+  readonly afterAlt = input<string>(this.labels.afterAlt);
 
   /** Corner captions. Empty hides them. @default '' */
   readonly beforeLabel = input<string>('');
@@ -93,7 +104,7 @@ export class SvImageCompareComponent {
   readonly afterLabel = input<string>('');
 
   /** Accessible name for the slider itself. @default 'Comparison position' */
-  readonly ariaLabel = input<string>('Comparison position');
+  readonly ariaLabel = input<string>(this.labels.sliderName);
 
   /**
    * Suppress the aspect-ratio warning.
@@ -121,6 +132,46 @@ export class SvImageCompareComponent {
   /** Emitted once when the two images turn out not to be comparable. */
   readonly mismatch = output<number>();
 
+  /** An image failed to load — `'before'` or `'after'`. The wipe is replaced by the reason. */
+  readonly loadError = output<'before' | 'after'>();
+
+  // ── Load state (DD-15-I3) ─────────────────────────────────────────────────
+  //
+  // ★★ A WIPE OVER A HALF-LOADED PAIR IS MEANINGLESS — dragging it compares a
+  //    picture with a blank. Each image's state re-arms when its `src` changes,
+  //    the wipe stays covered until BOTH have loaded, and a failure says which.
+
+  /** `'loading' | 'loaded' | 'error'` for the before image, reset when `beforeSrc` changes. */
+  readonly beforeState = linkedSignal<string, 'loading' | 'loaded' | 'error'>({
+    source: this.beforeSrc,
+    computation: (src) => (src ? 'loading' : 'error'),
+  });
+  /** `'loading' | 'loaded' | 'error'` for the after image, reset when `afterSrc` changes. */
+  readonly afterState = linkedSignal<string, 'loading' | 'loaded' | 'error'>({
+    source: this.afterSrc,
+    computation: (src) => (src ? 'loading' : 'error'),
+  });
+
+  /** Both images are in: the wipe means something. */
+  readonly ready = computed(() => this.beforeState() === 'loaded' && this.afterState() === 'loaded');
+
+  /**
+   * The state the box publishes as `data-sv-media-state`, or `null` once ready.
+   * Not `data-sv-state`: that is the page's async contract, and a page holding
+   * an image compare would otherwise read as loading until both images land.
+   */
+  readonly loadState = computed<'loading' | 'error' | null>(() => {
+    if (this.beforeState() === 'error' || this.afterState() === 'error') return 'error';
+    return this.ready() ? null : 'loading';
+  });
+
+  /** What the overlay says. */
+  readonly loadMessage = computed(() => {
+    const failed = this.beforeState() === 'error' ? this.beforeAlt() : this.afterState() === 'error' ? this.afterAlt() : '';
+    if (failed) return svFormatLabel(this.labels.imageFailed, { name: failed }, this.locale);
+    return this.ready() ? '' : this.labels.loadingImages;
+  });
+
   // ── Measured state ────────────────────────────────────────────────────────
 
   readonly beforeWidth = signal(0);
@@ -137,7 +188,7 @@ export class SvImageCompareComponent {
   readonly at = computed(() => svClampPosition(this.position()));
 
   readonly frames = computed(() =>
-    svFrames(this.beforeWidth(), this.beforeHeight(), this.afterWidth(), this.afterHeight()),
+    svFrames(this.beforeWidth(), this.beforeHeight(), this.afterWidth(), this.afterHeight(), this.labels),
   );
 
   readonly aspect = computed(() => this.frames().aspect);
@@ -174,7 +225,7 @@ export class SvImageCompareComponent {
   readonly ariaValue = computed(() => svAriaValue(this.at()));
 
   readonly positionLabel = computed(() =>
-    svPositionLabel(this.at(), this.beforeAlt(), this.afterAlt()),
+    svPositionLabel(this.at(), this.beforeAlt(), this.afterAlt(), this.labels, this.locale),
   );
 
   readonly showHandle = computed(() => this.variant() !== 'bare');
@@ -192,6 +243,7 @@ export class SvImageCompareComponent {
   onImageLoad(which: 'before' | 'after', event: Event): void {
     const img = event.target as HTMLImageElement | null;
     if (!img) return;
+    (which === 'before' ? this.beforeState : this.afterState).set('loaded');
     if (which === 'before') {
       this.beforeWidth.set(img.naturalWidth);
       this.beforeHeight.set(img.naturalHeight);
@@ -219,7 +271,14 @@ export class SvImageCompareComponent {
    * the one method whose whole purpose is not to trap focus did nothing but. The
    * spec caught it; nothing else would have.
    */
+  /** An image failed: say which, and keep the wipe covered. */
+  onImageError(which: 'before' | 'after'): void {
+    (which === 'before' ? this.beforeState : this.afterState).set('error');
+    this.loadError.emit(which);
+  }
+
   onKeydown(event: KeyboardEvent): void {
+    if (!this.ready()) return;
     const next = svPositionForKey(event.key, this.at());
     if (next === null) return;
     this.position.set(next);
@@ -227,6 +286,7 @@ export class SvImageCompareComponent {
   }
 
   onPointerDown(event: PointerEvent): void {
+    if (!this.ready()) return;
     this.dragging.set(true);
     const target = event.target as Element & { setPointerCapture?(id: number): void };
     // ★ POINTER CAPTURE, so a drag that leaves the box keeps working. Without it

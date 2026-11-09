@@ -73,13 +73,13 @@ describe('SvNumberInputComponent — the quantity preset', () => {
   it('rounds the group and the outer button corners more than the default', async () => {
     const qty = await setup({ preset: 'quantity' });
     expect(qty.fixture.componentInstance.groupClass()).toContain('rounded-xl w-fit');
-    expect(qty.fixture.componentInstance.decBtnClass()).toContain('rounded-l-[11px]');
-    expect(qty.fixture.componentInstance.incBtnClass()).toContain('rounded-r-[11px]');
+    expect(qty.fixture.componentInstance.decBtnClass()).toContain('rounded-s-[11px]');
+    expect(qty.fixture.componentInstance.incBtnClass()).toContain('rounded-e-[11px]');
 
     const plain = await setup({});
     expect(plain.fixture.componentInstance.groupClass()).toContain('rounded-md');
-    expect(plain.fixture.componentInstance.decBtnClass()).toContain('rounded-l-[5px]');
-    expect(plain.fixture.componentInstance.incBtnClass()).toContain('rounded-r-[5px]');
+    expect(plain.fixture.componentInstance.decBtnClass()).toContain('rounded-s-[5px]');
+    expect(plain.fixture.componentInstance.incBtnClass()).toContain('rounded-e-[5px]');
     expect(plain.fixture.componentInstance.iconSize()).toBe('h-3.5 w-3.5');
     expect(plain.fixture.componentInstance.inputBoxClass()).toContain('flex-1');
   });
@@ -98,10 +98,10 @@ describe('SvNumberInputComponent — the quantity preset', () => {
     // Angular merges `[class]` into the element's class list, which the DOM
     // then reports in its own order — so match on tokens, not a substring.
     const [dec, inc] = buttons(el(fixture));
-    for (const token of ['h-11', 'w-11', 'rounded-l-[11px]']) {
+    for (const token of ['h-11', 'w-11', 'rounded-s-[11px]']) {
       expect(dec.classList.contains(token)).toBe(true);
     }
-    expect(inc.classList.contains('rounded-r-[11px]')).toBe(true);
+    expect(inc.classList.contains('rounded-e-[11px]')).toBe(true);
     expect(field(el(fixture)).classList.contains('w-16')).toBe(true);
   });
 });

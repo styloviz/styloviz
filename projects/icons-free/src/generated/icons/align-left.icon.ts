@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `align-left` icon. */
 export const alignLeftNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const alignLeftNodes: readonly IconNode[] = [
 export const alignLeftSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 5.1h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm0 12h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9zm0-6h10q.9 0 .9.9 0 .9-.9.9h-10q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `align-left` as a registrable glyph — `registerSvIcons([alignLeftIcon])` / `provideSvIcons([alignLeftIcon])`. */
+export const alignLeftIcon: SvIconDef = { name: 'align-left', nodes: alignLeftNodes, solid: alignLeftSolidNodes };
 
 /** `align-left` — tree-shakable standalone icon. Use `<sv-align-left-icon />`. */
 @Component({

@@ -1,8 +1,10 @@
 # @styloviz/commerce
 
-> Storefront basics — price, address card, file display and QR codes.
+> Storefront basics — price, pricing table, address card, file display and QR codes.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -65,10 +67,10 @@ export class DemoComponent {}
 | `canRemove` | `boolean` | `true` | Show the remove action. |
 | `canSetDefault` | `boolean` | `true` | Show the "Set as default" action (hidden when already default). |
 | `maskLevel` | `AddressMaskLevel` | `'none'` | Print the address in full, or with its identifying parts masked — house and flat numbers, the inward half of the postcode and all but the last four phone digits. |
-| `confirmRemove` | `boolean` | `true` | Ask before deleting. Defaults to ON, and the previous behaviour was a single click straight through to `remove`. A saved address is not something the component can put back — see AddressActionEvent — and the trash button is a 32px icon sitting next to an edit button of the same size in a grid of near-identical cards. Turn it off only where the host runs its own confirmation dialog. |
+| `confirmRemove` | `boolean` | `true` | Ask before deleting. On by default. A saved address is not something the component can put back — see AddressActionEvent — and the trash button is a 32px icon sitting next to an edit button of the same size in a grid of near-identical cards. Turn it off only where the host runs its own confirmation dialog. |
 | `saving` | `boolean` | `false` | True while a write against this address is being sent. Freezes the actions, so a slow round-trip cannot be turned into two deletes. |
 | `actionError` | `SvDataError \| string \| null` | `null` | The last write failed. Reported on the card, because the card is still here — the host never took it out, and the badge never moved. |
-| `defaultCandidates` | `readonly Address[]` | `[]` | The other addresses that could take over as default, offered as a choice in the confirmation when THIS address is the default one being removed. Removing the default address used to have no defined transition: the card emitted `remove` and the host was left to guess whether a new default was wanted, which one, and whether the person had any say. The card cannot see the address book, so it cannot pick — but given the candidates it can ask, and the answer rides back on `nextDefaultId`. Left empty, the confirmation says plainly that there will be no default afterwards, which is the outcome the host then has to handle. Ignored entirely when this address is not the default. |
+| `defaultCandidates` | `readonly Address[]` | `[]` | The other addresses that could take over as default, offered as a choice in the confirmation when THIS address is the default one being removed. The card cannot see the address book, so it cannot pick — but given the candidates it can ask, and the answer rides back on `nextDefaultId`. Left empty, the confirmation says plainly that there will be no default afterwards, which is the outcome the host then has to handle. Ignored entirely when this address is not the default. |
 
 ## Outputs
 
@@ -79,10 +81,19 @@ export class DemoComponent {}
 | `remove` | `AddressActionEvent` | The user confirmed deleting this address. Bind this or nothing happens: the component only asks, it never deletes. |
 | `setDefault` | `AddressActionEvent` | "Set as default" was pressed. Persist it — the badge follows `address()`. |
 
+## Forms integration
+
+A **ControlValueAccessor** works with `[formControl]`, `formControlName`, `[(ngModel)]` and Signal Forms `[formField]`. An **output-driven** component is bound through its own inputs and outputs instead — the reason is given for each.
+
+| Component | Forms integration |
+| --- | --- |
+| `sv-address-card` | Output-driven — It shows saved addresses and emits actions — `(addressSelected)`, `(edit)`, `(remove)`, `(setDefault)`; there is no editable value to bind. |
+| `sv-address-form` | Output-driven — A whole form with its own fields, verification and submit — persist on `(save)`. Embed it as a sub-form; it is not one field of yours. |
+
 ## Documentation
 
 Full API reference and live demos: https://styloviz.dev/docs/address-card
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

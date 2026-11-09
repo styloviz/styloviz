@@ -279,6 +279,29 @@
         }
       }
     },
+    "ai": {
+      "projectType": "library",
+      "root": "projects/ai",
+      "sourceRoot": "projects/ai/src",
+      "prefix": "sv",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "options": {
+            "project": "projects/ai/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/ai/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/ai/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
     "citation-sources": {
       "projectType": "library",
       "root": "projects/citation-sources",
@@ -342,6 +365,29 @@
             },
             "development": {
               "tsConfig": "projects/commerce/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
+    },
+    "cookie-consent": {
+      "projectType": "library",
+      "root": "projects/cookie-consent",
+      "sourceRoot": "projects/cookie-consent/src",
+      "prefix": "sv",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "options": {
+            "project": "projects/cookie-consent/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/cookie-consent/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/cookie-consent/tsconfig.lib.json"
             }
           },
           "defaultConfiguration": "production"

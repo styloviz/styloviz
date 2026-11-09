@@ -9,24 +9,22 @@ import {
   signal,
   ChangeDetectionStrategy,
   OnDestroy,
-  OnInit,
   inject,
   PLATFORM_ID,
   untracked,
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser, NgClass } from '@angular/common';
-import {
-  createFocusScope,
-  SvBannerStackService,
-  SvLiveAnnouncer,
-  svAnnouncePriorityFor,
-  svWarnOnce,
-  type SvBannerHandle,
-  type SvBannerSlot,
-} from '@styloviz/core';
+import { SvLiveAnnouncer, svAnnouncePriorityFor, prefersReducedMotion } from '@styloviz/core/a11y';
+import { svPersistedStore, svWarnRestoreRefused, type SvRestoreSpec } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { SvBannerStackService, type SvBannerHandle, type SvBannerSlot } from '@styloviz/core/feedback';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { createFocusScope } from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_ALERT_BANNER_LABELS } from './alert-banner.labels';
 
+import { registerAlertBannerIcons } from './alert-banner.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AlertVariant  = 'info' | 'success' | 'warning' | 'danger' | 'neutral';
@@ -66,6 +64,27 @@ const VARIANT_ICON_NAMES: Record<AlertVariant, string> = {
  * - Full dark-mode support
  */
 
+/** What a remembered dismissal stores (FL-J3-OF-11). JSON-safe by construction. */
+export interface SvAlertBannerDismissal {
+  /** The `persistVersion` the user dismissed. The banner stays hidden until the host raises it. */
+  readonly dismissedVersion: number;
+}
+
+/** The `kind` a remembered dismissal is stored under. */
+export const SV_ALERT_BANNER_DISMISSAL_KIND = 'sv-alert-banner/dismissal';
+
+function readDismissal(state: unknown): SvAlertBannerDismissal | null {
+  if (typeof state !== 'object' || state === null) return null;
+  const v = (state as Record<string, unknown>)['dismissedVersion'];
+  return typeof v === 'number' && Number.isFinite(v) ? { dismissedVersion: v } : null;
+}
+
+const DISMISSAL_SCHEMA: SvRestoreSpec<SvAlertBannerDismissal> = {
+  kind: SV_ALERT_BANNER_DISMISSAL_KIND,
+  version: 1,
+  read: readDismissal,
+};
+
 /** Duration in ms for the CSS dismiss transition — must match `duration-300` in the template. */
 const DISMISS_TRANSITION_MS = 300;
 
@@ -88,7 +107,13 @@ const INTERACTIVE_SELECTOR =
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
 })
-export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy {
+export class SvAlertBannerComponent implements AfterViewInit, OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAlertBannerIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ alertBanner })` says otherwise. */
+  protected readonly labels = injectSvLabels('alertBanner', SV_ALERT_BANNER_LABELS);
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly _banners = inject(SvBannerStackService);
 
@@ -132,9 +157,6 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
   /**
    * Icon-library NAME overriding the default variant icon — e.g. `'bell'`.
    * Leave empty to use the built-in icon for the current variant.
-   *
-   * ★ BREAKING (icon sweep): was `iconPath`, a raw `<path d="…">`. `iconViewBox`
-   * is GONE — it only existed because a raw path might not be 24-box.
    */
   icon       = input<string>('');
 
@@ -177,16 +199,13 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
   /**
    * Identity for suppressing a duplicate pinned banner (`OF-01-M2`).
    *
-   * | Value     | Meaning                                                    |
-   * |-----------|------------------------------------------------------------|
-   * | omitted   | derive from variant + style + title + message              |
-   * | a string  | suppress on that, whatever the text                        |
-   * | `null`    | never suppress                                             |
+   * Omitted, it is derived from variant + style + title + message; a string
+   * suppresses on that, whatever the text; `null` never suppresses.
    *
-   * ★★ A SUPPRESSED BANNER RENDERS NOTHING — no count, unlike a deduplicated
-   *    toast. A toast reports an EVENT, so "it happened eleven times" is
-   *    information; a banner reports a STATE, and "your trial expires ×2" is
-   *    not a thing that can be true.
+   * A suppressed banner renders nothing — no count, unlike a deduplicated
+   * toast. A toast reports an event, so "it happened eleven times" is
+   * information; a banner reports a state, and "your trial expires ×2" is not
+   * a thing that can be true.
    */
   dedupeKey = input<string | null | undefined>(undefined);
 
@@ -194,6 +213,32 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
 
   /** Additional CSS classes merged on the root element. */
   customClass = input<string>('');
+
+  // ── Remembered dismissal (FL-J3-OF-11, `OF-01-I5`, `OF-01-M3`) ────────────
+
+  /**
+   * Storage key that remembers a dismissal, or `null` to forget it on the next
+   * render. @default null
+   *
+   * ★★ A BANNER THE USER CLOSED CAME BACK ON EVERY NAVIGATION. With a key, a
+   *    close from the dismiss button is written to `localStorage` (through
+   *    core's versioned, SSR- and storage-failure-safe `svPersistedStore`) and
+   *    the banner renders nothing — no strip, no announcement, no stack slot —
+   *    until `persistVersion` goes up. An auto-dismiss is NOT remembered: the
+   *    user did not decide anything.
+   *
+   * ★ On a server render the banner is drawn (there is no storage to read) and
+   *   removed on hydration; reserve its space or render it client-only if that
+   *   frame matters.
+   */
+  persistKey = input<string | null>(null);
+
+  /**
+   * Which edition of the message a remembered dismissal covers. Raise it when
+   * the message is new — "dismissed until version": a user who closed version
+   * 2 sees version 3. @default 1
+   */
+  persistVersion = input<number>(1);
 
   // ── Outputs ───────────────────────────────────────────────────────────────
 
@@ -207,6 +252,17 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
 
   readonly isVisible  = signal(true);
   readonly isClosing  = signal(false);
+
+  /**
+   * True while the banner is hidden because the user dismissed this
+   * `persistVersion` before — rather than closed in this session.
+   */
+  readonly rememberedDismissed = signal(false);
+
+  private readonly _dismissals = svPersistedStore<SvAlertBannerDismissal>({
+    key: () => this.persistKey() ?? '',
+    spec: DISMISSAL_SCHEMA,
+  });
 
   private autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
   /** Tracks the close-transition timer so it can be cancelled on destroy. */
@@ -261,6 +317,8 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
    *   the moment the user scrolls.
    */
   private readonly _slot = computed<SvBannerSlot | null>(() => {
+    // A banner remembered as dismissed takes no place in the pinned stack.
+    if (this.rememberedDismissed()) return null;
     const pos = this.position();
     return pos === 'inline' ? null : pos;
   });
@@ -316,6 +374,28 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
   });
 
   constructor() {
+    // Read the remembered dismissal — before the first render, so a banner the
+    // user closed never paints, announces or takes a stack slot — and again
+    // when the key or the version changes.
+    effect(() => {
+      const key = this.persistKey();
+      const version = this.persistVersion();
+      untracked(() => {
+        if (!key) { this._restoreShown(); return; }
+        const loaded = this._dismissals.load();
+        for (const refusal of loaded.refusals) {
+          svWarnRestoreRefused('sv-alert-banner', { ok: false, reason: refusal.reason, detail: refusal.detail });
+        }
+        const dismissed = loaded.state !== null && loaded.state.dismissedVersion >= version;
+        if (dismissed) {
+          this.rememberedDismissed.set(true);
+          this.isVisible.set(false);
+        } else {
+          this._restoreShown();
+        }
+      });
+    });
+
     // Join or leave the pinned stack as `position`, `priority` or the dedupe
     // key change. Re-registering rather than mutating: the stack's ordering is
     // decided at registration, and a banner whose priority changes mid-life is
@@ -370,6 +450,18 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
+  /**
+   * A banner hidden only by a remembered dismissal comes back — the key went
+   * away, or the host raised `persistVersion` past it. One the user closed in
+   * this session stays closed.
+   */
+  private _restoreShown(): void {
+    if (!this.rememberedDismissed()) return;
+    this.rememberedDismissed.set(false);
+    this.isVisible.set(true);
+    if (this._started && !this.suppressed()) this._announce();
+  }
+
   /** Suppression key: the host's, or one derived from what is rendered. */
   private readonly _resolvedDedupeKey = computed<string | null>(() => {
     const stated = this.dedupeKey();
@@ -392,19 +484,6 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
   /** Guards the once-only work in `ngAfterViewInit`, which a host may re-call. */
   private _started = false;
 
-  /**
-   * Arms the once-only start that `ngAfterViewInit` performs.
-   *
-   * @deprecated Kept so the public member list is unchanged. Announcing and
-   * the countdown now start once, in `ngAfterViewInit` (`OF-01-I4`,
-   * `OF-01-I7`), so calling this by hand no longer announces or restarts the
-   * timer on its own: it only re-arms that start for the next
-   * `ngAfterViewInit` call. To show a banner again, re-create it (`@if`).
-   */
-  ngOnInit(): void {
-    this._started = false;
-  }
-
   ngAfterViewInit(): void {
     // ★ SSR: no element to measure and no viewport to place it in.
     if (!isPlatformBrowser(this.platformId)) return;
@@ -415,9 +494,9 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
       //    nothing either, and the announcer's own dedupe window is one
       //    second — a route mounting the same banner as the shell ten seconds
       //    later re-read a message that was not even on screen.
-      if (!this.suppressed()) this._announce();
+      if (!this.suppressed() && this.isVisible()) this._announce();
       const ms = this.effectiveAutoDismissMs();
-      if (ms > 0) {
+      if (ms > 0 && this.isVisible()) {
         this.autoDismissRemaining = ms;
         this.startAutoDismiss();
       }
@@ -510,6 +589,18 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
 
   // ── Public API ────────────────────────────────────────────────────────────
 
+  /**
+   * The user's own close — the dismiss button. Remembered under `persistKey`
+   * (FL-J3-OF-11); then the same exit as `close()`.
+   */
+  dismiss(): void {
+    const key = this.persistKey();
+    // ★ A storage failure (quota, privacy mode) still closes the banner — the
+    //   memory is a courtesy, the close is what the user asked for.
+    if (key) this._dismissals.save({ dismissedVersion: this.persistVersion() });
+    this.close();
+  }
+
   close(): void {
     if (this.autoDismissTimer) {
       clearTimeout(this.autoDismissTimer);
@@ -560,7 +651,10 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
       //    then the removal would drop focus to `<body>` anyway, one tick
       //    later, with the restore having accomplished nothing.
       if (isPlatformBrowser(this.platformId)) setTimeout(() => this._focusScope.restore());
-    }, DISMISS_TRANSITION_MS);
+    // ★ Reduced motion (FL-J3-OF-01): there is no exit transition to wait
+    //   for, so the strip leaves on the next task instead of holding an
+    //   invisible 300 ms gap where it used to be.
+    }, prefersReducedMotion() ? 0 : DISMISS_TRANSITION_MS);
   }
 
   ngOnDestroy(): void {
@@ -593,18 +687,34 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
 
   // ── Root wrapper classes ──────────────────────────────────────────────────
 
+  /**
+   * The page edge a fixed or sticky banner holds, so the kit stylesheet keeps
+   * focus scrolled into view clear of it (WCAG 2.2 SC 2.4.11). A taller stack
+   * of page bars sets `--sv-page-sticky-top` / `--sv-page-sticky-bottom`.
+   */
+  readonly stickyEdge = computed<'page-top' | 'page-bottom' | null>(() => {
+    const p = this.position();
+    return p === 'top-fixed' || p === 'top-sticky' ? 'page-top' : p === 'bottom-fixed' ? 'page-bottom' : null;
+  });
+
+
   wrapperClasses = computed<string>(() => {
     const pos: Record<AlertPosition, string> = {
       'inline':        'w-full',
-      'top-fixed':     'fixed top-0 left-0 right-0 z-50 w-full',
-      'bottom-fixed':  'fixed bottom-0 left-0 right-0 z-50 w-full',
+      'top-fixed':     'fixed top-0 inset-x-0 z-50 w-full',
+      'bottom-fixed':  'fixed bottom-0 inset-x-0 z-50 w-full',
       'top-sticky':    'sticky top-0 z-40 w-full',
     };
     return [
       pos[this.position()],
+      // ★ Enter AND exit ride opacity + translate only (FL-J3-OF-01 — was
+      //   `transition-all`, which also animated every colour and the top
+      //   offset of a stacked banner). `starting:` gives the strip an entrance
+      //   from the same frame instead of popping in, and reduced motion drops
+      //   both: the banner simply appears and disappears.
       this.isClosing()
-        ? 'opacity-0 -translate-y-1 transition-all duration-300 ease-in pointer-events-none'
-        : 'opacity-100 translate-y-0 transition-all duration-300 ease-out',
+        ? 'opacity-0 -translate-y-1 transition-[opacity,translate] duration-300 ease-in pointer-events-none motion-reduce:transition-none'
+        : 'opacity-100 translate-y-0 starting:opacity-0 starting:-translate-y-1 transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-none',
       this.customClass(),
     ].join(' ');
   });
@@ -676,11 +786,11 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
       'outline:neutral': 'border border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-600 dark:bg-gray-800/60 dark:text-gray-300',
 
       // ── left-accent ──
-      'left-accent:info':    'border-l-4 border-info-500 bg-info-50 text-info-900 dark:bg-info-900/25 dark:text-info-200 rounded-r-lg',
-      'left-accent:success': 'border-l-4 border-accent-500 bg-accent-50 text-accent-900 dark:bg-accent-900/25 dark:text-accent-200 rounded-r-lg',
-      'left-accent:warning': 'border-l-4 border-warning-500 bg-warning-50 text-warning-900 dark:bg-warning-900/25 dark:text-warning-200 rounded-r-lg',
-      'left-accent:danger':  'border-l-4 border-danger-500 bg-danger-50 text-danger-900 dark:bg-danger-900/25 dark:text-danger-200 rounded-r-lg',
-      'left-accent:neutral': 'border-l-4 border-gray-400 bg-gray-100 text-gray-800 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-200 rounded-r-lg',
+      'left-accent:info':    'border-s-4 border-info-500 bg-info-50 text-info-900 dark:bg-info-900/25 dark:text-info-200 rounded-e-lg',
+      'left-accent:success': 'border-s-4 border-accent-500 bg-accent-50 text-accent-900 dark:bg-accent-900/25 dark:text-accent-200 rounded-e-lg',
+      'left-accent:warning': 'border-s-4 border-warning-500 bg-warning-50 text-warning-900 dark:bg-warning-900/25 dark:text-warning-200 rounded-e-lg',
+      'left-accent:danger':  'border-s-4 border-danger-500 bg-danger-50 text-danger-900 dark:bg-danger-900/25 dark:text-danger-200 rounded-e-lg',
+      'left-accent:neutral': 'border-s-4 border-gray-400 bg-gray-100 text-gray-800 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-200 rounded-e-lg',
 
       // ── top-accent ──
       'top-accent:info':    'border-t-4 border-info-500 bg-info-50 text-info-900 dark:bg-info-900/25 dark:text-info-200 rounded-b-lg',
@@ -794,10 +904,10 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
       // `text-white/70` clears it on all four dark fills (worst 3.44:1 on
       // success) and only amber needed the dark counterpart, at 1.69:1.
       return this.solidFillIsLight()
-        ? 'ml-auto shrink-0 rounded-lg p-1 text-gray-900/70 hover:text-gray-900 hover:bg-black/10 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900'
-        : 'ml-auto shrink-0 rounded-lg p-1 text-white/70 hover:text-white hover:bg-white/20 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white';
+        ? 'ms-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-gray-900/70 hover:text-gray-900 hover:bg-black/10 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900'
+        : 'ms-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-white/70 hover:text-white hover:bg-white/20 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-white';
     }
-    return 'ml-auto shrink-0 rounded-lg p-1 opacity-50 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-current';
+    return 'ms-auto inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg opacity-50 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/10 transition-[opacity,background-color] duration-150 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-current';
   });
 
   // ── Announcement ──────────────────────────────────────────────────────────
@@ -841,17 +951,22 @@ export class SvAlertBannerComponent implements OnInit, AfterViewInit, OnDestroy 
    * ★ `danger` is the exception, because BOTH its first stops (`rose-600`,
    *   `red-600`) belong to `danger` itself. Substituting each in place left
    *   `from-danger-600 via-danger-600` — a gradient with two identical stops. It
-   *   spans 500 → 700 instead, so the sweep survives whatever red the buyer picks
+   *   spans 600 → 700 instead, so the sweep survives whatever red the buyer picks
    *   rather than depending on two Tailwind hues happening to differ.
    */
   announcementBgClass = computed<string>(() => {
     const map: Record<AlertVariant, string> = {
-      info:    'bg-gradient-to-r from-info-600 via-indigo-600 to-violet-600',
-      success: 'bg-gradient-to-r from-accent-600 via-teal-600 to-cyan-600',
-      warning: 'bg-gradient-to-r from-warning-500 via-orange-500 to-rose-500',
-      danger:  'bg-gradient-to-r from-danger-500 via-danger-700 to-orange-600',
+      // ★ 700-step stops (600 for danger's lead): the strip's text is white,
+      //   and the old 500/600 sweeps put it at 2.13:1 on amber and 3.60:1 on
+      //   cyan. Worst stop now: danger-600 at 4.77:1.
+      info:    'bg-gradient-to-r from-info-700 via-indigo-700 to-violet-700',
+      success: 'bg-gradient-to-r from-accent-700 via-teal-700 to-cyan-700',
+      warning: 'bg-gradient-to-r from-warning-700 via-orange-700 to-rose-700',
+      danger:  'bg-gradient-to-r from-danger-600 via-danger-700 to-orange-700',
       neutral: 'bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800',
     };
-    return map[this.variant()];
+    // ★ Forced colours drop the gradient (a background-image) and the strip's
+    //   edge with it — the bar merged into the page (FL-J3-OF-19, `X-20`).
+    return `${map[this.variant()]} forced-colors:border-b forced-colors:border-[CanvasText]`;
   });
 }

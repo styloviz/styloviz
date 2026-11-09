@@ -19,7 +19,7 @@ import {
   type SvDataSource,
   type SvQueryMapper,
 } from '@styloviz/data';
-import { toSvDataError, type SvDataError } from '@styloviz/core';
+import { toSvDataError, type SvDataError } from '@styloviz/core/data';
 import { ACCOUNT_API } from './account.config';
 
 /**

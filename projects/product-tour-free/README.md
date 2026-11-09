@@ -2,7 +2,9 @@
 
 > 8 onboarding variants: modal (free) plus slideshow, tooltip, spotlight, beacon, checklist, progress steps and announcement (Pro). Portal-based overlay with keyboard navigation.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -58,7 +60,6 @@ export class DemoComponent {}
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `steps` | `TourStep[]` | `[]` | Step definitions. |
-| `variant` | `TourVariant` | `'modal'` | Deprecated, and has no effect: the free tour renders the `modal` variant only, so this input has a single value. |
 | `active` | `boolean (two-way)` | `false` | Two-way: controls tour visibility. Set to `true` to launch the tour. |
 | `stepIndex` | `number (two-way)` | `0` | Two-way: current step index. |
 | `nextLabel` | `string` | `'Next'` | Text of the button that advances to the next step; the last step shows `doneLabel` instead. |
@@ -69,10 +70,10 @@ export class DemoComponent {}
 | `showStepCount` | `boolean` | `true` | Show the "step X of N" counter. |
 | `showProgress` | `boolean` | `true` | Show the dot progress indicator. |
 | `tourId` | `string` | `''` | Identity of this tour DEFINITION — not of the component instance. Required for persistence, and stored inside the blob as well as being part of the key, because the key is the host's and keys get reused. A progress blob from last quarter's onboarding tour, read by this quarter's, restores a `stepId` that means nothing. |
-| `tourVersion` | `number` | `1` | Version of this tour's STEPS. Bump it when the steps change. STORED PROGRESS FROM ANOTHER VERSION IS NOT ADOPTABLE. The stored step id may still exist and mean something different, or the order may have changed — either way the position is a guess, so a version change restarts the tour and says so. |
-| `expectedVersion` | `number \| null` | `null` | The version the HOST says its UI is at. `null` (default) = do not check. ONLY THE HOST KNOWS THIS, which is why it is an input and not an inference. A tour authored against v1 of a screen, running against v3, points at controls that have moved or gone — and nothing inside a component library can detect that from the outside. A mismatch is REPORTED through `(schemaStale)` and does not stop the tour: deciding whether a returning user sees it depends on things the component cannot see. The runtime half — `(targetMissing)` for a step whose target is not there — is Pro-only, because the free tier's one variant (`modal`) anchors to nothing. |
+| `tourVersion` | `number` | `1` | Version of this tour's STEPS. Bump it when the steps change. Stored progress from another version is not adoptable. The stored step id may still exist and mean something different, or the order may have changed — either way the position is a guess, so a version change restarts the tour and says so. |
+| `expectedVersion` | `number \| null` | `null` | The version the HOST says its UI is at. `null` (default) = do not check. Only the host knows this, which is why it is an input and not an inference. A tour authored against v1 of a screen, running against v3, points at controls that have moved or gone — and nothing inside a component library can detect that from the outside. A mismatch is REPORTED through `(schemaStale)` and does not stop the tour: deciding whether a returning user sees it depends on things the component cannot see. The runtime half — `(targetMissing)` for a step whose target is not there — is Pro-only, because the free tier's one variant (`modal`) anchors to nothing. |
 | `persistKey` | `string` | `''` | Where `localStorage` keeps this tour's progress. Empty = no persistence. |
-| `resume` | `'step' \| 'restart' \| 'never'` | `'step'` | What a stored, unfinished tour does on the next visit. \| Value \| Meaning \| \|-------------\|----------------------------------------------------------\| \| `'step'` \| resume on the stored step (first step if it is gone) \| \| `'restart'` \| always from the first step \| \| `'never'` \| restore the ticks, not the position \| "resume, restart or exit" was undefined, which is the finding. It is a per-tour decision — a five-step onboarding wants resuming, a two-step feature announcement does not — so it is an input rather than a rule. |
+| `resume` | `'step' \| 'restart' \| 'never'` | `'step'` | What a stored, unfinished tour does on the next visit: `'step'` resumes on the stored step (the first step if it is gone), `'restart'` always starts from the first step, and `'never'` restores the ticks but not the position. It is a per-tour decision — a five-step onboarding wants resuming, a two-step feature announcement does not — so it is an input rather than a rule. |
 
 ## Outputs
 
@@ -81,7 +82,7 @@ export class DemoComponent {}
 | `stepChange` | `number` | Fires with the new step index whenever navigation occurs. |
 | `complete` | `void` | Fires when the last step is confirmed (Next on final step). |
 | `skip` | `void` | Fires when the user explicitly skips the tour. |
-| `progressRestored` | `SvTourProgressRestored` | Stored progress was found and applied. THE TOUR DOES NOT DECIDE WHETHER TO SHOW ITSELF, for the same reason it does not navigate: whether a returning user sees it depends on a feature flag, a cohort, or the host's own "seen" table. What it owes is the RECORD — status, step, ticks — and this event, so the host's `[active]` can be an informed one. A `status` of `'completed'` or `'dismissed'` here is the "don't show this again" the audit said nothing recorded. |
+| `progressRestored` | `SvTourProgressRestored` | Stored progress was found and applied. The tour does not decide whether to show itself, for the same reason it does not navigate: whether a returning user sees it depends on a feature flag, a cohort, or the host's own "seen" table. What it owes is the RECORD — status, step, ticks — and this event, so the host's `[active]` can be an informed one. A `status` of `'completed'` or `'dismissed'` here is the "don't show this again" the audit said nothing recorded. |
 | `schemaStale` | `SvTourSchemaStale` | `tourVersion` and `expectedVersion` disagree: these steps were authored against a different version of the UI they point at. |
 | `routeRequest` | `TourRouteRequest` | A step with a `route` became current — the host should navigate there. Fires on arrival, including the step the tour opens on, and once per arrival. The tour never navigates itself: it cannot know whether the app uses `@angular/router`, whether the jump needs params or passes a guard, or whether the host would rather refuse. |
 | `activeChange` | `boolean` | Emits the new `active` whenever it changes — the output half of `[(active)]`. |
@@ -93,4 +94,4 @@ Full API reference and live demos: https://styloviz.dev/docs/product-tour
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

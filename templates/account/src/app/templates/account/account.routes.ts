@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 
+import { provideSvIcons } from '@styloviz/icons';
+import { ACCOUNT_ICONS } from './account.icons';
 /**
  * Account / Settings / Team template routes.
  *
@@ -15,6 +17,7 @@ import { Routes } from '@angular/router';
 export const ACCOUNT_ROUTES: Routes = [
   {
     path: '',
+    providers: [provideSvIcons(ACCOUNT_ICONS)],
     loadComponent: () =>
       import('./account-layout.component').then((m) => m.AccountLayoutComponent),
     children: [

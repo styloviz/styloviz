@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvLiveAnnouncer, type SvDataError } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { type SvDataError } from '@styloviz/core/data';
 import { SvResultComponent } from './result.component';
 
 /**

@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import type { SvPage } from '@styloviz/core';
+import type { SvPage } from '@styloviz/core/data';
 import { untilRendered } from '@testing/async';
 import { SvDataSourceDirective } from './data-source.directive';
 import type { SvDataSource } from './types';

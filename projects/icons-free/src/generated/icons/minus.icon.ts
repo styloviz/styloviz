@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `minus` icon. */
 export const minusNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const minusNodes: readonly IconNode[] = [
 export const minusSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 11.1h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `minus` as a registrable glyph — `registerSvIcons([minusIcon])` / `provideSvIcons([minusIcon])`. */
+export const minusIcon: SvIconDef = { name: 'minus', nodes: minusNodes, solid: minusSolidNodes };
 
 /** `minus` — tree-shakable standalone icon. Use `<sv-minus-icon />`. */
 @Component({

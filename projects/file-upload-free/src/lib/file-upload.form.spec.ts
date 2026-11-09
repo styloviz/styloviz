@@ -25,8 +25,9 @@ const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
 const file = (name: string, type = 'text/plain') =>
   new File([new Uint8Array(4)], name, { type });
 
-function dropEvent(files: File[]): DragEvent {
-  return { preventDefault() { /* no-op */ }, dataTransfer: { files } } as unknown as DragEvent;
+/** A change on the hidden file input — what picking files in the dialog produces. */
+function pickEvent(files: File[]): Event {
+  return { target: { files, value: '' } } as unknown as Event;
 }
 
 @Component({
@@ -74,7 +75,7 @@ describe('SvFileUploadComponent — as a form control', () => {
     fixture.componentInstance.registerOnChange((v: File[]) => seen.push(v));
 
     const picked = file('a.txt');
-    fixture.componentInstance.onDrop(dropEvent([picked]));
+    fixture.componentInstance.onFileInputChange(pickEvent([picked]));
     expect(seen.at(-1)?.map((f) => f.name)).toEqual(['a.txt']);
     expect(seen.at(-1)?.[0]).toBeInstanceOf(File);
   });
@@ -97,7 +98,7 @@ describe('SvFileUploadComponent — as a form control', () => {
     const changes: string[][] = [];
     fixture.componentInstance.filesChange.subscribe((all) => changes.push(all.map((u) => u.name)));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     expect(changes).toEqual([['a.txt']]);
   });
 
@@ -106,7 +107,7 @@ describe('SvFileUploadComponent — as a form control', () => {
     const seen: string[][] = [];
     fixture.componentInstance.registerOnChange((v: File[]) => seen.push(v.map((f) => f.name)));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt'), file('b.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt'), file('b.txt')]));
     fixture.componentInstance.removeFile(fixture.componentInstance.files()[0].id);
     fixture.componentInstance.clearAll();
 
@@ -118,7 +119,7 @@ describe('SvFileUploadComponent — as a form control', () => {
     const seen: string[][] = [];
     fixture.componentInstance.registerOnChange((v: File[]) => seen.push(v.map((f) => f.name)));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     await until(() => fixture.componentInstance.files()[0].status === 'success', {
       label: 'the upload to finish',
     });
@@ -145,15 +146,15 @@ describe('SvFileUploadComponent — as a form control', () => {
     expect(fixture.componentInstance.resolvedDisabled()).toBe(true);
   });
 
-  it('refuses drops and removals while the FORM has disabled it', async () => {
+  it('refuses picks and removals while the FORM has disabled it', async () => {
     const { fixture } = await setup({ variant: 'button' });
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     const id = fixture.componentInstance.files()[0].id;
 
     fixture.componentInstance.setDisabledState(true);
     fixture.detectChanges();
 
-    fixture.componentInstance.onDrop(dropEvent([file('b.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('b.txt')]));
     fixture.componentInstance.removeFile(id);
     fixture.componentInstance.clearAll();
     expect(fixture.componentInstance.files().map((u) => u.name)).toEqual(['a.txt']);
@@ -184,7 +185,7 @@ describe('SvFileUploadComponent — as a form control', () => {
     const seen: string[][] = [];
     fixture.componentInstance.registerOnChange((v: File[]) => seen.push(v.map((f) => f.name)));
 
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt'), file('b.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt'), file('b.txt')]));
     const [a] = fixture.componentInstance.files();
     fixture.componentInstance.markScanned(a.id, 'flagged', 'EICAR test signature');
 

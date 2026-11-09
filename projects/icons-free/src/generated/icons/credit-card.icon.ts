@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `credit-card` icon. */
 export const creditCardNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const creditCardNodes: readonly IconNode[] = [
 export const creditCardSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 5.1h14q2.9 0 2.9 2.9v8q0 2.9-2.9 2.9h-14q-2.9 0-2.9-2.9v-8q0-2.9 2.9-2.9zm-1.1 5.8h16.2v-1.8h-16.2zm2.6 2.7q-.9 0-.9.9 0 .9.9.9h4q.9 0 .9-.9 0-.9-.9-.9z' },
 ];
+
+/** `credit-card` as a registrable glyph — `registerSvIcons([creditCardIcon])` / `provideSvIcons([creditCardIcon])`. */
+export const creditCardIcon: SvIconDef = { name: 'credit-card', nodes: creditCardNodes, solid: creditCardSolidNodes };
 
 /** `credit-card` — tree-shakable standalone icon. Use `<sv-credit-card-icon />`. */
 @Component({

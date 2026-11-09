@@ -29,12 +29,16 @@ export type { SvDataController } from './lib/controller';
 // are `@styloviz/core` and nothing else. The controller only ever imported from
 // core, so the move cost nothing; leaving it here would have meant a second
 // copy, which is how the two would have drifted.
-export { svSuggestController } from '@styloviz/core';
-export type {
-  SvSuggestController,
-  SvSuggestControllerOptions,
-  SvSuggestSource,
-} from '@styloviz/core';
+export { svSuggestController } from '@styloviz/core/data';
+export type { SvSuggestController, SvSuggestControllerOptions, SvSuggestSource } from '@styloviz/core/data';
+
+// Technical indicators — SMA, EMA, Bollinger, RSI, MACD (FL-D4). Pure functions
+// over a series of closes, for a host that wants the figures without the chart.
+// Like the suggest controller above they LIVE in `@styloviz/core`, because
+// `sv-stock-chart` computes them and a component may not depend on this
+// package; this re-export is the documented home.
+export { svSma, svEma, svBollinger, svRsi, svMacd } from '@styloviz/core/data';
+export type { SvIndicatorSeries, SvBollingerBands, SvMacd } from '@styloviz/core/data';
 
 export { createArrayDataSource } from './lib/array-source';
 export type { SvArraySourceOptions, SvMatcher } from './lib/array-source';
@@ -52,4 +56,10 @@ export { offsetLimitQuery, pageNumberQuery, cursorQuery, applyQuery } from './li
 export { withLatency, withFailure, withFlakiness } from './lib/decorators';
 export type { SvFailureOptions } from './lib/decorators';
 
+export { SV_DATA_LABELS } from './lib/data.labels';
+export type { SvDataLabels } from './lib/data.labels';
+
 export { SvDataSourceDirective } from './lib/data-source.directive';
+
+/** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
+export * from './lib/data.labels.packs';

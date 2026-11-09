@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvWatermarkComponent } from './watermark.component';
 import { svLooksLikeEmail, svViewerToken } from './watermark.tile';
 

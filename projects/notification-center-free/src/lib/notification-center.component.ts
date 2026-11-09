@@ -18,15 +18,18 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser, NgTemplateOutlet } from '@angular/common';
+import { svIsRtl } from '@styloviz/core/a11y';
 import {
   createDebouncer,
   svMergeRecords,
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
-  SvOverlayStackService,
-  type SvOverlayHandle,
-  type SvDataError, SvStopPropagationDirective } from '@styloviz/core';
+  type SvDataError,
+} from '@styloviz/core/data';
+import { SvStopPropagationDirective } from '@styloviz/core/directives';
+import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { SvOverlayStackService, type SvOverlayHandle } from '@styloviz/core/overlay';
 import { SvIconComponent } from '@styloviz/icons';
 
 import type {
@@ -41,7 +44,9 @@ import type {
   NotificationQuery,
   NotificationType,
 } from './notification-center.types';
+import { SV_NOTIFICATION_CENTER_LABELS, type SvNotificationCenterLabels } from './notification-center-free.labels';
 
+import { registerNotificationCenterIcons } from './notification-center.component.icons';
 // ─── Icon registry ────────────────────────────────────────────────────────────
 
 /**
@@ -128,12 +133,15 @@ function initials(name: string): string {
   return name.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
 }
 
-function timeAgo(iso: string): string {
+type SvTimeLabels = Pick<SvNotificationCenterLabels, 'timeJustNow' | 'timeMinutesAgo' | 'timeHoursAgo' | 'timeDaysAgo'>;
+
+function timeAgo(iso: string, labels: SvTimeLabels): string {
   const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (diff < 60)        return 'just now';
-  if (diff < 3600)      return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400)     return `${Math.floor(diff / 3600)}h ago`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+  const ago = (template: string, n: number) => svFormatLabel(template, { count: String(n) });
+  if (diff < 60)        return labels.timeJustNow;
+  if (diff < 3600)      return ago(labels.timeMinutesAgo, Math.floor(diff / 60));
+  if (diff < 86400)     return ago(labels.timeHoursAgo, Math.floor(diff / 3600));
+  if (diff < 86400 * 7) return ago(labels.timeDaysAgo, Math.floor(diff / 86400));
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
@@ -156,18 +164,22 @@ function startOfDay(d: Date): number {
  * Local getters, not `toISOString()`: the day boundary that matters is the
  * user's midnight, not UTC's.
  */
-function dateLabel(iso: string): string {
+/** The date groups, in display order — keys; `groupText` is what a reader sees. */
+const DATE_GROUPS = ['today', 'yesterday', 'thisWeek', 'earlierThisMonth', 'older'] as const;
+type DateGroup = (typeof DATE_GROUPS)[number];
+
+function dateGroup(iso: string): DateGroup {
   const then = new Date(iso);
   // Local midnights differ by whole days ± an hour across a DST change, so
   // round rather than floor.
   const diff = Math.round((startOfDay(new Date()) - startOfDay(then)) / 86400000);
   // A timestamp slightly in the future (clock skew between server and client)
   // is still today's news, not "This week"'s.
-  if (diff <= 0) return 'Today';
-  if (diff === 1) return 'Yesterday';
-  if (diff < 7)  return 'This week';
-  if (diff < 30) return 'Earlier this month';
-  return 'Older';
+  if (diff <= 0) return 'today';
+  if (diff === 1) return 'yesterday';
+  if (diff < 7)  return 'thisWeek';
+  if (diff < 30) return 'earlierThisMonth';
+  return 'older';
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -198,6 +210,19 @@ function dateLabel(iso: string): string {
  *   (markAllRead)="markAllRead()" />
  * ```
  */
+/**
+ * Where the portalled panel sits, as fixed VIEWPORT coordinates. Exactly one of
+ * `right` (LTR) or `left` (RTL) is set: the viewport edge on the trigger's
+ * inline-end side.
+ */
+interface SvNotificationPanelStyle {
+  readonly top?: string;
+  readonly bottom?: string;
+  readonly right?: string;
+  readonly left?: string;
+  readonly maxH?: string;
+}
+
 @Component({
   selector: 'sv-notification-center',
   standalone: true,
@@ -205,12 +230,18 @@ function dateLabel(iso: string): string {
     SvIconComponent,
     SvSkeletonShellComponent,
     SvErrorShellComponent,
-    SvEmptyShellComponent, SvStopPropagationDirective],
+    SvEmptyShellComponent, SvStopPropagationDirective, SvLabelPipe],
   templateUrl: './notification-center.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block' },
 })
 export class SvNotificationCenterComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerNotificationCenterIcons();
+
+  /** @internal Accessible names and visible text — English unless `provideSvLabels({ notificationCenter })` says otherwise. */
+  protected readonly labels = injectSvLabels('notificationCenter', SV_NOTIFICATION_CENTER_LABELS);
+
   private readonly platformId = inject(PLATFORM_ID);
   private readonly vcr        = inject(ViewContainerRef);
 
@@ -235,10 +266,14 @@ export class SvNotificationCenterComponent implements OnDestroy {
   readonly notifications = input<NotificationItem[]>([]);
   /** Max height of the scrollable list (CSS length). @default '400px' */
   readonly maxHeight     = input<string>('400px');
-  /** Filter tab labels. @default ['All','Unread','Mentions','System'] */
+  /**
+   * Filter tab KEYS. `All`, `Unread`, `Mentions` and `System` select the
+   * built-in filters and display the package's labels (`tabText`); any other
+   * key is shown as given. @default ['All','Unread','Mentions','System']
+   */
   readonly tabs          = input<string[]>(['All', 'Unread', 'Mentions', 'System']);
   /** Panel heading text. @default 'Notifications' */
-  readonly panelTitle    = input<string>('Notifications');
+  readonly panelTitle    = input<string>(this.labels.panelTitle);
   /** Show the search box. @default true */
   readonly showSearch    = input<boolean>(true);
   /** Animate the bell icon on new notifications. @default true */
@@ -247,10 +282,9 @@ export class SvNotificationCenterComponent implements OnDestroy {
   /**
    * Render the panel's "View all" control.
    *
-   * ★ Off by default, and that default is the fix. The control used to be
-   * unconditional markup with no handler on it — a link to the notifications
-   * page that went nowhere, which is worse than no link because a user who
-   * presses it concludes the page is broken rather than absent. A host that has
+   * Off by default: a "View all" link that goes nowhere is worse than no link,
+   * because a user who presses it concludes the page is broken rather than
+   * absent. A host that has
    * somewhere to send them opts in and handles `viewAll`; a host that does not
    * never shows the control.
    *
@@ -304,7 +338,7 @@ export class SvNotificationCenterComponent implements OnDestroy {
    * What a redacted row shows instead of its title (`OF-10-I8`).
    * @default 'This notification is no longer available'
    */
-  readonly redactedLabel = input<string>('This notification is no longer available');
+  readonly redactedLabel = input<string>(this.labels.redacted);
 
   /**
    * More notifications exist on the server. Renders the "Load more" control.
@@ -327,17 +361,15 @@ export class SvNotificationCenterComponent implements OnDestroy {
   /**
    * Ids whose last write FAILED, mapped to the message to show on that row.
    *
-   * ★★★ `pendingIds` HAD NO COUNTERPART, AND THAT IS `OF-10-M2`. Optimistic
-   *     read/dismiss rolls back correctly (`OF-10-I1`, fixed in T0) — the row
-   *     reverts, and the user is told nothing. A notification that silently
-   *     un-dismissed itself looks like the click never landed, so they click
-   *     again, and again, against an endpoint that is refusing.
+   * The counterpart of `pendingIds`. Optimistic read/dismiss rolls back
+   * correctly — the row reverts — but on its own that tells the user nothing:
+   * a notification that silently un-dismissed itself looks like the click
+   * never landed, so they click again against an endpoint that is refusing.
+   * The row named here says so, in place, with a Try again.
    *
-   * ★★ PER ROW, not one banner. `error` above is for the FEED — "could not
-   *    load notifications" — and putting a single row's failure there says the
-   *    whole list is broken. The two are different facts and the audit's own
-   *    reasoning for `role="alert"` vs `role="status"` applies: scope the
-   *    message to what actually failed.
+   * Per row, not one banner: `error` is for the feed — "could not load
+   * notifications" — and putting a single row's failure there says the whole
+   * list is broken.
    *
    * ```ts
    * this.itemErrors.set({ 'n-14': 'Could not mark as read.' });
@@ -510,20 +542,15 @@ export class SvNotificationCenterComponent implements OnDestroy {
    */
   readonly isFiltered = computed(() => {
     const tabs = this.tabs();
-    return this.search().trim().length > 0 || this.activeTab() !== (tabs[0] ?? 'All');
+    return this.search().trim().length > 0 || this.activeTab() !== (tabs[0] ?? 'All'); // sv-i18n-ignore: tab id compared in code; its text is labels.tabAll
   });
 
   /** Reset the search and return to the first tab. */
   clearFilters(): void {
     this.search.set('');
-    this.activeTab.set(this.tabs()[0] ?? 'All');
+    this.activeTab.set(this.tabs()[0] ?? 'All'); // sv-i18n-ignore: tab id compared in code; its text is labels.tabAll
   }
-  readonly _panelStyle = signal<{
-    top?: string;
-    bottom?: string;
-    right: string;
-    maxH?: string;
-  }>({ right: '0px' });
+  readonly _panelStyle = signal<SvNotificationPanelStyle>({ right: '0px' });
 
   private _clickOutsideHandler: ((e: Event) => void) | null = null;
 
@@ -660,7 +687,7 @@ export class SvNotificationCenterComponent implements OnDestroy {
   readonly filteredItems = computed(() => {
     // With `serverSide`, the supplied list IS the answer to the current query.
     // Filtering it again would hide rows the server deliberately returned.
-    const tab   = this.serverSide() ? 'All' : this._activeTab();
+    const tab   = this.serverSide() ? 'All' : this._activeTab(); // sv-i18n-ignore: tab id compared in code; its text is labels.tabAll
     const query = this.serverSide() ? '' : this._search().toLowerCase().trim();
     // ★★★ IDENTITY, VERSION, DEDUPLICATION AND ORDER IN ONE PASS, AND
     //     DEFENSIVELY — the host owns this list and a realtime one arrives in
@@ -707,17 +734,33 @@ export class SvNotificationCenterComponent implements OnDestroy {
   });
 
   readonly groupedItems = computed(() => {
-    const map = new Map<string, NotificationItem[]>();
+    const map = new Map<DateGroup, NotificationItem[]>();
     for (const n of this.filteredItems()) {
-      const label = dateLabel(n.timestamp);
-      if (!map.has(label)) map.set(label, []);
-      map.get(label)!.push(n);
+      const group = dateGroup(n.timestamp);
+      if (!map.has(group)) map.set(group, []);
+      map.get(group)!.push(n);
     }
-    const ORDER = ['Today', 'Yesterday', 'This week', 'Earlier this month', 'Older'];
     return [...map.entries()]
-      .sort((a, b) => ORDER.indexOf(a[0]) - ORDER.indexOf(b[0]))
-      .map(([label, items]) => ({ label, items }));
+      .sort((a, b) => DATE_GROUPS.indexOf(a[0]) - DATE_GROUPS.indexOf(b[0]))
+      .map(([group, items]) => ({ label: this.groupText[group], items }));
   });
+
+  /** Display text per date group. */
+  private readonly groupText: Readonly<Record<DateGroup, string>> = {
+    today: this.labels.groupToday,
+    yesterday: this.labels.groupYesterday,
+    thisWeek: this.labels.groupThisWeek,
+    earlierThisMonth: this.labels.groupEarlierThisMonth,
+    older: this.labels.groupOlder,
+  };
+
+  /** Display text per built-in tab key; a host's own tab label is shown as given. */
+  readonly tabText: Readonly<Record<string, string>> = {
+    All: this.labels.tabAll,
+    Unread: this.labels.tabUnread,
+    Mentions: this.labels.tabMentions,
+    System: this.labels.tabSystem,
+  };
 
   readonly tabUnread = computed<Record<string, number>>(() => {
     const all     = this._merged();
@@ -785,20 +828,17 @@ export class SvNotificationCenterComponent implements OnDestroy {
   /**
    * Computes a viewport-safe position for the floating panel.
    *
-   * Horizontal: right-aligned with the trigger's right edge, clamped so the
-   *   panel never overflows the left viewport edge.
+   * Horizontal: lined up on the trigger's inline END edge — its right edge in
+   *   LTR, its left edge under `dir="rtl"` — and clamped so the panel never
+   *   overflows the opposite viewport edge. A bell sits at the end of a top
+   *   bar, so the panel opens back across the page in both directions.
    *
    * Vertical (flip logic):
    *   - Prefer BELOW the trigger when there is at least 280 px of clearance.
    *   - Flip ABOVE when there is more space above than below.
    *   - `maxH` caps the panel so it never clips the opposite viewport edge.
    */
-  private _computePosition(rect: DOMRect): {
-    top?: string;
-    bottom?: string;
-    right: string;
-    maxH?: string;
-  } {
+  private _computePosition(rect: DOMRect): SvNotificationPanelStyle {
     const GAP    = 8;
     const EDGE   = 8;
     const vw     = window.innerWidth;
@@ -806,8 +846,12 @@ export class SvNotificationCenterComponent implements OnDestroy {
     const panelW = 416;
 
     // ── Horizontal ──────────────────────────────────────────────────────────
-    const rawRight = vw - rect.right;
-    const rightVal = Math.max(EDGE, Math.min(rawRight, vw - panelW - EDGE));
+    // Pinned to the viewport edge on the trigger's end side: `right` in LTR,
+    // `left` in RTL — fixed viewport coordinates, which have no logical form.
+    const rtl      = svIsRtl(this._triggerEl);
+    const rawEdge  = rtl ? rect.left : vw - rect.right;
+    const edgeVal  = `${Math.max(EDGE, Math.min(rawEdge, vw - panelW - EDGE))}px`;
+    const inline   = rtl ? { left: edgeVal } : { right: edgeVal };
 
     // ── Vertical (flip) ─────────────────────────────────────────────────────
     const spaceBelow = vh - rect.bottom - GAP - EDGE;
@@ -818,14 +862,14 @@ export class SvNotificationCenterComponent implements OnDestroy {
       // Show below — anchor top, cap height
       return {
         top:   `${rect.bottom + GAP}px`,
-        right: `${rightVal}px`,
+        ...inline,
         maxH:  `${Math.max(minFit, spaceBelow)}px`,
       };
     } else {
       // Flip above — anchor bottom (panel grows upward), cap height
       return {
         bottom: `${vh - rect.top + GAP}px`,
-        right:  `${rightVal}px`,
+        ...inline,
         maxH:   `${Math.max(minFit, spaceAbove)}px`,
       };
     }
@@ -921,7 +965,7 @@ export class SvNotificationCenterComponent implements OnDestroy {
     this._removeClickOutside();
     this._clickOutsideHandler = (e: Event) => {
       const target   = e.target as Element;
-      const inHost   = target.closest('sv-notification-center, sv-notification-center');
+      const inHost   = target.closest('sv-notification-center, sv-notification-center'); // sv-i18n-ignore: CSS selector
       const inPortal = target.closest('[data-nc-portal]');
       // ★ `X-4`: a click inside a surface opened FROM the panel (a menu, a
       //   dialog — portalled elsewhere) is not "outside" it.
@@ -1099,8 +1143,15 @@ export class SvNotificationCenterComponent implements OnDestroy {
 
   /** Ask the host for the next page of notifications. */
   onLoadMore(): void {
+    const items = this._items();
+    const last = items[items.length - 1];
     this.loadMore.emit({
-      loaded: this._items().length,
+      loaded: items.length,
+      // ★ Keyset, not offset (FL-J3-OF-12): the last notification in hand, in
+      //   the order the host supplied and appended pages. A row inserted at
+      //   the top between pages shifts every offset by one; it does not move
+      //   this.
+      cursor: last ? { id: last.id, timestamp: last.timestamp } : null,
       query: { tab: this.activeTab(), search: this.search().trim() },
     });
   }
@@ -1117,6 +1168,6 @@ export class SvNotificationCenterComponent implements OnDestroy {
   typeAccent(type: NotificationType): string  { return TYPE_ACCENT[type];   }
   priorityColor(p: NotificationPriority): string { return PRIORITY_COLORS[p]; }
   initials(name: string): string  { return initials(name);  }
-  timeAgo(iso: string): string    { return timeAgo(iso);    }
-  dateLabel(iso: string): string  { return dateLabel(iso);  }
+  timeAgo(iso: string): string    { return timeAgo(iso, this.labels); }
+  dateLabel(iso: string): string  { return this.groupText[dateGroup(iso)]; }
 }

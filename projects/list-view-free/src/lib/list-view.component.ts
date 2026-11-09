@@ -15,20 +15,16 @@ import {
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
-import {
-  SvEmptyShellComponent,
-  SvErrorShellComponent,
-  SvSkeletonShellComponent,
-  createDebouncer,
-  createTypeahead,
-  createVariableVirtualizer,
-  svCollectionTarget,
-  svIsTypeaheadKey,
-  svWarnUnvirtualizedCeiling,
-  warnOnDuplicateItemKeys,
-  type SvDataError,
-} from '@styloviz/core';
+import { createTypeahead, svCollectionTarget, svIsTypeaheadKey, SvRevealFocusDirective, svWarnUnvirtualizedCeiling } from '@styloviz/core/a11y';
+import { createDebouncer, type SvDataError, SvEmptyShellComponent, SvErrorShellComponent, SvSkeletonShellComponent, warnOnDuplicateItemKeys } from '@styloviz/core/data';
+import { svWarn } from '@styloviz/core/dev';
+import { svIsSwipePointer, svSwipeClamp, svSwipeGesture, svSwipeLogical, svSwipeRelease, type SvSwipeRevealRule, svSwipeTrayWidth } from '@styloviz/core/gestures';
+import { injectSvLabels, svFormatLabel, SvLabelPipe, svLocale } from '@styloviz/core/i18n';
+import { svAttrSelector } from '@styloviz/core/security';
+import { createVariableVirtualizer } from '@styloviz/core/virtual';
+import { SV_LIST_VIEW_LABELS } from './list-view.labels';
 
+import { registerListViewIcons } from './list-view.component.icons';
 declare const ngDevMode: boolean | undefined;
 
 export type ListViewMode =
@@ -106,6 +102,35 @@ export interface ListViewBulkActionClickEvent {
   selectedIds: Set<string | number>;
 }
 
+/** The colour of a swipe action's button. */
+export type ListViewSwipeTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger';
+
+/**
+ * An action behind a row (FL-F8) — revealed by a horizontal swipe, and always
+ * reachable from the row's Actions button.
+ */
+export interface ListViewSwipeAction {
+  id: string;
+  label: string;
+  /** Icon-library name for the action — e.g. `'archive'`. */
+  icon?: string;
+  /** The button's colour. @default 'neutral' */
+  tone?: ListViewSwipeTone;
+}
+
+/** Which edge of the row an action sits behind. */
+export type ListViewSwipeSide = 'start' | 'end';
+
+/** How a swipe action ran: a tap on a revealed button, a full swipe, or the row's Actions menu. */
+export type ListViewSwipeTrigger = 'tap' | 'full-swipe' | 'menu';
+
+export interface ListViewSwipeActionEvent {
+  item: ListViewItem;
+  action: ListViewSwipeAction;
+  side: ListViewSwipeSide;
+  trigger: ListViewSwipeTrigger;
+}
+
 interface ListViewGroup {
   label: string;
   items: ListViewItem[];
@@ -130,11 +155,21 @@ interface FlattenedItem {
     SvSkeletonShellComponent,
     SvErrorShellComponent,
     SvEmptyShellComponent,
+    SvLabelPipe,
+    SvRevealFocusDirective,
   ],
   templateUrl: './list-view.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvListViewComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerListViewIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ listView })` says otherwise. */
+  protected readonly labels = injectSvLabels('listView', SV_LIST_VIEW_LABELS);
+  /** The kit's locale, for the plural forms of the live announcements. */
+  private readonly labelLocale = svLocale();
+
   /** Items to render (label, meta, optional children/avatar/actions). */
   items = input<ListViewItem[]>([]);
   /**
@@ -193,13 +228,13 @@ export class SvListViewComponent {
   overscan = input<number>(5);
 
   /** Placeholder for the search box. @default 'Search list items' */
-  searchPlaceholder = input<string>('Search list items');
+  searchPlaceholder = input<string>(this.labels.searchPlaceholder);
   /** Message shown when no items match. @default 'No items match your filters.' */
-  emptyMessage = input<string>('No items match your filters.');
+  emptyMessage = input<string>(this.labels.emptyMessage);
   /** Extra CSS classes for the root. */
   customClass = input<string>('');
   /** Accessible label for the list. @default 'List view' */
-  ariaLabel = input<string>('List view');
+  ariaLabel = input<string>(this.labels.listName);
   /** Announce row actions to screen readers. @default true */
   announceActions = input<boolean>(true);
   /** Show per-row quick actions on hover/focus. @default false */
@@ -214,6 +249,20 @@ export class SvListViewComponent {
   bulkHotkeys = input<Record<string, string>>({});
   /** Enable roving-tabindex keyboard navigation. @default true */
   enableRovingFocus = input<boolean>(true);
+
+  /**
+   * Actions behind each row's START edge (FL-F8), revealed by swiping the row
+   * toward its end — right in a left-to-right page, left in a right-to-left one.
+   * The first sits at the edge and is the one a full swipe runs. Every action is
+   * also in the row's Actions button, for a mouse, a keyboard and a screen
+   * reader. Flat and grouped rows, windowed or not; nested rows do not swipe.
+   * @default []
+   */
+  swipeStartActions = input<readonly ListViewSwipeAction[]>([]);
+  /** Actions behind each row's END edge, revealed by swiping toward the start. The first is the full-swipe action. @default [] */
+  swipeEndActions = input<readonly ListViewSwipeAction[]>([]);
+  /** A swipe past 60% of the row's width runs that side's first action without a tap. @default true */
+  fullSwipe = input<boolean>(true);
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -265,12 +314,9 @@ export class SvListViewComponent {
   /**
    * The row the keyboard cursor is on (two-way) — the roving tab stop.
    *
-   * ★★★ Windowed lists made this unavoidable. Roving focus used to walk the
-   * RENDERED buttons, and a windowed list renders twenty of five hundred: the
-   * cursor stopped dead at the edge of the window instead of the end of the
-   * list, and scrolling the focused row out of the window dropped focus to
-   * `<body>`. A keyboard cursor over a list that is only partly in the DOM has
-   * to be an id, not an element.
+   * An id, not an element, because a windowed list renders twenty rows of five
+   * hundred: the cursor moves to the end of the list, not the edge of the
+   * window, and keeps its place when the focused row scrolls out of the DOM.
    *
    * Two-way because it is the same kind of fact as `selectedIds`: a host can
    * put the cursor on the row a deep link names, and read where the user left it.
@@ -300,6 +346,9 @@ export class SvListViewComponent {
   quickActionClick = output<ListViewQuickActionClickEvent>();
   /** Emitted when a bulk action is triggered. */
   bulkActionClick = output<ListViewBulkActionClickEvent>();
+
+  /** A swipe action ran — from a revealed button, a full swipe or the row's Actions menu. The list removes nothing itself. */
+  swipeAction = output<ListViewSwipeActionEvent>();
   /**
    * The debounced search term — fetch matching rows. Debounced by `debounceMs`
    * and never emitted twice for the same term. Pair with `serverSide`.
@@ -339,6 +388,7 @@ export class SvListViewComponent {
   private lastQuery: string | null = null;
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopSwipe?.());
     effect(() => this.debouncedQuery.set(this.query()));
     effect(() => {
       const term = this.debouncedQuery.value().trim();
@@ -576,11 +626,14 @@ export class SvListViewComponent {
 
   readonly rootClasses = computed(() => {
     const base =
-      'rounded-2xl border bg-white/90 shadow-sm backdrop-blur-sm dark:bg-gray-900/80 dark:shadow-none';
+      'isolate rounded-2xl border bg-white/90 shadow-sm dark:bg-gray-900/80 dark:shadow-none';
 
     const variantMap: Record<ListViewVariant, string> = {
       default: 'border-gray-200/80 dark:border-gray-700/70',
-      soft: 'border-primary-100/80 bg-primary-50/40 dark:border-primary-900/50 dark:bg-primary-950/25',
+      // The tint is a background IMAGE so it lies over the base surface rather
+      // than replacing it: a 25–40% tint alone lets 60–75% of whatever is
+      // behind the list show through its rows (there is no frost to hide it).
+      soft: 'border-primary-100/80 bg-linear-to-b from-primary-50/40 to-primary-50/40 dark:border-primary-900/50 dark:from-primary-950/25 dark:to-primary-950/25',
       outlined: 'border-2 border-gray-300 dark:border-gray-600',
     };
 
@@ -698,6 +751,8 @@ export class SvListViewComponent {
   }
 
   onContainerScroll(event: Event): void {
+    // A vertical scroll folds an open row away — it is no longer where the finger left it.
+    if (this.swipeOpen() && !this.swipeDrag()) this.swipeOpen.set(null);
     // ★ `virtual.onScroll` now owns both halves of what this handler used to
     // do inline: it updates `scrollTop` (driving the virtualized window) and,
     // synchronously afterwards, evaluates the near-bottom check and invokes
@@ -759,13 +814,20 @@ export class SvListViewComponent {
   onItemActivate(item: ListViewItem): void {
     if (item.disabled) return;
 
+    // FL-F8: a tap on a row that is slid open closes it, and the click a swipe can leave behind is not an activation.
+    if (this.swipeOpen()?.id === item.id) {
+      this.swipeOpen.set(null);
+      return;
+    }
+    if (this.swipeEnded?.id === item.id && Date.now() - this.swipeEnded.at < 400) return;
+
     this.itemClick.emit({ item });
 
     if (this.selectionMode() === 'single') {
       const next = new Set<string | number>([item.id]);
       this.selectedIds.set(next);
       this.selectionChange.emit(next);
-      this.announce(`Selected ${item.title}.`);
+      this.announce(this.say(this.labels.announceSelected, { title: item.title }));
       return;
     }
 
@@ -775,7 +837,9 @@ export class SvListViewComponent {
       else next.add(item.id);
       this.selectedIds.set(next);
       this.selectionChange.emit(next);
-      this.announce(next.has(item.id) ? `Selected ${item.title}.` : `Deselected ${item.title}.`);
+      this.announce(
+        this.say(next.has(item.id) ? this.labels.announceSelected : this.labels.announceDeselected, { title: item.title }),
+      );
     }
   }
 
@@ -788,13 +852,17 @@ export class SvListViewComponent {
 
     this.checkedIds.set(next);
     this.checkChange.emit({ item, checked });
-    this.announce(checked ? `Checked ${item.title}.` : `Unchecked ${item.title}.`);
+    this.announce(this.say(checked ? this.labels.announceChecked : this.labels.announceUnchecked, { title: item.title }));
   }
 
   toggleAllChecks(checked: boolean): void {
     const next = checked ? new Set(this.checkableVisibleIds()) : new Set<string | number>();
     this.checkedIds.set(next);
-    this.announce(checked ? `Selected all ${next.size} visible items.` : 'Cleared all selected items.');
+    this.announce(
+      checked
+        ? this.say(this.labels.announceSelectedAll, { count: next.size, n: String(next.size) })
+        : this.labels.announceClearedAll,
+    );
   }
 
   // ── Checking a whole section ────────────────────────────────────────────────
@@ -854,8 +922,8 @@ export class SvListViewComponent {
     this.checkedIds.set(next);
     this.announce(
       checked
-        ? `Checked all ${ids.length} items in ${label}.`
-        : `Unchecked all items in ${label}.`
+        ? this.say(this.labels.announceCheckedGroup, { count: ids.length, n: String(ids.length), group: label })
+        : this.say(this.labels.announceUncheckedGroup, { group: label }),
     );
   }
 
@@ -897,19 +965,259 @@ export class SvListViewComponent {
     else next.delete(item.id);
     this.selectedIds.set(next);
     this.selectionChange.emit(next);
-    this.announce(checked ? `Selected ${item.title}.` : `Deselected ${item.title}.`);
+    this.announce(this.say(checked ? this.labels.announceSelected : this.labels.announceDeselected, { title: item.title }));
   }
 
   onQuickAction(item: ListViewItem, action: ListViewQuickAction): void {
     if (item.disabled) return;
     this.quickActionClick.emit({ item, action });
-    this.announce(`${action.label} action triggered for ${item.title}.`);
+    this.announce(this.say(this.labels.announceQuickAction, { action: action.label, title: item.title }));
   }
 
   onBulkAction(action: ListViewBulkAction): void {
     const selected = new Set(this.bulkSelectedIds());
     this.bulkActionClick.emit({ action, selectedIds: selected });
-    this.announce(`${action.label} applied to ${selected.size} selected item${selected.size === 1 ? '' : 's'}.`);
+    this.announce(
+      this.say(this.labels.announceBulkAction, { action: action.label, count: selected.size, n: String(selected.size) }),
+    );
+  }
+
+  // ── Swipe actions (FL-F8) ───────────────────────────────────────────────────
+  //
+  // ★★ The gesture is core's `svSwipeGesture` (touch and pen, an 8px axis lock,
+  //    so a vertical scroll never moves a row) and where a release lands is
+  //    core's `svSwipeRelease` — shared with the other list view, so the two
+  //    cannot disagree. Offsets are LOGICAL: positive moves the row toward its
+  //    end edge and reveals the start actions, in either direction of text.
+
+  /** Width of one revealed action button, in px. */
+  protected readonly swipeActionWidth = 76;
+
+  readonly hasSwipeActions = computed(() => this.swipeStartActions().length + this.swipeEndActions().length > 0);
+
+  /** The row slid open, and which side shows. One row at a time. */
+  protected readonly swipeOpen = signal<{ readonly id: string | number; readonly side: ListViewSwipeSide } | null>(null);
+
+  /** The row under a finger, and its logical offset. */
+  protected readonly swipeDrag = signal<{ readonly id: string | number; readonly offset: number } | null>(null);
+
+  /** The row whose Actions strip is open. */
+  protected readonly swipeMenuId = signal<string | number | null>(null);
+
+  private swipeRtl = false;
+  private stopSwipe: (() => void) | null = null;
+  /** The row and time of the last sideways swipe — the click that can follow it is not an activation. */
+  private swipeEnded: { readonly id: string | number; readonly at: number } | null = null;
+
+  private swipeRule(width: number): SvSwipeRevealRule {
+    return {
+      width,
+      actionWidth: this.swipeActionWidth,
+      startCount: this.swipeStartActions().length,
+      endCount: this.swipeEndActions().length,
+      fullSwipe: this.fullSwipe(),
+    };
+  }
+
+  /** Where `item` sits right now, in logical px. */
+  protected swipeOffset(item: ListViewItem): number {
+    const drag = this.swipeDrag();
+    if (drag && drag.id === item.id) return drag.offset;
+    const open = this.swipeOpen();
+    if (!open || open.id !== item.id) return 0;
+    const tray = svSwipeTrayWidth(open.side, this.swipeRule(0));
+    return open.side === 'start' ? tray : -tray;
+  }
+
+  protected swipeTransform(item: ListViewItem): string | null {
+    const logical = this.swipeOffset(item);
+    return logical === 0 ? null : `translate3d(${svSwipeLogical(logical, this.swipeRtl)}px, 0, 0)`;
+  }
+
+  protected isSwipeDragging(item: ListViewItem): boolean {
+    return this.swipeDrag()?.id === item.id;
+  }
+
+  protected isSwipeRevealed(item: ListViewItem, side: ListViewSwipeSide): boolean {
+    const open = this.swipeOpen();
+    return !!open && open.id === item.id && open.side === side;
+  }
+
+  /**
+   * The edge action's width — it grows through a full swipe, so the row shows
+   * what letting go will do. A CSS variable on the tray, read by the first
+   * button, so nothing is computed per button.
+   */
+  protected swipeEdgeWidth(item: ListViewItem, side: ListViewSwipeSide): string {
+    const width = this.swipeActionWidth;
+    const offset = this.swipeOffset(item);
+    const travel = side === 'start' ? offset : -offset;
+    const count = side === 'start' ? this.swipeStartActions().length : this.swipeEndActions().length;
+    return `${Math.max(width, travel - (count - 1) * width)}px`;
+  }
+
+  /** Each side's actions with their classes resolved once, not per row per check. */
+  protected readonly swipeStartVm = computed(() => this.swipeStartActions().map((action) => this.swipeVm(action)));
+  protected readonly swipeEndVm = computed(() => this.swipeEndActions().map((action) => this.swipeVm(action)));
+
+  private swipeVm(action: ListViewSwipeAction): { readonly action: ListViewSwipeAction; readonly trayClass: string; readonly menuClass: string } {
+    return {
+      action,
+      trayClass:
+        'flex h-full w-[76px] shrink-0 flex-col items-center justify-center gap-1 px-2 text-[11px] font-semibold ' +
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white ' +
+        this.swipeToneClass(action.tone),
+      menuClass:
+        'inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors ' +
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ' +
+        this.swipeMenuToneClass(action.tone),
+    };
+  }
+
+  protected swipeToneClass(tone: ListViewSwipeTone | undefined): string {
+    switch (tone) {
+      case 'primary': return 'bg-primary-600 text-white';
+      case 'success': return 'bg-accent-700 text-white';
+      case 'warning': return 'bg-warning-700 text-white';
+      case 'danger': return 'bg-danger-600 text-white';
+      default: return 'bg-gray-600 text-white dark:bg-gray-700';
+    }
+  }
+
+  protected swipeMenuToneClass(tone: ListViewSwipeTone | undefined): string {
+    if (tone === 'success') {
+      return 'border-accent-200 bg-accent-50 text-accent-700 hover:bg-accent-100 dark:border-accent-900/60 dark:bg-accent-900/30 dark:text-accent-300 dark:hover:bg-accent-900/45';
+    }
+    if (tone === 'warning') {
+      return 'border-warning-200 bg-warning-50 text-warning-700 hover:bg-warning-100 dark:border-warning-900/60 dark:bg-warning-900/30 dark:text-warning-300 dark:hover:bg-warning-900/45';
+    }
+    return this.actionToneClass(tone === 'primary' || tone === 'danger' ? tone : 'neutral');
+  }
+
+  /** A finger (or pen) went down on a row. Mice use the Actions button. */
+  protected onSwipeStart(event: PointerEvent, item: ListViewItem): void {
+    if (item.disabled || !this.hasSwipeActions() || !svIsSwipePointer(event)) return;
+    const row = event.currentTarget as HTMLElement;
+    const rule = this.swipeRule(row.getBoundingClientRect().width);
+    this.swipeRtl = getComputedStyle(row).direction === 'rtl';
+    const open = this.swipeOpen();
+    if (open && open.id !== item.id) this.swipeOpen.set(null);
+    this.swipeMenuId.set(null);
+    const base = this.swipeOffset(item);
+    let offset = base;
+    this.stopSwipe?.();
+    this.stopSwipe = svSwipeGesture(event, {
+      toward: 'right',
+      onMove: (travel) => {
+        offset = svSwipeClamp(base + svSwipeLogical(travel, this.swipeRtl), rule);
+        this.swipeDrag.set({ id: item.id, offset });
+      },
+      onEnd: (sample) => {
+        this.stopSwipe = null;
+        this.swipeDrag.set(null);
+        // A tap or a vertical scroll: nothing moved sideways, so nothing changes.
+        if (!sample) return;
+        this.swipeEnded = { id: item.id, at: Date.now() };
+        const outcome = svSwipeRelease(offset, svSwipeLogical(sample.velocity, this.swipeRtl), rule);
+        if (outcome.kind === 'commit') {
+          const action = (outcome.side === 'start' ? this.swipeStartActions() : this.swipeEndActions())[0];
+          this.swipeOpen.set(null);
+          if (action) this.runSwipeAction(item, action, outcome.side, 'full-swipe');
+        } else if (outcome.kind === 'open') {
+          this.swipeOpen.set({ id: item.id, side: outcome.side });
+        } else {
+          this.swipeOpen.set(null);
+        }
+      },
+    });
+  }
+
+  /** Run a swipe action — the one place all three triggers come through. */
+  protected runSwipeAction(
+    item: ListViewItem,
+    action: ListViewSwipeAction,
+    side: ListViewSwipeSide,
+    trigger: ListViewSwipeTrigger,
+  ): void {
+    if (item.disabled) return;
+    const fromMenu = this.swipeMenuId() === item.id;
+    this.swipeOpen.set(null);
+    this.swipeMenuId.set(null);
+    this.swipeAction.emit({ item, action, side, trigger });
+    this.announce(this.say(this.labels.announceQuickAction, { action: action.label, title: item.title }));
+    // From the strip, focus goes back to the row's Actions button — if the action left the row there.
+    if (fromMenu) this.focusSwipeToggle(item.id);
+  }
+
+  /** The Actions button: open the strip (focus on its first action), or close it. */
+  protected toggleSwipeMenu(item: ListViewItem): void {
+    if (item.disabled) return;
+    if (this.swipeMenuId() === item.id) {
+      this.closeSwipeMenu(item.id);
+      return;
+    }
+    this.swipeOpen.set(null);
+    this.swipeMenuId.set(item.id);
+    afterNextRender(
+      () => this.host.nativeElement
+        .querySelector(`${svAttrSelector('data-lv-swipe-menu', String(item.id))} button`)
+        ?.focus(),
+      { injector: this.injector },
+    );
+  }
+
+  /** Close the strip; with an id, focus returns to that row's Actions button. */
+  protected closeSwipeMenu(returnTo: string | number | null = null): void {
+    if (this.swipeMenuId() === null) return;
+    this.swipeMenuId.set(null);
+    if (returnTo !== null) this.focusSwipeToggle(returnTo);
+  }
+
+  /** Slide any open row closed — call it after a host action that keeps the row. */
+  closeSwipe(): void {
+    this.swipeOpen.set(null);
+    this.swipeMenuId.set(null);
+  }
+
+  private focusSwipeToggle(id: string | number): void {
+    afterNextRender(
+      () => this.host.nativeElement
+        .querySelector(svAttrSelector('data-lv-swipe-toggle', String(id)))
+        ?.focus(),
+      { injector: this.injector },
+    );
+  }
+
+  /** ←/→ (mirrored in right-to-left) and Home/End move along the strip; Escape closes it. */
+  protected onSwipeMenuKeydown(event: KeyboardEvent, item: ListViewItem): void {
+    if (event.key === 'Tab') return;
+    // The list's own keys (arrows between rows, type-to-jump) stay out of the strip.
+    event.stopPropagation();
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeSwipeMenu(item.id);
+      return;
+    }
+    const strip = event.currentTarget as HTMLElement;
+    const buttons = Array.from(strip.querySelectorAll<HTMLElement>('button'));
+    const index = buttons.indexOf(event.target as HTMLElement);
+    if (index < 0) return;
+    const rtl = getComputedStyle(strip).direction === 'rtl';
+    let next: number | null = null;
+    if (event.key === 'ArrowRight') next = rtl ? index - 1 : index + 1;
+    else if (event.key === 'ArrowLeft') next = rtl ? index + 1 : index - 1;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = buttons.length - 1;
+    if (next === null) return;
+    event.preventDefault();
+    buttons[(next + buttons.length) % buttons.length].focus();
+  }
+
+  /** Focus left the strip for somewhere else on the page: fold it away, leaving focus where it went. */
+  protected onSwipeMenuFocusOut(event: FocusEvent): void {
+    const to = event.relatedTarget as Node | null;
+    if (!to || (event.currentTarget as HTMLElement).contains(to)) return;
+    this.swipeMenuId.set(null);
   }
 
   onRootKeydown(event: KeyboardEvent): void {
@@ -1103,7 +1411,7 @@ export class SvListViewComponent {
    * arrow and `outgoing` a DOWN arrow. That is inverted from the convention in
    * most call UIs (received points down/in, placed points up/out). Left as-is
    * on purpose — an icon sweep should not silently change behaviour — but it
-   * is flagged in STYLOVIZ_RELEASE_TODO.md as a product decision.
+   * is flagged in docs/plans/STYLOVIZ_RELEASE_TODO.md as a product decision.
    */
   /**
    * Call direction → icon-library NAME.
@@ -1146,11 +1454,11 @@ export class SvListViewComponent {
    * green from red.
    */
   callTypeLabel(type: ListViewCallType | undefined): string {
-    if (type === 'incoming') return 'Incoming call';
-    if (type === 'outgoing') return 'Outgoing call';
-    if (type === 'video') return 'Video call';
-    if (type === 'missed') return 'Missed call';
-    return 'Call';
+    if (type === 'incoming') return this.labels.callIncoming;
+    if (type === 'outgoing') return this.labels.callOutgoing;
+    if (type === 'video') return this.labels.callVideo;
+    if (type === 'missed') return this.labels.callMissed;
+    return this.labels.callUnknown;
   }
 
   /**
@@ -1221,45 +1529,45 @@ export class SvListViewComponent {
     readonly message: string;
   }[] = [
     {
-      key: 'nested+virtualized',
+      key: 'nested+virtualized', // sv-i18n-ignore: warn-once key
       when: () => this.isNested() && this.isVirtualized(),
       message:
-        'windowing is ignored while the list is nested — a tree expands and ' +
-        'indents, so it renders in full. Drop [virtualized], or flatten the data.',
+        'windowing is ignored while the list is nested — a tree expands and ' + // sv-i18n-ignore: developer message
+        'indents, so it renders in full. Drop [virtualized], or flatten the data.', // sv-i18n-ignore: developer message
     },
     {
-      key: 'grouped+virtualized',
+      key: 'grouped+virtualized', // sv-i18n-ignore: warn-once key
       when: () => this.isGrouped() && this.isVirtualized(),
       message:
-        'windowing is ignored while the list is grouped — sticky section headers ' +
-        'need every section rendered. Drop [virtualized], or drop [grouped] and ' +
-        'pre-sort the rows.',
+        'windowing is ignored while the list is grouped — sticky section headers ' + // sv-i18n-ignore: developer message
+        'need every section rendered. Drop [virtualized], or drop [grouped] and ' + // sv-i18n-ignore: developer message
+        'pre-sort the rows.', // sv-i18n-ignore: developer message
     },
     {
-      key: 'nested+grouped',
+      key: 'nested+grouped', // sv-i18n-ignore: warn-once key
       when: () => this.isNested() && this.isGrouped(),
       message:
-        'grouping is ignored while the list is nested — the tree wins and ' +
-        'item.group is never read. Pick one.',
+        'grouping is ignored while the list is nested — the tree wins and ' + // sv-i18n-ignore: developer message
+        'item.group is never read. Pick one.', // sv-i18n-ignore: developer message
     },
     {
-      key: 'checkable+selectionMode',
+      key: 'checkable+selectionMode', // sv-i18n-ignore: warn-once key
       when: () => this.isCheckable() && this.isSelectable(),
       message:
-        'the selection control is not rendered while the list is checkable — a row ' +
-        'carries one control, and the checkbox wins. Read [(checkedIds)] instead of ' +
-        '[(selectedIds)], or drop [checkable].',
+        'the selection control is not rendered while the list is checkable — a row ' + // sv-i18n-ignore: developer message
+        'carries one control, and the checkbox wins. Read [(checkedIds)] instead of ' + // sv-i18n-ignore: developer message
+        '[(selectedIds)], or drop [checkable].', // sv-i18n-ignore: developer message
     },
     {
-      key: 'pro-preset',
+      key: 'pro-preset', // sv-i18n-ignore: warn-once key
       when: () => {
         const mode = this.mode();
         return mode === 'nested' || mode === 'grouped' || mode === 'scrolling';
       },
       message:
-        'mode="nested", "grouped" and "scrolling" are Pro presets and this build ' +
-        'ignores them — the list renders flat. Use [nested] or [grouped] directly, ' +
-        'or [viewportHeight] for a fixed-height scroller.',
+        'mode="nested", "grouped" and "scrolling" are Pro presets and this build ' + // sv-i18n-ignore: developer message
+        'ignores them — the list renders flat. Use [nested] or [grouped] directly, ' + // sv-i18n-ignore: developer message
+        'or [viewportHeight] for a fixed-height scroller.', // sv-i18n-ignore: developer message
     },
   ];
 
@@ -1271,7 +1579,7 @@ export class SvListViewComponent {
     for (const combination of this._ignoredCombinations) {
       if (!combination.when() || this._warnedCombinations.has(combination.key)) continue;
       this._warnedCombinations.add(combination.key);
-      console.warn(`[styloviz] sv-list-view: ${combination.message}`);
+      svWarn(`[styloviz] sv-list-view: ${combination.message}`);
     }
   }
 
@@ -1304,9 +1612,14 @@ export class SvListViewComponent {
 
     const added = count - previous.count;
     const parts: string[] = [];
-    if (added > 0) parts.push(`Loaded ${added} more item${added === 1 ? '' : 's'}.`);
-    if (!more && previous.more) parts.push(`End of list. All ${count} items loaded.`);
+    if (added > 0) parts.push(this.say(this.labels.announceLoadedMore, { count: added, n: String(added) }));
+    if (!more && previous.more) parts.push(this.say(this.labels.announceEndOfList, { count, n: String(count) }));
     if (parts.length) this.announce(parts.join(' '));
+  }
+
+  /** A live-announcement template filled in the kit's locale. */
+  private say(template: string, params: Readonly<Record<string, string | number>>): string {
+    return svFormatLabel(template, params, this.labelLocale);
   }
 
   private announce(message: string): void {

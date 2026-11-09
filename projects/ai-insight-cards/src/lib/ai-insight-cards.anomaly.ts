@@ -13,6 +13,9 @@
  * already has.
  */
 
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvAiInsightCardsLabels } from './ai-insight-cards.labels';
+
 export type SvAnomalySeverity = 'none' | 'notable' | 'severe';
 
 export interface SvAnomaly {
@@ -242,13 +245,28 @@ export function svFormatSigma(sigma: number): string {
  * what normal was and how long it was measured over — and those two facts are
  * exactly what a reader needs to decide whether to believe the card.
  */
-export function svAnomalyLabel(anomaly: SvAnomaly): string {
+export function svAnomalyLabel(
+  anomaly: SvAnomaly,
+  labels: Pick<
+    SvAiInsightCardsLabels,
+    'anomalyShortHistory' | 'anomalyOrdinary' | 'anomalyAbove' | 'anomalyBelow'
+  >,
+): string {
+  // ★ The counts were always printed ungrouped, so `{n}` is a string; `{count}` only picks the plural.
+  const counts = { count: anomaly.samples, n: String(anomaly.samples) };
   if (!anomaly.sufficientHistory) {
-    return `Only ${anomaly.samples} observation${anomaly.samples === 1 ? '' : 's'} of history — under ${anomaly.minSamples} there is no baseline to judge this against, so no severity is claimed.`;
+    return svFormatLabel(labels.anomalyShortHistory, { ...counts, min: String(anomaly.minSamples) });
   }
   if (anomaly.severity === 'none') {
-    return `Within the ordinary swing of this metric (typically ${anomaly.median}, ±${anomaly.spread.toFixed(1)} over ${anomaly.samples} observations).`;
+    return svFormatLabel(labels.anomalyOrdinary, {
+      ...counts,
+      median: String(anomaly.median),
+      spread: anomaly.spread.toFixed(1),
+    });
   }
-  const way = anomaly.direction === 'above' ? 'above' : 'below';
-  return `${svFormatSigma(anomaly.sigma)} ${way} a typical ${anomaly.median}, measured over ${anomaly.samples} observations.`;
+  return svFormatLabel(anomaly.direction === 'above' ? labels.anomalyAbove : labels.anomalyBelow, {
+    ...counts,
+    sigma: svFormatSigma(anomaly.sigma),
+    median: String(anomaly.median),
+  });
 }

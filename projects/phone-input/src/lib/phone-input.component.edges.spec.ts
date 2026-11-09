@@ -1,7 +1,7 @@
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, screen, fireEvent } from '@testing-library/angular';
-import { SvOverlayStackService } from '@styloviz/core';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { untilRendered } from '@testing/async';
 import { SvPhoneInputComponent } from './phone-input.component';
 import type { PhoneCountry } from './phone-countries';
@@ -20,7 +20,11 @@ async function mount(inputs: Record<string, unknown> = {}) {
 }
 
 const tick = (): void => TestBed.inject(ApplicationRef).tick();
-const trigger = (): HTMLElement => screen.getByRole('button', { name: /^Country:/ });
+// The country button's accessible name is now the field label followed by
+// the country: `"<label>: <name> (<dial>)"` — `SR-03`. The trigger helper
+// matches any country (this file's tests vary the countries input).
+const trigger = (): HTMLElement =>
+  screen.getByRole('button', { name: /^\s*Phone number:/ });
 const listbox = (): HTMLElement | null => screen.queryByRole('listbox');
 const activeName = (): string => {
   const id = listbox()!.getAttribute('aria-activedescendant')!;
@@ -227,7 +231,10 @@ describe('sv-phone-input — degenerate host inputs', () => {
 
   it('a selected country outside the allowed list shows the first allowed one', async () => {
     await mount({ countries: ['GB', 'FR'], country: 'US' });
-    expect(trigger().getAttribute('aria-label')).toBe('Country: United Kingdom (+44)');
+    // Country button's accessible name combines the field label with the
+    // country so a screen reader announces the picker as part of the field
+    // — `SR-03`. Default label is "Phone number".
+    expect(trigger().getAttribute('aria-label')).toBe('Phone number: United Kingdom (+44)');
   });
 
   it('a host plan with no grouping gets one ungrouped run of its longest length', async () => {

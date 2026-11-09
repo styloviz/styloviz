@@ -14,3 +14,5 @@ export {
   svWatermarkSignature,
 } from './watermark.tile';
 export type { SvOpacityVerdict, SvTile } from './watermark.tile';
+export { SV_WATERMARK_LABELS } from './watermark.labels';
+export type { SvWatermarkLabels } from './watermark.labels';

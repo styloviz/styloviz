@@ -1,11 +1,20 @@
+<!--
+  The accessible alternative to the SVG: one semantic table saying what the
+  picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
+  chart templates, and the CSS was the hard part, not the markup — the trap it
+  kept re-learning, and the reason the chart root no longer needs `relative`,
+  is written up in `core/src/lib/a11y/data-summary-table.component.css`.
+  Renders nothing when there are no rows, so it needs no guard here.
+-->
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
   [filtered]="filtered()"
   [emptyMessage]="emptyMessage()"
   [height]="height()"
-  [notice]="gapNote()"
+  [notice]="frameNotice()"
   (retry)="retry.emit()"
 >
 
@@ -110,13 +119,13 @@
 
           <!-- X-axis labels -->
           @if (showLabels()) {
-            @for (cat of categories(); track cat; let ci = $index) {
+            @for (ci of xLabelIndices(); track $index) {
               <text
                 [attr.x]="xForIndex(ci)" [attr.y]="plotH() + 18"
                 text-anchor="middle"
                 class="fill-gray-500 dark:fill-gray-400"
                 style="font-size:11px;font-family:inherit;"
-              >{{ cat }}</text>
+              >{{ categories()[ci] }}</text>
             }
           }
 
@@ -162,13 +171,22 @@
 
           <!-- ── Series fill areas (below lines) ─────────────────────── -->
           @for (s of series(); track s.label; let si = $index) {
-            @if (s.fill) {
-              <path [attr.d]="fillPath(si)" [attr.fill]="'url(#lc-fill-' + _uid + '-' + si + ')'" />
+            @if (s.fill && !emphasis.isHidden(s.label)) {
+              <path [attr.d]="fillPath(si)" [attr.fill]="'url(#lc-fill-' + _uid + '-' + si + ')'"
+                    [attr.opacity]="emphasis.opacity(s.label)"
+                    class="transition-opacity duration-200 motion-reduce:transition-none" />
             }
           }
 
           <!-- ── Series lines ─────────────────────────────────────────── -->
+          <!-- A hidden series is not drawn; behind an emphasised one it fades
+               (FL-J3-CH-03). Opacity only, so the fade is compositor-cheap. -->
           @for (s of series(); track s.label; let si = $index) {
+            @if (!emphasis.isHidden(s.label)) {
+            <g [attr.opacity]="emphasis.opacity(s.label)"
+               [attr.data-sv-series]="s.label"
+               [attr.data-sv-dimmed]="emphasis.isDimmed(s.label) ? '' : null"
+               class="transition-opacity duration-200 motion-reduce:transition-none">
 
             <!-- ZONE variant: full path rendered once per zone, clipped -->
             @if (s.zones?.length) {
@@ -186,7 +204,7 @@
               }
             }
             <!-- MULTICOLOR variant: one segment per adjacent point pair -->
-            @else if (s.pointColors?.length) {
+            @else if (s.pointColors?.length && !largeData()) {
               @for (seg of multiColorSegments(si); track $index) {
                 <path
                   [attr.d]="seg.d"
@@ -243,6 +261,8 @@
                   style="font-size:10px;font-weight:600;font-family:inherit;"
                 >{{ formatValue(dot.value) }}</text>
               }
+            }
+            </g>
             }
           }
 
@@ -315,6 +335,11 @@
 
           <!-- Series (horizontal lines) -->
           @for (s of series(); track s.label; let si = $index) {
+            @if (!emphasis.isHidden(s.label)) {
+            <g [attr.opacity]="emphasis.opacity(s.label)"
+               [attr.data-sv-series]="s.label"
+               [attr.data-sv-dimmed]="emphasis.isDimmed(s.label) ? '' : null"
+               class="transition-opacity duration-200 motion-reduce:transition-none">
             <path
               [attr.d]="inversedPath(si)"
               [attr.stroke]="seriesColors()[si]"
@@ -353,6 +378,8 @@
                   style="font-size:10px;font-weight:600;font-family:inherit;"
                 >{{ formatValue(dot.value) }}</text>
               }
+            }
+            </g>
             }
           }
 
@@ -396,40 +423,73 @@
     </svg>
   </div>
 
-  <!--
-    The accessible alternative to the SVG: one semantic table saying what the
-    picture says. This was a hand-rolled `<div class="sr-only"><table>` in seven
-    chart templates, and the CSS was the hard part, not the markup — the trap it
-    kept re-learning, and the reason the chart root no longer needs `relative`,
-    is written up in `core/src/lib/a11y/data-summary-table.component.css`.
-    Renders nothing when there are no rows, so it needs no guard here.
-  -->
-  <sv-data-summary-table [summary]="a11ySummary()" />
-
-  <!-- ── Series legend ─────────────────────────────────────────────────────── -->
+  <!-- ── Series legend ─────────────────────────────────────────────────────────
+       FL-J3-CH-03. Interactive by default: a toolbar of toggle buttons with ONE
+       tab stop. Hover or focus an entry and the other series fade; Enter, Space
+       or a click hides or shows it; the arrow keys move between series.
+       `interactiveLegend` false keeps the static key. -->
   @if (showLegend() && !hasZones()) {
-    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 justify-center mt-1">
-      @for (s of series(); track s.label; let i = $index) {
-        <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-          @if (s.dashArray) {
-            <!-- Dashed swatch -->
-            <svg width="20" height="10" class="shrink-0" aria-hidden="true">
-              <line x1="0" y1="5" x2="20" y2="5"
-                [attr.stroke]="seriesColors()[i]"
-                stroke-width="2"
-                [attr.stroke-dasharray]="s.dashArray"
-              />
-            </svg>
-          } @else {
-            <span
-              class="inline-block h-0.5 w-5 shrink-0 rounded-full"
-              [style.background-color]="seriesColors()[i]"
-            ></span>
-          }
-          {{ s.label }}
-        </span>
-      }
-    </div>
+    @if (interactiveLegend()) {
+      <div class="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+           role="toolbar"
+           [attr.aria-label]="emphasis.legendLabel"
+           [attr.aria-describedby]="legendHintId">
+        @for (s of series(); track s.label; let i = $index) {
+          <button type="button"
+                  class="inline-flex min-h-6 items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-gray-600 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary-500 dark:text-gray-400 dark:hover:bg-gray-800"
+                  [attr.aria-pressed]="!emphasis.isHidden(s.label)"
+                  [attr.tabindex]="emphasis.tabIndex(i)"
+                  [attr.data-sv-series-index]="i"
+                  (keydown)="emphasis.onLegendKeydown($event)"
+                  (click)="emphasis.toggle(s.label)"
+                  (focus)="emphasis.focusEntry(i)"
+                  (blur)="emphasis.emphasize(null)"
+                  (mouseenter)="emphasis.emphasize(s.label)"
+                  (mouseleave)="emphasis.emphasize(null)">
+            @if (s.dashArray) {
+              <svg width="20" height="10" class="shrink-0" aria-hidden="true">
+                <line x1="0" y1="5" x2="20" y2="5"
+                  [attr.stroke]="seriesColors()[i]"
+                  stroke-width="2"
+                  [attr.stroke-dasharray]="s.dashArray"
+                  [attr.opacity]="emphasis.isHidden(s.label) ? 0.35 : 1"
+                />
+              </svg>
+            } @else {
+              <span aria-hidden="true"
+                    class="inline-block h-0.5 w-5 shrink-0 rounded-full"
+                    [style.background-color]="seriesColors()[i]"
+                    [style.opacity]="emphasis.isHidden(s.label) ? 0.35 : 1"></span>
+            }
+            <span [class.line-through]="emphasis.isHidden(s.label)">{{ s.label }}</span>
+          </button>
+        }
+      </div>
+      <p class="sr-only" [id]="legendHintId">{{ emphasis.legendHint }}</p>
+    } @else {
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 justify-center mt-1">
+        @for (s of series(); track s.label; let i = $index) {
+          <span class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            @if (s.dashArray) {
+              <!-- Dashed swatch -->
+              <svg width="20" height="10" class="shrink-0" aria-hidden="true">
+                <line x1="0" y1="5" x2="20" y2="5"
+                  [attr.stroke]="seriesColors()[i]"
+                  stroke-width="2"
+                  [attr.stroke-dasharray]="s.dashArray"
+                />
+              </svg>
+            } @else {
+              <span
+                class="inline-block h-0.5 w-5 shrink-0 rounded-full"
+                [style.background-color]="seriesColors()[i]"
+              ></span>
+            }
+            {{ s.label }}
+          </span>
+        }
+      </div>
+    }
   }
 
   <!-- ── Zone legend (replaces series legend when zones are active) ──────── -->

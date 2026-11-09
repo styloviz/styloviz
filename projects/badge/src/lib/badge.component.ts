@@ -3,11 +3,16 @@ import {
   input,
   output,
   computed,
+  effect,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { SvLabelPipe, injectSvLabels } from '@styloviz/core/i18n';
+import { SV_BADGE_LABELS } from './badge.labels';
 
+import { registerBadgeIcons } from './badge.component.icons';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
@@ -67,16 +72,21 @@ export const SV_BADGE_TONE_WORDS: Readonly<Partial<Record<BadgeVariant, string>>
 @Component({
   selector: 'sv-badge',
   standalone: true,
-  imports: [NgClass, SvIconComponent],
+  imports: [NgClass, SvIconComponent, SvLabelPipe],
   templateUrl: './badge.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvBadgeComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerBadgeIcons();
+
+  protected readonly labels = injectSvLabels('badge', SV_BADGE_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Semantic color/intent (primary, success, warning, danger…). @default 'primary' */
   variant      = input<BadgeVariant>('primary');
-  /** Visual treatment: solid, soft or outline. @default 'soft' */
+  /** Visual treatment: filled, soft or outline. @default 'soft' */
   badgeStyle   = input<BadgeStyle>('soft');
   /** Corner style: pill, rounded or square. @default 'pill' */
   shape        = input<BadgeShape>('pill');
@@ -101,7 +111,12 @@ export class SvBadgeComponent {
   dismissible  = input<boolean>(false);
   /** Extra CSS classes merged on root. */
   customClass  = input<string>('');
-  /** aria-label override — replaces the visible text as the accessible name. */
+  /**
+   * aria-label override — replaces the visible text as the accessible name.
+   * **Required for an icon-only or dot-only badge** (no `label`, no `count`):
+   * the icon is decorative, so without this the badge says nothing at all to
+   * a screen reader. Dev mode warns when it is missing.
+   */
   ariaLabel    = input<string>('');
   /**
    * Announce the badge as a polite ARIA live region (`role="status"`).
@@ -151,6 +166,29 @@ export class SvBadgeComponent {
     return null;
   });
   isCountMode       = computed(() => this.count() > 0);
+
+  /**
+   * True for a badge with nothing to say: an icon or a dot, and no `label`,
+   * `count` or `ariaLabel`. Its glyph is `aria-hidden`, so it is silent.
+   */
+  readonly unnamed = computed(
+    () => !this.ariaLabel() && !this.label() && !this.isCountMode() && (!!this.icon() || this.dot()),
+  );
+
+  constructor() {
+    // ★ DD-03-V1: an icon-only badge cannot be given a name the component does
+    //   not know — "star" is a glyph, not a meaning ("Featured"? "Favourite"?).
+    //   So it is not guessed; it is reported, once per glyph.
+    effect(() => {
+      if (!this.unnamed()) return;
+      const glyph = this.icon() || 'dot';
+      svWarnOnce(
+        `sv-badge:unnamed:${glyph}`,
+        `sv-badge: an icon-only badge ("${glyph}") has no accessible name, so a screen reader announces nothing. ` +
+          `Set ariaLabel — e.g. <sv-badge icon="${glyph}" ariaLabel="Featured" />.`,
+      );
+    });
+  }
   displayCount      = computed(() => {
     const n = this.count(), max = this.maxCount();
     return n > max ? `${max}+` : `${n}`;
@@ -243,7 +281,14 @@ export class SvBadgeComponent {
 
   dismissColorClass = computed<string>(() => {
     if (this.badgeStyle() === 'filled') {
-      return 'text-white/70 hover:text-white hover:bg-white/20';
+      // The glyph needs 3:1 on its own fill. White/80 clears the dark fills
+      // (worst danger-600, 3.32:1); amber and neutral's dark-mode gray-200 are
+      // light fills and take dark ink instead (white was 1.69:1 on amber).
+      if (this.variant() === 'warning') return 'text-gray-900/70 hover:text-gray-900 hover:bg-black/10';
+      if (this.variant() === 'neutral') {
+        return 'text-white/80 hover:text-white hover:bg-white/20 dark:text-gray-900/70 dark:hover:text-gray-900 dark:hover:bg-black/10';
+      }
+      return 'text-white/80 hover:text-white hover:bg-white/20';
     }
     const map: Record<BadgeVariant, string> = {
       primary:   'text-primary-500 hover:text-primary-700 hover:bg-primary-100 dark:text-primary-400 dark:hover:text-primary-200 dark:hover:bg-primary-800/40',

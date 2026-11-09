@@ -1,7 +1,8 @@
 import { ApplicationRef, PLATFORM_ID } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvLiveAnnouncer, svResetBodyScrollLock } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { svResetBodyScrollLock } from '@styloviz/core/overlay';
 import { SvSpinnerComponent } from './spinner.component';
 
 /**
@@ -28,7 +29,7 @@ const said = () => TestBed.inject(SvLiveAnnouncer).history();
 afterEach(() => {
   svResetBodyScrollLock(document);
   document.body.style.overflow = '';
-  document.body.style.paddingRight = '';
+  document.body.style.paddingInlineEnd = '';
 });
 
 describe('sv-spinner — announcing the wait', () => {

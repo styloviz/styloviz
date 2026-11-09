@@ -5,6 +5,15 @@ import userEvent from '@testing-library/user-event';
 import { SvTabsComponent, SvTabPanelDirective, type TabItem } from './tabs.component';
 
 /**
+ * An inactive panel is hidden one of two ways (FL-J3-NV-04): `hidden="until-found"`
+ * where the browser supports it (jsdom reports that it does), else the `hidden`
+ * class. Either is "not shown".
+ */
+const svPanelHidden = (el: Element): boolean =>
+  el.classList.contains('hidden') || el.getAttribute('hidden') === 'until-found';
+
+
+/**
  * Three things here are not visible in a screenshot and not reachable with a
  * mouse: which tab is in the tab order, what the arrow keys do at the ends of
  * the strip, and which panels are in the DOM at all.
@@ -290,7 +299,7 @@ describe('SvTabsComponent — panels', () => {
 
   it('projects the template matching the active tab', async () => {
     const { fixture } = await hosted();
-    const visible = panels(fixture).filter((p) => !p.classList.contains('hidden'));
+    const visible = panels(fixture).filter((p) => !svPanelHidden(p));
     expect(visible.length).toBe(1);
     expect(visible[0].textContent).toContain('General body');
   });
@@ -342,7 +351,7 @@ describe('SvTabsComponent — panels', () => {
     fixture.detectChanges();
 
     const general = panels(fixture).find((p) => p.id.endsWith('panel-general'))!;
-    expect(general.classList.contains('hidden')).toBe(true);
+    expect(svPanelHidden(general)).toBe(true);
     expect(general.getAttribute('tabindex')).toBeNull();
   });
 

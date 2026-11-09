@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `users` icon. */
 export const usersNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const usersNodes: readonly IconNode[] = [
 export const usersSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm13.4 8q0 1.8-1.3 3.1-1.3 1.3-3.1 1.3-1.8 0-3.1-1.3-1.3-1.3-1.3-3.1 0-1.8 1.3-3.1 1.3-1.3 3.1-1.3 1.8 0 3.1 1.3 1.3 1.3 1.3 3.1zm-11.3 12q0-2.8 2-4.9 2.1-2 4.9-2 2.8 0 4.9 2 2 2.1 2 4.9 0 .9-.9.9-.9 0-.9-.9 0-2.1-1.5-3.6-1.5-1.5-3.6-1.5-2.1 0-3.6 1.5-1.5 1.5-1.5 3.6 0 .9-.9.9-.9 0-.9-.9zm14.1-15.8q3.3.8 3.3 4.2 0 3.4-3.3 4.3-.8.2-1.1-.7-.2-.8.7-1.1 2-.4 2-2.5 0-2.1-2-2.6-.4-.1-.6-.3-.2-.3-.1-.7.3-.9 1.1-.6zm1.7 9.2q4.2 2 4 6.6-.1.9-.9.9-.9-.1-.9-.9.2-3.5-3-5-.8-.4-.4-1.2.4-.8 1.2-.4z' },
 ];
+
+/** `users` as a registrable glyph — `registerSvIcons([usersIcon])` / `provideSvIcons([usersIcon])`. */
+export const usersIcon: SvIconDef = { name: 'users', nodes: usersNodes, solid: usersSolidNodes };
 
 /** `users` — tree-shakable standalone icon. Use `<sv-users-icon />`. */
 @Component({

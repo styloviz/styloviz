@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `share` icon. */
 export const shareNodes: readonly IconNode[] = [
@@ -17,6 +18,9 @@ export const shareNodes: readonly IconNode[] = [
 export const shareSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.9 18q0 3.9-3.9 3.9-3.9 0-3.9-3.9 0-.5.1-.9l-5-2.5q-1 1.3-3.2 1.3-3.9 0-3.9-3.9 0-3.9 3.9-3.9 2.2 0 3.2 1.3l5-2.5q-.1-.4-.1-.9 0-3.9 3.9-3.9 3.9 0 3.9 3.9 0 3.9-3.9 3.9-2.2 0-3.2-1.3l-5 2.5q.1.4.1.9 0 .5-.1.9l5 2.5q1-1.3 3.2-1.3 3.9 0 3.9 3.9z' },
 ];
+
+/** `share` as a registrable glyph — `registerSvIcons([shareIcon])` / `provideSvIcons([shareIcon])`. */
+export const shareIcon: SvIconDef = { name: 'share', nodes: shareNodes, solid: shareSolidNodes };
 
 /** `share` — tree-shakable standalone icon. Use `<sv-share-icon />`. */
 @Component({

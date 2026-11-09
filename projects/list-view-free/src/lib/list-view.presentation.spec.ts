@@ -1,13 +1,20 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 import { SvListViewComponent } from './list-view.component';
 import type { ListViewCallType, ListViewItem } from './list-view.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { sendIcon } from '@styloviz/icons/glyph/send';
+import { trashIcon } from '@styloviz/icons/glyph/trash';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([sendIcon, trashIcon]);
 
 /** Resets TestBed so a single test can render more than once. */
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvListViewComponent, {
+    providers: [HOST_ICONS],
     inputs: { items: [{ id: 1, title: 'Alpha invoice' }] as ListViewItem[], ...inputs },
   });
   return fixture;
@@ -19,11 +26,23 @@ const rootEl = (f: { nativeElement: HTMLElement }) =>
 describe('SvListViewComponent — container styling', () => {
   it.each([
     ['default', 'border-gray-200/80'],
-    ['soft', 'bg-primary-50/40'],
+    ['soft', 'from-primary-50/40'],
     ['outlined', 'border-2'],
   ])('paints the %s variant', async (variant, marker) => {
     const f = await setup({ variant });
     expect(rootEl(f).className).toContain(marker);
+  });
+
+  /**
+   * The soft tint sits OVER the base surface. Were it the background colour
+   * it would replace the near-opaque base, and the rows would show most of
+   * whatever lies behind the list.
+   */
+  it('lays the soft tint over the base surface instead of replacing it', async () => {
+    const classes = (await setup({ variant: 'soft' })).nativeElement
+      .querySelector('[role="region"]').className.split(/\s+/) as string[];
+    expect(classes).toEqual(expect.arrayContaining(['bg-white/90', 'dark:bg-gray-900/80']));
+    expect(classes.filter((c) => /^(dark:)?bg-primary-/.test(c))).toEqual([]);
   });
 
   /** Every variant keeps the shared base classes — a variant is an addition. */

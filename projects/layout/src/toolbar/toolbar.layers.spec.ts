@@ -3,7 +3,8 @@ import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { render } from '@testing-library/angular';
 import { afterEach, vi } from 'vitest';
-import { SvFloatingLayerService, SvOverlayStackService, type SvFloatingAnchor } from '@styloviz/core';
+import { SvFloatingLayerService, type SvFloatingAnchor } from '@styloviz/core/layout';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { SvToolbarComponent } from './toolbar.component';
 import type { ToolbarAction } from './toolbar.component';
 
@@ -155,12 +156,15 @@ describe('SvToolbarComponent — overflow menu on the overlay stack', () => {
 
   it('ties the portal host to the toolbar DestroyRef on every open', async () => {
     const f = await setup();
-    const ref = f.debugElement.query(By.directive(SvToolbarComponent)).injector.get(DestroyRef);
-    const onDestroy = vi.spyOn(Object.getPrototypeOf(ref) as DestroyRef, 'onDestroy');
     const c = tb(f);
+    // The toolbar's OWN ref. Spying on the shared prototype also counted the
+    // menu icons' hooks (sv-icon's dev-mode registration check), and every
+    // `inject(DestroyRef)` returns a fresh wrapper, so identity cannot filter them.
+    const ref = (c as unknown as { destroyRef: DestroyRef }).destroyRef;
+    const onDestroy = vi.spyOn(ref, 'onDestroy');
 
     // Counted across the synchronous open only — change detection afterwards
-    // registers its own render hooks on the same DestroyRef.
+    // registers its own render hooks.
     for (let round = 1; round <= 3; round++) {
       const before = onDestroy.mock.calls.length;
       c.openMenu();

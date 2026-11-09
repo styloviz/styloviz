@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `equal` icon. */
 export const equalNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const equalNodes: readonly IconNode[] = [
 export const equalSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm5 13.6h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9zm0-5h14q.9 0 .9.9 0 .9-.9.9h-14q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `equal` as a registrable glyph — `registerSvIcons([equalIcon])` / `provideSvIcons([equalIcon])`. */
+export const equalIcon: SvIconDef = { name: 'equal', nodes: equalNodes, solid: equalSolidNodes };
 
 /** `equal` — tree-shakable standalone icon. Use `<sv-equal-icon />`. */
 @Component({

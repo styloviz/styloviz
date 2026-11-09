@@ -8,6 +8,7 @@ import {
   svNaiveSigma,
   svResolveAnomalyThresholds,
 } from './ai-insight-cards.anomaly';
+import { SV_AI_INSIGHT_CARDS_LABELS } from './ai-insight-cards.labels';
 
 /** A steady series: `count` observations around `centre`, alternating ±1. */
 const steady = (centre: number, count = 30): number[] =>
@@ -188,13 +189,13 @@ describe('saying it in words', () => {
    * facts are exactly what a reader needs to decide whether to believe the card.
    */
   it('names the baseline and the sample count, not just the deviation', () => {
-    const label = svAnomalyLabel(svAnomaly(steady(100), 200));
+    const label = svAnomalyLabel(svAnomaly(steady(100), 200), SV_AI_INSIGHT_CARDS_LABELS);
     expect(label).toContain('100');
     expect(label).toContain('30 observations');
   });
 
   it('says why no severity is claimed when the history is short', () => {
-    const label = svAnomalyLabel(svAnomaly([1, 2, 3], 900));
+    const label = svAnomalyLabel(svAnomaly([1, 2, 3], 900), SV_AI_INSIGHT_CARDS_LABELS);
     expect(label).toContain('no baseline');
     expect(label).toContain('3 observations');
   });
@@ -245,8 +246,8 @@ describe('thresholds a host can move', () => {
     //     it would have stated 14 while the verdict came from 336.
     const a = svAnomaly(steady(100, 20), 900, { minSamples: 336 });
     expect(a.minSamples).toBe(336);
-    expect(svAnomalyLabel(a)).toContain('under 336');
-    expect(svAnomalyLabel(a)).not.toContain('under 14');
+    expect(svAnomalyLabel(a, SV_AI_INSIGHT_CARDS_LABELS)).toContain('under 336');
+    expect(svAnomalyLabel(a, SV_AI_INSIGHT_CARDS_LABELS)).not.toContain('under 14');
   });
 
   it('falls back to the default for a figure that is not a threshold', () => {

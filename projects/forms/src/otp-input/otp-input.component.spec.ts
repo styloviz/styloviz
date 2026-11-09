@@ -117,6 +117,25 @@ describe('SvOtpInputComponent', () => {
     expect(document.activeElement).toBe(c[3]);
   });
 
+  it('mirrors the arrows under dir="rtl", where the next cell is to the left (FL-B9)', async () => {
+    document.documentElement.dir = 'rtl';
+    try {
+      await setup({ length: 4 });
+      const c = cells();
+      c[0].focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(document.activeElement).toBe(c[0]);
+
+      await userEvent.keyboard('{ArrowLeft}{ArrowLeft}');
+      expect(document.activeElement).toBe(c[2]);
+
+      await userEvent.keyboard('{ArrowRight}');
+      expect(document.activeElement).toBe(c[1]);
+    } finally {
+      document.documentElement.dir = 'ltr';
+    }
+  });
+
   // ── Paste: the way most people actually enter a code ───────────────────────
 
   it('spreads a pasted code across the cells and lands on the last one', async () => {

@@ -17,7 +17,7 @@ import { SvToggleSwitchComponent } from '@styloviz/toggle-switch';
 import { SvBadgeComponent } from '@styloviz/badge';
 import { SvIconComponent } from '@styloviz/icons';
 import { SvPasswordStrengthComponent } from '@styloviz/password-strength';
-import { SvEmptyShellComponent } from '@styloviz/core';
+import { SvEmptyShellComponent } from '@styloviz/core/data';
 import { SvModalComponent } from '@styloviz/modal';
 import { accountPost, accountRecord, accountUpdate } from '../account.data';
 import { SvAccountAsyncComponent } from '../account-async.component';
@@ -82,11 +82,9 @@ const CHANNELS: readonly ChannelColumn[] = [
 /**
  * AccountProfileComponent
  *
- * Profile, security and notification preferences in one page, in tabs — this
- * is the "settings / account / profile" trio the release TODO found shipping
- * three times over (`admin/pages/settings`, `admin/pages/users/*`,
- * `store/pages/account/*`). Packaged here as its own standalone, drop-in
- * template rather than a fourth bespoke build.
+ * Profile, security and notification preferences in one page, in tabs — the
+ * "settings / account / profile" pages the admin and store templates each
+ * carry inside a larger app, packaged here as a standalone, drop-in template.
  */
 @Component({
   selector: 'sv-account-profile',

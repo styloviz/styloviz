@@ -11,16 +11,18 @@ import {
 import { NgClass } from '@angular/common';
 import type { Address } from './address-card.component';
 import {
-  DEFAULT_ADDRESS_SCHEMAS,
-  GENERIC_ADDRESS_SCHEMA,
   resolveAddressSchema,
+  svAddressSchemas,
+  svGenericAddressSchema,
   type AddressFieldName,
   type AddressFieldSchema,
   type AddressSaveEvent,
   type AddressSchema,
   type AddressVerification,
 } from './address-schema';
-import { svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -43,37 +45,39 @@ import { svUniqueId } from '@styloviz/core';
 @Component({
   selector: 'sv-address-form',
   standalone: true,
-  imports: [NgClass],
+  imports: [NgClass, SvLabelPipe],
   templateUrl: './address-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAddressFormComponent {
+  protected readonly labels = injectSvLabels('commerce', SV_COMMERCE_LABELS);
+
   // ── Inputs ────────────────────────────────────────────────────────────────
 
   /** Initial value for edit mode; the form resets when it changes. @default null */
   value = input<Address | null>(null);
 
   /**
-   * The countries offered, and the field list each one implies.
-   *
-   * Replaces the old `countries: string[]`, which could only ever change the
-   * names in the dropdown — the fields behind it were fixed, so picking Germany
-   * still demanded a state Germany has no field for.
-   * @default DEFAULT_ADDRESS_SCHEMAS (12 countries)
+   * The countries offered, and the field list each one implies — so picking
+   * Germany does not demand a state Germany has no field for.
+   * @default DEFAULT_ADDRESS_SCHEMAS (12 countries, field labels from the `commerce` labels)
    */
-  schemas = input<readonly AddressSchema[]>(DEFAULT_ADDRESS_SCHEMAS);
+  schemas = input<readonly AddressSchema[]>(svAddressSchemas(this.labels));
+
+  /** The schema before a country is chosen, in the app's labels. */
+  private readonly genericSchema = svGenericAddressSchema(this.labels);
 
   /** Label for the country selector. @default 'Country' */
-  countryLabel = input<string>('Country');
+  countryLabel = input<string>(this.labels.countryLabel);
 
   /** Optional form heading. @default '' */
   title = input<string>('');
 
   /** Submit button label. @default 'Save address' */
-  submitLabel = input<string>('Save address');
+  submitLabel = input<string>(this.labels.saveAddress);
 
   /** Cancel button label. @default 'Cancel' */
-  cancelLabel = input<string>('Cancel');
+  cancelLabel = input<string>(this.labels.cancelButton);
 
   /** Show the cancel button. @default true */
   showCancel = input<boolean>(true);
@@ -176,7 +180,7 @@ export class SvAddressFormComponent {
    * not make the form unsubmittable.
    */
   readonly schema = computed<AddressSchema>(
-    () => resolveAddressSchema(this.schemas(), this.country()) ?? GENERIC_ADDRESS_SCHEMA,
+    () => resolveAddressSchema(this.schemas(), this.country()) ?? this.genericSchema,
   );
 
   /** The fields to render, in the country's order, minus anything switched off. */
@@ -257,13 +261,11 @@ export class SvAddressFormComponent {
     const v = this.verification();
     if (v?.message) return v.message;
     switch (v?.status) {
-      case 'verifying': return 'Checking this address…';
-      case 'verified': return 'Address confirmed.';
-      case 'corrected': return 'We found a close match. Use it, or keep what you entered.';
-      case 'unavailable':
-        return 'We could not check this address right now. You can save it as entered.';
-      case 'failed':
-        return 'We could not match this address. Check it, or save it as entered.';
+      case 'verifying': return this.labels.verificationVerifying;
+      case 'verified': return this.labels.verificationVerified;
+      case 'corrected': return this.labels.verificationCorrected;
+      case 'unavailable': return this.labels.verificationUnavailable;
+      case 'failed': return this.labels.verificationFailed;
       default: return '';
     }
   });

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `book-open` icon. */
 export const bookOpenNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const bookOpenNodes: readonly IconNode[] = [
 export const bookOpenSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.1 19.9q0 0-.1 0-.1 0-.1 0-.3 0-.5-.3-3-2.1-7.1-.8-.2.1-.3.1-.9 0-.9-.9v-13q0-.6.6-.8 4.7-1.6 8.3.7 3.6-2.3 8.3-.7.6.2.6.8v13q0 .9-.9.9-.1 0-.3-.1-4.1-1.3-7.1.8-.2.3-.5.3zm.4-13.2q-.5.4-1 0-.2-.1-.4-.2v10.9q.5.3.9.5.4-.2.9-.5v-10.9q-.2.1-.4.2z' },
 ];
+
+/** `book-open` as a registrable glyph — `registerSvIcons([bookOpenIcon])` / `provideSvIcons([bookOpenIcon])`. */
+export const bookOpenIcon: SvIconDef = { name: 'book-open', nodes: bookOpenNodes, solid: bookOpenSolidNodes };
 
 /** `book-open` — tree-shakable standalone icon. Use `<sv-book-open-icon />`. */
 @Component({

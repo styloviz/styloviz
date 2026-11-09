@@ -6,7 +6,7 @@
       `for` only associates with form elements. `aria-labelledby` on the button
       is what names it.
     -->
-    <span [id]="_uid + '-label'" class="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300">{{ label() }}</span>
+    <span [id]="_uid + '-label'" class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-200">{{ label() }}</span>
   }
 
   <!-- ── Trigger button ── -->
@@ -31,15 +31,16 @@
     <sv-icon
          name="chevron-down"
          [cssClass]="open()
-           ? 'ml-auto h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200 rotate-180'
-           : 'ml-auto h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200'"
+           ? 'ms-auto h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200 rotate-180'
+           : 'ms-auto h-3.5 w-3.5 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200'"
          [strokeWidth]="2" />
   </button>
 
   <!-- ── Picker panel — rendered into document.body via body portal so it escapes
        ALL parent overflow:hidden and CSS transform containment. ── -->
   <ng-template #panelTpl>
-    <div [id]="'cp-panel-' + _uid"
+    <!-- sv-physical: fixed viewport coordinates — svInlineAnchor chooses the pinned edge and already mirrors it under dir=rtl -->
+    <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']" [id]="'cp-panel-' + _uid"
          class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-2xl border border-gray-200/70 bg-white
                 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.18),0_8px_24px_-8px_rgba(0,0,0,0.08)]
                 dark:border-gray-700/50 dark:bg-gray-900
@@ -50,19 +51,17 @@
          [style.top]="panelStyle()['top']"
       [style.maxHeight]="panelStyle()['maxHeight']"
          [style.bottom]="panelStyle()['bottom']"
-         [style.left]="panelStyle()['left']"
-         [style.right]="panelStyle()['right']"
       [style.maxWidth]="panelStyle()['maxWidth']"
          role="dialog"
          aria-modal="false"
-         aria-label="Color picker">
+         [attr.aria-label]="labels.colorPicker">
 
       <!-- Gradient canvas — 2D saturation × brightness -->
       <div #gradientCanvas
            data-gradient
            tabindex="0"
            role="slider"
-           aria-label="Saturation and brightness"
+           [attr.aria-label]="labels.saturationAndBrightness"
            aria-valuemin="0"
            aria-valuemax="100"
            [attr.aria-valuenow]="saturationValue()"
@@ -75,10 +74,10 @@
            (keydown)="onGradientKeydown($event)">
         <div class="absolute inset-0" style="background:linear-gradient(to right,#fff,transparent)"></div>
         <div class="absolute inset-0" style="background:linear-gradient(to bottom,transparent,#000)"></div>
-        <div class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2
+        <!-- sv-physical: colour field — the saturation/hue/alpha gradients are painted to the right, and the pointer maths and ArrowLeft/Right share that physical frame -->
+        <div [style.left]="selectorPosition().left" class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2
                     h-4 w-4 rounded-full border-2 border-white
                     shadow-[0_0_0_1.5px_rgba(0,0,0,0.35)]"
-             [style.left]="selectorPosition().left"
              [style.top]="selectorPosition().top"
              [style.background]="currentColor()"></div>
       </div>
@@ -94,21 +93,21 @@
             <div #hueSlider
                  tabindex="0"
                  role="slider"
-                 aria-label="Hue"
+                 [attr.aria-label]="labels.hue"
                  aria-valuemin="0"
                  aria-valuemax="360"
                  [attr.aria-valuenow]="hueValue()"
                  [attr.aria-valuetext]="hueValueText()"
-                 class="relative h-3 w-full cursor-pointer rounded-full
+                 class="sv-target relative h-3 w-full cursor-pointer rounded-full
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                  style="background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)"
                  (mousedown)="onHueMousedown($event)"
                  (touchstart)="onHueTouch($event)"
                  (keydown)="onHueKeydown($event)">
-              <div class="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2
+              <!-- sv-physical: colour field — the saturation/hue/alpha gradients are painted to the right, and the pointer maths and ArrowLeft/Right share that physical frame -->
+              <div [style.left]="huePosition()" class="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2
                           h-4 w-4 rounded-full border-2 border-white
                           shadow-[0_0_0_1px_rgba(0,0,0,0.25),0_2px_6px_rgba(0,0,0,0.3)]"
-                   [style.left]="huePosition()"
                    [style.background]="hueColor()"></div>
             </div>
 
@@ -116,12 +115,12 @@
               <div #alphaSlider
                    tabindex="0"
                    role="slider"
-                   aria-label="Opacity"
+                   [attr.aria-label]="labels.opacity"
                    aria-valuemin="0"
                    aria-valuemax="100"
                    [attr.aria-valuenow]="alphaValue()"
                    [attr.aria-valuetext]="alphaValue() + '%'"
-                   class="relative h-3 w-full cursor-pointer rounded-full
+                   class="sv-target relative h-3 w-full cursor-pointer rounded-full
                           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1"
                    style="background-image:linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%);background-size:6px 6px;background-position:0 0,0 3px,3px -3px,-3px 0"
                    (mousedown)="onAlphaMousedown($event)"
@@ -129,10 +128,10 @@
                    (keydown)="onAlphaKeydown($event)">
                 <div class="absolute inset-0 rounded-full"
                      [style.background]="'linear-gradient(to right,transparent,' + hueColor() + ')'"></div>
-                <div class="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2
+                <!-- sv-physical: colour field — the saturation/hue/alpha gradients are painted to the right, and the pointer maths and ArrowLeft/Right share that physical frame -->
+                <div [style.left]="(alpha() * 100) + '%'" class="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2
                             h-4 w-4 rounded-full border-2 border-white
-                            shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
-                     [style.left]="(alpha() * 100) + '%'"></div>
+                            shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"></div>
               </div>
             }
           </div>
@@ -140,12 +139,12 @@
 
         <!-- Hex input -->
         <div class="flex items-center gap-1.5">
-          <span class="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Hex</span>
+          <span class="text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">{{ labels.hexHeading }}</span>
           <!-- ★ The colour in words, for anyone who cannot see the swatch. Hidden
                visually because the swatch IS the visual version. -->
           <span class="sr-only" role="status">{{ colorName() }}</span>
           <input type="text"
-                 aria-label="Hex color value"
+                 [attr.aria-label]="labels.hexColorValue"
                  class="h-7 flex-1 rounded-md border border-gray-200 bg-gray-50 px-2 font-mono
                         text-[12px] text-gray-800 transition focus:border-primary-400 focus:outline-none
                         focus:ring-1 focus:ring-primary-400/30
@@ -176,11 +175,11 @@
 
         <!-- Swatches -->
         <div>
-          <p [id]="_uid + '-presets'" class="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">Presets</p>
+          <p [id]="_uid + '-presets'" class="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">{{ labels.presetsHeading }}</p>
           <div class="flex flex-wrap gap-1.5" role="group" [attr.aria-labelledby]="_uid + '-presets'">
             @for (sw of swatches(); track sw.value) {
               <button type="button"
-                class="h-5 w-5 rounded-md border border-black/10 shadow-sm
+                class="sv-target h-5 w-5 rounded-md border border-black/10 shadow-sm
                        transition-transform duration-100 hover:scale-110
                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 [style.background]="sw.value"

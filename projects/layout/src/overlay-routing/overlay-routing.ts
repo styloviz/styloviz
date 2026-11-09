@@ -6,7 +6,8 @@ import {
   makeEnvironmentProviders,
 } from '@angular/core';
 import { NavigationEnd, Router, type CanDeactivateFn } from '@angular/router';
-import { SvOverlayRouteService, ToastService } from '@styloviz/core';
+import { SvOverlayRouteService } from '@styloviz/core/overlay';
+import { ToastService } from '@styloviz/core/services';
 
 /**
  * Tell the overlay layer when the app navigates (`X-13`).

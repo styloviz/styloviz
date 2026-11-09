@@ -5,7 +5,12 @@ import {
   type TableColumn,
   type TableRowAction,
 } from './data-table.component';
-import type { SvDataError } from '@styloviz/core';
+import type { SvDataError } from '@styloviz/core/data';
+import { provideSvIcons } from '@styloviz/icons';
+import { packageIcon } from '@styloviz/icons/glyph/package';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([packageIcon]);
 
 /**
  * ============================================================================
@@ -39,6 +44,7 @@ const ROWS: Row[] = [
 
 async function setup(extra: Record<string, unknown> = {}) {
   const { fixture } = await render(SvDataTableComponent<Row>, {
+    providers: [HOST_ICONS],
     inputs: { columns: COLUMNS, rows: ROWS, pageSize: 2, ...extra },
   });
   return {

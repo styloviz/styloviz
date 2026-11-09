@@ -12,18 +12,10 @@ import {
 import { NgClass } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import {
-  createFieldError,
-  createOptimisticEdit,
-  svDescribedBy,
-  SvFieldErrorComponent,
-  svRequestKey,
-  SvSpinnerArcComponent,
-  toSvDataError,
-  type SvDataError,
-  type SvServerError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
+import { createFieldError, svDescribedBy, SvFieldErrorComponent, type SvServerError } from '@styloviz/core/forms';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,8 +125,6 @@ export class SvToggleSwitchComponent implements ControlValueAccessor {
   /**
    * Icon-library NAME rendered inside the thumb when the toggle is ON — e.g.
    * `'check'`. Omit to show a plain thumb.
-   *
-   * ★ BREAKING (icon sweep): was `onIconPath`, a raw SVG `d` string.
    */
   onIcon          = input<string>('');
 
@@ -269,10 +259,10 @@ export class SvToggleSwitchComponent implements ControlValueAccessor {
   private readonly _edit = createOptimisticEdit({
     revision: () => this._revision(),
     selector: 'sv-toggle-switch',
-    superseded:
+    superseded: // sv-i18n-ignore: developer message (warned by createOptimisticEdit)
       'the switch has been toggled again since, so putting the old value back ' +
       'would discard the newer change. Bind [pending] so it cannot be toggled ' +
-      'while the write is in flight.',
+      'while the write is in flight.', // sv-i18n-ignore: developer message
   });
 
   /**
@@ -399,20 +389,33 @@ export class SvToggleSwitchComponent implements ControlValueAccessor {
     return [
       'relative inline-flex shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out',
       'focus-visible:outline-none',
+      // Forced colours (FI-06-M3): track and thumb are background fills, which
+      // Windows High Contrast repaints as Canvas — the switch disappeared. The
+      // track keeps a ButtonText edge, ON fills it with Highlight, and the
+      // focus ring (a box-shadow, also removed) becomes a real outline.
+      'forced-colors:border forced-colors:border-[ButtonText]', // sv-i18n-ignore: Tailwind classes
+      'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2', // sv-i18n-ignore: Tailwind classes
       sizeMap[this.size()],
-      on ? variantOn[this.variant()] : 'bg-gray-200 dark:bg-gray-700',
+      on
+        ? `${variantOn[this.variant()]} forced-colors:bg-[Highlight] forced-colors:border-[Highlight]`
+        : 'bg-gray-200 dark:bg-gray-700',
     ].join(' ');
   });
 
-  /** Thumb translate offset — moves right when ON. */
+  /**
+   * Thumb translate offset — moves toward the inline END when ON: right in
+   * LTR, left in RTL. The thumb sits at the track's inline start (a flex
+   * child), and `translate-x` is physical, so RTL negates it — without the
+   * `rtl:` half the ON thumb slid out of the track's right-hand edge.
+   */
   thumbClasses = computed<string>(() => {
     const on = this.checked();
 
     const translateMap: Record<ToggleSize, { off: string; on: string }> = {
-      xs: { off: 'translate-x-0.5', on: 'translate-x-3.5' },
-      sm: { off: 'translate-x-0.5', on: 'translate-x-4.5' },
-      md: { off: 'translate-x-0.5', on: 'translate-x-5.5' },
-      lg: { off: 'translate-x-1',   on: 'translate-x-7.5' },
+      xs: { off: 'translate-x-0.5 rtl:-translate-x-0.5', on: 'translate-x-3.5 rtl:-translate-x-3.5' },
+      sm: { off: 'translate-x-0.5 rtl:-translate-x-0.5', on: 'translate-x-4.5 rtl:-translate-x-4.5' },
+      md: { off: 'translate-x-0.5 rtl:-translate-x-0.5', on: 'translate-x-5.5 rtl:-translate-x-5.5' },
+      lg: { off: 'translate-x-1 rtl:-translate-x-1',     on: 'translate-x-7.5 rtl:-translate-x-7.5' },
     };
 
     const sizeMap: Record<ToggleSize, string> = {
@@ -429,6 +432,9 @@ export class SvToggleSwitchComponent implements ControlValueAccessor {
       'transform transition-transform duration-200 ease-in-out ring-0',
       sizeMap[this.size()],
       on ? t.on : t.off,
+      // The thumb is a white fill: ButtonText when OFF, HighlightText over the
+      // Highlight track when ON, so its position — the state — stays visible.
+      on ? 'forced-colors:bg-[HighlightText]' : 'forced-colors:bg-[ButtonText]', // sv-i18n-ignore: Tailwind classes
     ].join(' ');
   });
 

@@ -71,11 +71,11 @@
           aria-live="polite"
         >
           @if (prefix()) {
-            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 me-0.5">{{ prefix() }}</span>
           }
           {{ displayValue() }}
           @if (suffix()) {
-            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+            <span class="text-lg font-semibold text-gray-500 dark:text-gray-400 ms-0.5">{{ suffix() }}</span>
           }
         </p>
 
@@ -84,11 +84,13 @@
           <sv-sparkline
             class="mb-0.5 shrink-0"
             [data]="sparkline()"
+            [domain]="sparklineDomain()"
             [width]="120"
             [height]="32"
             [strokeWidth]="1.75"
             tone="neutral"
             [ariaHidden]="true" />
+          <span class="sr-only" data-sv-spark-note>{{ sparklineNote() }}</span>
         }
       </div>
 
@@ -118,7 +120,7 @@
         (click)="linkClick.emit()"
       >
         <span>{{ linkLabel() }}</span>
-        <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+        <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5 rtl:-scale-x-100" [strokeWidth]="2" />
       </button>
     }
   }
@@ -150,7 +152,7 @@
             chipClass: 'inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ' + trendClasses(),
             iconClass: 'h-3 w-3'
           }" />
-          <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] leading-tight text-gray-500 dark:text-gray-400 text-right' }" />
+          <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] leading-tight text-gray-500 dark:text-gray-400 text-end' }" />
         </div>
       }
     </div>
@@ -164,7 +166,7 @@
 
       <!-- Left column — identity / context -->
       <div class="flex flex-1 flex-col justify-center gap-1.5 px-5 py-4
-                  border-r border-gray-100 dark:border-gray-800">
+                  border-e border-gray-100 dark:border-gray-800">
         @if (hasIcon()) {
           <span
             class="inline-flex items-center justify-center h-9 w-9 rounded-xl mb-1
@@ -189,11 +191,11 @@
       <div class="flex flex-col items-end justify-center gap-2 px-5 py-4 shrink-0">
         <p class="text-[26px] font-bold tracking-tight text-gray-900 dark:text-white tabular-nums leading-none">
           @if (prefix()) {
-            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 me-0.5">{{ prefix() }}</span>
           }
           {{ displayValue() }}
           @if (suffix()) {
-            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+            <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ms-0.5">{{ suffix() }}</span>
           }
         </p>
 
@@ -208,11 +210,13 @@
           <sv-sparkline
             class="mt-1"
             [data]="sparkline()"
+            [domain]="sparklineDomain()"
             [width]="120"
             [height]="28"
             [strokeWidth]="1.75"
             tone="neutral"
             [ariaHidden]="true" />
+          <span class="sr-only" data-sv-spark-note>{{ sparklineNote() }}</span>
         }
       </div>
     </div>
@@ -247,11 +251,11 @@
             </p>
             <p class="text-[30px] font-extrabold text-gray-900 dark:text-white tabular-nums leading-none">
               @if (prefix()) {
-                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 mr-0.5">{{ prefix() }}</span>
+                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 me-0.5">{{ prefix() }}</span>
               }
               {{ displayValue() }}
               @if (suffix()) {
-                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ml-0.5">{{ suffix() }}</span>
+                <span class="text-base font-semibold text-gray-500 dark:text-gray-400 ms-0.5">{{ suffix() }}</span>
               }
             </p>
             @if (description()) {
@@ -267,7 +271,7 @@
               chipClass: 'inline-flex items-center gap-1 text-sm font-bold ' + minimalTrendColor(),
               iconClass: 'h-4 w-4'
             }" />
-            <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] text-gray-500 dark:text-gray-400 text-right leading-tight' }" />
+            <ng-container *ngTemplateOutlet="trendPeriod; context: { periodClass: 'text-[10px] text-gray-500 dark:text-gray-400 text-end leading-tight' }" />
           </div>
         }
       </div>
@@ -300,7 +304,7 @@
         {{ displayTrendPercent() }}
       }
       @if (trendValue() !== null && displayTrendPercent() === '') {
-        {{ trendValue()! | number }}
+        {{ trendValue()! | number:undefined:locale() }}
       }
     </span>
   </ng-template>

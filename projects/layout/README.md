@@ -1,16 +1,18 @@
 # @styloviz/layout
 
-> App-shell and layout primitives — sidebar, topbar, page header, dashboard shell, footers, divider, toolbar, expand, plus copy-to-clipboard and scroll-to-top.
+> App-shell and layout primitives — sidebar, topbar, page header, dashboard shell, footers, divider, toolbar, a macOS-style dock, expand, plus copy-to-clipboard, scroll-to-top and pull-to-refresh.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/icons @styloviz/core @styloviz/toast @styloviz/layout
+npm install @styloviz/icons @styloviz/core @styloviz/kbd @styloviz/overlays @styloviz/layout
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/core`, `@styloviz/toast` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons`, `@styloviz/core`, `@styloviz/kbd`, `@styloviz/overlays` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -53,6 +55,8 @@ import { SvCopyToClipboardComponent } from '@styloviz/layout';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -64,13 +68,13 @@ export class DemoComponent {}
 | `size` | `CopySize` | `'md'` | Component size. |
 | `label` | `string` | `''` | Placeholder shown when no text content is provided via ng-content. |
 | `ariaLabel` | `string` | `'Copy to clipboard'` | Accessible name of the copy button — the only name `icon-only` has. Name WHAT is copied ("Copy API key"), and localise it here. Never derived from `label`, which may be the (sensitive) value itself. |
-| `sensitive` | `boolean` | `false` | Treat the value as a secret — an API key, a recovery code, a token. A COPIED SECRET LEAVES NO TRACE AND GETS NO WARNING from a generic copy button. On: the `label` is masked, the success announcement becomes `sensitiveWarning`, and every copy emits `copyAudited`. Off by default — the common use is a command or an id, and masking those would break them. |
+| `sensitive` | `boolean` | `false` | Treat the value as a secret — an API key, a recovery code, a token. A copied secret leaves no trace and gets no warning from a generic copy button. On: the `label` is masked, the success announcement becomes `sensitiveWarning`, and every copy emits `copyAudited`. Off by default — the common use is a command or an id, and masking those would break them. |
 | `sensitiveReveal` | `CopySensitiveReveal` | `'masked'` | How a `sensitive` label is shown: `masked`, `revealable` (toggle) or `visible`. |
 | `sensitiveField` | `string` | `'value'` | Which field was copied, for the audit event's `field`. |
-| `sensitiveWarning` | `string` | `'Copied. This value is secret — do not …` | Announced (and shown in the block variant) after a sensitive copy. |
+| `sensitiveWarning` | `string` | `'Copied. This value is secret` | Announced (and shown in the block variant) after a sensitive copy. |
 | `requireAuthorization` | `boolean` | `true` | Whether revealing a `sensitiveReveal="revealable"` value needs the host's authorization first. While on and `revealAuthorized` is off, the toggle emits `revealRequest` instead of revealing — step up, then set `revealAuthorized`. |
 | `revealAuthorized` | `boolean` | `false` | The host has re-authenticated the user; the reveal toggle may reveal. |
-| `copyTimeout` | `number` | `SV_COPY_TIMEOUT_MS` | How long (ms) a clipboard write may stay pending before it is abandoned as `failed` and `busy` clears. A write that never settles — a permission prompt left open, a native bridge that never answers — would otherwise leave the button busy forever. A late answer after the timeout is ignored. An invalid value (`0`, negative, `NaN`, `Infinity`) uses the default. |
+| `copyTimeout` | `number` | `10000` | How long (ms) a clipboard write may stay pending before it is abandoned as `failed` and `busy` clears. A write that never settles — a permission prompt left open, a native bridge that never answers — would otherwise leave the button busy forever. A late answer after the timeout is ignored. An invalid value (`0`, negative, `NaN`, `Infinity`) uses the default. |
 
 ## Outputs
 
@@ -87,4 +91,4 @@ Full API reference and live demos: https://styloviz.dev/docs/copy-to-clipboard
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

@@ -20,6 +20,13 @@ async function setup(inputs: Partial<ComponentInput<SvPriceComponent>> = {}) {
 const text = (f: { nativeElement: unknown }) =>
   ((f.nativeElement as HTMLElement).textContent ?? '').replace(/\s+/g, ' ').trim();
 
+/** What a sighted shopper sees: the text with the screen-reader-only spans removed. */
+const seen = (f: { nativeElement: unknown }) => {
+  const clone = (f.nativeElement as HTMLElement).cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.sr-only').forEach((n) => n.remove());
+  return clone.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+};
+
 describe('SvPriceComponent — minor units are not always hundredths', () => {
   it('divides by 100 for a two-decimal currency', async () => {
     const { fixture } = await setup({ amount: 4999, minorUnits: true, currency: 'USD' });
@@ -149,12 +156,12 @@ describe('SvPriceComponent — ranges', () => {
   it('prints an open-ended range with its label', async () => {
     const { fixture } = await setup({ amount: 49.99, from: true });
     expect(fixture.componentInstance.isFrom()).toBe(true);
-    expect(text(fixture)).toBe('From$49.99'); // separate spans; the gap is visual
+    expect(seen(fixture)).toBe('From$49.99'); // separate spans; the gap is visual
   });
 
   it('takes the wording for the open-ended range', async () => {
     const { fixture } = await setup({ amount: 49.99, from: true, fromLabel: 'Ab' });
-    expect(text(fixture)).toBe('Ab$49.99');
+    expect(seen(fixture)).toBe('Ab$49.99');
   });
 
   it('lets a closed range outrank "from", which a closed range already says', async () => {
@@ -175,7 +182,7 @@ describe('SvPriceComponent — the tax basis', () => {
   it('states nothing by default, because the component cannot know', async () => {
     const { fixture } = await setup({ amount: 49.99 });
     expect(fixture.componentInstance.taxNote()).toBe('');
-    expect(text(fixture)).toBe('$49.99');
+    expect(seen(fixture)).toBe('$49.99');
   });
 
   it('says the price includes tax when it does', async () => {

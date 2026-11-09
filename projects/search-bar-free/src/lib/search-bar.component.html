@@ -39,11 +39,11 @@
         {{ filter.label }}
         <button
           type="button"
-          class="ml-0.5 rounded text-primary-400 hover:text-primary-600
+          class="ms-0.5 rounded text-primary-400 hover:text-primary-600
                  dark:text-primary-400 dark:hover:text-primary-200
                  focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
           (click)="filterRemoved.emit(filter.id)"
-          [attr.aria-label]="'Remove filter ' + filter.label"
+          [attr.aria-label]="labels.removeFilter | svLabel: { name: filter.label }"
         >
           <sv-icon name="close" cssClass="h-3 w-3" [strokeWidth]="2" />
         </button>
@@ -62,7 +62,7 @@
              [&::-webkit-search-cancel-button]:hidden"
       [ngClass]="[
         inputNativePadClass(),
-        filters().length > 0 ? 'py-0.5' : 'h-full'
+        filters().length ? 'py-0.5' : 'h-full'
       ]"
       [placeholder]="isFloating() && label() && !labelIsFloated() ? ' ' : placeholder()"
       [disabled]="disabled()"
@@ -83,7 +83,7 @@
 
     <!-- Keyboard shortcut hint -->
     @if (showShortcut()) {
-      <sv-kbd class="mr-2 hidden shrink-0 sm:inline-flex" aria-hidden="true">
+      <sv-kbd class="me-2 hidden shrink-0 sm:inline-flex" aria-hidden="true">
         {{ shortcutHint() }}
       </sv-kbd>
     }
@@ -92,12 +92,12 @@
     @if (showClear()) {
       <button
         type="button"
-        class="mr-2 shrink-0 rounded-full p-0.5 text-gray-500 dark:text-gray-400
+        class="me-2 shrink-0 rounded-full p-0.5 text-gray-500 dark:text-gray-400
                transition-colors hover:bg-gray-100 hover:text-gray-600
                dark:hover:bg-gray-700 dark:hover:text-gray-300
                focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
         (click)="clearValue()"
-        aria-label="Clear search"
+        [attr.aria-label]="labels.clearSearch"
       >
         <sv-icon name="close" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
       </button>
@@ -106,9 +106,10 @@
   </div>
 
   <!-- ── Suggestions dropdown — portaled into document.body on open so ancestor
-       overflow/transform containers can never clip it (see dropdown-instruction.md). ── -->
+       overflow/transform containers can never clip it (see docs/dropdown-instruction.md). ── -->
   <ng-template #panelTpl>
-    <div
+    <!-- sv-physical: fixed viewport coordinate — the panel spans the input exactly (input left + input width), identical in both directions -->
+    <div [style.left]="panelStyle()['left']"
       [id]="listboxId + '-panel'"
       class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden rounded-xl
              border border-gray-200 bg-white
@@ -118,7 +119,6 @@
       [style.zIndex]="panelStyle()['zIndex']"
       [style.top]="panelStyle()['top']"
       [style.bottom]="panelStyle()['bottom']"
-      [style.left]="panelStyle()['left']"
       [style.width]="panelStyle()['width']"
       [style.maxHeight]="panelStyle()['maxHeight']"
     >
@@ -174,7 +174,7 @@
       <ul
         [attr.id]="listboxId"
         role="listbox"
-        [attr.aria-label]="suggestionsLabel() || accessibleName() || 'Search suggestions'"
+        [attr.aria-label]="suggestionsLabel() || accessibleName() || labels.searchSuggestions"
         class="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1"
         [svStale]="stale()"
       >
@@ -248,7 +248,7 @@
             (mousedown)="onFooterClick()"
           >
             <span>{{ footerLabel() }}</span>
-            <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+            <sv-icon name="arrow-right" cssClass="h-3.5 w-3.5 rtl:-scale-x-100" [strokeWidth]="2" />
           </button>
         </div>
       }

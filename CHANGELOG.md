@@ -11,6 +11,3363 @@ Every package in the kit shares one version, sourced from `packages.json`.
 
 ---
 
+## [2.0.0] — 2026-11-09
+
+The breaking release. Every 1.x API kept only for compatibility is gone, every
+thing has one name, and the kit is translatable, locale-correct and WCAG 2.2 AA.
+
+### ⚠ Upgrading from 1.x — one line per break
+
+Run `ng update @styloviz/core` first — or `ng update @styloviz/all` (`@styloviz-pro/all`)
+if you installed a bundle. `ng update` only updates what `package.json` lists, so if
+npm installed core as an unlisted peer, `npm install @styloviz/core@1` before it. Every
+package lists the whole kit as its package group, so the one command moves every free
+and Pro package to 2.0 and runs `v2-register-icons`, `v2-pie-family` and
+`v2-data-table-responsive`. Then build with
+strict templates — a selector or input that is gone fails with its file and line —
+and look each one up on `/migrate/v2`, which lists every 1.x selector and exported
+class 2.0 takes away. Each line below names the section that holds the full table.
+
+- **Icons** — glyphs are registered per glyph; `ng update` (`v2-register-icons`) keeps
+  every icon showing, then trim to what you use. *Changed — Icons are registered per glyph.*
+- **Locale** — every display format reads `SV_LOCALE` (defaults to `LOCALE_ID`), not
+  `'en-US'` or the browser; bind `locale=""` on a date picker for the 1.x Monday-first
+  English. *Changed — One locale for the whole kit.*
+- **Labels** — English accessible names, visible text and input defaults are labels;
+  output is unchanged in English, and `provideSvLabels()` replaces them. *Added —
+  Translatable accessible names; Changed — Visible text / English composed in TypeScript
+  / English inside `{{ }}`.*
+- **App shell** — `sv-dashboard-shell`, `sv-sidebar`, `sv-topbar` and `sv-footer` are
+  slot-based; project your own brand, links and outlet. *Changed — App shell.*
+- **Pie charts** — `sv-default-pie-chart(-pro)` is `sv-pie-chart(-pro)` and `sv-donut-chart`
+  is `sv-pie-chart-pro variant="donut"`; `ng update` (`v2-pie-family`). *Changed — Pie chart.*
+- **Performance chart** — removed; use `renderer="large-data"` on `sv-line-chart(-pro)`.
+  *Removed — Performance chart.*
+- **Live charts (Pro)** — `sv-live-spline-chart`, `sv-live-stock-chart`, `sv-live-sort-chart`
+  removed; use `sv-line-chart-pro [live]`, `sv-candlestick-chart [liveWindow]` and
+  `sv-bar-chart-pro sort`. *Removed — Live spline, live stock and live sort charts.*
+- **Data table** — `cardOnMobile` is `responsive="cards"` and `sv-record-grid` is
+  `responsive="records"`; `ng update` (`v2-data-table-responsive`) renames the input and lists
+  each record grid to fold by hand. *Changed — Data table.*
+- **Popout (Pro)** — removed; use `sv-popover` with `SV_POPOUT_PRESET`. *Removed — Popout.*
+- **Tooltip** — the bubble is portalled by default; `[portal]="false"` restores 1.x.
+  *Changed — Tooltip.*
+- **Form builder (Pro)** — control ids are `sv-fb-<n>-<path>`; select by `name` or a
+  `data-sv-*` hook. *Changed — Form builder.*
+- **Stepper** — `verticalRowPaddingClass()` removed. *Removed — Stepper.*
+- **Select dropdown** — the 1.x search, async, windowing and bulk inputs are removed; use
+  the feature children and `[source]`. *Removed — Select dropdown.*
+- **Deprecated members** — every member 1.x kept only to compile is removed, each with
+  its replacement in the table. *Removed — Deprecated members across the kit.*
+- **AI chat** — `sv-ai-chat` internals moved into the new chat parts; `copyMessage()`
+  returns `Promise<boolean>`. *Removed — `sv-ai-chat` internals.*
+- **Catalogue** — variants no longer count as components and their demos live in the
+  family's gallery; no code change unless a line above names a selector. *Changed —
+  catalogue: one name per thing.*
+- **Peer dependencies** — some packages need new `@styloviz/*` peers. *Changed — New peer
+  dependencies.*
+- **Category changes** — behaviour and API changes from the 2.0 build sets, each with its
+  own *Migration:* line: *Changed — Data Display / Overlays & Feedback / Forms / AI /
+  Charts / Layout / Navigation · migration.*
+- **Defaults** — no API change, but defaults that now behave differently. *Changed —
+  Behaviour you may notice after upgrading.*
+
+
+### Added — `ng add`, `migrate-primeng` and `ng update` migrations
+
+- **`ng add @styloviz/core`** sets up an Angular 21 or 22 app in one command:
+  - Tailwind 4, the kit stylesheet and an `@source`;
+  - a PostCSS config, and `provideStyloviz()` in `app.config.ts`;
+  - a demo page at `/styloviz`.
+  It also adds jspdf's CommonJS modules (`html2canvas`, `canvg`, `raf`,
+  `rgbcolor`, `core-js`) to `allowedCommonJsDependencies`, so adding a PDF or
+  PNG export later does not fill the production build with warnings.
+  It keeps versions you already pin, and running it again changes nothing.
+  Proven on fresh `ng new` apps on Angular 22.2 and 21.2 with every kit package
+  installed, one page per family: the production build has no warnings and
+  every page renders without a console error.
+- **`ng g @styloviz/schematics:migrate-primeng`** (new free package
+  `@styloviz/schematics`) applies the map `/primeng-alternative` shows:
+  - renames all 60 mapped PrimeNG elements in templates;
+  - imports the Styloviz classes and drops the PrimeNG modules it no longer needs;
+  - adds the packages to `package.json`.
+  It reports inputs to translate, directives such as `pTooltip`, and PrimeNG
+  components with no equivalent. It is tested on `e2e/fixtures/primeng-app`.
+- **`ng update`.** Every package now declares `"ng-update"` with its own
+  migrations and the whole kit as its `packageGroup`, so the kit moves together.
+  The **2.0.0** `v2-register-icons` migration opts an upgraded app into the full
+  glyph set (`provideSvIcons(svAllIcons)`, plus `svAllProIcons` with Pro icons),
+  so no icon disappears on upgrade; `v2-pie-family` and `v2-data-table-responsive`
+  are described in the Pie chart and Data table sections.
+
+### Added — `@styloviz/mcp` and agent skills
+
+A free MCP server, so a coding assistant asks the kit about itself instead of
+guessing. Run it with `npx -y @styloviz/mcp`, or in Claude Code with
+`claude mcp add styloviz -- npx -y @styloviz/mcp`. Its tools are `search`,
+`get_component`, `list_components`, `find_variants`, `find_icons`, `get_tokens`
+and `list_templates`.
+
+- Every answer comes from one index generated from the docs, the showcase demo
+  titles, the template registry, the icon sets and the kit stylesheet
+  (`scripts/generate-mcp-index.mjs`, `npm run mcp:sync`, part of
+  `check:generated`). It ships in the package at the kit's version.
+- No dependencies and no network calls. The same questions work from a
+  terminal: `npx @styloviz/mcp search "data table grouping"`.
+- `skills/styloviz/SKILL.md` (Claude Code) and
+  `skills/styloviz/cursor/styloviz.mdc` (Cursor) tell an assistant how Styloviz
+  is imported, themed, translated and registered. Both are in the public mirror.
+- The Data Table docs gained a "Grouped rows (Pro)" example.
+
+### Added — WCAG 2.2 AA: target size, focus not obscured, dragging
+
+The kit now targets **WCAG 2.2 Level AA**, and `/accessibility` publishes an
+Accessibility Conformance Report (VPAT® 2.5, WCAG edition) with a downloadable
+copy at `/accessibility/styloviz-acr-wcag22.html`. The report is generated by
+`scripts/generate-acr.mjs` from the gates that enforce it, and
+`check:generated` fails when it drifts.
+
+- **2.5.8 Target Size (Minimum).** New kit utility `sv-target`: a control drawn
+  under 24×24 px keeps its look and gets an invisible 24×24 hit area centred on
+  it. Every small control in the kit carries it, and small checkboxes now sit in
+  a `<label class="sv-target">`. The carousel's indicators are spaced so their
+  hit areas don't overlap. `check:ui` rule `target-size-minimum`; axe's
+  `target-size` now runs in the e2e gate (`wcag22aa`).
+- **2.4.11 Focus Not Obscured (Minimum).** Every sticky header, footer and
+  pinned column declares the edge it holds with `data-sv-sticky`. New directive
+  `SvRevealFocusDirective` (`svRevealFocus`, `@styloviz/core`) on a scroller
+  scrolls a focused row or cell clear of the bands it measures. A bar stuck to
+  the page (`data-sv-sticky="page-top"` / `"page-bottom"`) reserves its band
+  through `html { scroll-padding }` in the kit stylesheet. Set
+  `--sv-page-sticky-top` on `<html>` when your header is taller than 4.5rem.
+  `check:ui` rule `focus-not-obscured`.
+- **2.5.7 Dragging Movements.** Every drag now has a single-pointer
+  alternative (keyboard alone does not satisfy 2.5.7). Each is listed in
+  `scripts/dragging-alternatives.mjs` with its proof in source and a spec that
+  taps it. `check:ui` rule `dragging-alternative`.
+
+New single-pointer paths (no new inputs or outputs):
+- **Kanban:** a Move button on every card (Move up / down / to a column).
+- **Tree view (draggable):** a Move button on every row (Move up / down, Indent / Outdent).
+- **Data table:** Narrow / Widen and Move left / right in the Columns panel.
+- **File upload:** Move earlier / later buttons beside every grip.
+- **Sidebar navigation (Pro):** Narrow / Widen buttons on the resize edge.
+- **Splitter:** step buttons on the gutter, on by default.
+- **Range slider:** a tap on the track moves the nearer thumb.
+- **Image cropper:** tap to place the crop box, Shrink / Grow, and pan buttons.
+- **Line chart brush:** Zoom in / out and Pan left / right.
+- **Gantt:** an Edit button on the selected bar, which opens the task dialog. Without the command bus, that dialog now saves dates through the same commit as a drag.
+- **dnd-list kanban variant:** Move up / down within a column, with the move buttons always visible.
+
+**Also fixed by the WCAG 2.2 scan of every route:**
+- Small icon buttons are now real 24 px boxes: alert-banner dismiss, dnd-list, pivot-table, breadcrumb menu, splitter steps.
+- Clear buttons, the number input, mini-calendar days, sidebar group toggles and breadcrumb links have 24 px minimums.
+- The event-calendar planner keeps its day columns at least 88 px and scrolls sideways on phones.
+- The heatmap calendar adds a "Go to a day" field as the 24 px equivalent of its 13 px squares.
+- The range slider's tap strip is the equivalent of its stacked thumbs.
+- `sv-heatmap-chart` warns in development when `cellSize + gap` is under 24.
+- A hidden tooltip is now `inert`, so nothing inside it takes focus.
+
+### Changed — Icons are registered per glyph
+
+`<sv-icon name="…">` used to resolve against a registry the component imported
+whole, so one icon in one button put every glyph in the set into the app: a
+production app holding a single `<sv-button>` shipped 186 glyph paths and
+92.9 kB gzipped. Now nothing is bundled by name. Each glyph is a definition you
+import by subpath and register; the kit's components register their own:
+
+```ts
+import { provideSvIcons } from '@styloviz/icons';
+import { bellIcon } from '@styloviz/icons/glyph/bell';
+
+providers: [provideSvIcons([bellIcon])]
+```
+
+The same one-button app now ships 3 glyph paths and 53 kB. On this site the home
+page's script went from 1,318 kB and every glyph in both sets to 805 kB and the
+82 glyphs it draws.
+
+**Breaking:**
+
+- **Register the names your templates draw.** A name nobody registered renders
+  nothing and warns once in development. To keep the old behaviour while you
+  migrate, opt into everything: `provideSvIcons(svAllIcons)` (and
+  `svAllProIcons` for `<sv-icon-pro>`), imported from
+  `@styloviz/icons/registry` / `@styloviz-pro/icons/registry`. Kit components
+  register the glyphs they draw themselves; a name you pass in (a button's
+  `icon`, a nav item's icon) is yours to register.
+- `provideSvIcons(...items)` takes glyph definitions and/or your own
+  name → nodes map, any number of them, and returns `EnvironmentProviders`
+  (it was a single map returning a `Provider`). `SV_ICON_REGISTRY` is replaced by
+  the `SvIconRegistry` service. New: `registerSvIcons([...])` for a component,
+  `SvIconDef`, a `<name>Icon` / `<name>ProIcon` definition for every glyph.
+- Import glyphs by subpath — `@styloviz/icons/glyph/<name>`,
+  `@styloviz-pro/icons/glyph/<name>`, and free glyphs through
+  `@styloviz-pro/icons/free/<name>`. Each subpath is its own small module
+  holding that glyph's data (its per-icon component is re-exported from the
+  main entry), so a glyph a lazy route imports loads with that route, not in
+  the initial bundle. The main entry still exports every glyph and per-icon
+  component.
+
+Gates: `check:icon-register` (every kit template registers the glyphs it draws,
+every template project provides its own), `check:bundle-size` builds a real
+one-button app (`consumer:@styloviz/button`) and caps the glyphs it ships, and
+`check-landing-payload` now measures the home page's whole static closure — the
+modulepreload list alone had been undercounting it by more than a third.
+
+### Added — Signal Forms on every form control
+
+Every form control in the kit — 27 of them, in 22 families — binds with
+Signal Forms' `[formField]` on Angular 21 and 22:
+
+```ts
+readonly model = signal({ seats: 5 });
+readonly plan = form(this.model, (p) => { min(p.seats, 1); max(p.seats, 250); });
+```
+```html
+<sv-number-input [formField]="plan.seats" label="Seats" />
+```
+
+They are ControlValueAccessors, which `[formField]` drives identically on both
+majors, so nothing about Reactive or template-driven forms changes. Each docs
+page for a form control now ends with a compiled Signal Forms example
+(`check:signal-forms`), proven on Angular 21 by `check-angular-compat`.
+
+The inputs Signal Forms writes to by name — `min` / `max` (number input,
+slider, rating, time picker, text field), `minLength` / `maxLength` (text
+field, rich-text editor) and `pattern` (text field) — now accept any value and
+fall back to their default, so `[formField]` compiles on them; a field's
+`min()` / `max()` validators set the slider's range and the rating's star
+count. Binding them explicitly next to `[formField]` is an Angular error
+(NG8022): use the validators. New in `@styloviz/core`: `svNumberOr`,
+`svStringOr`, `svBoundOrNull`, `svPatternAttr`.
+
+### Added — Language packs in 12 languages
+
+Every package now exports its labels in English plus eleven translations —
+German, French, Spanish, Brazilian Portuguese, Italian, Dutch, Polish,
+Turkish, Japanese, Simplified Chinese and Arabic — as
+`SV_<PACKAGE>_LABELS_<LANG>` from its main entry point. Pass the ones for the
+packages you use; each is typed with the package's full labels interface, and
+a bundler drops the languages you do not import:
+
+```ts
+providers: [
+  provideSvLocale('de'),
+  provideSvLabels(SV_CORE_LABELS_DE, SV_DATA_TABLE_LABELS_DE, SV_CHARTS_PRO_LABELS_DE),
+]
+```
+
+`provideSvLabels()` now takes any number of packs (a single object still
+works); later ones win key by key, so your own corrections go last. Plurals
+carry each language's CLDR forms (Polish `few`/`many`, Arabic all six), and a
+count that arrives pre-formatted still picks the right form. The packs are
+machine-translated and awaiting native review. Guide: `/docs/translating`.
+Gate: `check:labels` — every pack has every key, translated from the current
+English, with the same slots and the plural forms its language needs.
+
+### Changed — `@styloviz/core` is split into entry points; a page loads only the parts it uses
+
+`@styloviz/core` was one module, so a bundler put everything any page used
+from it into the initial bundle. Each of its areas is now a secondary entry
+point of its own — `@styloviz/core/a11y`, `/ai`, `/data`, `/dev`,
+`/directives`, `/export`, `/feedback`, `/forms`, `/gestures`, `/i18n`,
+`/layout`, `/models`, `/nav`, `/overlay`, `/persist`, `/security`,
+`/services`, `/tokens`, `/virtual` — and every kit package imports from the ones it
+needs, so their code loads with the pages that use them. On the Styloviz
+site the initial `main` chunk went from 140.5 kB to 58.7 kB (36.3 → 17.4 kB
+gzipped) and the home page's script from 855.1 kB to 776.7 kB.
+
+- **`/persist` is small on purpose.** `svPersistState`, `svRestoreState` and
+  `svPersistedStore` are what an app's first screen reaches for — a session, a
+  consent, a theme — so they have their own entry point. Read them from
+  `@styloviz/core/persist` on that path, and `/data`'s loading shells and chart
+  frame stay out of your initial bundle; `/data` re-exports them as well.
+
+- **Nothing to change in your imports.** `@styloviz/core` re-exports every
+  entry point, so `import { provideStyloviz } from '@styloviz/core'` works as
+  before. Importing from an entry point (`@styloviz/core/data`) is the way to
+  keep the rest out of a chunk in your own code.
+- **One change if you add your own label namespace:** augment
+  `SvLabelRegistry` in `'@styloviz/core/i18n'`, where it is declared —
+  `declare module '@styloviz/core/i18n' { interface SvLabelRegistry { … } }`.
+  An augmentation of `'@styloviz/core'` no longer merges.
+- Three text-folding helpers that one entry point shares with another are
+  exported as `ɵsvFoldWithMap`, `ɵsvFoldedHits` and `ɵsvUnfoldRange`; the `ɵ`
+  marks them internal, as in Angular.
+
+### Added — Right-to-left: the kit mirrors under `dir="rtl"`
+
+Set `dir="rtl"` on the page (or any container) and every component lays out
+from the right — with no second stylesheet and no input to set.
+
+- **Logical utilities throughout.** All 1,236 physical-direction utilities and
+  styles in the library (`ml-`, `left-`, `text-right`, `border-l`,
+  `rounded-r`, `[style.left.px]`, `padding-left:`…) are now their logical
+  twins (`ms-`, `start-`, `text-end`, `border-s`, `rounded-e`,
+  `inset-inline-start`…), which render identically left-to-right. Where a
+  side is meant — centring with `left-1/2`, a position measured in viewport
+  pixels, a chart's x axis — the source says why with an `sv-physical:` note.
+- **Behaviour follows the direction**, each with an RTL spec: arrow keys in
+  the data tables (cells, range selection, column reorder and resize), tree
+  views and tree select, kanban, carousel, lightbox, date pickers, month and
+  year calendars, OTP input, rating, product tour and the dnd-list board
+  (whose move buttons are now named by the way they move); pointer maths in
+  column and modal resizing, the rating's half stars and the gantt split
+  view; the toggle switch's thumb; panels that align to their trigger's
+  start or end edge (breadcrumb, notification centre, mega menu, toolbar
+  overflow, workspace switcher, command-palette actions, items-with-more).
+- Direction glyphs (next / previous chevrons and arrows) flip; disclosure
+  chevrons point toward the inline end.
+- **Kept physical on purpose:** the gantt time axis and image compare run
+  left to right in both directions (the timeline gets `dir="ltr"`); toast,
+  drawer, tooltip and scroll-to-top positions named `left` / `right` keep
+  their physical side, as the names say.
+- `svLogicalArrowKey(key, rtl)` in `@styloviz/core` swaps ArrowLeft and
+  ArrowRight under RTL for code that walks a row of items.
+- The modal scroll lock now pads the inline end of `<body>` — the
+  scrollbar's side in an RTL page — instead of always the right.
+- Gates: `check:ui` `kit-logical-direction` fails on any physical utility in
+  library code without an `sv-physical:` reason; `e2e/rtl.spec.ts` lays out
+  every component gallery both ways and fails on any box inside a component
+  that does not mirror (its own step in CI).
+
+### Changed — English inside `{{ }}` is translatable too
+
+`check:ui` read a template's text with every `{{ … }}` blanked out, so English
+typed inside an interpolation — `{{ open ? 'Hide' : 'Reveal' }}`,
+`{{ label() || 'Top' }}`, `{{ n === 1 ? 'point' : 'points' }}` — was never
+checked. There were 46 such literals in 20 templates. They are now labels in
+their packages, translated in all 11 packs, and plurals are ICU plurals
+("1 point", "2 points" and the Polish and Arabic forms). `literal-ui-text`
+now also reads the literals inside interpolations in text and in
+word-carrying attributes (placeholder, title, alt, `aria-label` and the other
+ARIA text attributes). Comparison operands (`x === 'cards'`), keys, date pipe
+formats and other attributes (class, style, href, data-*) are let through. A
+literal that is not language is marked `<!-- sv-i18n-ignore: <why> -->` on its
+line or the line above: the pivot table's "Excel" / "PDF" export names are
+the one example.
+
+**Added:** `@styloviz/button` has a labels namespace, `button`
+(`SV_BUTTON_LABELS` and its packs), for the "Loading" a loading button
+announces when `loadingLabel` is empty. New keys in other packages:
+- `agentApprovalPro`: `argHide`, `argReveal`
+- `charts`: `scatterBinCount`
+- `chartsPro`: `scatterBinCount`, `multiAxisSideLeft`, `multiAxisSideRight`
+- `commandPalettePro`: `searching`
+- `commercePro`: `cardIssuerFallback`
+- `dataTablePro`: `groupNoValue`
+- `display`: `showLessShort`
+- `displayPro`: `commentEdit`, `commentEditing`, `filtersPending`, `filtersUpToDate`
+- `embeddingMapPro`: `pointClusterNone`
+- `forms`: `ratingReviewCount`, `timePickerPlaceholder`, `timePickerInvalid`
+- `guardrailPanelPro`: `ruleStateOn`, `ruleStateOff`, `revealOriginal`, `concealOriginal`, `directionUserPrompt`, `directionModelAnswer`
+- `layout`: `scrollToTopShort`
+- `promptTemplateLibraryPro`: `closeTemplateEditor`
+- `richEditorPro`: `exporting`, `editLinkTitle`, `insertLinkTitle`, `linkSave`, `linkInsert`
+- `voiceAssistantPro`: `speakerYou`, `speakerAgent`
+
+English renders as before, except that the scatter chart's bin count now gets
+locale grouping from 1,000 up.
+
+### Changed — English composed in TypeScript is translatable too
+
+The last English the registry did not reach was the text components build in
+code: status words, relative times ("5 min ago"), chart summaries and table
+captions, announcements, notices, validation reasons, and every sentence glued
+from fragments. All of it now comes from the package's `*.labels.ts` — one
+template per sentence, with named slots and ICU plurals, filled in the kit's
+locale — so `provideSvLabels()` translates it like any other label. A new
+`check:ui` rule (`literal-ts-text`) fails on any prose literal in library
+TypeScript; a literal that is not language (CSS, a regex, a data key, demo
+data) carries a `// sv-i18n-ignore: <why>` marker.
+
+English renders as before, with three exceptions: counts in a plural get
+locale grouping from 1,000 up ("1,000 rows"); plurals that ignored the
+singular are fixed ("1 stage", "1 node", "1 root cause" — no more "(s)");
+an unbound `sv-ai-workflow-builder` no longer shows the demo's seven steps
+under an empty title; and prompt-library cards show the category's name
+("Coding") instead of its id ("coding").
+
+**Breaking:**
+
+- **Helpers take the labels.** Exported helpers that return English take the
+  package's labels as a new argument — pass the exported `SV_<PACKAGE>_LABELS`
+  (or a component's injected labels). Among them: `svKbdKey`, `svKbdChord`,
+  `evaluatePassword`, `svColorName`, `svDiffLines` (labels before `options`),
+  `svDiffSummary`, `svValueDiffSummary`, `svToolCallFailureInfo`,
+  `svQrScannability`, `svOutputPlan`, `svSankeyNotice`, `svSplitFactors`,
+  `svHistogramMarkers`, `svAuditBoxPlotStats`, `svFloatLabel`,
+  `svStreamNotice`, `svToChatMessage`, `svMarkdownLossLabel`, `svImportQuery`,
+  `svDescribeQuery`, `operatorLabel`, `validateTask` / `validateProjectState`
+  (gantt), `svClassifierFields`, `svClassifierGaps`, `svUnreadableLanguageLabel`,
+  `svTaskActionNoopMessage`, `svChunkFlagLabel`, `svAnomalyLabel`,
+  `svNoiseFloorLabel`, `svShape`, `svFormatSpanMs`, `resolveBarValues`, and the label helpers of the AI packages
+  (activity log, artifact panel, citation sources, embedding map, eval
+  scorecard, guardrail panel, insight cards, model selector, privacy
+  inspector, prompt library, RAG knowledge base, reasoning trace, token
+  dashboard, voice assistant, workflow builder, writing assistant). Where a
+  required labels argument follows a formerly optional one, that one lost its
+  default. Helpers whose callers sit outside an injection context take the
+  labels optionally (`toSvDataError`, `svRestoreState`, `svRestoreParams`,
+  `svPauseNotice`, `svGapNotice`, the `@styloviz/data` sources, the
+  tour / stepper / splitter / gantt restore helpers, the ai-chat-transport
+  decoders and readers, `svPasteListSummary`, `svPasteSummary`,
+  `svFormatExpectedWait`, `svScaleLabel`, the forms-pro schema validators
+  `svFieldErrors` / `svSchemaErrors` / `svSchemaProblems` /
+  `svConditionCycles`, and `svCheckAttachment(s)`, `svUnknownAgent`,
+  `svResolveAgent`, `svScanSize`, `svScanSample(s)`).
+- **English constants stay, built from labels.** `SV_KBD_KEYS`,
+  `SV_TOOL_CALL_FAILURES`, `SV_CONFIRM_DIALOG_LABELS`, `SV_FILE_UPLOAD_LABELS`,
+  `SV_FILE_UPLOAD_PRO_LABELS`, `SV_BIN_RULE_LABELS`, `SV_QUARTILE_METHOD_LABELS`,
+  `SV_RECURRENCE_LABELS`, `SV_MODEL_LIFECYCLES`, `SV_EXPORT_METADATA_POLICY`,
+  `SV_ASPECT_PRESETS`, `DEFAULT_SWATCHES`,
+  `DEFAULT_ADDRESS_SCHEMAS`, `BLOCK_FORMATS`, `PASSWORD_STRENGTH_LABELS` … keep
+  their names and shapes as the English instance of a new `sv…(labels)`
+  function, which builds the same table in any language.
+- **`sv-ai-chat`:** the `demoUserName` / `demoUserPlan` labels are gone. The
+  full-page sidebar's account footer comes from a new `account` input
+  (`ChatAccount { name; plan? }`, default `null` — no footer).
+- `@styloviz/kbd` and `@styloviz-pro/ai-chat-transport` now peer-depend on
+  `@styloviz/core`. A package reads another package's labels
+  only through that package's helper (`injectSvKbdLabels()`,
+  `injectSvFileUploadLabels()`, `injectSvColorNamer()`). Key caps' words
+  (`Ctrl`, `Esc`, `PgUp`…) are kbd labels too.
+
+### Changed — Visible text is translatable too
+
+The labels registry now covers what a sighted user reads, not only accessible
+names: template text, `placeholder` / `title` / `alt`, and every English
+`input()` default — `nextLabel`, `emptyMessage`, `placeholder`, … now default
+to the package's label (`input(this.labels.next)`), so `provideSvLabels()`
+changes the default and an explicit input still wins. English renders as
+before, except numbers in labels get locale grouping and a few plurals were
+fixed ("1 item", "1 task", "1 tool call"). **Breaking (helpers):**
+`svPurityLabel`, `svExpiryNote`, `svToolCallRetryWarning`,
+`svRecommendationReason` take the labels as a new last argument; `SV_IMAGE_CROPPER_LABELS`,
+`SV_EMPTY_STATE_LABELS`, `SV_SIDEBAR_NAV_LABELS` and `SV_ANCHOR_LABELS` moved into
+their package's `*.labels.ts` and are re-exported from the old paths. `sv-image-cropper`,
+`sv-empty-state`, `sv-sidebar-nav` and `sv-anchor` keep their `labels` input as
+a per-instance override over the registry.
+
+### Changed — catalogue: one name per thing
+
+The catalogue now counts **families**. A variant keeps its own docs page, so you
+can still find it by name, but it no longer counts as a separate component, and
+its demos live in its family's gallery section. Old `/components?c=<id>` links
+still open the family's section. Nothing changes in code unless a line below
+names a selector.
+
+- **Context Menu is a variant of Dropdown Menu**. It was always
+  `sv-dropdown-menu` with `triggerMode="contextmenu"` (or `openAt()` /
+  `openAtElement()`). Its demos are now part of the Dropdown Menu gallery, and
+  `?c=context-menu` opens that section. No selector or API changed.
+- **Password Strength is filed under Forms & Inputs**. It used to be
+  under Data Display, where it is still cross-listed.
+- **Five charts are now variants of their families.** These are
+  catalogue changes only: each one keeps its selector, its API and its docs
+  page. Its demos and API tables now sit in the family's gallery section, and
+  the old `?c=` id opens that section.
+  - **Multiple Axis** (`sv-multi-axis-chart`) → Line Chart. Merging the
+    API into `sv-line-chart-pro [axes]` is planned for 2.1.
+  - **Date-Time Category** (`sv-datetime-category-chart`) → Line Chart.
+    Merging the API into a time x-axis on the line chart is planned for 2.1.
+  - **Bubble** (`sv-bubble-chart`) → Scatter Plot.
+  - **Radial Bar** (`sv-radial-bar-chart`) → Gauge.
+  - **Polar Area** (`sv-polar-chart`) → Radar.
+- **Progress Ring is the `circular` variant of Progress Bar**, and
+  **Chip Group is the `group` variant of Chip**. `sv-progress-ring` and
+  `sv-chip-group` keep their selectors and APIs. `?c=progress-ring` now opens
+  Progress Bar and `?c=chip-group` opens Chip.
+- **"Compare with" on lookalike pairs**. Nine pairs stay separate
+  families because they do different jobs. Each docs page now has a "Compare
+  with" section that links to the other page and says how the two differ:
+  - Like / Rating
+  - Jump Menu / Anchor
+  - Expand / Accordion
+  - Search Bar / Autocomplete
+  - Empty State / Result
+  - Thumbnail Card / Product Card
+  - QR Code / Barcode (1D)
+  - Reasoning Trace / AI Agent Activity Log
+  - Agent Task Queue / AI Workflow Builder
+- **Choropleth Map and Pin Map are one Map family**. Pin Map is now
+  a variant of the family, and its demos sit in the Map gallery section with the
+  regions demos. `?c=pin-map` opens that section. `sv-choropleth-map` and
+  `sv-pin-map` keep their selectors and APIs for now: merging them into one
+  `sv-map` (regions, pins or both) is planned for 2.1.
+- **Sidebar Nav is part of the App Shell family**. The family covers
+  Sidebar (shell) · Sidebar Nav (tree): `sv-sidebar` is the collapsible
+  container and `sv-sidebar-nav` (+ `sv-sidebar-nav-pro`) the navigation tree
+  inside it. Sidebar Nav is now a variant of App Shell. Its docs page stays
+  under Navigation, its demos are in the App Shell gallery, and
+  `?c=sidebar-nav` opens that section. No selector or API changed. The dead
+  `sv-sidebar` `(toggleCollapse)` output was already removed in 2.0 (see the
+  migration table); `sv-sidebar-nav`'s `(toggleCollapse)` is a live output and
+  stays.
+- **"Other Types" is dissolved**. It held features, not a chart
+  type, and each now lives where it is used:
+  - Chart export is a guide, `/docs/exporting-a-chart`, and a Line Chart docs
+    example. The live demo is in the Bar Chart gallery.
+  - The axis-label template and multi-level label charts are Bar Chart blocks
+    and are documented on `/docs/bar-chart`.
+  - The high-performance chart is the line chart's new `renderer="large-data"`
+    mode (see below).
+  - `?c=other-charts` opens the Line Chart section, and `/docs/other-charts`
+    redirects to `/docs/line-chart`.
+- **One pie family**. The donut is now a variant of the pie chart, and
+  the pie chart's selectors lose the `default-` prefix (see the breaking
+  section below). The Donut docs page stays, as a variant of Pie Chart, and
+  `?c=donut-charts` opens the Pie Chart section.
+- **"Live Charts" is dissolved**. Live is a feed, not a kind of chart.
+  The page `/docs/live-data` (`/docs/live-charts` redirects there) explains
+  how each chart takes a feed. Three components that made up their own data
+  are removed, and their abilities now live on the charts they imitated (see
+  the breaking section below). The rest are documented with their families:
+  - `sv-live-stream-chart` and `sv-click-add-point-chart` with Line Chart;
+  - `sv-live-update-chart` with Bar Chart.
+
+  `?c=live-charts` opens the Line Chart section.
+- **Record Grid is part of the data table**, as `responsive="records"`
+  (see the breaking section below). The Record Grid docs page stays, as a
+  variant of Data Table, and `?c=record-grid` opens the Data Table section.
+- **Names agree, and a gate holds them**. The new `check:naming`
+  (in `verify:static`) checks three things:
+  - every component selector is `sv-<name>` or `sv-<name>-pro`;
+  - a `-pro` selector has its free twin (a Pro-only component keeps the plain
+    name);
+  - a docs family's id, gallery id and selector name the same thing, and a
+    package's directory is its package name.
+
+  The deliberate exceptions are listed, with reasons, in
+  `scripts/naming.allow.json`. `@styloviz-pro/image-editor` keeps its name.
+  It is an image-editing toolkit: the cropper, the crop preview, and the filter
+  and view-transform functions. Its project directory already matches the
+  package, the same way family packages such as `@styloviz/display` are named
+  for their domain rather than one component.
+- **`/migrate/v2` lists every 1.x name 2.0 takes away**: each
+  renamed or removed selector and exported class with its replacement,
+  whether `ng update` does it, and its docs page, plus the breaks that rename
+  no selector. The new `check:migrate` (in `verify:static`) holds the list
+  against the 1.0.2 surface, snapshotted in `scripts/selectors-1.x.json`:
+  every gone 1.x name has a row, every row names a real 1.x name that is gone,
+  every replacement exists, and every `ng update` migration has its row.
+- A gallery API Reference now also lists the selectors of the family's
+  variants, taken from the catalogue.
+- The headline count is now the family count — Track C alone took it from
+  169 to 155 (89 free / 66 Pro); `KIT_STATS` carries the release's figure.
+  The old 169 counted variant pages (Spotlight Stat Card, Context
+  Menu, the five charts, Progress Ring, Chip Group, Pin Map, Sidebar Nav),
+  counted Other Types, Donut, Live Charts and Record Grid as components of
+  their own, and missed the Like button.
+
+### Changed — Data table: `responsive` replaces `cardOnMobile` and `sv-record-grid` (**breaking**)
+
+What the table does when there is no room to be a table is now one input,
+on `sv-data-table` and `sv-data-table-pro`:
+
+- `responsive="none"` (the default): the table, scrolling sideways.
+- `responsive="cards"`: the 1.x `cardOnMobile` card list, unchanged, still
+  windowed by `cardRowHeight` under `virtualized` on the Pro table.
+- `responsive="records"`: the 1.x `sv-record-grid`, now built into the table.
+  Below `recordBreakpoint` (768px) the table becomes a list of records. Each
+  record is titled by `recordTitleKey` and lists its fields in a real `<dl>`.
+  `priority: 'secondary'` columns sit behind a disclosure, and a labelled
+  control drives the table's own sort. `recordView="always"` shows the records
+  at any width. The server renders the table.
+
+**`ng update` renames `cardOnMobile` for you** with the
+`v2-data-table-responsive` migration. It cannot fold an `sv-record-grid` into
+the table it wraps (two configured elements become one), so it lists each
+file that uses one.
+
+| Removed | **Migrate** |
+| --- | --- |
+| `[cardOnMobile]="true"` | `responsive="cards"` (done by `ng update`) |
+| `<sv-record-grid [columns] [rows] titleKey="…">` wrapping `<ng-template svRecordTable><sv-data-table …></ng-template>` | One element: `<sv-data-table [columns] [rows] responsive="records" recordTitleKey="…">` |
+| `<sv-record-grid-pro>` / `svRecordTablePro` | The same on `<sv-data-table-pro>` |
+| `mode="auto"` / `"table"` / `"cards"` | `responsive="records"` / `responsive="none"` / `responsive="records" recordView="always"` |
+| `breakpoint` | `recordBreakpoint` |
+| `[(expandedIds)]` | `[(recordExpandedIds)]` |
+| `[(selected)]` (`Set<string>`) | `[(selectedIds)]` (the table's selection) |
+| `[(sort)]` (one `SortState`; the host sorted `rows`) | The table's own sort: it sorts client-side, or emits `sortChange` (a `SortState[]`) server-side. Both views share it |
+| `rowActions`, `(actionClick)` | `actions`. Each `handler` runs; there is no separate `actionClick` |
+| `SvRecordGridComponent`, `SvRecordGridProComponent`, `SvRecordTableDirective`, `SvRecordTableProDirective`, `RecordGridMode` | `SvDataTableComponent` / `SvDataTableProComponent`, with `DataTableResponsive` and `DataTableRecordView` |
+
+The records view pages with the table: it shows the page the table is on, so
+the table's paging bounds it.
+
+### Removed — Live spline, live stock and live sort charts: use the chart they imitated (**breaking**, Pro)
+
+`sv-live-spline-chart`, `sv-live-stock-chart` and `sv-live-sort-chart` are
+gone. Each one generated its own data, so each was a demo of another
+chart rather than a chart of its own. What each could do that the real chart
+could not is now an input on that chart:
+
+| Removed | **Migrate** |
+| --- | --- |
+| `<sv-live-spline-chart [series]="…" [options]="{ windowSize }">` | `<sv-line-chart-pro [live]="true" [liveWindow]="windowSize" [categories]="times" [series]="series">`, with `chartType="spline"` for the curve. The chart follows the newest `liveWindow` readings as you append them. It turns the draw-on animation off, and a brush zoom wins until `resetZoom()`. Your app supplies the data: append from your socket, or from a `createLiveTicker` if you generate it (see `/docs/live-data`) |
+| `<sv-live-stock-chart [data]="candles" [options]="{ windowSize }">` | `<sv-candlestick-chart [sessions]="sessions" [liveWindow]="windowSize" [showVolume]="true">`. Each `OhlcCandle` (`time` in epoch ms) becomes an `SvCandle` with a `label` you format, because the chart never parses a date. `connection`, `reconnectable` and `(reconnect)` are on the candlestick now; `symbol` becomes `title` |
+| `<sv-live-stock-chart>` with no `data` (its self-driving demo) | No equivalent: a chart that invents prices is gone. Feed it, as the gallery demo does |
+| `<sv-live-sort-chart>` | `<sv-bar-chart-pro [categories]="…" [datasets]="…" sort="descending">` (or `ascending`). The bars slide to their sorted places when the values change. The data table, the Tab order and `(barSelect)` keep your input order. Animate the values from your own feed |
+| `SvLiveSplineChartComponent`, `LiveSplinePoint`, `LiveSplineSeries`, `LiveSplineChartOptions` | `SvLineChartProComponent`, `LineChartSeries` |
+| `SvLiveStockChartComponent`, `OhlcCandle`, `LiveStockChartOptions` | `SvCandlestickChartComponent`, `SvCandle` |
+| `SvLiveSortChartComponent`, `SortBarItem`, `SortDirection`, `LiveSortChartOptions` | `SvBarChartProComponent`, `BarChartSort` |
+| `SortDirection` from the `@styloviz/pro` bundle (the live-sort chart's `'ascending' \| 'descending' \| 'random'`) | It now names the data table's sort direction, since the chart's is gone. For a chart's order, use `BarChartSort`. `TableSortDirection` is unchanged |
+
+There is no `ng update` migration for these. None of them is a rename: each
+needs data the removed chart used to invent, so the change is yours to make.
+The labels only these charts used are gone from `SV_CHARTS_PRO_LABELS` and its
+packs: `noCandlesToPlot`, `liveSortTitle`, `pauseAuto`, `autoSort`,
+`liveSplineTitle`, `volumeShort`, `bullish`, `bearish`, `liveSortChartName`,
+`liveStockChartName`, and `liveSortItemAlpha` … `liveSortItemTheta`.
+
+### Changed — Pie chart: `sv-pie-chart`, and the donut is `variant="donut"` (**breaking**)
+
+The pie chart is now `sv-pie-chart` (free) and `sv-pie-chart-pro` (Pro).
+`sv-donut-chart` was a pie with the middle cut out, so it is now
+`sv-pie-chart-pro variant="donut"`. **`ng update` does all of this
+for you** with the `v2-pie-family` migration, in templates (`.html` and
+inline) and TypeScript. It also adds `[size]="220"` to a migrated donut that set
+no size, to keep the 1.x donut's size.
+
+| Removed | **Migrate** |
+| --- | --- |
+| `<sv-default-pie-chart>`, `SvDefaultPieChartComponent` | `<sv-pie-chart>`, `SvPieChartComponent` |
+| `<sv-default-pie-chart-pro>`, `SvDefaultPieChartProComponent` | `<sv-pie-chart-pro>`, `SvPieChartProComponent` |
+| `<sv-donut-chart>`, `SvDonutChartComponent` | `<sv-pie-chart-pro variant="donut">`, `SvPieChartProComponent` |
+| `DefaultPieChartOptions`, `DonutChartOptions` | `PieChartOptions`. Its `thickness`, `centerLabel` and `centerSubLabel` (Pro) apply to the donut |
+| `DonutSlice` | `PieSlice` (the same fields, plus an optional `description`) |
+
+What changes for a donut after the migration:
+- It uses the pie family's palette: the first slice is indigo, where the 1.x
+  donut's was blue.
+- Its ring is 10px inside the box (it was 8px), and a hovered slice moves out
+  by `explodeOffset` (10px by default; it was 6px).
+- It shows the hovered slice in the hole, as before, and never also in a
+  floating tooltip.
+
+`sv-gradient-donut-chart` is unchanged.
+
+The keyboard model the donut had now applies to both pie charts. A slice is a
+tab stop, with `role="button"`, only when the legend is hidden. While the
+legend is shown its buttons are the keyboard path, so each datum is in the tab
+order once, not twice. A focused slice also highlights like a hovered one.
+
+### Removed — Performance chart: use the line chart's large-data renderer (**breaking**)
+
+`sv-performance-chart` (`@styloviz/charts`) and `sv-performance-chart-pro`
+(`@styloviz-pro/charts`) are gone. "High performance" was a way of drawing a
+line, not a kind of chart, so it is now a mode of the line chart:
+`renderer="large-data"` on `sv-line-chart` and `sv-line-chart-pro`.
+- For each horizontal unit of the plot it keeps the lowest and highest
+  reading, plus the readings beside a gap, so every peak and trough is still
+  drawn. The old chart sampled points at a fixed step and could miss a spike.
+- Markers, data labels and per-point colours are off, and the x-axis labels
+  are thinned.
+- A note under the plot, and above the screen-reader table, says how many
+  points were drawn. Hovering reads the exact value under the cursor.
+- With `zoomable`, the Pro chart recomputes the outline for the visible
+  window.
+
+`SvPerformanceChartComponent`, `SvPerformanceChartProComponent` and their
+labels (`performanceChart`, `performanceTitle`, `pointsBadge`,
+`performanceNote`, `performanceFootnote`) are no longer exported. The new label
+is `largeDataNote`. `svDecimateIndices()` is exported from `@styloviz/core`.
+
+| Removed | **Migrate** |
+| --- | --- |
+| `<sv-performance-chart [data]="values" />` | `<sv-line-chart renderer="large-data" [categories]="labels" [series]="[{ label: 'Series', data: values }]" />`. The line chart needs one category per reading, such as timestamps or `'#1'…'#n'` |
+| `<sv-performance-chart-pro …>` | `<sv-line-chart-pro renderer="large-data" …>`, the same way |
+| `options.showArea` | `fill: true` on the series |
+| `options.showGrid`, `options.animationDuration` | `options.showGrid`, `options.animationDuration` (unchanged names on `LineChartOptions`) |
+| `options.pointCount` (synthetic benchmark) | no equivalent. Bind your own series |
+| `title`, `height`, `loading`, `error`, `emptyMessage`, `filtered`, `(retry)` | the same inputs and output on the line chart |
+
+### Added — A landing page and a walkthrough for every template
+
+- **One landing page per template** at `/angular-templates/<id>`, all 23,
+  prerendered and in the sitemap: what each page of the template does, with
+  its real route, the kit components it is built from (pinned to the
+  template's imports by a spec), an estimate of building it yourself, and an
+  FAQ. Free templates say MIT; Pro ones say so.
+- **A 90-second walkthrough video for every template**, free ones included.
+- **A spec for every page** of the HRMS, LMS, POS, real-estate and chat
+  templates (29 pages), which found and fixed: HRMS selects that opened on
+  the first option instead of the stored value (timesheet person, directory
+  department / site / manager, payroll correction); an LMS assignment with no
+  questions that could never be handed in (it now takes a submission note);
+  the POS shift count that stayed stale after a reload, and a register page
+  with no heading; the chat search's Clear filters button, which did nothing.
+- **The CRUD, mail and files templates' `baseUrl` now connects them.** It was
+  declared and never read. Empty, the demo data is served through the same
+  path; set, the store loads with one GET and saves each decision as one
+  `POST {baseUrl}/changes`, applied at once and put back with a message if the
+  server refuses it.
+- **AI Ops Playground** sends to `POST {baseUrl}/playground/messages` once a
+  `baseUrl` is set (it was always simulated). **Real estate:** Undo after
+  deleting a saved search or cancelling a viewing now reaches the server, not
+  only the screen. **Calendar** offers the day view its README promised.
+- Template READMEs and CUSTOMIZING guides corrected where they described
+  code that did not exist (a full-page CRUD form, "slot" pages in AI Ops, a
+  running balance on POS movements, three estate endpoints of eight).
+
+### Added — `sv-scheduler`: drag to move and resize, keyboard moves, 24 px bookings (Pro)
+
+Three gaps found building the bookings template are closed in
+`@styloviz-pro/scheduler`.
+- **Every booking is a 24 px target.** A 15-minute booking on the 48 px-an-hour
+  grid used to be 12 px, under WCAG 2.5.8. Each booking's box is now at least
+  24 px along time, and the lanes are laid out on those boxes, so two short
+  back-to-back bookings sit side by side instead of one covering the other. The
+  clash ring still comes from the real times. Day columns widen to keep each
+  lane at least 24 px, and all-day chips above them are 24 px tall. The
+  resource-day slots are at least 24 px too (they were 20 px at
+  `slotMinutes` under 25).
+- **The tab stop is never under a booking.** Time under a booking is no longer a
+  slot: it is drawn but is not a control. The roving tab stop lands on the
+  first free slot (or the free slot nearest the one last used), the arrow keys
+  step over bookings, and across resources they land on the nearest free slot.
+  When every slot is booked, the bookings are the tab stops. A drag-to-book now
+  follows the pointer by position, so it can still run across a booking (a
+  double booking under `'warn'`).
+- **Drag to move and resize.** With `editable`, a booking drags to another time
+  and resource, and to another day in the week and month timelines. Its end
+  edge drags to resize it in the single-day views. Both snap to `slotMinutes`.
+  On touch it lifts on a long press, so a finger that moves first still
+  scrolls. The drop target is drawn as you go: dashed, and red with a reason
+  when it would be refused.
+- **Keyboard moves**, in `sv-kanban-board`'s vocabulary. Space picks a booking
+  up. The arrows along time move it a slot (a day in the week and month
+  timelines), and the arrows across move it to the next resource. Shift with an
+  arrow changes its end. Space or Enter drops it, Escape cancels, and Tab away
+  cancels. Each step is said in a live region.
+- **One judge.** Every drop, keyboard move, dialog Save and `requestEventChange`
+  goes through `svCheckEventEdit`, the dialog's own check (read-only, end
+  before start, blocked time, the overlap rule). The new `canMoveEvent` then
+  lets it through or refuses it (`true` / `false` / a reason). A refusal is said
+  in the status line and the live region and is emitted as the new
+  `eventMoveRefused` (`{ event, edit, source, reason, message }`) instead of
+  `eventChange`.
+- **Same output.** A move is emitted through the existing `eventChange`.
+  `SvEventChange` gains an optional `source: 'dialog' | 'drag' | 'keyboard' |
+  'api'`, so a host that applies dialog edits with `svApplyEventChange` gets
+  drag for free. A recurring booking moves one occurrence, the dialog's
+  default, and the status line says so.
+- **New API.** `eventDrag` (default `true`; drag and keyboard moves need
+  `editable`) and `canMoveEvent` on `sv-scheduler`, plus the `eventMoveRefused`
+  output. `CalendarEvent.readOnly` locks a booking in both views: its dialog
+  is read-only, and every move path refuses it. The new exported types are
+  `SvEventMoveGuard`, `SvEventMoveRefusal` and `SvEventChangeSource`. Eight new
+  `schedulerPro` labels are added in all 12 packs, machine-translated.
+- **Bookings template.** The workarounds are gone. The review appointment is
+  15 minutes (£18.00 + VAT), the grid opens at the earliest working hour
+  (08:00), and appointments drag on the schedule. Each move is checked first by
+  the store's own rule as the scheduler's `canMoveEvent`, then saved
+  optimistically with a rollback. Appointments that are no longer booked are
+  drawn read-only, and Delete is still refused (cancel with a reason).
+
+### Added — AI support site template: a help centre whose assistant cites its sources and hands off to a person (Pro)
+
+Seven routes at `/templates/support` — the help centre, a topic, an article,
+the assistant full page, contact, a ticket status page and the team's
+insights — over one `SupportStore` provided on the template's root route, with
+the assistant in a chat bubble on every page but Ask. In demo mode answers come
+only from the bundled help articles: there is no language model and nothing is
+sent anywhere; README, landing and screens say so, and the assistant says it is
+automated.
+- **Retrieval, not a fake model.** Every article section is scored against the
+  question with BM25 over folded, stemmed word tokens; the answer is the best
+  sections' own words, each cited and linked to its `#section`. Below a score
+  and coverage threshold — a word the help centre never uses weighs the most —
+  it says it could not find the answer and offers a person. Deterministic, no
+  `Math.random()`, pinned for a set of known and unknown questions.
+- **One streaming path.** Demo answers play as `@styloviz-pro/ai-chat-transport`
+  parts through `svApplyPart` on an injectable scheduler; with `baseUrl` set,
+  `POST {baseUrl}/answers` is read as server-sent events through `svSseReader`.
+  Only `source` parts that resolve to a real section become citations. The
+  answer is announced once, complete, never per chunk.
+- **The bubble** lives in the layout, so the conversation survives every route
+  change: a launcher inside the safe-area insets, a full-height sheet with the
+  page inert behind it on phones, Escape back to the launcher, an unread dot.
+  A followed citation scrolls to its section, highlights it and focuses it.
+- **Handoff to a person** — from the bubble, a not-found answer, a thumbs-down
+  or the contact page — validates name and email field by field and opens a
+  ticket in the helpdesk template's shape with the transcript attached, so one
+  `POST {baseUrl}/tickets` connects the two. Optimistic: the visitor lands on
+  the ticket page at once; a refused save is rolled back there, with Send again.
+- **Feedback and insights.** Thumbs up or down per answer with "What was
+  missing?", "Was this helpful?" per article, and a team page — labelled as
+  such — with questions asked, answer rate, feedback, the top unanswered
+  questions and the handoffs, all derived from the conversations.
+- Cobalt / iris palette with AA-safe fills; search highlights matches as text;
+  every write rolls back on refusal; one spec per page, and a landing page at
+  `/angular-templates/support`.
+
+### Added — Blog / agency site template: a publication first, with the agency as its frame (Pro)
+
+Seven routes at `/templates/blog` — home, the post index, an article, a tag, an
+author, services and contact — over one `BlogStore` provided on the template's
+root route. The writing is the product: the home page leads with the featured
+post, and the agency's three services and enquiry form come after it. It has
+no case-study pages (the portfolio template's job) and sells nothing but the
+agency's time (unlike the launch template). The agency is fictional and the
+demo sends nothing anywhere.
+- **Every list is derived.** Posts are the one list stored; reading time, tag
+  counts, the archive by month, related reading (most shared tags, then the
+  same series, then the newer), previous / next and series navigation are
+  computed from the posts public on an injectable clock — so a draft, or a post
+  scheduled for next week, never appears, not even as a count.
+- **Markdown, never HTML.** Post bodies are split at their `##` headings — each
+  a table-of-contents entry with its own anchor, focus following the link —
+  and rendered by `sv-streaming-markdown`, with fenced code in `sv-code-block`
+  scrolling inside itself. A `<script>` or an `onerror` image in a post is
+  shown as text; a `javascript:` link is dropped.
+- **Filters in the URL.** Search, tag, author, month and page are query
+  parameters bound to the index's inputs and validated on the way in, so a
+  filtered list can be linked and the back button works; the empty state tells
+  "no posts yet" from "no posts match", with Clear filters.
+- **Articles** show both dates when they differ, reading time, series, related
+  posts, plain share links built through the kit's URL check (no third-party
+  scripts) and Copy link, and set the document title and meta description.
+- **Two optimistic forms.** A double opt-in newsletter sign-up and a validated
+  enquiry (budget bands in integer minor units, consent required), each in the
+  store at once and rolled back with the reason if the save is refused.
+- Vermilion / ink palette with AA-safe fills and a serif display face; one spec
+  per page, and a landing page at `/angular-templates/blog`.
+
+### Fixed — HRMS cover chart and calendar stand-up on some dates
+
+- **HRMS overview:** the four-week cover chart could repeat an axis label
+  when holidays pushed twenty working days past a month (from 3 December
+  2026 it would have shown "4" twice) — and the label is the chart's track
+  key, so the chart failed to render. A day of the month that comes round
+  again now names its month (`hrmsCoverLabels`), checked for every start
+  day from 2026 to 2028.
+- **Calendar:** the demo's weekday stand-up series began on whatever day
+  fell two weeks earlier, and a series' first date is always an occurrence —
+  so on a Saturday the calendar drew a Saturday stand-up. It now starts on
+  that week's Monday.
+
+### Added — Trading desk template: one account, one seeded market, every figure derived (Pro)
+
+Six routes at `/templates/trading` — markets, a trade screen per market,
+orders, portfolio, wallet and price alerts — over one `TradingStore` provided
+on the template's root route. Prices are a seeded simulation in the browser:
+demo data, no real exchange, no custody, not financial advice; README, landing
+and screens say so. It packages the admin template's crypto desk as a product.
+- **A deterministic market.** One mulberry32 stream per instrument, a day of
+  one-minute history walked from the seed, live steps on an injected clock
+  that the shell reads only while the tab is visible; `Math.random()` is never
+  called. The rail's Pause and +1 min drive the demo.
+- **Integer cents and base units.** Notionals round half up to the cent in
+  BigInt, fees round up to the cent, typed amounts are parsed as text; the
+  rules are pinned in the specs.
+- **Trade screen** — `sv-stock-chart` with range presets and SMA, EMA,
+  Bollinger, RSI and MACD toggles; a generated order book with depth bars; the
+  tape; and an order ticket: buy or sell, market, limit or stop, by quantity or
+  total, GTC or IOC, fee and total previewed, balance checked, then confirmed.
+- **Holds and fills are derived.** A live buy holds notional + fee, a sell holds
+  the coin, so cancelling releases the hold; a resting limit fills at its price
+  when the market crosses it, in part when it is bigger than the book; a stop
+  triggers and takes the book; a market order's remainder expires.
+- **Portfolio by average cost** with fees in cost — unrealised and realised
+  P&L, allocation and the account's value at each hour, from the fills.
+- **Wallet** — deposits and withdrawals with an address, a network fee and a
+  confirmation step, pending to confirmed on the clock; a withdrawal above
+  what is available is refused. **Alerts** fire once, with a toast.
+- Bullion gold / harbour blue palette with AA-safe fills; gains and losses
+  carry a sign and an arrow, never colour alone; prices tick without an
+  `aria-live` region. Mock-or-live data switch with per-record rollback, one
+  spec per page, and a landing page at `/angular-templates/trading`.
+
+### Added — Invoicing template: one set of books, every figure derived (Pro)
+
+Twelve routes at `/templates/invoicing` — overview, invoices, new invoice,
+invoice, quotes, quote, expenses, ledger, recurring, clients, client and a
+client portal — over one `InvoicingStore` provided on the template's root
+route, so the portal (under its own minimal chrome) and the admin side read the
+same records. It is not accounting software certified for any jurisdiction, and
+its tax rates are examples; README, landing and screens say so.
+- **Integer cents, priced per line.** Quantity × unit price, a discount rounded
+  half up on the gross, tax rounded half up on the net; totals are the sums of
+  the lines, so the printed lines add up to the printed total.
+- **Nothing derivable is stored.** Paid, partially paid and overdue are read off
+  the payments and the due date against a clock the specs control; an expense
+  is billed while a live invoice re-bills it; a quote expires by its date; a
+  schedule's next run is counted from its start.
+- **A double-entry ledger derived from the documents** — invoice, payment, void
+  and expense entries are computed, never posted by hand; a trial balance over
+  the chart of accounts; manual entries refused unless they balance. Specs pin
+  that every entry balances and receivable equals the open invoice balances.
+- **Invoices** — a line editor (catalogue item or free line), issue with
+  gap-free numbering, a mock email, part payments, void with a reason (never
+  delete an issued invoice), duplicate, bulk send, print as a white sheet.
+- **Quotes** that convert to a linked draft invoice in one write; **expenses**
+  with receipts kept in the browser and one-click re-billing to a client's
+  draft; **recurring** schedules whose runs on the 31st land on a short month's
+  last day, with pause, resume and Run now; **clients** with a running-balance
+  statement and a portal link.
+- **Client portal** — open and paid invoices, view and print, accept or decline
+  a quote, and pay with `sv-credit-card` (no payment is processed; the screen
+  says so), which the admin side sees at once.
+- Ledger green / ink blue palette with AA-safe fills, mock-or-live data switch,
+  one spec per page, and a landing page at `/angular-templates/invoicing`.
+
+### Added — Bookings template: one availability rule for the schedule and the booking page (Pro)
+
+Nine routes at `/templates/bookings` — schedule, book, appointment, waiting
+room, clients, client, practitioners, invoices, invoice — over one
+`BookingsStore` owned by the layout, for a clinic, a studio or a salon. It stores
+no clinical records and makes no compliance claim: an appointment is a service,
+a practitioner, a client, a time, a status and the client's own logistics note.
+- **One availability rule.** `sv-scheduler` and `sv-slot-picker` are fed the same
+  practitioner hours, blocked time (lunch, training, leave) and appointments,
+  and every booking, reschedule and move from the schedule is checked by the
+  scheduler package's own engine (`svGenerateSlots` / `svCheckSlot`) with the
+  buffer, minimum notice and the practice time zone. A booking made on one page
+  is on the other at once.
+- **"Anyone available" is honest.** The picker offers a time exactly when the
+  engine says at least one practitioner is free then, and confirming books the
+  least busy practitioner who is free at that moment.
+- **A status machine.** Booked → checked in → in progress → done; no-show once
+  its time has come; cancel with one of a fixed list of reasons, which frees the
+  slot. Appointments are never deleted.
+- **Waiting room.** Expected / checked in / with practitioner / done, waits
+  counted live from one clock specs control, Call next, running-late flags.
+- **Practitioners.** Services, a working-hours editor and blocked time that
+  change what the booking page offers at once, with the appointments a new rota
+  strands listed rather than cancelled.
+- **Invoices in integer pence.** Tax rounded half up per line, totals summed
+  from the lines, part and full payments (paid when the balance is exactly
+  zero), void with a reason, print.
+- Berry / cyan palette with AA-safe fills, mock-or-live data switch, one spec per
+  page, and a landing page at `/angular-templates/bookings`.
+
+### Added — CRM template: a sales pipeline that stores no totals (Pro)
+
+Nine routes at `/templates/crm` — pipeline, deal, leads, contacts, contact,
+activities, quotes, quote, forecast — over one `CrmStore` owned by the layout,
+so the seven sections are seven readings of one book of business. Qualify a lead
+and its deal is already on the board; drag a deal into Won and the forecast's
+quarter moves with it.
+- **The stage is the status.** Won and Lost are stages, not a flag. A drag (or
+  Space and the arrow keys) saves optimistically and is rolled back with a
+  message when the save fails. A move to Lost asks for one of a fixed list of
+  reasons, and the forecast counts them.
+- **Nothing a sales lead reads is stored.** Column count, value and weighted
+  value, won this quarter, win rate, forecast by close month (committed / best
+  case / pipeline) and attainment against quota are derived from the deals on
+  every read.
+- **Money is integer cents.** Quote lines are priced quantity × unit price, less
+  discount, plus tax, each step rounded half up, and the totals are the sums of
+  the lines, so the printed lines add up to the printed total. Only a draft is
+  editable; Print sends the sheet alone, in light mode.
+- **Leads.** Qualifying creates the contact (and the company when it is new) and
+  a deal in Qualified as one write. Import goes through `sv-import-wizard`: a
+  duplicate address is a real error row with its spreadsheet row number.
+- **Deal and contact pages.** An activity timeline of emails, calls, meetings,
+  notes and stage changes; log a call, send a Markdown email, add a note.
+- **Activities.** Overdue / due today / upcoming / done, or a month, week or
+  agenda calendar; complete one, or schedule a follow-up against a deal.
+- Orange / emerald palette with AA-safe fills, mock-or-live data switch, one
+  spec per page, and a landing page at `/angular-templates/crm`.
+
+### Added — Four preset themes: Material, Fluent, Paper, High contrast (free)
+
+The kit stylesheet (`@styloviz/core/styles/styloviz.css`) now carries four
+whole-kit looks beside the default, each one class on `<html>`:
+`sv-theme-material` (tonal purple, tinted greys, Roboto, rounder corners),
+`sv-theme-fluent` (communication blue, true greys, Segoe UI, small corners),
+`sv-theme-paper` (ink blue on cream, warm greys, a book serif) and
+`sv-theme-high-contrast` (every family pushed apart, body text above 7:1). They
+restate token values only, so no markup changes, and they work in light and
+dark mode. Fonts are named, not shipped. `check:contrast` now scores the whole
+kit once per preset as well as in the default palette. Guide: `/docs/themes`;
+the switcher is also at the top of every component page on styloviz.dev.
+
+### Added — `sv-slot-picker`: book an appointment (Pro)
+
+New in `@styloviz-pro/scheduler`. It shows a strip of days, each with how many
+times are free, and the free times of the chosen day. The duration and the
+time zone are controls on the picker.
+- **It offers only what the scheduler would accept.** Each time goes through
+  `svCheckSlot`, with double booking refused. It honours working hours,
+  blocked time, a buffer around each booking, minimum notice, `resourceIds`
+  and daylight-saving changeovers.
+- **The value.** It carries the business's day and wall time and the UTC
+  `start` / `end`. `displayTimeZone` changes only how the times read. A time
+  that lands on another day there says "+1 day".
+- **Async contract.** `loading` / `error` / `retry` work like the rest of the
+  kit. While either state is set, no time is offered, because one could
+  already be taken.
+- **Empty days.** A closed day and a fully booked day are told apart, and the
+  picker offers the next free day.
+- **Keyboard.** The days are a tablist. The times are a listbox where arrows
+  move and Enter picks.
+- **Exported helpers.** `svGenerateSlots()` and `svFirstAvailableDate()` are
+  exported for the server-side re-check.
+- **New peers.** The package now peers `@styloviz/forms` (the duration
+  control) and `@styloviz/input-field` (the go-to-date picker).
+
+### Added — checkpoints: rewind a chat to a turn, or an agent run to a step (Pro)
+
+`sv-ai-chat` takes `checkpoints`, and `sv-agent-task-queue` takes `rewindable`.
+- **Chat.** A checkpoint (`{ id, messageId, label?, timestamp? }`) is a marker
+  after its message with a Restore button. `svChatTurnCheckpoints(messages)`
+  puts one after every finished answer. With `branching` on, restoring sets the
+  later messages aside rather than deleting them: the next message starts a
+  new branch beside them, and the version switcher still reaches the old path.
+  With branching off, `messages` is cut back, and Undo puts the tail back until
+  the transcript changes. `checkpointRestore` tells the host what went, so it
+  can rewind its agent too. `restoreCheckpoint(id)` and `undoRestore()` are
+  public.
+- **Task queue.** With `rewindable`, a finished step of a stopped task offers
+  Rewind when a checkpoint was saved after it (`checkpoint: false` opts a step
+  out). It asks inline first, because the later steps will run again, then
+  emits `rewind` with the status the reader saw. `svTaskRewindIsStale()`
+  catches a request that arrives late, and `svTaskRewind()` gives the host the
+  rewound task.
+
+### Fixed — a follow-up after switching versions landed on the other version
+
+With `branching` on, a message the chat appended (a send,
+`beginAssistantMessage`, the demo reply) was linked to the last message in the
+array rather than the one on screen. So after switching back to an earlier
+version of an answer, the follow-up attached under the newer version and did
+not show. It now attaches to the message on screen. A regenerate also stayed
+hidden when an older version had been picked; it now shows. Messages a host
+appends without `parentId` still link in list order.
+
+### Added — `svGridAssist`: ask the data table in plain words (Pro)
+
+`sv-data-table-pro` takes an "Ask the table" bar. Put
+`<ng-container svGridAssist />` inside the table and a question such as "won
+deals over 50k in EMEA, biggest first, highlight renewals" becomes the filter
+builder's own query, a sort and a highlight.
+- The answer goes through `[(filterQuery)]`, so the builder opens on exactly
+  what was understood and the user can change it there. `sortChange` and the
+  new two-way `highlightQuery` carry the rest, so a `serverSide` table hears
+  the usual `queryChange`.
+- A resolver (`SvGridAssistResolver`) receives the question, the builder's
+  fields, the columns and the current view. It never receives a row. The
+  default, `svGridAssistHeuristicResolver()`, reads English on the device;
+  pass your own to ask a model, and hand `request.signal` to `fetch`.
+- Every answer is checked against the fields before use
+  (`svGridAssistCheckAnswer`). Unknown columns, operators a type cannot take,
+  values outside an enum and unsortable sorts are dropped and listed in
+  `(assisted).skipped`.
+- One question runs at a time. Asking again, Cancel or Escape aborts the one
+  in flight. A failure offers Try again (`(assistError)`), and Undo restores
+  the filter, sort and highlight.
+- `[examples]` adds one-click questions. `[showQuery]="false"` keeps the
+  builder closed.
+- `highlightQuery` also works on its own. Matching rows get a tint, a bar on
+  the leading edge and a spoken "Highlighted", and a chip clears it.
+- 24 new labels in the 12 language packs (machine-made).
+
+### Added — `sv-smart-paste` and `sv-smart-textarea` (Pro forms)
+
+Two AI-ready form controls in `@styloviz-pro/forms`, each with a gallery, a docs
+page and machine-made translations in the 12 language packs.
+- **`sv-smart-paste`** — a button that fills a form from text on the clipboard
+  (an email signature, a ticket, a `Label: value` list). You describe the fields
+  (`{ name, label, type, options, required, aliases, description }`); a resolver
+  maps the text to values, and the answer is checked and typed against the
+  fields before `(filled)` emits `{ values, skipped, missing, text }` — unknown
+  keys dropped, numbers, yes/no and dates coerced, select values held to their
+  options. Apply it with `model.update(v => ({ ...v, ...e.values }))` (Signal
+  Forms) or `form.patchValue(e.values)`. `confirm` previews what will be filled
+  and what was left out; Cancel aborts the request's signal; failures show with
+  Try again; where the browser will not share the clipboard a labelled paste
+  box opens in place. Resolvers: `svSmartPasteHeuristicResolver` (the default —
+  runs on the device, nothing is sent) and `svSmartPasteFetchResolver(url)` (your
+  own endpoint). `svSmartPasteCoerce` is exported for a server-side check.
+- **`sv-smart-textarea`** — a native textarea with inline completion: a grey
+  suggestion after the caret, Tab to take it, Ctrl/Cmd+→ for a word, Escape to
+  dismiss, Ctrl/Cmd+Space to ask, an Accept button on touch. Requests are
+  debounced and aborted as the user types on; a rejection is reported through
+  `(completionFailed)` and never shown. A ControlValueAccessor and validator
+  (`required`, `maxLength`) with `[formField]` support. Completers:
+  `svSmartTextareaPhraseCompleter(phrases)` (on the device) and
+  `svSmartTextareaFetchCompleter(url)` (your own endpoint).
+
+### Added — `svWebMcp`: the big widgets as WebMCP tools for a browser agent
+
+Put `svWebMcp="name"` (from `@styloviz/core`) on a data table, scheduler, event
+calendar, Gantt chart, kanban board or form builder and the widget registers
+typed tools with `navigator.modelContext` (WebMCP, W3C community draft):
+`name_describe`, `name_sort`, `name_move_card` and so on. The tools are removed
+when the widget is destroyed. Guide with a live table: `/docs/webmcp`.
+- **The same path as a click.** A tool calls the method the UI calls, so
+  `sortChange`, `queryChange`, `cardMoved`, `eventChange` and `tasksChange` fire,
+  and transition rules, WIP limits, booking rules, read-only inputs and
+  validation all apply. New public methods for that: `sortBy`, `setSearch` and
+  `selectRowIds` (data table); `moveCard`, `moveCards` and `selectCards`
+  (kanban); `editTask` and `scrollToDate` (Gantt); `requestBooking`,
+  `requestEventChange` and `goToDate` (scheduler and event calendar), with
+  `setView` now public; `svCheckEventEdit`, the event dialog's own check.
+- **Arguments are untrusted.** Every call is checked against the tool's schema
+  before it runs (`svCheckWebMcpArgs`) and a refusal comes back as text. Tools
+  that return the host's data return a page of it and are marked
+  `untrustedContentHint`.
+- **Your own tools:** implement `SvWebMcpToolSource` and provide it as
+  `SV_WEBMCP_SOURCE`, or call `svRegisterWebMcpTools`. `svWebMcpInclude` picks
+  tools and `svWebMcpReadOnly` exposes only the read-only ones. The directive's
+  `call(name, args)` runs a tool exactly as an agent's call does, with or
+  without WebMCP in the browser — for a demo, a test or an in-page assistant.
+- **Nothing to download until it is used.** Each widget's tool set is an
+  `import()`, and the directive loads nothing in a browser without
+  `modelContext`.
+- Built in-house rather than on Angular 22's `declareExperimentalWebMcpTool`,
+  because the packages still support Angular 21. Inert on the server and where
+  the browser has no `modelContext`.
+- `sv-form-builder` renders a schema and does not edit one, so its tools fill
+  and submit the form (`set_field`, `submit`, `get_payload`); they do not add
+  or remove fields.
+
+### Added — Blocks: 54 copy-paste page sections at `/blocks` (45 free, 9 Pro)
+
+Sixteen category pages — navigation bars, heroes, logo clouds, features, stats,
+testimonials, pricing, FAQ, calls to action, footers, content and docs, store
+sections, sign-in, settings panels, empty states and dashboard sections — cut
+from the Launch, Docs site, Store, Auth, Account and Admin templates.
+- **One block, one file.** Each block is a standalone, OnPush component with its
+  template inline, importing only `@angular/*` and `@styloviz/*` packages and
+  registering its own icons, so the file the page renders is the file Copy hands
+  over. It works on its own in your app: `/blocks` is deliberately left out of
+  the site's all-icons registration to prove it.
+- **Blocks emit, your app acts.** Sign-up, contact, newsletter, settings and
+  checkout blocks validate and emit (`signUp`, `send`, `subscribe`, `save`,
+  `placeOrder`…). The app blocks take `pending` and `error` for the request in
+  flight, and links are plain `href` inputs.
+- **Marketing blocks are free; app blocks are Pro** — except the sign-in and
+  account settings blocks, which are free like the Auth and Account templates
+  they come from. A Pro block shows its live preview to everyone, and its code
+  and Copy button once a license is active.
+- Every category page is prerendered with its blocks and Copy buttons, and is
+  listed in the sitemap. The header gains a **Blocks** link.
+- **`@styloviz/mcp`** gains `list_blocks` and `get_block`, and `search` returns
+  matching blocks. A free block comes with its whole file; a Pro block's source
+  is not in the package, only the page where a license unlocks it.
+
+### Added — Gantt: resource levelling, rollups, S-curve, progress line, minute-to-decade zoom and PNG export; Kanban: workflow rules, multi-select, quick edit, card preview and saved views (Pro)
+
+**Gantt (`@styloviz-pro/gantt`)**
+- **Resource load and levelling.** `sv-gantt-resource-histogram` draws each
+  person's load per day, week or month against capacity. Over-capacity bars are
+  red and hatched, and a hidden table carries the figures.
+  `svGanttLevelResources` moves tasks later, never earlier, in working days,
+  until nobody is booked past capacity. It pushes successors, leaves manual
+  tasks and constrained milestones alone, and reports each move with its reason
+  plus anything left unresolved. `svGanttResourceLoad` returns the numbers.
+- **Rollups.** `svGanttRollup` gives each summary task its dates, its planned
+  dates from baselines, working-day-weighted progress, and leaf and done counts.
+- **S-curve.** `sv-gantt-s-curve` (and `svGanttSCurve`) plots cumulative planned
+  work against work earned up to a data date.
+- **Progress line.** `progressLineDate` draws the progress line through every
+  task, bending back where a task is behind and forward where it is ahead.
+  `svGanttProgressLine` gives each task's point and its variance.
+- **Zoom from quarter-hours to decades.** `GanttChartScale` adds `minute`
+  (15-minute columns), `hour`, `year` and `decade`. A task given a time now
+  draws at that time; a plan written in dates draws as before. Zoom to fit picks
+  the finest scale whose columns fit the view (it used to jump to `week`).
+- **PNG and PDF export.** `exportPng()` (new) and `exportPdf()` are in both
+  Export menus. The scrolled-toolbar copy of that menu also gains Excel, which
+  it lacked. `svElementToPng` / `svElementToPngBlob` are new in
+  `@styloviz-pro/export`, for any HTML view.
+- **Fixed: element export on Tailwind 4 pages.** `svElementToPdf` (and the new
+  `svElementToPng`) threw "unsupported color function" on any real kit view,
+  because html2canvas cannot read the `oklch()` / `color-mix()` colours Tailwind 4
+  emits; the Gantt's PDF export had never worked. Both exporters now resolve
+  those colours to `rgba()` on html2canvas's clone, with transitions off, and
+  clone only the element's own path instead of the whole page. On the gallery
+  page that cut an export from 18–30 s to about a second.
+  `svHtml2CanvasOptions` / `svFlattenColors` are exported for hosts that call
+  html2canvas themselves.
+
+**Kanban (`@styloviz-pro/kanban`)**
+- **Workflow rules.** `transitionRules` sets which column may follow which
+  (`allow`, `deny`, `*`, `backward: false`) and what a card needs before it may
+  enter a column (`svKanbanRequires`). The rules apply on every move path, and
+  `moveRefused` now carries `reason` and `missing`.
+  `svKanbanCheckTransition`, `svKanbanTransitionsToCanMove` and
+  `svKanbanAllowedTargets` are exported.
+- **Multi-select.** `multiSelect` with a two-way `selectedCardIds`:
+  Ctrl/⌘+click or Ctrl/⌘+Space toggles a card and Shift extends the selection,
+  shown as `aria-pressed`. Dragging a selected card moves the whole selection as
+  one `cardsMoved` with one `rollback()`, refused as a whole if any card may not
+  go or a strict limit has no room.
+- **Quick edit and card preview.** `sv-kanban-quick-edit` is a draft editor for
+  a card (title, description, priority, due date, assignees) that emits the
+  patch. `svKanbanCardPreview` shows one body-portaled preview beside a hovered
+  or focused card, referenced by `aria-describedby`.
+- **Saved search and sort.** `sv-kanban-view-bar` with `svKanbanApplyView`
+  searches every word, ignoring case and accents, and sorts stably. The view is
+  remembered under a `storageKey` through `svKanbanViewStorage`, and the saved
+  form is versioned and validated.
+- The card-text helpers moved to `kanban.format.ts`. The component's
+  `formatDue`, `fmtVal` and similar methods are unchanged.
+
+### Added — Rich text editor: find & replace, track changes and comments, revision compare, slash commands, checklist, outline, emoji, Word import and a collaboration adapter in `@styloviz-pro/rich-editor` (Pro)
+
+Everything is opt-in. An editor that asks for none of it renders and emits as
+before, except that the full toolbar now holds 35 tools (Checklist and Emoji are
+new).
+
+- **Find & replace.** `sv-rte-find-replace [editor]="ed"` claims Ctrl/⌘+F inside
+  that editor. A match can span formatting but never two paragraphs, and mention
+  chips are skipped. Matches are painted with the CSS Custom Highlight API, so
+  opening Find never changes the document. Replace all is one undo step. Match
+  case, whole word, Enter / Shift+Enter, and Escape all work.
+- **Track changes.** The `svRteSuggest` directive records typing, paste, drop
+  and deletion as `<ins>` / `<del>` tagged with the author and time
+  (`data-sv-sugg`, `data-sv-author`, `data-sv-author-id`, `data-sv-time`). It
+  listens on `beforeinput`, so autocorrect and mobile keyboards are tracked too.
+  Use `suggestions()`, `accept` / `reject` / `acceptAll` / `rejectAll` and
+  `resolved`. Deleting your own suggestion really deletes it. Formatting and
+  new paragraphs are not tracked.
+- **Comments.** `sv-rte-comments` anchors a thread to the selected passage with
+  `<mark data-sv-comment>`. `threads` is a two-way model, with `threadCreate`,
+  `replyAdd` and `threadResolve` outputs, loading, error with retry, and an
+  empty state. A thread whose passage was deleted stays and says so.
+- **Revision compare.** `svDiffHtml(before, after)` aligns the two documents
+  block by block, then diffs each changed block word by word into `<ins>` /
+  `<del>`, with word counts. `svDiffWords` does the same for plain text.
+- **Slash commands.** `[slashCommands]="true"` adds a `/` menu with headings,
+  lists, checklist, quote, code block, table and divider; you can also pass
+  your own list. Every pick is emitted as `slashCommand`. It opens only at a
+  word boundary, so `and/or` and URLs never trigger it.
+- **Checklist.** A toolbar tool and a slash command that use the Markdown
+  task-list markup, so a checklist round-trips through Markdown mode. A click
+  or Ctrl/⌘+Enter ticks an item. The state is the `checked` attribute.
+- **Outline.** `sv-rte-outline [editor]="ed"` lists the headings live, marks
+  the current one with `aria-current`, and scrolls to the heading you choose.
+  It writes no ids into the document. `svRteOutline()` returns the same list.
+- **Emoji.** An `emoji` toolbar tool opens a body-portaled picker with search
+  and a one-tab-stop grid.
+- **Word import.** `svDocxToHtml(file)` reads a `.docx` in the browser with no
+  dependency, using its own zip reader on `DecompressionStream`. It maps
+  headings, inline formatting, lists from `numbering.xml`, safe links, and
+  tables with merged cells. `lost` reports images, footnotes, Word comments,
+  text boxes, equations, tracked changes and fields it could not carry over.
+  Zip bombs and DOCTYPEs are refused, with an `SvDocxError` reason.
+- **Collaboration adapter.** `svRteCollab` connects an editor to any
+  `SvEditorCollabAdapter` (connect, send, receive, presence, disconnect). It
+  applies remote HTML without moving the caret (`applyRemoteHtml`), never
+  echoes a change back, and sends edits made while offline on reconnect.
+  `svCreateMemoryCollabHub()` is the in-memory fake peer for tests and demos,
+  and `svTextSplice` is what a CRDT adapter applies. The kit ships no
+  transport; the gallery shows a Yjs adapter as code.
+- **For siblings of your own:** the editor's `surface()`, `commitEdit()`,
+  `setFindHandler()` and `applyRemoteHtml()`.
+
+**Also changed:**
+- `svSanitizeEditorHtml` (`@styloviz/core`) keeps the suggestion and comment
+  `data-sv-*` attributes and `aria-label` on a checklist checkbox.
+
+### Added — Charts: a data-table toggle for every chart, synchronised groups, sunburst, relationship graph, error bars, lollipop and dumbbell
+
+- **"Show data table" on any chart.** Every chart already gave screen readers
+  its data as a hidden table. `provideSvChartA11y({ dataTable: 'toggle' })`
+  (app-wide) or the `svChartDataTable` attribute (one chart) puts the same
+  table on screen behind a button under the plot. The table lives in
+  `sv-chart-frame`, which now takes the chart's `SvDataSummary` as `[summary]`.
+  All 65 chart frames in the kit pass one, including 32 charts that had no data
+  table before (gauge, funnel, pyramid, bubble, multi-axis, stacked, range, live,
+  trend and strip lines, and more). The axis-label-template and date-time
+  category charts take an `ariaLabel` override in both tiers.
+- **Synchronised charts.** `svChartSync="ops"` (from `@styloviz/core`) on
+  several charts shares the hovered category and the zoom window. Categories are
+  matched by label, so charts covering different ranges still line up. Line and
+  bar charts take part in both tiers. `injectSvChartSync()` lets your own chart
+  join a group.
+- **`sv-sunburst-chart` (Pro).** The treemap's radial sibling, on the same
+  `TreemapNode` data. It zooms by ring, with the zoom held in a two-way
+  `zoomPath`, and is fully operable from the keyboard.
+- **`sv-relationship-graph` (Pro).** A network of nodes and links, with
+  `layout: 'force' | 'chord'`. Both layouts are built in-house and give the
+  same picture every time for the same data. Hovering or focusing a node
+  highlights its neighbours, and the whole graph is one tab stop with arrow-key
+  movement between nodes.
+- **Error bars, lollipop and dumbbell (Pro).** `errors` on a
+  `sv-bar-chart-pro` dataset takes a ± or `{ minus, plus }`. The range appears in
+  the bar's name, tooltip and table cell as well as in the drawing.
+  `barStyle="lollipop"` draws a stem and a dot. `rangeStyle="dumbbell"` on the
+  range bar and range column charts draws two dots joined by a line.
+
+**Also fixed:**
+- The drill-down column chart's axis labels and grid were tracked by value, so
+  drilling in rebuilt them with a runtime warning.
+- The Pro trend line chart tracked its trend paths by index.
+
+### Added — Data table: batch editing with undo, a set filter, a filter builder, a status bar and print in `@styloviz-pro/data-table` (Pro)
+
+`sv-data-table-pro` gains the second half of a spreadsheet. Every part is
+opt-in: a table that asks for none of it renders and emits exactly as before.
+
+- **Batch editing.** With `batchEdit`, a typed edit, a paste or a fill becomes
+  a draft that the table shows and flags (a corner mark, and "unsaved" for a
+  screen reader) instead of an `editComplete` or a `rangeEdit`. Undo and Redo
+  sit on a batch bar and answer Ctrl/⌘+Z and Ctrl/⌘+Shift+Z (or Ctrl+Y) inside
+  the table; each step is a whole edit, paste or fill. `unsavedChange` reports
+  the count, for a leave-page guard.
+- **Save, on the optimistic contract.** Save emits one `batchSave` with the
+  `changes`, a `requestKey` and `rollback()` (`createOptimisticEdit`). The
+  saved values stay on screen until the host binds rows that carry them.
+  `rollback()` puts a failed batch back into the draft, so nothing typed is
+  lost, and keeps any cell edited again since; a rollback from an older save is
+  refused. `[saving]` locks Save, Discard, Undo and Redo; `[saveError]` shows on
+  the bar.
+- **Set filter.** `filterType: 'set'` is Excel's checkbox filter in the filter
+  row: every value of the column, a search, Select all and (Blanks), in a
+  body-portaled panel. It is a two-way `setFilters` with a chip per column, and
+  is saved in the layout state as an optional `setFilters` (no schema bump).
+- **Filter builder.** `filterBuilder` puts `@styloviz-pro/query-builder` over
+  the columns (`queryType` per column) for nested AND / OR queries. The query is
+  the builder's own `SvQueryExpression` in a two-way `filterQuery`, so
+  `svSerializeQuery` and `svParseQuery` store and restore it. Client-side the
+  table evaluates `svQueryToPredicate`'s result; `svRowMatchesPredicate` is
+  exported for a host's own use.
+- **Status bar.** `statusBar` shows the row count, or Count, Sum, Average, Min
+  and Max for a selected block — read from row values and drafts, never from
+  formatted text (`svSummarize`).
+- **Print.** `printable` adds a Print button. While the page prints, from the
+  button or Ctrl/⌘+P, the table renders every filtered row (not the page or a
+  virtualized window) without its controls, repeats the header on each sheet
+  and keeps rows whole.
+
+**Also fixed:** both data tables printed as the screen draws them — the scroll
+box clipped wide and long tables on paper and the sticky header floated over
+rows. Both now print without their controls and without clipping; the free
+table prints its current page.
+
+**Also fixed:** in both data tables, a column with `filterType: 'none'` left an
+empty header cell in the filter row, which screen readers announce as an
+unnamed column header. Filter-row cells hold controls, not headings, so they
+are now `<td>` cells.
+
+New peer dependency: `@styloviz-pro/query-builder`. 35 new labels in 12
+languages.
+
+### Added — Data table: cell ranges, clipboard, fill, Find, bands, merged cells and a cell menu in `@styloviz-pro/data-table` (Pro)
+
+`sv-data-table-pro` gains the first half of a spreadsheet. Every part is opt-in:
+a table that asks for none of it renders exactly as before.
+
+- **Cell ranges.** With `cellSelection`, a block of cells follows the cell
+  cursor. Shift+arrows, Shift+click or a mouse drag grow it; Ctrl+A selects
+  every cell, Shift+Space a row and Ctrl+Space a column. The block is a two-way
+  `cellRange`, keyed by row key and column key. The table becomes a
+  `role="grid"`, every cell says `aria-selected`, and each new size is announced.
+- **Clipboard.** Ctrl/⌘+C copies the block as tab-separated text that Excel,
+  Sheets and Numbers read, and as an HTML table for a document. Ctrl/⌘+V pastes
+  a block back. One value fills the whole selection, and a block that fits a
+  whole number of times repeats. The keystroke passes through a hidden field
+  for one moment, because clipboard events on a non-editable cell are not
+  delivered reliably (Safari). No clipboard permission is asked for.
+- **Fill.** The handle on the block's corner continues it: two or more numbers
+  in equal steps become a series, and anything else repeats. Ctrl+D / Ctrl+R
+  copy the first row or column across the block. The cell menu's Fill series
+  continues the leading values into the empty cells, so the drag has keyboard
+  and single-pointer twins (WCAG 2.5.7).
+- **The table still never writes `rows`.** A paste or a fill emits one
+  `rangeEdit`: `{ source, changes, rejected }`. `changes` has
+  `editComplete`'s shape, one entry per cell that really changes, each
+  validated by its column's `validate`. Read-only columns and refused values go
+  to `rejected` and are announced.
+- **Find.** `findable` adds Find, from the toolbar or with Ctrl/⌘+F inside the
+  table. It marks every matching cell and says "3 of 12". Enter and Shift+Enter
+  walk the matches across the filtered set, turning the page, opening a
+  collapsed group or scrolling a virtualized window to reach each one. Unlike
+  `searchable`, it hides no rows.
+- **Column bands.** `columnBands` adds multi-level headers, and bands can
+  nest. A band whose columns are reordered apart is drawn over each run it
+  still owns, rather than stretched over a column it does not.
+- **Merged cells.** `mergeRepeated` on a column folds a run of equal values
+  into one cell. `colSpan(row)` runs a row's cell across the columns after it.
+  For the cell cursor, a merged cell is one stop. Neither is applied while
+  `virtualized` or `groupBy` is set.
+- **Row numbers.** `rowNumbers` adds a numbering column that counts across
+  pages.
+- **A cell context menu.** `contextMenu` adds a menu on right-click, Shift+F10
+  or the menu key: Copy, Copy with headers, the fills, Export selection as CSV,
+  pin the column to the start or end, and Hide. Hide appears only with
+  `showColumnToggle`, so a hidden column can be shown again. The menu is the
+  shared `sv-dropdown-menu`, named for what it acts on ("Actions for 3 rows by
+  2 columns"). Pins are a two-way `columnPins` model, saved in the layout state
+  as an optional `columnPins`, so older saved layouts still restore with no
+  schema bump. A pinned column moves to its edge, and several pinned columns
+  now sit side by side instead of on top of each other.
+
+Also fixed in `sv-data-table-pro`:
+
+- The row-action and export menus were in-place `absolute` panels, so the
+  table's own scroller clipped the row menu on the last rows. They are now the
+  body-portaled `sv-dropdown-menu`. A `check:ui` rule existed for this case but
+  had passed the file only because the column drag ghost called `appendChild`.
+- Pinned columns hold the inline start and end edges (`start-0` / `end-0`), so
+  they pin correctly in a right-to-left table.
+
+`@styloviz-pro/data-table` now has `@styloviz-pro/overlays` as a peer
+dependency. The pure helpers `svToTsv`, `svParseTsv`, `svAutoFill` and
+`svPasteShape` are exported.
+
+### Added — Scheduler: recurrence, resources, time zones and `.ics` in `@styloviz-pro/scheduler` (Pro)
+
+`sv-event-calendar` now expands recurring events itself. Send a series once,
+with an RFC 5545 `rrule` (`FREQ=WEEKLY;BYDAY=MO,WE,FR`) and `exdates`, and it
+draws every occurrence in the range on screen. A moved or changed occurrence is
+an ordinary event with `seriesId` and `originalDate`, drawn where it now is and
+named "Moved from …". With `eventDialog` an event opens a details dialog that
+says the rule in words; with `editable` it changes the date and times of this
+event, this and following, or all events, and deletes the same way. The
+calendar emits the request; `svApplyEventChange` / `svApplyEventRemoval` write
+the rows, and you persist what changed. Give the calendar a `timeZone` and every
+event that carries its own `timeZone` is converted into it and says where it
+came from; with none, nothing is converted, as before. `views` adds a day view
+and a year view, and the switcher's names are now translated.
+
+`sv-scheduler` is new in the same package: rooms, people or equipment against
+time, as a column per resource for a day or as timelines for a day, a week or a
+month, with groups that collapse. Bookings sit in lanes, so a double booking is
+never hidden. Working hours are shaded and blocked time is hatched. Drag, tap or
+press Enter on free time to book it. The rules answer first: blocked time
+is refused by name, and `overlapRule` warns about or prevents double bookings.
+
+The arithmetic is public and needs no Angular: `svParseRRule` / `svExpandRRule`
+/ `svDescribeRRule`, `svParseIcs` / `svToIcs` (warnings carry a line number and
+a `code`; export writes a VTIMEZONE), `svConvertWallTime` and friends, and
+`svCheckSlot`. The calendar template stores its stand-up as a series, edits an
+occurrence in scope and exports `.ics`.
+
+### Added — A2UI renderer: `@styloviz-pro/a2ui` (Pro)
+
+`sv-a2ui-renderer` draws the interfaces an AI agent describes in A2UI v0.9 —
+forms, cards, lists, tabs, dialogs — with Styloviz components, so an agent's
+answer can be a booking form instead of six questions in prose. Feed it the
+agent's messages as an array, or push a JSON Lines stream into a store from
+`createSvA2uiStore()`; it fills the interface in as messages arrive. Inputs
+bound to the agent's data model are two-way, so a pressed button's `(action)`
+carries what is on screen, ready to send back to the agent. The whole A2UI
+basic catalog is supported; `SV_A2UI_STYLOVIZ_CATALOG` adds Stat, Alert, Badge,
+Progress and Rating, and you can register catalogs of your own with
+`provideSvA2ui()`. Nothing the agent sends ever runs: a component outside the
+registered catalogs is drawn as a notice, links and images pass the kit's URL
+check, text goes through the kit's Markdown renderer, and a malformed message is
+reported through `(issue)` rather than breaking the page. The package ships
+`catalogs/styloviz.catalog.json`, the schema to give the agent.
+
+### Added — Stock chart: `sv-stock-chart` in `@styloviz-pro/charts` (Pro)
+
+`sv-stock-chart` is a candlestick chart for long price histories. A
+navigator under the plot holds the whole history in miniature: drag its window
+to pan, drag a handle to widen or narrow it, or press anywhere on the strip to
+jump there; from the keyboard the window and both handles are sliders, and Zoom
+in / Zoom out / Pan left / Pan right buttons do the same with a single tap.
+`rangePresets` adds buttons such as 1M, 3M and 1Y, and `range` is two-way, so a
+host can save the view and restore it. Over the candles you can draw SMA, EMA and
+Bollinger bands, and under the volume pane an RSI or MACD pane. Indicators are
+worked out over the whole history and only then cut to the view, so zooming
+never changes a value; where a line has not started yet the table cell is blank
+and the note under the chart says where it begins. Every session in view is in
+the table with its prices and each indicator's value.
+
+The same arithmetic is public: `svSma`, `svEma`, `svBollinger`, `svRsi` and
+`svMacd` from `@styloviz/data` (they live in `@styloviz/core`) return an array the
+length of their input with `null` through each warm-up. The admin template's
+crypto desk now draws its prices with `sv-stock-chart`.
+
+### Added — Cookie consent: `@styloviz/cookie-consent` (free)
+
+`sv-cookie-consent` is a GDPR / ePrivacy cookie banner: a bottom banner, a compact
+corner card or a modal dialog up front. "Reject all" carries exactly the same
+styling as "Accept all", no optional category is pre-ticked, and "Customise" opens
+per-category native switches (strictly necessary is always on) in a native
+`<dialog>` that returns focus where it came from. Every choice emits a consent
+record — the categories, an ISO timestamp and your policy `version` — for you to
+store; hand it back with `[record]` (or `[(consent)]`) and a returning visitor is
+not asked again, while a newer `version` re-asks and says the policy changed. It
+stores nothing itself unless you opt in with `storageKey`, and every string is a
+label with all 12 language packs. The launch and docs-site templates now use it,
+with a "Cookie settings" link in their footers.
+
+### Added — Onboarding checklist: `sv-onboarding-checklist` in `@styloviz/overlays` (free)
+
+`sv-onboarding-checklist` is the "Get set up" card for a new account or
+workspace: a progress ring and "3 of 5 done", a native checkbox per step, and a
+link or button for each step's action. Optional steps carry a badge, are left
+out of the count and the ring, and the checklist says so. The steps — and
+whether each is done — stay yours: ticking a box emits `(stepToggle)` and the
+tick appears once you hand the step back done, so the checklist never shows
+progress your server did not record. `(completed)` fires once, on the change to
+every required step done — not for a list that arrives already complete. It
+comes as a bordered `card` or an `inline` list, can be dismissed (`[(open)]`)
+and collapsed (`[(collapsed)]`), takes `loading`, `error` with `(retry)` and an
+empty state like every data component, drops unsafe step links, and every
+string is a label with all 12 language packs. The admin template's SaaS
+dashboard now opens on a "Get set up" card, and the launch template shows a
+"Get your workspace ready" checklist once a trial starts.
+
+### Added — In-app survey: `sv-survey` in `@styloviz/forms` (free)
+
+`sv-survey` asks your users how you are doing without sending them anywhere
+else. Pick the kind: Net Promoter Score ("How likely are you to recommend us…",
+0–10 with "Not likely" / "Very likely" at the ends), CSAT (1–5 stars, each
+named by its level and written out once chosen), or one question of your own
+with options or a free-text answer. After a score, an optional follow-up asks
+why — and for NPS the prompt can differ for detractors, passives and
+promoters. Sending shows a thank-you, with an optional "Book a call"-style link
+or button, and moves focus to it. Every scale is native radio inputs in a
+fieldset, so the keyboard works the way it does everywhere else. It comes as a
+`card`, `inline`, or a `floating` panel that slides into a bottom corner like a
+toast (not a dialog — the page stays usable), and can be dismissible.
+`(submitted)` hands you `{ kind, score, band, choice, comment }`; the survey
+stores nothing, so where the answer goes is up to you. Every string is a label
+with all 12 language packs.
+
+### Added — Pricing table: `sv-pricing-table` in `@styloviz/commerce` (free)
+
+`sv-pricing-table` is the plans section of a pricing page or an upgrade
+screen. Give each plan one monthly price and the table one annual discount:
+the monthly / annual toggle (two native radios) then shows the annual price per
+month, the invoice actually charged ("$1,428 billed once a year"), the cash
+saved, and a "Save at least N%" taken from the plan that saves least — so it
+stays true when a price changes. A plan can set its own annual price, quote
+instead of price ("Contact sales"), or be free. The recommended plan gets a
+"Most popular" badge in text, not just a coloured border. Show the plans as
+cards, stacked on a phone, or as a comparison table with a caption, row and
+column headers, feature groups and "Included" / "Not included" read out for
+every check and dash. Prices are formatted for any currency and locale; a
+plan's call to action is a link when it has a safe `href`, otherwise a button,
+and `(planSelect)` hands you the plan and the billing period. The arithmetic is
+exported (`svAnnualMonthly`, `svAnnualTotal`, `svAnnualSaving`,
+`svAnnualSavingPercent`) for your checkout. Every string is a label with all 12
+language packs. The launch template's pricing page now uses it.
+
+### Added — Cron builder: `sv-cron-builder` in `@styloviz/forms` (free)
+
+`sv-cron-builder` lets your users set up a recurring job without knowing cron.
+Pick how often on a segmented control — every N minutes, hourly at a minute,
+daily at a time, weekly on chosen days, monthly on chosen days of the month —
+or switch to Custom and type any five-field expression, with lists, ranges,
+steps and month or weekday names (`0 9 * * MON-FRI`). Underneath, it says in
+words when the job runs ("Every weekday at 09:00", "On the 1st and 15th of
+every month at 06:30") and lists the next runs in the time zone you pass, with
+daylight-saving changes handled. Switching mode keeps the time and days you
+picked, and an expression the visual modes cannot show opens in Custom. An
+invalid expression gets a message that names the field and the problem, and is
+never written to your form: the value is always the normalised expression
+(`0 9 * * 1-5`), so equal schedules compare equal. It works with
+`[(value)]`, `[(ngModel)]` and `[formControl]`, and the control is invalid
+while the expression on screen is. When both day fields are set, cron runs on
+either one — the description says so rather than hiding it. The parser and
+helpers are exported (`svParseCron`, `svFormatCron`, `svDescribeCron`,
+`svNextCronRuns`) for your jobs table or server-side summary. Every string is a
+label with all 12 language packs.
+
+### Added — Import wizard: `sv-import-wizard` in `@styloviz-pro/forms` (Pro)
+
+`sv-import-wizard` lets your users bring a spreadsheet into your app in four
+steps. They drop a CSV (or paste one); it is read in the browser in slices
+with a progress bar, so a 10,000-row file never freezes the page, and commas,
+semicolons or tabs, quoted values, Windows line endings and Excel's byte-order
+mark all just work. Each of your fields gets a column picker, already matched
+where the header names agree ("E-mail" fills Email, aliases cover the rest);
+a required field left unmatched stops Next and says which. The review step
+types and checks every row — text, number, ISO date, email, a fixed list of
+values, plus any rule of your own that can look at the rest of the row — and
+shows "9,997 valid · 3 with errors", a grid of the first rows with each bad cell
+marked by an icon and its message, a filter for the bad rows and an error
+summary that jumps to each one. Skip them or go back and fix the mapping. The
+save is yours: `[commitAction]` returns a promise, or `(importRequest)` hands you
+the typed rows, the rejected ones by row number, an `AbortSignal` and
+`resolve` / `reject`; the wizard shows progress, Cancel, a failure with Try
+again, a summary, and the rows that failed as a downloadable CSV. The pipeline
+(`svParseCsv`, `svImportTable`, `svAutoMapColumns`, `svValidateImport`,
+`svImportErrorsCsv`) is exported so your server can run the same checks. Every
+string is a label with all 12 language packs. `@styloviz-pro/forms` now also
+lists `@styloviz/stepper` and `@styloviz/file-upload` as peers.
+
+### Added — Markdown editor: `sv-markdown-editor` in `@styloviz-pro/rich-editor` (Pro)
+
+`sv-markdown-editor` is a Markdown source editor for docs pages, release notes,
+comments and canned replies. The text area is a real `<textarea>`, so undo,
+spellcheck, dictation, IME input and phone keyboards work as everywhere else.
+The toolbar — heading, bold, italic, strikethrough, code, link, quote,
+bulleted, numbered and task lists, code block and table — wraps the selection
+and unwraps it again, and every edit is one step you can take back with
+Ctrl+Z; Ctrl/Cmd+B, I and K do the same from the keyboard. Enter continues a
+list (an empty item ends it), Tab and Shift+Tab nest a list item and otherwise
+move focus as usual, and Escape, then Tab, always leaves the editor. Write,
+Preview and Split views share the same text area, so switching never loses
+your undo history; in Split the two sides scroll together, the divider can be
+dragged, and on a phone the preview stacks under the source. The preview is
+`sv-streaming-markdown`, the kit's safe renderer, so nothing typed can become
+markup and unsafe links render as text. Paste an address over selected text
+to make it a link; paste part of a web page and it arrives as Markdown (with
+anything Markdown cannot carry reported); code copied from an editor pastes
+as text. It works with `[(value)]`, reactive forms, `ngModel` and Signal Forms
+(`required` and `maxlength` are reported as errors), shows a word and
+character count, has read-only and disabled states, emits `submitted` on
+Ctrl/Cmd+Enter, and `insertText()` drops a snippet in at the caret. Printing
+shows the rendered document. The edit functions (`svMarkdownFormat`,
+`svMarkdownIndent`, `svMarkdownContinueList`, `svMarkdownLink`) are exported
+for a toolbar of your own, and every string is a label in all 12 language
+packs. The docs-site template's "What was missing?" feedback box and the help
+desk's reply composer now use it, and the help desk's canned replies can be
+edited in it (split view, saved for every agent) and inserted at the caret;
+agent replies in the thread render as Markdown. `@styloviz-pro/rich-editor`
+now lists `@styloviz-pro/layout` as a peer (for the splitter), and
+`sv-splitter` gains `soloPanel`, which shows one panel at full size while the
+other stays mounted.
+
+### Added — Tree view: org-chart layout (free and Pro)
+
+`sv-tree-view` and `sv-tree-view-pro` take `layout="org"` and draw your
+hierarchy as a real org chart: each node a box, each parent centred over its
+children with even spacing between siblings, joined by right-angled connector
+lines. No new component and no new data shape — the free box shows the
+label, a `role` line and a `department` chip (both new, optional `TreeNode`
+fields with the same names Pro already had); with Pro's `variant="org-chart"`
+the box adds the avatar, presence dot and report count. It is the same tree
+underneath: one tab stop, and the arrow keys mean what they mean in any tree
+(↓ and ↑ walk the boxes, → opens a box or steps into it, ← closes it or goes
+up to the manager), so nothing new to learn and nothing different for screen
+readers. Collapsing a box folds its whole team away and the box says how many
+people are under it. A chart wider than the screen scrolls sideways inside
+its own labelled area instead of the page, mirrors in right-to-left
+languages and follows dark mode; when printed, the scroll area lets go so the
+chart is not cut to one screenful. `layout` defaults to `'list'`,
+so existing trees are unchanged; on Pro, `tree-table` and `draggable` stay
+lists. The HRMS template's org chart page now uses it.
+
+### Added — Permission matrix: `sv-permission-matrix` in `@styloviz-pro/display` (Pro)
+
+`sv-permission-matrix` is the roles & permissions screen of an admin console:
+roles across the top, capabilities down the side, and every cell Allow, Deny
+or Inherit. A role can extend another (Editor extends Viewer), and a grant on
+a group of capabilities covers everything inside it, so an Inherit cell shows
+the value it ends up with and where it came from — dashed, with "via Viewer"
+or "via Billing" under it, and said in full to screen readers ("Inherited from
+Viewer."). Capabilities can be grouped in a tree; a group row shows All, None
+or "2 of 3", and Space on it allows or denies everything inside — using the
+same tri-state code as the checkbox tree, so it never touches a locked cell.
+Lock a role, a capability or a single cell with a reason, or make the whole
+matrix read-only. It is a proper keyboard grid: one tab stop, arrow keys,
+Home / End, Ctrl+Home / Ctrl+End, Space or Enter to cycle a cell, A / D / I to
+set it. The header row and first column stay put while the grid scrolls; row
+and column bulk actions, a search and a "Changed only" filter sit above it.
+Edits are a draft: changed cells are marked, a summary lists each change with
+Revert, and Save hands your code the changes and the resulting grants — you
+persist them and pass the saved grants back, which clears the draft (a refused
+save keeps it, with your error shown). Loading, error with Try again, and the
+two empty states are built in; every string is a label in all 12 language
+packs; the rules are exported (`svResolvePermission`,
+`svPermissionGroupStates`, `svPermissionChanges`, …) so a server can enforce
+the same ones. The admin template's Permissions page now uses it, and records
+each saved change in its change history. No new dependency.
+
+### Added — Audit log: `sv-audit-log` in `@styloviz-pro/display` (Pro)
+
+`sv-audit-log` shows who changed what, when, and from what to what. Give it
+your audit events — an actor, an action, the record it touched and the fields
+that changed — and it lists them newest first on an interactive
+`sv-timeline`, each with its action in words ("Updated", "Permissions
+changed", "Signed in · Failed"). The open event shows its facts (when, who,
+the resource, request context such as the IP address) as `sv-descriptions`,
+its short field changes as a before → after table, and each long, multi-line
+or structured value — payment terms, a JSON settings object, line items — as
+an `sv-diff-viewer` line diff. A field marked `sensitive` is listed as changed
+and its values are never shown or exported. The raw record sits in a collapsed
+`sv-json-viewer`, with an optional redactor. Filter by actor, action, resource
+or changed field with `sv-select-dropdown`; `[(filters)]` and
+`[(selectedId)]` are two-way bindable, so a link can reopen the same event,
+and `serverSide` hands the filtering (and, with `hasMore` / `loadMore`, the
+paging) to your API. Export CSV or JSON downloads the events currently listed,
+built in the browser with no request: one CSV row per field change, the
+spreadsheet formula guard, secrets written `[redacted]`. Loading, error with
+Try again, and the two empty states ("No activity yet", "No matching events"
+with Clear filters) are built in. Every string is a label in all 12 language
+packs, and the filtering and export helpers are exported
+(`svAuditFilterEntries`, `svAuditEntriesToCsv`, `svAuditEntriesToJson`, …).
+The admin template's Permissions page now keeps its change history in one, and
+records each saved toggle as a field-level change. `@styloviz-pro/display` now
+also lists `@styloviz/display`, `@styloviz/timeline`, `@styloviz/code-block`
+and `@styloviz/select-dropdown` as peers.
+
+### Added — Status page: `sv-status-page` in `@styloviz/display` (free)
+
+`sv-status-page` is the public status page for your product, or the "System
+status" screen of an admin console. Give it your components, incidents and
+maintenance windows. The banner at the top says where things stand in words
+and with an icon, not just a colour ("All systems operational", "Partial
+system outage"); leave `status` unset and it is worked out for you from the
+worst component and any open incident, so a critical incident is never shown
+under a green banner. Each component shows its state and a 90-day bar, one
+cell per day with a tooltip, and a line such as "99.98% uptime over 90 days"
+that is rounded down so it never overstates — or your monitoring's own figure
+if you pass it. Open incidents come first, worst impact first, each with its
+status, impact, the components it affects and its updates newest first on an
+`sv-timeline`; resolved ones move into "Past incidents", grouped by the day
+they began. Scheduled maintenance is listed with its window, and a window in
+progress turns the banner to "Maintenance in progress". Dates and times are
+formatted for your locale and time zone, with "Last updated" shown. Loading,
+error with Try again, and empty states are built in, and `live` makes the
+banner announce changes to screen readers when the page refreshes itself. The
+arithmetic is exported (`svOverallStatus`, `svUptimeSummary`,
+`svStatusFromUptime`, `svWorstStatus`, `svFormatUptime`) so an e-mail digest
+can quote the same figures. Every string is a label with all 12 language
+packs. `@styloviz/display` now also lists `@styloviz/timeline` as a peer.
+
+### Added — Voice: transcript, audio device select, voice-note player (free)
+
+Three free voice pieces in `@styloviz/display`, beside the media player.
+`sv-transcript` shows what was said in a recording or a live call: who spoke
+(each name once per turn), when (a timestamp you can press to play the
+recording from there — link any `sv-media-player` with `[player]`), and the
+words, with interim text — still being recognised — drawn muted and kept apart
+from final text. The line being played is highlighted and kept in view; search
+highlights and counts the matches and steps through them (or shows only the
+matching lines); Copy and the downloads give plain text (`[0:04] Jordan Lee: …`)
+or a WebVTT captions file with one voice per speaker. In `live` mode each new
+final line is read out politely to screen readers — interim text never is —
+and the list follows the latest line until you scroll up. Loading, error, empty
+and no-results states are built in, and `svTranscriptToText` /
+`svTranscriptToVtt` export without the component. `sv-audio-device-select`
+picks a microphone and, where the browser can route sound, a speaker. It never
+opens the microphone by itself: the browser's prompt appears only when you
+press **Allow microphone access** or **Test microphone**. A blocked microphone
+says how to allow it again with a **Check again** button, an `http:` page or a
+browser without device access is told so in words, devices plugged in or
+removed are picked up at once, and a chosen device that disappears falls back
+to the system default and says so. The test shows a live input level. Provide
+`SV_AUDIO_DEVICES` to stand in for the browser in tests or demos. For voice
+notes, `sv-media-player` gains `layout="compact"` — one row with play, a seek
+bar, the length and the speed for an audio clip — and `sinkId`, which plays the
+sound through a chosen speaker where the browser supports it (with
+`sinkError` when it cannot). The help desk template shows a ticket's recorded
+call this way. Every string is a label in all 12 language packs;
+`@styloviz/icons` gains `mic` and `mic-off`, and `@styloviz/display` now also
+lists `@styloviz/select-dropdown` as a peer.
+
+### Added — Kanban: `doneColumnIds` for finished columns (Pro)
+
+`sv-kanban-board` takes `[doneColumnIds]`, the columns whose cards are finished
+— Done, Won, Lost. A due date there is history rather than a deadline: the card
+is never marked overdue, shows no due chip, and the board's tabular summary
+leaves it out of its overdue count. Before, every host had to strip `dueDate`
+off its closed columns itself, or a won deal read "12d overdue" in red. The CRM
+and Projects templates now bind it instead.
+
+### Added — Dock: `sv-dock` in `@styloviz/layout` (free)
+
+`sv-dock` is a macOS-style launcher bar on any edge of its container — bottom,
+top, left or right. The item under the pointer and its neighbours grow, and the
+rest slide apart to make room; it is done with transforms alone, so nothing
+re-lays out under the pointer and no item ever gets smaller than its resting
+40, 48 or 56 px. The swell follows the keyboard too, never starts on a touch
+screen, and is off entirely for someone who prefers reduced motion;
+`[magnification]="false"` turns it off and `magnificationScale` (1 to 2) sets
+how far it grows. The dock is one toolbar you Tab into once: the arrow keys
+along it move between items — in the order you see them in a right-to-left
+page — Home and End go to the ends, and Enter or Space opens one. Each item is
+a real link (a `route` through your link adapter, or an `href`, optionally in a
+new tab) or a button, named by its label, with the label shown on hover and on
+focus. Bind `[activeRoute]` and the page you are on is marked current; items
+take a badge, can be disabled (still found, never opened), and an address that
+is not allowed (`javascript:` and the like) is never rendered. `(itemSelect)`
+says which item and whether the pointer or the keyboard opened it. In a
+container too small for the row, the items shrink (never below 32 px) and the
+swell pauses, and if even that does not fit the dock scrolls, so no control is
+ever cut off. It replaces
+PrimeNG's `p-dock`, which `/migrate` and the `migrate-primeng` schematic now
+map to it. Its two strings are labels in all 12 language packs.
+
+### Added — Media player: `sv-media-player` in `@styloviz/display` (free)
+
+`sv-media-player` puts the kit's controls around a native `<video>` or
+`<audio>`: play and pause, a seek bar that reads the time aloud ("1:02 of
+3:00"), volume and mute, playback speed, captions and subtitles from WebVTT
+files, and full screen and picture in picture where the browser offers them.
+Give it one item for a single clip or several for a playlist — with previous /
+next, the item playing marked, and the next one starting when one ends. The
+controls are one toolbar you Tab into once and move through with the arrow
+keys, and shortcuts work anywhere in the player (Space or K, the arrows, M, F,
+C, `<` and `>`). It never starts with sound: `autoplay` plays muted, and not at
+all for someone who prefers reduced motion. Each item can resume at a
+`startTime`, and the player tells you what happened — `played`, `paused`,
+`finished`, `timeUpdate` (at most once a second), `seekComplete` with where the
+viewer jumped from and to, `trackChange` and `mediaError` — so you can save
+progress or count views. A file that will not play says why in words, with a
+Try again button; an address that is not allowed (`javascript:` and the like)
+is never requested. Loading, error and empty states for the playlist are built
+in, `kind="audio"` shows artwork and the current caption as text, and every
+string is a label in all 12 language packs. For demos and tests,
+`svDemoVideo`, `svDemoAudio` and `svDemoCaptions` make a video of any length, a
+short chime and a captions file in the browser, with nothing to download. The
+LMS template's lesson videos now play in it. `@styloviz/icons` gains six
+glyphs: `volume-2`, `volume-x`, `skip-back`, `skip-forward`, `captions` and
+`picture-in-picture`.
+
+### Added — Mobile set: bottom navigation, action sheet, pull to refresh, swipe actions (free)
+
+Four pieces for phone layouts, all free.
+
+`sv-bottom-nav` (in `@styloviz/sidebar-nav`) is the phone app bar: three to five
+destinations with an icon and a label, real links with `aria-current="page"` on
+the page you are on — not tabs — 48 px targets, count badges and activity dots,
+padded clear of the home indicator. It takes the same `MenuItem` array as
+`sv-sidebar-nav` and the same `[activeRoute]="router.url"`, so a phone bar and a
+desktop sidebar fed one list always agree on where you are; `hideFrom="md"`
+hides it where the sidebar takes over. It can be fixed to the screen (reserving
+its own height so the end of the page is never behind it), sticky inside a
+scroller, or static.
+
+`sv-action-sheet` (in `@styloviz/overlays`) is the bottom sheet of choices for
+the thing you just tapped — Share, Copy link, Delete — with a separate Cancel.
+The choices are a menu you can drive with the arrow keys, Home / End or a
+letter; a destructive choice is drawn in the danger colour and announced as
+destructive, and a disabled one stays in the list so people learn it exists.
+A choice, Cancel, Escape, a tap on the dimmed page and a swipe down all close
+it — each can be turned off — `(closed)` says which, and focus always goes back
+to whatever opened it. It slides up and down, and simply appears and goes for
+someone who prefers reduced motion.
+
+`sv-pull-to-refresh` (in `@styloviz/layout`) is a scrolling region that
+refreshes when pulled down from the top on a touch screen. Every other touch is
+an ordinary scroll the browser keeps; bind `[refreshing]` to your request and
+the spinner holds until it finishes, with "Refreshing…" and "Updated" announced.
+Because a pull is touch-only, the region carries a Refresh button for the
+keyboard and screen readers (shown on focus by default, or always). The
+gesture is also available on its own as the `svPullToRefresh` directive, for
+your own indicator.
+
+`sv-list-view` (free and Pro) gains swipe actions on rows: `swipeStartActions`
+and `swipeEndActions` sit behind each row's edges and are revealed by swiping
+it sideways; a long swipe runs the edge action outright (turn that off with
+`[fullSwipe]="false"`), right-to-left pages mirror it, and vertical scrolling is
+never affected. Every row also gets an Actions (⋯) button that opens the same
+actions without a swipe, for a mouse, a keyboard or a screen reader.
+`(swipeAction)` tells you which action ran on which row, and how. Lists without
+swipe actions render exactly as before.
+
+Every new string is a label in all 12 language packs. The mail template's phone
+layout now has a bottom folder bar with unread counts, pull to refresh on the
+message list and an action sheet behind the open conversation's ⋯.
+`@styloviz/icons` gains `archive` and `flag`; `@styloviz/core` exports the
+swipe thresholds both list views use (`svSwipeRelease`, `svSwipeClamp`,
+`svSwipeLogical`, `svSwipeTrayWidth`).
+
+### Added — Code group: terminal, file tree, diff viewer, stack trace
+
+Four developer components, all free, all in `@styloviz/code-block` beside the
+code block.
+
+- **`sv-terminal`** is now a log viewer as well as a shell. Bind `[lines]` to
+  your build, deploy or agent output and append as it arrives; the colours the
+  tools print (SGR 30–37, 90–97 and bold) show as colours, other escape codes
+  are dropped, and nothing in a line is ever rendered as markup. It follows
+  new output only while you are at the bottom: scroll up to read an error and
+  it stops, with a "jump to latest" button that counts what arrived. Copy
+  takes the whole log as plain text, `maxLines` keeps the newest lines, and
+  `[interactive]="false"` removes the prompt. A new `info` line kind is for
+  notes you add yourself. Existing terminals keep working unchanged; they now
+  show a copy button, which `[copyable]="false"` turns off. Ctrl+L or `clear`
+  no longer brings the intro back on the next command. The developer
+  portfolio template's terminal now colours the project names `ls` prints.
+- **`sv-file-tree`** shows a project's files and folders with an icon picked
+  from each name (folders, TypeScript, images, archives, spreadsheets, SQL,
+  lockfiles, `package.json`, Dockerfiles), folders first in natural order,
+  git-style badges, selection and a `fileOpen` event. It is `sv-tree-view`
+  underneath, so keyboard support and the loading, error and empty states are
+  the tree's own. The Files template's folder rail now uses it.
+  `sv-tree-view` (free and Pro) gains an `iconTemplate` input for drawing your
+  own icon before each label.
+- **`sv-diff-viewer`** compares two texts, or reads a `git diff` patch:
+  unified or side by side, both line numbers, a `+` or `−` on every changed
+  line and "Added" / "Removed" for screen readers, long unchanged stretches
+  folded behind "Show N unchanged lines", and the changed words highlighted.
+  Windows and Unix line endings count as the same, a missing final newline is
+  shown, and a diff too large to compare says so instead of freezing the page.
+  `svLineDiff()` is exported.
+- **`sv-stack-trace`** turns an `Error` or a logged stack trace from Chrome,
+  Node, Firefox or Safari into the error's name and message and one row per
+  frame with file, line and column. Frames from `node_modules`, Node itself
+  and bundler runtimes fold behind "Show N library frames"; frames can be
+  clickable (`frameClick`) to open them in your editor. `svParseStackTrace()`
+  is exported.
+
+Every string is a label in all 12 language packs. `@styloviz/code-block` now
+lists `@styloviz/tree-view` as a peer.
+
+### Added — Transfer: drag between the lists
+
+Rows of `sv-transfer` can be dragged to the other list. Dragging a ticked row
+carries every ticked row with it; dragging an unticked one carries just that row.
+A drop is exactly the move the arrow buttons make — the same `transferChange`,
+`saving` lock and `rollback()` — and the checkboxes and arrow buttons remain the
+keyboard and single-tap way. `[draggable]="false"` turns it off. The splitter,
+context menu, menubar, transfer and tree-select galleries each gain a real-world
+and a states example, including nested collapsible panes and a lazy tree.
+
+### Added — Loading, error and real-world examples for ten more families
+
+Bubble, multiple-axis, date-time, polar, waterfall and funnel charts, the record
+grid, affix, progress ring and form error summary each gain an example of their
+loading, error and empty states (with a working Try again) and one of a real job:
+a product portfolio, a P&L bridge, a sign-up funnel, a wind rose, a sticky table
+of contents, a storage quota card, a checkout that focuses its error summary.
+
+### Added — Pagination: jump to page and "load more"
+
+`[jumpToPage]="true"` adds a "Go to page" field beside the page buttons; a number
+past either end goes to the first or last page. `variant="load-more"` is a single
+"Load more" button with a "Showing 40 of 95" count: your app appends each page to
+what is shown, focus stays on the button between pages, and the button goes once
+there is nothing more. Both are labelled in all 12 language packs. The gallery
+gains phone-width, jump, load-more, page-size and server-driven examples.
+
+### Added — Autocomplete: custom option rows
+
+An `svAutocompleteOption` template replaces what each option row shows — an
+avatar and an email, a price, a status — and is given the option, whether the row
+is active or selected, and the typed query. The row itself stays the
+component's, so `aria-activedescendant`, the highlight and the click work exactly
+as before. The gallery gains async search with `svSuggestController`, recent and
+suggested groups, rich rows, and multi-select chips (with `sv-tag-input`).
+
+### Added — Carousel: thumbnails, vertical, and several slides per view
+
+`indicator="thumbnails"` draws a strip of slide previews under the carousel.
+`orientation="vertical"` moves slides up and down, with the arrows above and
+below, the dots down the edge, and ↑ / ↓ and vertical swipes. `slidesPerView`
+shows a row of cards that steps one slide at a time and stops with the last in
+view; each card keeps `slideMinWidth` (220px by default), measured from the
+carousel itself, so a narrow container or a phone shows fewer. The gallery gains
+hero, autoplay, thumbnail, card-row and vertical examples.
+
+### Added — Tabs: scroll arrows and icon-only tabs
+
+A `scrollable` tab strip that overflows now draws previous and next arrows at its
+ends, each shown only while there are tabs hidden that way, and keeps the
+selected tab scrolled into view (the strip scrolls, never the page). The arrows
+are for the pointer — the arrow keys already move along the strip — so they sit
+outside the tablist and out of the tab order; `[scrollButtons]="false"` turns
+them off. `TabItem.iconOnly` draws a tab's icon alone while its label stays the
+accessible name and the hover title. The tabs gallery gains vertical, icon-only,
+count-badge, URL-synced and lazy-panel examples.
+
+A lazy tab panel that was shown without being clicked — the first tab, shown
+by default, or one your code selected — is now kept when you switch away, as
+`lazyRetention="retain"` promises; it used to be destroyed, losing what was
+typed in it, and rebuilt on the way back.
+
+### Added — Data table: rows and cells from the keyboard
+
+`(rowClick)`, `(cellClick)` and inline editing were mouse-only on the table
+layout. In both tables the body is now one tab stop: ↑/↓, Home/End and
+PageUp/PageDown walk the rows, and Enter or Space activates one. → steps into
+the row's cells, where Enter or Space emits `cellClick` and F2 opens an
+`editable` cell's editor; Enter or Escape in the editor puts the cursor back on
+its cell. Keys from a control inside a row keep their own meaning.
+
+### Added — One switch for the kit's console output: `provideSvDiagnostics`
+
+Every warning and error the kit writes now goes through `svWarn` / `svError` in
+`@styloviz/core`, prefixed `[styloviz]`. `provideSvDiagnostics({ silent: true })`
+silences all of it; `provideSvDiagnostics({ handler })` sends each one to your
+error tracker instead of the console. The icon package's "glyph not registered"
+warning obeys the same setting. The rich text editor's export and print failures,
+already shown in the editor, are reported the same way.
+
+### Added — Translatable accessible names: `provideSvLabels`
+
+Every fixed accessible name in the library — 312 `aria-label` literals plus
+43 fixed names hiding in ternaries and fallbacks — is now a label you can
+replace. Each package owns its English defaults (`SV_<PACKAGE>_LABELS`, type
+`Sv<Package>Labels`, exported) and registers a namespace, so overrides are
+type-checked against exactly the packages you have installed:
+
+```ts
+providers: [
+  provideSvLabels({
+    dataTable: { selectRow: 'Zeile auswählen', nextPage: 'Nächste Seite' },
+    richEditorPro: { bold: 'Fett', italic: 'Kursiv' },
+  }),
+]
+```
+
+Namespaces are the package's base name, plus `Pro` for a Pro package
+(`dataTable` / `dataTablePro`). Partial at both levels; several calls layer in
+order. Nothing changes until you provide one — the defaults are the old
+English, byte for byte. A component's own `ariaLabel`-style input still wins
+for that instance. Names composed from data are templates too
+: a label may carry named slots and ICU plurals, filled by the
+`svLabel` pipe / `svFormatLabel()` in the kit's locale —
+
+```ts
+provideSvLabels({
+  tagInput: { removeTag: '{name} entfernen' },
+  breadcrumb: { hidePages: '{count, plural, one {# Seite ausblenden} other {# Seiten ausblenden}}' },
+})
+```
+
+so word order and plural forms are the translation's, not the code's.
+Counts in names now get locale grouping ("1,234"), and three English plurals
+were fixed on the way ("1 more tag", "1 task", "1 active day"). `check:ui`
+fails on any fixed or concatenated English accessible name.
+
+### Changed — One locale for the whole kit: `SV_LOCALE` (**breaking**)
+
+The kit used to decide the language for you: 58 `'en-US'` literals (gantt and
+scheduler headers, date pickers, every count in the AI widgets, the commerce
+`locale` defaults), and 20 calls with no locale at all — which is the
+*browser's* locale, so "1,234" and "1.234" could sit on one page. Every
+display format now reads one value:
+
+```ts
+// app.config.ts — optional: SV_LOCALE already defaults to Angular's LOCALE_ID
+providers: [provideSvLocale('de-DE')]   // from '@styloviz/core'
+```
+
+A component's own `locale` input still wins for that instance. **Added:**
+`SV_LOCALE`, `provideSvLocale()` (validates and canonicalises the tag),
+`svLocale()`, `svFormatCount()`, `svMonthLabels()` and `SV_MACHINE_LOCALE`
+(the fixed format time-zone code parses `Intl` output in) in `@styloviz/core`,
+and a `locale` input on the components that formatted without one —
+`sv-agent-approval`, `sv-ai-model-selector`, `sv-ai-token-dashboard`,
+`sv-ai-writing-assistant`, `sv-artifact-panel`, `sv-autocomplete`,
+`sv-code-block`, `sv-comment`, `sv-dnd-list`, `sv-embedding-map`,
+`sv-event-calendar`, `sv-funnel-chart`, `sv-gantt-chart`, `sv-heatmap-calendar`,
+`sv-heatmap-chart`, `sv-kanban-board`, `sv-pivot-table`,
+`sv-prompt-template-library`, `sv-pyramid-chart`, `sv-query-builder`,
+`sv-rag-knowledge-base`, `sv-rating`, `sv-scale-notice`, `sv-stat-card`
+(+ `-pro`), `sv-tree-view-pro`, `sv-treemap-chart`.
+
+| Changed | **Migrate** |
+| --- | --- |
+| `sv-date-picker`, `sv-date-picker-pro`, `sv-date-range-picker`: no `locale` meant a Monday-first grid with English headings | it now means the kit's locale — an `en-US` app gets a Sunday-first grid with "Sun…Sat"; pass `locale=""` to keep the pre-2.0 grid. `monthNames` is now a signal |
+| `locale` defaulted to `'en-US'` on `sv-price`, `sv-cart-line-item`, `sv-thumbnail-card`, `sv-product-card`, `sv-property-card`, `sv-gift-card`, `sv-order-summary`, `sv-number-ticker` | the default is the kit's locale; pass `locale="en-US"` where an app with another `LOCALE_ID` must keep US formatting |
+| `sv-datetime-category-chart` defaulted to `LOCALE_ID` | defaults to `SV_LOCALE` (the same value unless `provideSvLocale()` is used) |
+| Counts and dates that followed the **browser's** locale (rating, autocomplete, stat card, kanban, tree view, comment, heatmap chart, agent approval, RAG, token dashboard, pivot table) | they follow the kit's locale |
+| `sv-query-builder` preview: "after 1 Jun 2026" | the date is in the locale: "after Jun 1, 2026" (`en-US`), "1. Juni 2026" (`de-DE`); the sentence stays English |
+| Exported helpers without a locale: `svScaleLabel(window, noun)` (core), `formatPivotValue(value, format)`, `svCurrencySymbol(currency)`, `svFormatSpend(amount, symbol = '$')`, `svFormatDelta(delta, unit = '')` (prompt-template-library), `svChunkFlagLabel(flag, limits?)`, `svFormatTokens`, `svDeletionParts`, `svDeletionLabel`, `svPointRowLabel`, `svClusterNavLabel`, `svKeyboardReachLabel`, `svRendererNotice`, `svProseDiffNotice`, `svApproximateDiffNotice`, `svDescribeQuery(expr, fields)`, `svFormatTickerNumber` / `svFormatTickerDisplay` (options optional) | each takes the locale as a required last argument (`svFormatTicker*`: `{ …, locale }`, type `SvTickerLocaleFormatOptions`); defaulted arguments before it are now required — pass `undefined` for the old default |
+| `SV_WEEKDAY_NAMES` (scheduler): English weekday names | removed — use `svWeekdayLabels(locale, firstDay)` or `Intl.DateTimeFormat(locale, { weekday: 'long' })` |
+
+`check:ui` → `locale-literal` keeps it this way: no `'en-US'` outside core's
+`SV_MACHINE_LOCALE`, no `toLocale*()` or `Intl` formatter without a locale, no
+`'default'` locale, no pipe in a library template without its locale argument,
+and no hard-coded English weekday or month-name arrays.
+
+### Changed — App shell: `sv-dashboard-shell`, `sv-sidebar`, `sv-topbar` and `sv-footer` are slot-based (**breaking**)
+
+Until 2.0 these four were the Styloviz site's own chrome: the topbar carried
+Styloviz docs, templates and pricing links and a "Get Pro" button, the footer
+printed "© styloviz", and the shell rendered all of that plus a router outlet and
+six toast hosts with no inputs. They are now a generic app shell. The shell owns
+`collapsed` and `mobileOpen` (both models) and shares them with a projected
+sidebar and topbar through `SV_SHELL_CONTEXT`, so the usual shell binds nothing:
+
+```html
+<sv-dashboard-shell>
+  <sv-sidebar svShellSidebar>
+    <a svSidebarBrand routerLink="/">Acme</a>
+    <sv-sidebar-nav [menuGroups]="nav" [activeRoute]="url()" />
+  </sv-sidebar>
+  <sv-topbar svShellTopbar><sv-avatar topbar-actions name="Ada" /></sv-topbar>
+  <router-outlet />
+  <sv-footer svShellFooter>© 2026 Acme <span svFooterEnd>v3.1</span></sv-footer>
+</sv-dashboard-shell>
+<sv-toast-host position="top-right" />
+```
+
+| Removed | **Migrate** |
+| --- | --- |
+| `<sv-dashboard-shell />` rendering topbar, sidebar, footer, outlet and toasts | project them: `[svShellSidebar]`, `[svShellTopbar]`, the default slot (your `<router-outlet />`), `[svShellFooter]`; add the `<sv-toast-host>` positions you use. `@styloviz/layout` no longer depends on `@styloviz/toast` |
+| `SvDashboardShellComponent.sidebarCollapsed` / `mobileSidebarOpen` / `toggleSidebar()` / `toggleMobileSidebar()` / `closeMobileSidebar()` / `currentUser` | `[(collapsed)]`, `[(mobileOpen)]`, `toggleCollapsed()`, `toggleMobile()`, `closeMobile()`; no user |
+| `sv-sidebar [menuGroups]` (routed menu with `?c=` sub-navigation) | put `<sv-sidebar-nav>` (or any navigation) in the default slot; `sv-sidebar` no longer imports `@angular/router` |
+| `sv-sidebar` logo, `docsUrl`, `githubUrl`, `npmUrl`, `communityUrl`, `version`, `showFooterLinks` | `[svSidebarBrand]` and `[svSidebarFooter]` slots; `label` names the landmark (was a fixed "Main navigation") |
+| `sv-topbar` `overviewUrl`, `docsUrl`, `templatesUrl`, `showTemplates`, `communityUrl`, `pricingUrl`, `licenseUrl`, `showGithub`, `showNpm`, `showLicense`, `showGetPro`, `githubUrl`, `npmUrl`, its overflow menu, and the `ResourceLink` type | project links and menus into `[topbar-start]` / `[topbar-search]` / `[topbar-actions]`; new `showSidebarToggle`, `showThemeToggle` and five label inputs |
+| `sv-footer`'s "© *year* styloviz · Angular 21 & Tailwind CSS 4" and `currentYear` | project your own: default slot (start), `[svFooterEnd]` (end) |
+
+`sv-page-header` is not part of this break: its 1.x API stays, and it gains
+optional slots and actions under *Added — Navigation build set* (the ADR
+amendment is in `docs/navigation-catalog-adr.md`).
+
+### Removed — Popout: use the Popover preset (**breaking**, Pro)
+
+`sv-popout` was a configuration of Popover, not a second family (ADR
+anchored surfaces, D1), and it is gone: `SvPopoutComponent`, `PopoutPosition`
+and `PopoutAlign` are no longer exported. `sv-popover` gained
+`padding` (`'none' | 'sm' | 'md'`, default `'md'`), and `SV_POPOUT_PRESET` now
+includes `padding: 'none'`, so the panel lands on the same pixel and your
+content owns the whole panel, exactly as with Popout.
+
+| Removed | **Migrate** |
+| --- | --- |
+| `<sv-popout position="…" align="…" [width]="n">` | `<sv-popover trigger="click" [interactive]="true" [autoFocus]="true" padding="none" position="…" align="…" [minWidth]="n" [maxWidth]="n">`, or bind `SV_POPOUT_PRESET` |
+| `<button svPopoutTrigger>` | `<button slot="trigger">` |
+| `<div svPopoutContent>` | the default content slot (no attribute) |
+| `[open]` / `(openChange)` | `[(open)]` (a model) |
+| `closeOnEscape` | `closeOnEsc` |
+| `PopoutPosition`, `PopoutAlign` | `PopoverPosition` (`'top' \| 'bottom' \| 'left' \| 'right'`), `PopoverAlign` |
+
+### Changed — Tooltip: the bubble is portalled by default (**breaking**)
+
+`sv-tooltip` and `sv-tooltip-pro` now render the bubble in a `<body>` portal
+unless told otherwise, so a tooltip inside a table cell, a card or a scroll
+area is no longer clipped by an `overflow: hidden` ancestor, and it flips and
+clamps at the viewport edge. **Opt-back:** `[portal]="false"` keeps the bubble
+inside the trigger wrapper — for a host that styled it by its position in the
+DOM. A `[portal]="true"` you already pass is now redundant and harmless.
+
+### Changed — Form builder: control ids are scoped to the form (**breaking**, Pro)
+
+Control ids were `sv-fb-<path>`, so two forms built from one schema on one page
+rendered duplicate ids, and a label's `for` pointed at the first form's control.
+They are now `sv-fb-<n>-<path>` (for example `sv-fb-3-company-legalName`), with
+`<n>` unique per form. **Migrate:** select a control by its `name` or a
+`data-sv-*` hook, not by a literal id.
+
+### Removed — Stepper: `verticalRowPaddingClass()` (**breaking**)
+
+The deprecated method is gone from `sv-stepper` and `sv-stepper-pro`. The
+vertical row's indent now comes from the rail offsets, and nothing read it.
+
+### Removed — Select dropdown: the 1.x search, async, windowing and bulk inputs (**breaking**)
+
+`sv-select-dropdown` and `sv-select-dropdown-pro` are configured only through
+their feature children and `[source]`, the shape added in 1.0.
+Unbound settings keep the old defaults.
+
+| Removed | **Migrate** |
+| --- | --- |
+| `[searchable]` | `<ng-container svSelectSearch />` inside the select |
+| `searchPlaceholder`, `noResultsText`, `loadingText`, `minChars`, `debounceMs`, `serverSide`, `(searchChange)` | the same names on `svSelectSearch` |
+| `virtualThreshold`, `optionHeight`, `virtualViewportHeight` (Pro) | the same names on `<ng-container svSelectVirtual />` |
+| `showSelectAll`, `selectAllLabel` (Pro) | `<ng-container svSelectBulk />` (`selectAllLabel` on it) |
+| `loadOptions`, `SvSelectOptionSource` | `[source]="svSelectSource({ search })"` from `@styloviz/core` — the same `(term, signal)` function |
+| `error`, `hasMore`, `loadingMore`, `stale`, `(retry)`, `(loadMore)` | a `source`: it owns the error and its retry, paging (`pageSize`) and the stale state |
+
+`loading` stays — re-documented as the host's switch for the trigger while it
+resolves the selected value.
+
+### Removed — Deprecated members across the kit (**breaking**)
+
+Every member that 1.x kept only so old code would compile is gone. Each one
+either did nothing or had a documented replacement.
+
+| Package | Removed | **Migrate** |
+| --- | --- | --- |
+| `@styloviz/core` | `StylovizConfig.licenseKey` | delete it — nothing read it; Pro is licensed at install time |
+| `@styloviz/core` | `StyloVizConfig`, `provideStylviz()` (misspellings) | `StylovizConfig`, `provideStyloviz()` |
+| `@styloviz/product-tour` | `variant` input, `TourVariant` | delete it — the free tour is `modal` only; variants are `sv-product-tour-pro [variant]` |
+| `@styloviz/stat-card` | `variant` input, `StatCardData.variant`, `StatCardVariant`, `(cardClick)` | delete them — the free card has one look and is not clickable; use `sv-stat-card-pro [variant]` / `[clickable]` + `(cardClick)` |
+| `@styloviz/layout` | `sv-sidebar` `(toggleCollapse)` | it never fired — drive `[collapsed]` from the shell (`sv-topbar` `(toggleSidebar)`) |
+| `@styloviz-pro/gantt` | `isLoading` input, `showLoading` | `[loading]` |
+| `@styloviz/data-table`, `@styloviz-pro/data-table` | `compact` input | `density="compact"` |
+| `@styloviz/data-table`, `@styloviz-pro/data-table` | `(serverPageChange)`, `ServerPageEvent` | `(queryChange)` (an `SvDataQuery`), with `serverRequestId()` read in the handler for `acceptsResponse(id)` |
+| `@styloviz-pro/input-field` | date-range picker `weekDays` | `weekDayLabels()` (follows `locale` / `weekStart`) |
+| `@styloviz/alert-banner` | public `ngOnInit()` | nothing — re-create the banner (`@if`) to show it again |
+| `@styloviz/overlays` | `sv-result` public `ngAfterViewInit()` | nothing — the arrival focus runs from an effect |
+| `@styloviz-pro/ai-writing-assistant` | `editorText`, `toneApplied` | `text`, `toneFeedback()` |
+| `@styloviz-pro/rich-editor` | `showColorTools`, `ICONS`, `RteToolbarGroup`, `RteToolbarItem` | `[hiddenTools]="['fontColor', 'backgroundColor']"`; the toolbar is configured with `toolbar` / `hiddenTools` and `SV_RTE_TOOL_GROUPS` |
+| `@styloviz/file-upload` | `zoneClasses`, `iconSize`, `labelClass`, `hintClass`, `isDragOver`, `onDragOver/Leave/Drop`, `onZoneKeydown` | delete them — the free uploader is a button; the drop zone is `@styloviz-pro/file-upload` |
+
+### Fixed — Funnel percentages, bubble axes, record-grid states, chart types
+
+A funnel's stage percentage was its share of the SUM of every stage — a number
+that means nothing when each stage is a subset of the one before. It is now the
+stage as a percentage of the top stage ("40% of the top stage"), and the tooltip
+adds the step from the stage above; `FunnelSliceEvent` gains `stepPct`, and the
+"Value" / "% of the top stage" text is translated in all 12 language packs. A
+bubble chart with a negative value — a product line that is shrinking — drew it
+outside the plot; the axis now reaches below zero. A bubble with no usable x or y
+is left out and a size that cannot be drawn gets the minimum radius, each said
+under the plot. The data table's records and mobile-card views now announce their
+loading skeleton and tell "no data" from "no matches", with Clear filters, as the
+table view does. And 34 types that a public input or output uses — chart event
+payloads and options among them — are now exported, so you can name what you
+bind; a new check keeps it that way.
+
+### Fixed — API descriptions are written to you
+
+The API tables on /docs and in every package README publish each input's and
+output's own JSDoc, which was written for the next maintainer: 154 descriptions
+had an ALL-CAPS sentence for the lesson a bug taught, 49 told the history of a
+fix to a version you never had, and 5 named the kit's own test gates. Every
+published copy now goes through one tone pass — shouting in sentence case
+(acronyms and names keep their capitals, code is never touched), history
+sentences dropped, gate names reworded at the source — across 3,742
+descriptions and 65 READMEs. The source JSDoc keeps its notes. A spec fails on
+any published description or README row that still shouts, narrates history or
+names a repo gate.
+
+### Fixed — Hover, focus, pressed and selected states read at AA
+
+`check:contrast` now scores every state arm — `hover:`, `focus:`, `active:`,
+`group-hover:`, `peer-*:`, `aria-selected:` / `aria-current:` and
+`data-[state=…]:` fills and inks, each in light and dark — against the ink the
+element shows in that state, and a hover that changes only the ink against the
+surface it inherits. Text below 4.5:1 under a state is fixed across the kit:
+the button's `link` variant now has a dark hover ink in every colour (it turned
+near-black on a dark page when hovered), and hover or selected fills in the AI
+chat, AI panels, artifact panel, data tables, transfer, JSON viewer, number
+input, guardrail panel, notification center, product tour, event calendar,
+speed dial and widget grid.
+
+### Fixed — Text over images, gradients and glass reads at AA
+
+`check:contrast` now composites every translucent ink (`text-white/60`) and
+every text dimmed by its own `opacity-*` onto the surface it sits on, and the
+uses it cannot place (text over a photo or a runtime fill) are each measured
+by hand and reasoned in a ledger. That found text below 4.5:1 in shipped
+components, now fixed: the alert banner's and product tour's gradients end on
+700 stops; the badge's dismiss glyph; stronger scrims under the captions of the
+thumbnail card, image gallery, mega menu and spinner overlay; the widget grid's
+glass labels; and the Sankey chart's value labels, which now pick a readable ink
+for each node's fill (the gradient variant included). The carousel's and
+product tour's chips are dark glass (`bg-black/20`) so white text reads on a
+light slide.
+
+### Fixed — File upload: a disabled field refuses a pick from its file input
+
+A `change` fired at the hidden `<input type="file">` — by script, or queued
+before a form control disabled the field — still added files while the field
+was disabled. Both tiers now refuse it, as the drop zone always did.
+
+### Changed — Behaviour you may notice after upgrading
+
+Nothing here removes or renames an API, but these defaults now behave
+differently:
+
+- **Sidebar nav:** a section with sub-pages opens on its own toggle
+  (`aria-expanded`, `aria-controls`), not only when its route is active. The
+  parent of the current sub-page is `aria-current="true"`, so only one row is
+  `"page"`.
+- **Signature pad:** `penColor` now defaults to `''`, which follows the
+  theme. The old `#111827` default was invisible on the pad's own dark-mode
+  background. Exports keep the dark document ink unless `penColor` is set, so
+  `toDataUrl()` and `toSvgString()` output is unchanged. A one-point tap is
+  now discarded: it drew nothing, yet it rode along in the value and the
+  attestation hash.
+- **File upload, both tiers:** with `multiple` off, a new file replaces the
+  queued one (`fileRemoved` fires for the old file). Files past `maxFiles`
+  are reported through `intakeSkipped` with `reason: 'max-files'`.
+- **File upload (Pro):** `preventDropOnDocument` defaults to `true`, so a
+  file dropped just outside the zone no longer replaces the page.
+- **Tooltip:** `maxWidth` now wraps the text; before, it did nothing under
+  `whitespace-nowrap`. `[maxWidth]="null"` keeps the single-line bubble.
+- **Anchor:** the active item is shown by a marker that slides along the
+  rail, not by each item's own border. The final section can now become
+  active.
+- **Confirm dialog (Pro):** the glyph is tinted to the variant, the panel
+  fades and scales in and out (instant under reduced motion), and the
+  default `iconStyle` is `ring`. `iconStyle="tile"` is the old look.
+- **Scroll area:** in `variant="auto"` the thumb also shows for about
+  800 ms after each scroll, so touch users see it. The edge fade ends in the
+  host's surface colour rather than white or gray-900.
+
+### Changed — New peer dependencies
+
+Install these alongside the packages that now need them:
+
+| Package | New peers |
+| --- | --- |
+| `@styloviz/avatar`, `@styloviz/badge`, `@styloviz/kbd`, `@styloviz/password-strength`, `@styloviz/streaming-markdown` | `@styloviz/core` |
+| `@styloviz/overlays` | `@styloviz/kbd` |
+| `@styloviz/layout` | `@styloviz/kbd`, `@styloviz/overlays` |
+| `@styloviz/scroll-area`, `@styloviz/anchor` | `@styloviz/icons` |
+| `@styloviz/sidebar-nav` | `@styloviz/overlays`, `@styloviz/scroll-area` |
+| `@styloviz/empty-state` | `@styloviz/avatar`, `@styloviz/kbd` |
+| `@styloviz/phone-input` | `@angular/forms` |
+| `@styloviz-pro/ai-chat` | `@styloviz/ai` |
+| `@styloviz-pro/ai-chat-transport`, `@styloviz-pro/avatar` | `@styloviz/core` |
+| `@styloviz-pro/split-button` | `@styloviz/core`, `@styloviz/icons` |
+| `@styloviz-pro/overlays` | `@styloviz/overlays` |
+| `@styloviz-pro/image-editor` | `@styloviz-pro/icons`, `@styloviz/core` |
+| `@styloviz-pro/layout` | `@styloviz/anchor`, `@styloviz/scroll-area`, `@styloviz/sidebar-nav` |
+| `@styloviz-pro/command-palette` | `@styloviz/avatar`, `@styloviz/empty-state` |
+
+### Added — Tooltip: rich content, 12 placements, groups and `sv-tooltip-pro`
+
+`sv-tooltip` gains:
+
+- **Rich content:** a `title` with `kbd` keys, an icon and a status dot, or
+  any content through `ng-template[svTooltipContent]`. Text alone renders as
+  before.
+- **Placement:** all 12 `SvPlacement` placements, RTL-aware.
+- **Groups:** `svTooltipGroup` and `provideSvTooltipGroup`. The first
+  tooltip waits for its delay, siblings show at once, and only one is
+  visible.
+- **Variants:** `inverted`, `glass` and `value`.
+- **Control:** a controlled `[(open)]`; an element or viewport-point
+  `anchor`; touch `tap` / `hold` / `off`; `fade` / `scale` / `shift`
+  animations; and an `arrow` toggle.
+
+The grouping primitives `SV_TOOLTIP_GROUP` and `createSvTooltipGroup` ship in
+`@styloviz/core`.
+
+**New in Pro:** `sv-tooltip-pro` (`@styloviz-pro/overlays`) passes every free
+input through, so it is a drop-in upgrade. It adds:
+
+- an `interactive` bubble with `hideDelay` that you can hover onto and Tab
+  into; Escape returns focus;
+- `followCursor`.
+
+### Added — Stepper: `card`, `progress-bar` and `xs`; Pro timeline, circular and summaries
+
+Both tiers gain:
+
+- the `card` variant: a box per step, stacked on a phone;
+- the `progress-bar` variant: the current step's label over a segmented
+  bar with 24 px targets, worded by `progressLabel`;
+- the `xs` size.
+
+Pro also adds:
+
+- the `timeline` variant, with `<ng-template svStepPanel>` content under
+  each step (`SvStepPanelDirective`, whose `next()` and `previous()` respect
+  the step gates);
+- the `circular` variant: a progress ring with `n/total` and the next step's
+  name;
+- `StepperItem.summary`, shown on completed steps with an `Edit` affordance
+  (`summaryEditLabel`).
+
+### Added — Form builder: sections, density, two columns (Pro)
+
+Groups now wrap their fields in a real `<fieldset>`; before, assistive tech
+announced a group with no members. New inputs:
+
+- `density`: `compact` or `comfortable`;
+- `columns`: `1` or `2`, a container query, with a per-field `span: 1 | 2`.
+
+The schema check reports an `invalid-span` problem. Later top-level sections
+and nested groups are ruled off, and the actions sit on their own row.
+
+### Added — Confirm dialog: icon styles, layouts and safer confirmations (Pro)
+
+- **Appearance:** `iconStyle` (`ring`, `tile`, `plain`), `align`, an
+  `inset` footer, a `blur` / `dim` / `none` backdrop, a stacked button
+  layout, and `mobileSheet`, which docks the dialog to the bottom on a phone.
+- **Content:** a `[svConfirmIllustration]` slot, and `consequences[]`, read
+  out as part of the description.
+- **Making the user slow down:**
+  - `acknowledgeLabel`: a checkbox that must be ticked;
+  - `confirmDelayMs`: a countdown;
+  - `confirmHoldMs`: hold to confirm, by pointer, Space or Enter;
+  - `reasonLabel` / `reasonRequired` / `[(reason)]`, with
+    `confirmedWithReason`;
+  - an announced, mono type-to-confirm field.
+- **Errors:** an `[error]` input for a host-driven save.
+- **Labels:** every string, through `SV_CONFIRM_DIALOG_LABELS`.
+
+A click outside the panel cancels again; a full-height shell had been
+swallowing it.
+
+### Added — Command palette: pages, actions, preview, scopes and more (Pro)
+
+- **Navigation:** nested pages (`CommandAction.children`, `[(pages)]`) with
+  breadcrumbs and Backspace / Escape to step back.
+- **Actions:** a per-command actions menu (`CommandAction.actions`) on the
+  open key or →.
+- **Preview:** a split `layout` with a preview pane.
+- **Scopes:** prefix chips (`scopeChange`).
+- **AI fallback:** `config.aiFallback` adds an "Ask AI" row (`aiAsk`).
+- **Lists:** `[(pinnedCommandIds)]` and `suggestedCommandIds`.
+- **Looks:** the `glass` and `minimal` variants and a `spotlight` placement.
+- **Shortcuts:** key sequences such as `g d`.
+- **Rows:** rotating `placeholderHints`, avatars and thumbnails, and sticky
+  group headers.
+- **States:** a loading skeleton and an empty state.
+- **Scale:** a windowed list past `config.virtualizeAbove` rows.
+
+`@styloviz/core` gains `svParseShortcutSequence` and
+`svShortcutSequenceTokens`, and chord support in the shortcut registry.
+
+A command that is also in Recent now has one id and one highlight per row.
+Hover follows real pointer motion, and a vetoed backdrop click keeps focus
+in the search box.
+
+### Added — Mega menu: tabs, cascade, icon grid, search and presets (Pro)
+
+- **Layouts:** per item, vertical `tabs`, `layout: 'cascade'` and
+  `layout: 'icon-grid'`; on the menu, `width="full"` with 4- and 5-column
+  sets.
+- **Featured content:** `featuredCards` with `featuredLayout`, promo /
+  stats / testimonial cards, and link thumbnails.
+- **Panels:** a footer strip, searchable panels, an `activeHref` trail,
+  `panelTone`, and a recent column.
+- **Hover intent:** `corridor` / `delay` / `none`, with an `intentChange`
+  output.
+- **Mobile:** `mobileLayout="stacked-pages"`.
+- **Keyboard:** full navigation, PageUp / PageDown between regions.
+- **Presets and labels:** `MEGA_MENU_*` presets and
+  `SV_MEGA_MENU_LABELS`.
+
+`@styloviz/core` gains `svSafeCorridorTriangle` and a `slop` option on
+`svInSafeCorridor`.
+
+### Added — Empty state: variants, illustrations, checklist and search echo
+
+- **Variants:** `dashed`, which makes the card itself the action, `ghost`
+  and `glow`.
+- **Illustrations:** four themed illustrations, with `illustration="auto"`
+  picking by reason, and `[svIllustration]` / `[svMedia]` slots.
+- **Onboarding:** a `steps[]` checklist (`stepClick`).
+- **Search echo:** "No results for «x»", with `suggestions[]` and Clear
+  search.
+- **Errors and access:** `errorDetails` and `requestAccessLabel`.
+- **Layout and extras:** `xs` and `xl` sizes, `align="start"`, an avatar
+  stack, and a keyboard `shortcut`.
+- **Labels:** `SV_EMPTY_STATE_LABELS`.
+
+### Added — Sidebar nav: a full accessible rework, and `sv-sidebar-nav-pro`
+
+`sv-sidebar-nav` gains:
+
+- **Expansion:** `[(expandedIds)]`, `expandMode`, `[(collapsedGroups)]`,
+  and collapsible groups and dividers.
+- **Items:** a third level; item `id`, `dot`, `shortcut` and `external`.
+- **Rows:** `badgeVariant`, `activeStyle`, `density`, `labels`, user and
+  top slots, and the `svSidebarNavItemEnd` row-end template.
+- **Keyboard:** Up / Down / Home / End and type-ahead.
+- **Rail:** labels with a kit tooltip.
+- **Drawer:** a scroll-area list with edge fades, a `push` drawer, and
+  swipe to close / edge swipe to open.
+
+**New in Pro:** `sv-sidebar-nav-pro` (`@styloviz-pro/layout`) adds search,
+pins, `tone` (including `dual`), glass over media, a resizable width, a
+workspace slot and portalled rail flyouts.
+
+### Added — Anchor: nesting, numbering, progress and the Pro bar and outline
+
+`sv-anchor` gains:
+
+- nested and collapsible items, numbering and appearances;
+- a reading-progress indicator and `activationOffset`;
+- arrow keys and `hashSync`, plus `ariaLabel` (default "On this page");
+- the exports `svFlattenAnchorItems` and `SV_ANCHOR_LABELS`.
+
+**New in Pro** (`@styloviz-pro/layout`):
+
+- `sv-anchor-bar`, a sticky underline bar with loading, error and empty
+  states;
+- `sv-anchor-outline`, generated from the page's headings
+  (`svHeadingOutline`).
+
+**Fixed:** `createScrollSpy` skips a section whose element has not rendered
+yet, instead of throwing from `IntersectionObserver.observe(null)`. The section
+is tracked as soon as your `sections` signal hands in its element.
+
+### Added — Scroll area: two axes, snap, styles and a scroll API
+
+- **Axes:** `orientation="both"` with a corner, and a sticky
+  `[svScrollAreaHeader]` slot.
+- **Snapping:** `snap` (`snapChange`).
+- **Sizing:** `contentHeight`, and `fill` for a flex column.
+- **Styles:** `scrollbars="inset"`, `thumbStyle`, `size`, `fadeStyle` /
+  `fadeColor`, `variant="hover"` with `hideDelay`, and a `progress` bar.
+- **Back to top:** a `backToTop` button.
+- **Scroll API:** `scrollTo`, `scrollBy`, `scrollToStart`, `scrollToEnd`
+  and `scrollIntoView`, which move the area and never the page.
+- **Events:** `reachedEnd` / `reachedStart`.
+
+### Added — File upload: edit forms, form rules and a real uploader (both tiers)
+
+Both tiers gain:
+
+- **Existing files:** `initialFiles` shows a record's existing
+  attachments; they are never re-sent.
+- **Text:** `labels` over `SV_FILE_UPLOAD_LABELS`.
+- **Checks:** a sync or async `validator`.
+- **Form rules:** `required`, `minFiles`, `maxTotalSizeMb` and
+  `minSizeMb`.
+- **Duplicates:** a `duplicates` policy.
+- **Actions:** an `actions` row, with `retryFailed()`.
+- **Uploading:** `svHttpUploader`, for XHR progress and pre-signed PUT
+  uploads, which sends `ctx.meta` as multipart fields.
+- **Demos:** a deterministic `demoFailureRate`.
+
+On the free tier, `size` now scales the trigger.
+
+**New in Pro:**
+
+- **Listing:** a `grid` list with reordering, row preview and download.
+- **Progress:** transfer stats.
+- **Resuming:** `pausable` uploads with a `resumeStore`.
+- **Dropping and removing:** `dropOnPage`, and a `beforeRemove` veto.
+- **Templates:** row, empty and header template slots.
+- **Metadata:** per-file `metadataFields`.
+- **Sources:** URL and camera.
+- **Previews:** video and PDF.
+- **Drag checks:** a verdict during the drag, and `minImageSize` /
+  `maxImageSize`.
+
+### Added — Image cropper: zoom, turn, straighten, filters, round crops and a toolbar (Pro)
+
+All of it is opt-in:
+
+- **Transform:** `zoomable` with `[(zoom)]`, `[(rotation)]`,
+  `[(flipX)]` / `[(flipY)]`, and `[(straighten)]` from −45° to 45°.
+- **Adjustments:** `[(filters)]` for brightness, contrast and saturation.
+- **Interaction:** `dragMode`.
+- **Shape and output:** `shape="round"`, `outputSize`, `minOutput`,
+  `initialCrop` and `showGrid`.
+- **Aspect:** `aspect` as a model, with `aspectPresets`.
+- **History:** undo / redo, and `resetView()`.
+- **Toolbar:** a `toolbar` of controls.
+- **Preview:** a live `sv-crop-preview`.
+- **Loading:** `crossOrigin`.
+
+The eight handles are now one roving tab stop. The mask leaves a real
+undimmed hole, touch drags no longer cancel part-way, and the crop is
+re-measured after a reflow.
+
+### Added — Rich text editor: every toolbar tool is a switch (Pro)
+
+`toolbar` takes a preset (`full`, `basic`, `minimal`, `comment` or `none`)
+or an explicit list of `SvRteToolId`s. `hiddenTools` accepts any of the 33
+tool ids, and there are `visibleTools`, `show(id)` and `showGroup(g)`. The
+groups and presets are exported as `SV_RTE_TOOL_GROUPS` and
+`SV_RTE_TOOLBAR_PRESETS`.
+
+### Added — Jump menu: scroll to the section, follow a scroll-spy, Go mode
+
+- **Scrolling:** `scrollTarget` and `scrollOffset` scroll to the chosen
+  section, and a `jumped` output reports it.
+- **Scroll-spy:** `activeId` lets a scroll-spy drive the select.
+- **Go mode:** `goButton` / `goLabel` choose first and go on Go or Enter.
+- **RTL:** supported.
+
+### Added — Signature pad: `redo()` and `readonly`
+
+- **History:** `redo()` / `canRedo` put back what `undo()` removed.
+- **Read-only:** `readonly` shows a stored signature at full opacity, with
+  no drawing.
+- **Stored strokes:** strokes may carry their own `color` and `width`. They
+  sit outside the `sv-signature-v1` hash, so old records still verify.
+- **Restoring:** a pad restored while hidden re-fits when it appears.
+
+### Added — Phone input: works in Angular forms
+
+- **Forms:** `sv-phone-input` is a `ControlValueAccessor` (`[(ngModel)]`,
+  `[formControl]`).
+- **Forwarded inputs:** `hint`, `placeholder`, `required`, `name` and
+  `variant` reach the number field.
+- **Input mask:** `sv-input-mask` gains `placeholder`, `required`, `name`
+  and `ariaLabel`.
+
+### Fixed — Phone input: one label, a portalled country list, a single seam
+
+- **Label:** the field label sits above the row, and the country button is
+  named with the label and the country.
+- **Country list:** it is portalled to `<body>`, so cards no longer clip
+  it; it lines up in RTL.
+- **Seam:** the seam between picker and field is drawn once, with logical
+  borders.
+- **One country:** when only one country is allowed, the picker becomes a
+  static flag and dial code.
+
+### Fixed — Smaller fixes across the kit
+
+- **Autocomplete:** the "Showing N of M" row is inside the listbox and
+  sticks to its bottom. The highlighted option scrolls into view. A mobile
+  keyboard resize no longer closes the panel.
+- **Field labels:** autocomplete, time picker, color picker, input mask and
+  the Gantt, rich editor, query builder, address form and jump menu
+  dialogs share the kit's 6 px label gap and dark-mode label colour.
+- **Scroll area:** a horizontal strip now shrinks inside a grid or flex
+  parent; it used to grow to its content width and never scroll.
+- **Stepper (both tiers):** the state glyph is sized in px and centred.
+  The vertical rail now runs under the indicators; it sat 40–64 px to their
+  left.
+- **Notification center (both tiers):** the search box has its own gap and
+  separator when no tabs follow it.
+- **Avatar (both tiers):** the fallback glyph and the Pro verified check
+  scale with the avatar; they were 11 px at every size.
+- **Drawer (Pro):** initial focus survives the first frames of the
+  slide-in; it was landing on `<body>`.
+- **Gantt (Pro):** the load-chart tooltip is no longer clipped by its
+  scroll strip.
+- **Sidebar and dashboard shell:** they transition only `width`,
+  `translate`, `visibility` and `margin-inline-start`, not every property, and respect reduced
+  motion. Collapsing no longer re-lays out the whole page per frame with
+  the glass filter.
+
+### Fixed — Scrolling no longer flashes flat panels over the content
+
+Scrolling the component gallery — and the admin, dev and marketing pages —
+could flash a flat rectangle in a card's own colour over its content. Every
+demo card and dashboard card was a `backdrop-filter` surface inside the scroller,
+and two 64 px `filter: blur()` glows sat behind it; the GPU re-applies both on
+every scroll frame, and when it fell behind it painted a card with only its
+tint. Glass now stays only where something really moves behind it — sticky
+bars, overlays, controls over images — and everything else keeps its
+translucent colour without the filter. Measured on the gallery's data-tables
+page: composited layers 95 → 15, backdrop-filter layers 35 → 6, p95 scroll
+frame 116 → 50 ms (software raster).
+
+In the shipped packages: `sv-list-view`, `sv-page-header`, `sv-footer`,
+`sv-spotlight-stat-card`, the `sv-widget-grid` glass layout, `sv-gift-card`,
+the date-picker header and `sv-gantt-chart`'s tag popover no longer use
+`backdrop-filter`; each keeps the stacking context the filter used to create
+(`isolate`), so nothing layered inside them moves. `sv-list-view`'s `soft`
+variant now lays its tint over the base surface instead of replacing it:
+without the frost, the 25–40 % tint alone let most of whatever sits behind
+the list show through its rows. Same colour on a plain background.
+
+### Fixed — Skeleton shimmer: one sheen per bone, and it respects reduced motion
+
+Every `sv-skeleton-loader` bone ran two counter-moving shimmers: the kit
+stylesheet's global `.skeleton-wave` rule also animated the bone behind the
+component's own sheen. Both shimmers repainted every bone on every frame. Each
+is now a compositor-only `transform` animation with the same speed, width and
+phase as before, and the global shimmer — which ignored
+`prefers-reduced-motion` — now stops for readers who asked for less motion.
+
+### Added — `.sv-glow` and `.sv-glow-rect`
+
+A soft ambient glow with the look of `blur-3xl` on a coloured shape, drawn as a
+mask instead of a GPU filter. Replace the blur utility and keep the shape's own
+`bg-*`: `blur-3xl` → `sv-glow`, `blur-2xl` → `sv-glow sv-glow-2xl`,
+`blur-[120px]` → `sv-glow [--sv-glow-blur:120px]`; rectangles and long, thin
+shapes use `sv-glow-rect`. Within 1–9/255 of the real blur on every shape the
+kit uses. Ships in `@styloviz/core/styles/styloviz.css`; browsers without CSS
+math functions keep the original filter.
+
+### Added — `svPauseOffscreen` (`@styloviz/core`)
+
+A directive that pauses every CSS animation inside its host while the host is
+out of view, and resumes them a little before it returns — for pages that
+render many spinners, live dots or shimmers at once.
+
+---
+### Added — the chat chrome as components
+
+`sv-ai-chat` is now built from five parts you can use on their own.
+
+- **`@styloviz/ai`** — a new free package for AI chat building blocks:
+  - **`sv-suggestions`**: starter prompts or follow-ups, as a list, a grid or
+    chips. It takes `loading` / `error` / `retry` for prompts fetched from an API.
+  - **`sv-message-actions`**: the row under a message. Copy confirms only after
+    the clipboard write lands, and names the copy shortcut when it cannot. It
+    also has thumbs up / down (`[(feedback)]`) and regenerate.
+- **`@styloviz-pro/ai-chat`** now also exports:
+  - **`sv-prompt-input`**: the composer. It has attachments under
+    `svCheckAttachments` (a refused file stays visible with its reason), `/`
+    commands, a model picker portalled to `<body>`, a mic toggle and a tools
+    slot.
+  - **`sv-thread-list`**: a searchable conversation history grouped by recency,
+    with rename, pin and two-press delete.
+  - **`sv-selection-toolbar`**: actions over selected text, with a keyboard path
+    for read-only text.
+- New `sv-ai-chat` inputs: `slashCommands`, `attachable`, `attachmentLimits`,
+  `voice`, `listening`, `sessionActions` and `selectionActions`. New outputs:
+  `promptSubmit`, `filesPicked`, `slashCommand`, `micToggle`, `sessionSearch`,
+  `sessionRename`, `sessionPin`, `sessionDelete` and `selectionAction`. All are
+  off or empty by default.
+- `thumbs-down` joins the free icon set.
+
+### Changed — `sv-ai-chat`
+
+- **The model picker moved from the header into the composer's toolbar**, in the
+  copilot and full-page layouts. The header still shows the model's name, and
+  `[(selectedModel)]` / `modelChange` work as before. The menu is now portalled
+  to `<body>`: the old panel sat inside the chat and an `overflow: hidden`
+  ancestor clipped it.
+- **The full-page history search works.** The box was bound to nothing. It now
+  filters `sessions` by title and preview, and emits `sessionSearch` (debounced)
+  for server search.
+- **Enter that commits an IME composition no longer sends.** Japanese, Chinese
+  and Korean input used to post half a word.
+- While a reply streams, the composer stays editable, so you can draft the next
+  question. Send turns into stop, and Enter does nothing.
+- A message with attachments and no text can now be sent.
+
+### Removed — `sv-ai-chat` internals · migration
+
+These were public class members but not inputs or outputs. They are gone because
+the parts that used them moved into the new components:
+
+- `copiedId` and `copyFailedId`: the copied / failed state now lives in
+  `sv-message-actions`. **Migrate:** use the `Promise<boolean>` that
+  `copyMessage(id, text)` now returns (it used to return `Promise<void>`), and
+  keep listening to `(copyFailed)`.
+- `isModelOpen` and `toggleModelPicker()`: the picker belongs to `sv-prompt-input`.
+  **Migrate:** use `selectModel(model)` or `[(selectedModel)]`.
+- `setInput()`, `handleKeydown()` and `speedLabel()`. **Migrate:** set
+  `inputText` and call `sendMessage()`.
+
+### Added — Navigation build set
+
+All additive and on today's behaviour by default unless noted under *Changed*.
+
+- **Left / Right follow the reading direction.** Under `dir="rtl"` —
+  read from the host with core `svIsRtl`, so a `dir="rtl"` ancestor counts — `sv-tabs`
+  (horizontal), `sv-stepper` / `sv-stepper-pro` (horizontal, with `enableHotkeys`) and
+  `sv-mega-menu` (the bar and every panel region: columns, tab list, icon grid, footer)
+  mirror ArrowLeft / ArrowRight, so the arrow always points where focus goes. The mega
+  menu's top-level bar now takes Left / Right (wrapping) and Home / End between its
+  items, closing an open panel when focus moves on. New exports
+  `svMegaMenuBarMove()` and `svMegaMenuLogicalKey()`; `svMegaMenuMove()` takes an
+  optional trailing `rtl` argument. Full right-to-left support for the rest of
+  the kit comes in a later release.
+- **Nested-navigation specs.** A tabset in a tabset, an accordion in an
+  accordion (both tiers), an anchor rail inside its own scroll container beside a page
+  rail, and a breadcrumb menu in a dark RTL host: arrow keys stay in their level, ids are
+  unique, the portal carries `dark`, `dir` and `lang`.
+- **Back / Forward and no-JavaScript e2e.** `e2e/navigation-history.spec.ts`
+  drives the real `svQueryParamNavLocation` with `page.goBack()` / `goForward()` over
+  Tabs, Pagination, Stepper and Accordion `urlKey` state; `e2e/navigation-no-js.spec.ts`
+  follows Anchor, Breadcrumb and Mega Menu links with `javaScriptEnabled: false`
+  (`npm run e2e:navigation`). The guide `/docs/choosing-a-navigation-pattern` gains the
+  two demos they drive: a live URL-state demo (deferred) and a server-rendered
+  "Without JavaScript" section, proved by a `renderApplication` spec.
+- **Print and find-in-page.** `sv-accordion` / `sv-accordion-pro` reveal
+  every enabled panel on `beforeprint` through the reveal registry (rendered
+  synchronously, height transition off under `print:`) and withdraw it on `afterprint`;
+  the reader's `openIds`, the URL and `itemToggled` are untouched. New input
+  `expandOnPrint` (`true`) and methods `expandAll()` (multi mode; a warned no-op in
+  single) and `collapseAll()` (also collapses a live search reveal, rescuing focus).
+  `sv-tabs` marks inactive MOUNTED panels `hidden="until-found"` where the browser
+  supports it, and a `beforematch` selects that tab; new input `findInPage` (`true`).
+  Never-visited lazy panels and `lazyRetention="destroy"` panels are not in the DOM —
+  the documented omission — and print prints the active panel only.
+- **A refused step is spoken.** `sv-stepper` / `sv-stepper-pro` announce
+  every `stepBlocked` through `SvLiveAnnouncer`: "Cannot go to {step}. {reason}", with
+  the built-in reason (disabled, validation; Pro: linear, guard) or the host's own
+  `deny('…')` text. New input `announceBlocked` (`true`), public `blockedReasonText()`,
+  new labels `stepBlocked`, `blockedDisabled`, `blockedValidation` (+ Pro
+  `blockedLinear`, `blockedGuard`) in 12 languages. Showcase "Blocked Step and Error
+  Summary": `(stepBlocked)` fills an `sv-form-error-summary` and focus moves to it.
+- **Filterable FAQ.** A search field bound to `sv-accordion`'s
+  `searchQuery` — showcase demo "Filterable FAQ" and a docs example.
+- **Mega Menu, Breadcrumb and Jump Menu on `SV_NAV_TELEMETRY`.** New
+  `surfaceId` input on each. Mega menu: a panel (or drawer page) opened is `explore`, a
+  link / top-level item / featured card followed is `jump`, Escape is `escape`.
+  Breadcrumb: a crumb or sibling page is `jump`, a sibling menu or the collapsed middle
+  opened is `explore`, Escape out of the menu is `escape`. Jump menu: each destination
+  taken is `jump`. Consent and retention are the sink's, as for Tabs and Pagination.
+- **Workspace Switcher — new Pro component `sv-workspace-switcher` in
+  `@styloviz-pro/layout`.** The current workspace of a multi-tenant dashboard and a
+  body-portalled panel to change it: search across favourites, recents and every
+  workspace grouped by organization, a favourite star per row (`[(favoriteIds)]`),
+  locked workspaces with their reason (permissions), Create / Manage actions, and the
+  async list states (`loading`, `error` + `retry`, no-data with Create, no-results).
+  The switch is an explicit state: a pick sets `[(switchingTo)]` and emits
+  `switchRequest`; the trigger goes busy (`aria-busy`, `data-sv-switching`) and is
+  announced until the host commits by setting `[(currentId)]` ("Now in …") or
+  abandons by clearing `switchingTo` ("Could not switch to …"). Exports
+  `SvWorkspaceSwitcherComponent`, `svWorkspaceInitials`, `svWorkspaceMatches` and the
+  types `WorkspaceSwitcherItem`, `WorkspaceSwitcherTone`, `WorkspaceSwitchRequest`,
+  `WorkspaceFavoriteChange`; 21 new `layoutPro` labels in 12 languages. Showcase,
+  docs, navigation and kit counts (161 components) updated.
+- **Page header coordinates the page's navigation.** `sv-page-header`
+  gains slots `[svPageHeaderBack]` and `[svPageHeaderBreadcrumb]` (above the title),
+  `[svPageHeaderMeta]` (beside it) and `[svPageHeaderTabs]` (bottom edge), with marker
+  directives `SvPageHeaderBackDirective`, `SvPageHeaderBreadcrumbDirective`,
+  `SvPageHeaderMetaDirective`, `SvPageHeaderTabsDirective`; with a navigation slot in
+  use the header is one `region` landmark named by its title (ADR Decision 2). New
+  `actions` (`PageHeaderAction`, the toolbar action shape), `actionsLabel` and
+  `actionClick`: the actions render through `sv-toolbar` with `overflow="menu"`, so what
+  does not fit folds into the kit's "More actions" menu. Title, subtitle and the
+  projected actions slot are unchanged. New `layout` label `pageActions`.
+
+### Changed — Navigation · migration
+
+- **RTL arrow keys.** Under `dir="rtl"`, ArrowLeft now moves to the NEXT
+  tab / step / mega-menu column and ArrowRight to the previous one (they did the
+  opposite). LTR is unchanged. *Migration:* tests or host key handlers that assumed
+  ArrowRight = next inside an RTL page should follow the visual direction.
+- **Mega menu bar arrow keys.** Left / Right / Home / End on a top-level item now move
+  focus along the bar (they did nothing) and close an open panel when focus leaves its
+  item. *Migration:* none for hosts.
+- **Tabs: inactive mounted panels.** Where the browser supports
+  `hidden="until-found"` (and `findInPage` is on), an inactive mounted panel carries
+  that attribute instead of the `hidden` class. Both hide it; only the first is
+  searchable. *Migration:* tests or CSS that looked for `.hidden` on an inactive panel
+  should accept either, or set `[findInPage]="false"` for the old markup.
+- **Accordion print.** Printing now includes every enabled panel.
+  *Migration:* set `[expandOnPrint]="false"` for content that must stay off paper.
+- **Stepper speaks refusals.** A blocked move is now announced. *Migration:*
+  a host that already announces or focuses its own message on `(stepBlocked)` sets
+  `[announceBlocked]="false"` so the reader is not told twice.
+- **Telemetry.** With `provideSvNavTelemetry()` wired up, Mega Menu,
+  Breadcrumb and Jump Menu now send events to the sink. *Migration:* none — without a
+  sink nothing is recorded.
+- **`check:ui`.** `workspaces` joins the collection-input names the
+  data-wiring rules check, and `sv-workspace-switcher` is in
+  `scripts/data-wiring.migrated.json`.
+- **In-page links carry the page path.** `sv-anchor`'s rail links and
+  `sv-dashboard-shell`'s skip link render `href="/current/path#id"` instead of
+  `href="#id"`. Under an Angular app's `<base href="/">` a bare fragment resolves to the
+  site root, so without JavaScript (a prerendered page before hydration) the link left
+  the page; found by `e2e/navigation-no-js.spec.ts`. New core helper `svFragmentHref`.
+  With JavaScript nothing changes — the click handlers still scroll or focus in place.
+  *Migration:* tests asserting `href="#id"` should expect the page path in front.
+
+### Added — Layout build set
+
+All additive and on today's behaviour by default unless noted under *Changed*.
+
+- **Splitter drags always end.** `sv-splitter`'s separator uses Pointer
+  Events with pointer capture — one path for mouse, touch and pen — so a release outside
+  the window still reaches it, and a drag also ends on `pointercancel`, lost pointer
+  capture and the window losing focus. Only the primary pointer drags (a second finger is
+  ignored), and the separator is `touch-action: none`. New outputs `resizeStart` and
+  `resizeEnd` (the split % it started from / settled at) bracket every gesture — a drag,
+  however it ended, and each keyboard or step-button move — so a host persists on
+  `resizeEnd` instead of every `resized`. Double-clicking the separator runs
+  `resetLayout()`.
+- **RTL for the layout family.** Under `dir="rtl"`: `sv-splitter`'s drag is
+  measured from the right edge (core `svPointerFraction`), ArrowLeft/Right move the
+  divider the way the arrow points, and the step buttons' arrows and names and the collapse
+  chevrons mirror (new public `rtl` signal; `splitAt` stays logical). `sv-toolbar`'s
+  Left/Right follow the visual direction (Up/Down/Home/End unchanged) and its menu rows
+  align to the inline start. `sv-dashboard-shell` offsets the content with
+  `margin-inline-start` and `sv-sidebar` is pinned to the inline start (`start-0`,
+  `border-e`, the closed overlay slides off to the right). `sv-divider`'s vertical rule
+  draws on the inline-start edge. `sv-watermark` marks carry `dir="auto"`. RTL specs for
+  splitter, toolbar, shell, sidebar, divider and watermark.
+- **Skip link in the app shell (WCAG 2.4.1).** `sv-dashboard-shell`'s first
+  focusable element is a "Skip to main content" link, hidden until focused, that moves
+  focus to `<main>` (now `tabindex="-1"` with a generated id). New inputs `skipLink`
+  (`true`) and `skipLinkLabel`; new method `focusMain()`; new `layout` label
+  `skipToMainContent` (12 languages).
+- **Number Ticker: locale grouping and compact notation.** The plain format
+  takes grouping and the decimal mark from `locale` through `Intl.NumberFormat`
+  (`1.234,5` in de-DE, `12,34,567` in hi-IN; 1e21 prints as digits). New input / option
+  `notation: 'standard' | 'compact'` on `sv-number-ticker`, `svFormatTickerNumber`,
+  `svFormatTickerDisplay` and the `svTickerNumber` pipe (`1.2M`, `$1.2M`, `1,2 Mio.`); new
+  type `SvTickerNotation`. Changing a formatting input re-renders the settled figure in
+  place.
+- **Toolbar action metadata.** `ToolbarAction.pending` — `aria-busy`, a
+  spinner (`motion-safe:animate-spin`) in place of the icon and an inert click, without
+  disabling the button — the per-action twin of `busyIds`, which now shows the same
+  spinner. `ToolbarAction.shortcut` (an `sv-kbd` chord such as `mod+s`) is exposed as
+  `aria-keyshortcuts` and drawn with `sv-kbd` in an `sv-tooltip` and in the overflow-menu
+  row. New export `svToolbarAriaShortcut()`; new public `isPending()` and
+  `shortcutKeys()`. Showcase demo "Pending Actions and Shortcuts".
+- **Nesting and multi-instance specs.** Nested splitters, nested scroll
+  areas, nested expands, two (and a late third) affixes on one page, and each family's
+  content added after init — `splitter.nesting.spec.ts`, `scroll-area.nesting.spec.ts`,
+  `expand.nesting.spec.ts`, `affix.multi.spec.ts`.
+- **Layout reflow e2e matrix.** `e2e/layout-reflow-matrix.spec.ts`
+  (`npm run e2e:layout`): every Layout & Utilities family, derived from the docs registry,
+  at 320 CSS px (1280 px at 400 % zoom) and on a 390 px touch device — no sideways scroll
+  in `<main>`, no clipped controls, a PNG per cell — plus affix dock transitions, splitter
+  drag, the toolbar overflow menu, scroll-area thumbs and WCAG 2.5.8 target spacing, speed
+  dial menus, and a floating speed dial + Scroll to Top stacking clear of each other (new
+  opt-in showcase demo "Floating, stacked with Scroll to Top").
+- **Expand renders its initial state on the server.** The collapsed
+  `display: none` is a template binding, so a prerendered collapsed panel ships hidden and
+  hydrates without a flash; proved with a real `renderApplication` render
+  (`expand.ssr.spec.ts`).
+- **Watermark docs.** "Durable marks are server-side": stamp exports and PDFs
+  on the server, keep the client mark as an on-screen deterrent.
+
+### Changed — Layout · migration
+
+- **`sv-splitter` drags with Pointer Events.** The separator listens to `pointerdown`
+  (not `mousedown` / `touchstart`) and the public handler methods `onMousedown`,
+  `onMouseMove`, `onMouseUp`, `onTouchStart`, `onTouchMove` and `onTouchEnd` are gone
+  (replaced by `onPointerDown`). Keyboard and step-button moves now also emit
+  `resizeStart` / `resizeEnd`. *Migration:* tests that dispatched `mousedown` /
+  `mousemove` / `mouseup` (or `touch*`) on the separator dispatch `pointerdown` /
+  `pointermove` / `pointerup`; nothing to change for a host that only binds inputs and
+  outputs.
+- **`sv-number-ticker`'s plain format follows `locale` (breaking for non-English
+  locales).** `separator` now defaults to `null` — the locale's grouping — instead of
+  `','`, and the decimal mark is the locale's instead of always `.`; `separator` set
+  explicitly overrides only the group separator. Rounding is `Intl`'s (half away from
+  zero) rather than `toFixed`'s. Output under the default `en-US` locale is unchanged for
+  ordinary values. *Migration:* to keep the 1.x output in another locale, bind
+  `locale="en-US"` (and `separator=","` if you relied on it); the same applies to the
+  `svTickerNumber` pipe and `svFormatTickerNumber`, whose `separator` option is now
+  "the locale's" when omitted.
+- **`sv-toolbar` composes `sv-tooltip` and `sv-kbd`.** `@styloviz/layout` adds the peers
+  `@styloviz/overlays` and `@styloviz/kbd`. An action with a `shortcut` is wrapped in
+  `<sv-tooltip>` and its button loses the native `title`; actions without one are
+  unchanged. A busy action (`busyIds`) now shows a spinner in place of its icon.
+  *Migration:* install the two peers; selectors that expected the action button as a
+  direct child of `[role="toolbar"]` should query `[data-sv-toolbar-index]` instead.
+- **`sv-dashboard-shell` renders a skip link and `<main tabindex="-1" id="…">`.** The
+  shell's first Tab stop is now "Skip to main content". *Migration:* if the page already
+  renders its own skip link, set `[skipLink]="false"`.
+- **Logical edges in the layout family.** `sv-dashboard-shell`'s content offset classes
+  are `lg:ms-64` / `lg:ms-20` (were `lg:ml-*`), `sv-sidebar` is `start-0 border-e` (was
+  `left-0 border-r`), and `sv-divider`'s vertical rule is `border-s` /
+  `border-inline-start-*` (was `border-l` / `border-left-*`). Identical in LTR.
+  *Migration:* update tests or CSS that targeted the physical class names.
+- **`sv-expand` no longer writes its initial `display` in `ngAfterViewInit`** (the class
+  no longer implements `AfterViewInit`); the state is the same, rendered from the template.
+- **Reflow at 320 px.** Found by the layout reflow matrix
+  (`e2e/layout-reflow-matrix.spec.ts`):
+  - `sv-sidebar`'s closed overlay is `invisible` below `lg` (`max-lg:invisible`, with
+    `visibility` in the transition), not only translated off-canvas — its links were
+    still in the tab order and the accessibility tree. Unchanged from `lg` up.
+  - `sv-toolbar`'s host is `min-w-0 max-w-full` in every overflow mode (was only in
+    `menu`), so in a flex row `overflow="scroll"` scrolls instead of pushing the trailing
+    actions out of its container.
+  - `sv-site-footer`'s brand + columns grid is `grid-cols-1` (was an implicit `auto`
+    track), link labels wrap inside their column (`min-w-0 break-words`), the column
+    gap is `gap-x-6` below `sm`, the inset is `px-4` below `sm` (was `px-6`), and the
+    hover underline starts at the inline start (`start-0`).
+  - `sv-speed-dial` with `direction="left"` / `"right"` lays its actions out vertically
+    (`up` or `down`, whichever has more room) when the row fits on neither side of the
+    FAB; the list is `w-max`, and the menu carries `data-sv-direction` with the
+    direction in force (new `layoutDirection` signal). Wide windows are unchanged.
+  - `sv-copy-to-clipboard`'s `block` variant fills the width it is given and never sets
+    it: the host is `block grow min-w-0 max-w-full`, and the value line has
+    `contain: inline-size` with a `12ch` floor. It used to grow to the full
+    value in an auto grid track, an auto table cell or a flex item and push its copy
+    button off-screen, while truncating in a card. `inline` and `icon-only` are
+    unchanged. Proof: `e2e/copy-to-clipboard-width.spec.ts`.
+  - `sv-radar-chart` (both tiers) sizes its SVG box to hold the axis labels. Side
+    labels sat at 1.18× the radius and drew past a `0 0 size size` viewBox, visible only
+    while a parent left room; a phone-width card cut them off. The rendered box is now
+    slightly larger than `size` when labels need it, and the chart scales to fit.
+  - `sv-line-chart-pro` labels only the categories in its visible window. A `live` or
+    zoomed chart labelled every category, so readings that had scrolled out drew their
+    x-axis labels over the y axis and past the chart's left edge.
+  *Migration:* none for hosts; tests or CSS that targeted the old classes, or expected a
+  closed `sv-sidebar` to stay `visible` below `lg`, need updating.
+
+### Added — Charts build set
+
+All additive and on today's behaviour by default unless noted under *Changed*.
+
+- **Series emphasis on radar and line, both tiers.** The legend of
+  `sv-radar-chart(-pro)` and `sv-line-chart(-pro)` is a `role="toolbar"` of `aria-pressed`
+  toggle buttons with one tab stop: hover or focus an entry and every other series fades,
+  Enter / Space / click hides or shows it (announced through `SvLiveAnnouncer`), and the
+  arrow keys, Home and End move between series. A focused radar vertex also puts its polygon
+  in front. The last visible series cannot be hidden; a hidden series stays in the summary
+  table, the line chart's tooltip drops it, and the value axis keeps its scale.
+  - New on all four components: `interactiveLegend` (`true`) and `hiddenSeries`
+    (`model<readonly string[]>`, `[]` — two-way bindable, so a host can persist it).
+  - New in `@styloviz/core`: `createSeriesEmphasis()` (`SvSeriesEmphasis`,
+    `SvSeriesEmphasisOptions`) and `SV_SERIES_DIMMED_OPACITY` — the one emphasis model the
+    four charts share; core labels `seriesLegend`, `seriesLegendHint`, `seriesShown`,
+    `seriesHidden`, `seriesLastVisible` (12 languages).
+- **Heatmap grid.** `sv-heatmap-chart` is an ARIA `role="grid"` with real
+  `columnheader` / `rowheader` cells (an unlabelled one is named "Column n" / "Row n") and
+  `gridcell` squares, and ONE tab stop with 2-D roving: arrows (skipping holes), Home / End,
+  Ctrl+Home / Ctrl+End, Page Up / Page Down (five rows). An off-screen hint
+  (`heatmapGridHint`, 12 languages) is attached with `aria-describedby`. The grid is ledgered
+  in `check-visual-alternatives` as the chart's `native` non-visual alternative;
+  `e2e/chart-keyboard.spec.ts` drives it in a real browser.
+- **Invalid scales are disclosed.** `sv-gauge-chart` with `max <= min` or a
+  non-finite bound states the bounds in the frame notice and its accessible name (label
+  `gaugeInvalidScale`); `sv-radial-bar-chart` says when a chart-wide `max` is not above zero
+  (`radialBarInvalidMax`). New public computeds on the gauge: `scaleValid`, `invalidScaleNote`.
+- **Reduced motion for every chart entrance.** The kit stylesheet
+  (`@styloviz/core/styles/styloviz.css`) and the strip-line, trend-line, gradient-donut and
+  click-to-add stylesheets carry a `prefers-reduced-motion: reduce` guard for every keyframe
+  class (`bc-*`, `lc-*`, `sl-*`, `tl-*`, `gd-*`, `cap-*`; the command palette's `cp-panel` too).
+  The live stream steps instead of gliding, and the live badge / drilldown pulse stills.
+  `check:reduced-motion` now scopes `projects/charts` and `projects/charts-free` and gains
+  rule (d): every CSS rule that runs a `@keyframes` animation must be named in a
+  reduced-motion block in its own file.
+- **Mixed-sign dense case.** `/chart-states` draws `sv-negative-stack-chart`
+  and `sv-stacked-bar-chart` on a 12 × 4 mixed-sign fixture (`DENSE_MIXED_SIGN_*`) inside the
+  bar card, so `e2e/visual-matrix.spec.ts` photographs and measures a stack that crosses zero.
+- **Docs.** The gauge's *When to use* points at the Bullet Chart for precise
+  comparison; the bar docs and gallery mark the cylindrical and gradient treatments as
+  decorative.
+- **Licensing copy.** Every free README drops "premium" and states the MIT free
+  tier / commercial Pro split under its description (Pro READMEs state their commercial
+  license up top too); the license footer links https://styloviz.dev/license. One generator
+  change (`scripts/generate-readmes.mjs`), pinned by `scripts/generate-readmes.node.spec.ts`.
+- **Gradient donut.** The "of {total}" line under a hovered slice is the
+  `gradientDonutOfTotal` label (12 languages) — it was a hard-coded English "of".
+
+### Changed — Charts · migration
+
+- **`sv-heatmap-chart` squares are `role="gridcell"`, not `role="button"`, and only one is
+  in the tab order** (the grid is `role="grid"`, no longer `role="group"`). Enter / Space /
+  click still emit `cellSelect`; focus still emits `cellHover`. Column headers are drawn for
+  the columns the data has — labels past the last column are no longer printed. The
+  `heatmapPastCeiling` note no longer claims a keyboard cost. *Migration:* update tests or
+  selectors that query the squares by `role="button"` / `[role="group"]` (use `gridcell` /
+  `grid`, or `[data-sv-cell="row:col"]`); a host overriding `heatmapPastCeiling` should
+  re-read the new English.
+- **The radar and line legends are buttons by default.** Clicking an entry now hides that
+  series. *Migration:* bind `[interactiveLegend]="false"` for the old static key; tests that
+  found the legend text in a `<span>` find it in a `<button>` now.
+- **`sv-gauge-chart` draws an empty dial for an unusable scale.** `max <= min` or a
+  non-finite bound used to fall back to a span of 1 (or go negative) and draw an arc; it now
+  draws no progress, bands, target notch or band status, and says why. *Migration:* none for
+  a valid scale; fix the bounds if the notice appears.
+- **Chart entrances do not animate under `prefers-reduced-motion: reduce`**, and the live
+  stream steps rather than glides. *Migration:* none — re-import
+  `@styloviz/core/styles/styloviz.css` (it is regenerated).
+
+### Added — AI build set
+
+All additive and off (or today's behaviour) by default unless noted under *Changed*.
+
+- **Gate:** `check:ai-demo-defaults` (in `verify:static`) reads every `input()` / `model()`
+  default in the 24 AI packages with the TypeScript AST and fails a fixture-named default
+  (`DEMO_` / `MOCK_` / `SAMPLE_` …) or a record-list default, inline or behind a constant.
+  Sample data ships as exported `DEMO_*` constants that demos pass explicitly.
+- **New inputs / outputs / models:**
+  - `sv-agent-approval`: `reasonRequired` (`never` | `high-risk` | `always`) — a required,
+    labelled reason field; the trimmed `reason` rides on `AgentApprovalResult` and
+    `AgentApprovalReceipt`.
+  - `sv-mcp-tool-registry`: `healthStaleAfter` (`SV_MCP_HEALTH_STALE_MS`, 5 min) and `locale`
+    — every status shows its `lastCheckedAt` age, marked stale past the window, and the
+    header counts stale servers.
+  - `sv-tool-call-card`: `maxDepth` (`SV_TOOL_CALL_MAX_DEPTH`, 4) with "Show N nested calls",
+    `maxPaneChars` (`SV_TOOL_CALL_PANE_CHAR_CAP`, 10,000) with Show all + Download,
+    `locale`, `depthRevealedIds` / `fullPaneKeys` (models) and `paneDownloaded`.
+  - `sv-reasoning-trace`: `maxDepth` (`SV_REASONING_MAX_DEPTH`, 4) with "Show N nested
+    steps", and `depthRevealedIds` (model).
+  - `sv-embedding-map`: `projection` (`EmbeddingProjection` — method, params, model,
+    modelVersion) as a caption and in the plot's `role="img"` name.
+  - `sv-ai-writing-assistant`: `textLanguage`, `proseDiffMaxTokens` (`SV_PROSE_DIFF_MAX_TOKENS`).
+  - `sv-voice-assistant`: `lowConfidence` (`SV_LOW_CONFIDENCE`, 0.6).
+  - `sv-sentiment-analysis-widget`: `aspectMinMentions` (`SV_ASPECT_MIN_MENTIONS`, 5).
+  - `sv-artifact-panel`: `diffLineCap` (`SV_DIFF_LINE_CAP`).
+- **Chat:** `sv-ai-chat` renders a `filtered` reply (content filter / refusal) with a
+  safety-filter notice and the provider's reason, no actions and no resend;
+  `filterAssistantMessage()`; `ChatMessage.model` / `modelVersion` in every variant's meta
+  line; `beginAssistantMessage(id, { model, modelVersion })`; `svChatProvenance`.
+  `@styloviz-pro/ai-chat-transport`: `svIsContentFiltered`, a content-filter case in
+  `svStreamNotice`, and `svToChatMessage` takes `model` / `modelVersion`.
+- **Prompt library:** a refused copy selects the resolved prompt, shows and announces a
+  ⌘C / Ctrl+C hint and names it on the button (grid, list and editor), like `sv-ai-chat`.
+- **Citations:** `SourceRef.retrievedAt` renders as a relative age in `<time datetime>`;
+  new `SourceRef.access` (`paywalled` | `dead` | `denied`) renders a named state with the URL
+  as text instead of a link; the coverage strip says attributed is not verified as supported.
+- **Eval scorecard:** the compare verdict names its method in the UI (non-overlapping 95%
+  Wilson intervals — a conservative heuristic, not a significance test).
+- **Workflow builder:** `svValidateWorkflow` (missing trigger, dangling edges/ports, orphans,
+  nodes unreachable from a trigger, branches leading nowhere) rendered as a validation list
+  in the canvas variant; the docs, JSDoc and README state the size ceiling (~50 nodes / ~10
+  columns, not enforced) and the supported topologies (chains, fan-out, fan-in, loops; no
+  nesting).
+- **New helpers / demo data:** `DEMO_PAST_RUNS`, `KbPastRun`, `svMcpHealthFreshness`,
+  `svMcpHealthAge`, `svTruncatePane`, `svToolCallDescendants`, `svToolCallWithinDepth`,
+  `svToolCallPaneFilename`, `svStepWithinDepth`, `svStepDescendants`, `svProjectionMetaLabel`,
+  `svProjectionParams`, `DEMO_PROJECTION`, `svReadability`, `svReadabilitySupported`,
+  `svReadabilityGrade`, `svPrimaryLanguage`, `svLanguageName`, `SV_READABILITY_LANGUAGES`,
+  `svProseDiffCap`, `svLowConfidenceCutoff`, `svAspectMinMentionsFloor`, `svDiffLineCap`,
+  `svSourceFreshness`, `svSourceAccess`, `DEMO_SOURCES_RESTRICTED`, `svValidateWorkflow`,
+  `DEMO_WORKFLOW_DRAFT`.
+- **Tests:** the AT harness gains a real insecure origin (`sv-insecure.test`) and a Pixel 7
+  project with the compiled stylesheet; `e2e/ai-chat.at.spec.ts`,
+  `e2e/prompt-template-library.at.spec.ts` and `e2e/ai-agent-activity-log.at.spec.ts`.
+
+### Changed — AI · migration
+
+- **`SentimentLabel` adds `'mixed' | 'unknown'`** (`sv-sentiment-analysis-widget`). The
+  breakdown, topic bars, aspects and feed render them; unknown mentions are left out of
+  means and ranking, `SvAspectRow.neutral` counts only neutral mentions, a neutral item in a
+  language the classifier cannot read shows as unknown, and `feedCounts()` has two more keys.
+  `aspectMinMentions` was a plain field and is now an input. *Migration:* add the two cases
+  to any exhaustive `switch` / `Record<SentimentLabel, …>`; send `unknown` for text you could
+  not score; read `aspectFloor()` or bind `[aspectMinMentions]`.
+- **`MessageStatus` adds `'filtered'`** (`@styloviz-pro/ai-chat`), and `svToChatMessage`
+  returns `filtered`, not `complete`, for a `content_filter` / `refusal` finish.
+  *Migration:* add a `'filtered'` branch to any exhaustive `switch` on `ChatMessage.status`.
+- **`sv-ai-chat` message hooks are `data-sv-message-state`** (`message-sending` |
+  `message-failed` | `message-error` | `message-filtered`); they were `data-sv-state`, which
+  collided with the page-level async contract. *Migration:* update e2e or CSS selectors.
+- **`sv-rag-knowledge-base` `pastRuns` defaults to `[]`.** It rendered a bundled, invented run
+  history ("run-2023-018 … 6 hours ago"), and the run titles now name your
+  `pipelineRun.id` instead of a hard-coded "#019". *Migration:* pass your indexer's runs to
+  `[pastRuns]`; demos pass the exported `DEMO_PAST_RUNS`.
+- **`sv-ai-writing-assistant` scores readability for English only.** A non-English
+  `textLanguage` (or `locale`) shows "Readability not available for <language>" instead of an
+  English Flesch score; the grade text is the `gradeLevel` label. *Migration:* set
+  `textLanguage="en"` when the text is English but the UI locale is not.
+- **`sv-tool-call-card`** puts sub-calls more than 4 levels deep behind "Show N nested calls"
+  and truncates an argument or result pane past 10,000 characters. *Migration:*
+  `[maxDepth]="0"` and / or `[maxPaneChars]="0"` restore the old rendering.
+- **`sv-reasoning-trace`** puts sub-thoughts more than 4 levels deep behind "Show N nested
+  steps". *Migration:* `[maxDepth]="0"`.
+- **`sv-embedding-map`'s plot name and a new caption** say how the map was made, or that it
+  is not recorded. *Migration:* bind `[projection]`; tests asserting the exact `aria-label`
+  need the extra sentence.
+- **`sv-eval-scorecard` verdict wording** no longer says "a real improvement".
+  *Migration:* tests or label overrides reading `verdictImprovement` / `verdictRegression`
+  need the new English.
+- **`sv-ai-workflow-builder`'s canvas** shows a validation section when the loaded graph has
+  findings (always with `[editable]`), and `DEMO_FAILED_RUN`'s nodes declare ports.
+  *Migration:* none.
+- **`sv-ai-agent-activity-log` trace on phones:** below `sm` only the duration column shows;
+  self time, tokens and cost stay in the row's accessible name and the step detail.
+  *Migration:* none.
+- **`sv-prompt-template-library` `copyPrompt()`** resolves `Promise<boolean>` (was `void`).
+  *Migration:* none.
+
+### Added — Forms build set
+
+All additive and off (or today's behaviour) by default unless noted under *Changed*.
+
+- **New helpers (`@styloviz/core`):**
+  - `svInlineAnchor` (`SvInlineAnchor`, `SvInlineAnchorRequest`) — the inline-axis half of
+    `svPositionAnchored` for edge-pinned panels: start-edge alignment that mirrors under
+    `dir="rtl"`, with the end edge as the overflow fallback.
+  - `createCreateFlow` (`SvCreateFlow`, `SvCreateFlowOptions`, `SvCreateRequest`,
+    `SvCreatedEntity`, `SvPendingCreate`) — one "create new" state machine: typed request with
+    an idempotency key, `resolve()` / `reject()` that settle once, the pending entity, and
+    announcements through `SvLiveAnnouncer`; labels `core.createPending` / `createDone` /
+    `createFailed`.
+  - `svFoldText`, `svTextMatches` (`SvTextMatchMode`, `SvTextMatchOptions`) — accent- and
+    case-folded matching in a locale; `svHighlightSegments(text, query, options?)` takes the
+    same options.
+  - `svDayPeriods` (`SvDayPeriods`) and `svParseTime(text, { locale })`
+    (`SvParseTimeOptions`) — a locale's own AM/PM markers from `Intl`, read back before or
+    after the digits.
+  - `SvAutosizeDirective` (`textarea[svAutosize]`, `svAutosizeValue`, `svAutosizeMaxRows`) —
+    `field-sizing: content` where supported, a measured fallback elsewhere.
+- **New inputs / outputs / fields:**
+  - `sv-autocomplete`: `creatable`, `awaitCreate`, `(createRequest)`; `match`
+    (`'substring' | 'prefix' | (option, query) => boolean`, type `AutocompleteMatch`);
+    `groupLabelIds`. Label `forms.createOption`.
+  - `sv-select-dropdown-pro`: `creatable`, `awaitCreate`, `(createRequest)` (needs
+    `svSelectSearch`); `sheetOnNarrow`. Label `selectDropdownPro.createOption`.
+  - `sv-select-dropdown`: `sheetOnNarrow`.
+  - `sv-tag-input-pro`: `awaitCreate`, `(createRequest)` on `variant="creatable"`;
+    `tagValidator` (+ `TagValidator`), `invalidTags`, `invalidSummary`, an `NG_VALIDATORS`
+    validator (`{ invalidTags: { values } }`).
+  - `sv-tag-input`: `tagValidator`, `invalidTags`, `invalidSummary`, the same validator.
+    Labels `invalidTag` / `invalidTagsSummary` in `tagInput` and `tagInputPro`.
+  - `sv-tree-select`: `sheetOnNarrow`. `sv-split-button`: `sheetOnNarrow` (forwarded to its
+    dropdown menu).
+  - `sv-time-picker`: `locale` (default the kit locale), `minuteStep`. Label
+    `forms.timePickerExample`.
+  - `sv-input-mask`: `locale`; exported `svDateMaskFormat`, `svTimeMaskSeparator`,
+    `InputMaskDateOrder`. Labels `forms.maskDay/Month/Year/Hour/MinuteLetters`.
+  - `sv-number-input`: `wheelSteps`.
+  - `sv-input-field`, `sv-input-field-pro`: `clearable`, `(cleared)`, `autosize`, `maxRows`.
+    Label `inputField.clear`.
+  - `sv-inplace-edit`: `autosize`, `maxRows` (with `mode="textarea"`).
+  - `sv-search-bar`, `sv-search-bar-pro`: the suggestion count is announced
+    (`countAnnouncement`; labels `searchBar.suggestionCount`, `searchBarPro.suggestionCount`).
+  - `sv-mention`: `maxLength` (plain-text, mention chips atomic) with a counter and an
+    `NG_VALIDATORS` `{ maxlength }` validator. Labels `formsPro.mentionCharCount`,
+    `mentionLimitReached`, `mentionNoRoom`.
+  - `sv-group`: `ariaLabel`.
+- **Docs & gates:** every Forms & Inputs family states, per selector, whether it is a
+  ControlValueAccessor or output-driven and why (new docs field `outputDriven`,
+  `ResolvedDoc.formIntegration`, a "Forms integration" section and README table,
+  `npm run form-contracts:sync` / `check:form-contracts` in `verify:static`); a File Upload
+  browser-support matrix (`docs/browser-support/file-upload.md`, in both READMEs; docs field
+  `browserSupport`); `check:ui` rule `portal-context-dropped`; `target-size-minimum` sizes a
+  glyph bound from a computed class map; eight forced-colours ledger rows; e2e specs
+  `e2e/number-input-wheel.spec.ts` and `e2e/rich-editor-browser-legs.spec.ts` (with the Word
+  paste fixture `e2e/fixtures/rich-editor/word-paste.html`).
+
+### Changed — Forms · migration
+
+- **A pasted tracking pixel is dropped.** `svCleanPastedHtml` (the rich text editor's paste and
+  drop path) now removes an `<img>` declared 1×1 or smaller, so inserting a paste from mail or a
+  web page no longer fetches it; it is listed in `droppedElements`. Real images are kept. The
+  editor's stored-document profile is unchanged.
+- **The form overlays keep the context they were opened in.** Autocomplete, the date and
+  date-range pickers, time picker, colour picker, select (both tiers), tag input (both),
+  search bar (both), mention, cascader and tree select portal through `createPortalHost`:
+  `dir`, `lang` and a locally scoped `.dark` / `data-theme` now reach the panel, and the host
+  carries `data-sv-portal="<name>"`. Under `dir="rtl"` a panel wider than its trigger lines up
+  on the trigger's right edge (it was the left). `sv-tag-input-pro`'s panels gain the classes
+  `sv-tag-input-portal` / `sv-tag-input-overflow-portal`. *Migration:* none.
+- **Grouped listboxes expose their groups.** Grouped `sv-autocomplete`, `sv-search-bar-pro`
+  (`groupByCategory`) and `sv-tag-input-pro` (`variant="grouped"`) render each section as a
+  `role="group"` named by its heading (`aria-labelledby`); the heading is a `<div>` inside a
+  presentational `<li>`, no longer a header `<li role="presentation">`. *Migration:* a test or
+  stylesheet that targeted the old header `<li>` should target `[role="group"]` and its label.
+- **Matching and highlighting fold accents and case** in the locale — `jose` finds and marks
+  José — in `sv-autocomplete`, both selects' local search and both search bars' highlight
+  (and the highlight in accordion, command palette and tree view, which share
+  `svHighlightSegments`). *Migration:* none.
+- **`sv-time-picker` speaks the locale's day periods** (`午前`/`午後` first in Japanese,
+  `a. m.`/`p. m.` in Spanish) on its buttons, trigger and typed field, where it rendered the
+  literals `AM`/`PM`; the typed-entry hint is a label. *Migration:* none for en-US.
+- **`sv-input-mask`'s `date` and `time` presets follow the locale** — `DD.MM.YYYY` in German,
+  `YYYY/MM/DD` in Japanese — so the masked VALUE is in that order for a non-en-US locale.
+  The default `LOCALE_ID` (en-US) is unchanged. The US-only presets say so: `maskSsn` is
+  now "SSN (US)" and `maskZip` "ZIP+4 (US)". *Migration:* set `locale="en-US"` on a mask
+  whose stored format must stay `MM/DD/YYYY`.
+- **`sv-input-mask` no longer reformats during an IME composition**; it formats the committed
+  text on `compositionend`. *Migration:* none.
+- **A wheel over a focused `sv-number-input` scrolls the page instead of stepping the value**
+  (Chromium stepped it silently). *Migration:* `[wheelSteps]="true"` restores it.
+- **`sv-tag-input-pro`'s creatable tags** emit `(createRequest)` and show the label they were
+  created with (not their slug, not italic). *Migration:* none.
+- **`sv-group` is `role="group"` only when named** (`label` or `ariaLabel`); an unnamed group —
+  including `sv-split-button`'s wrapper — has no role and no `aria-invalid`, and an unnamed
+  group with an error or a collapse warns once in dev. *Migration:* give a group that should
+  be announced a `label` or `ariaLabel`.
+- **24 px targets (WCAG 2.5.8):** `sv-chip`'s remove button, `sv-toggle-switch` (xs/sm tracks)
+  and the select-dropdown clear control carry `sv-target`; `sv-rating` whole stars at `sm` are
+  padded to 24 px slots. *Migration:* none.
+- **Forced colours (Windows High Contrast):** checkbox, radio group, toggle switch,
+  segmented control, slider and rating keep their state visible with system colours; the
+  checkbox mark is drawn with `currentColor`. *Migration:* none.
+
+### Added — Overlays & Feedback build set
+
+All additive and off (or today's behaviour) by default unless noted under *Changed*.
+
+- **New helpers (`@styloviz/core`):** `createDelayedVisibility` (show a loader after
+  `showAfterMs`, keep it `minVisibleMs`), `ToastService.promise()` with
+  `ToastPromiseMessages<T>` (one toast pending → success / error), and the shared
+  drag-to-dismiss gesture `svSwipeGesture` / `svSwipeDismisses` / `svIsSwipePointer`
+  (`SvSwipeDirection`, `SvSwipeSample`, `SvSwipeGestureOptions`, `SvSwipeDismissRule`).
+- **New inputs / outputs / fields:**
+  - `sv-modal`, `sv-drawer`, `sv-popover` (and so the Popout preset): `sheetOnNarrow` — the
+    kit's bottom-sheet contract (safe area + virtual keyboard) below 640px. Drawer also
+    exposes `effectivePosition()`.
+  - `sv-dropdown-menu` (and context menus): cascading submenus — `DropdownMenuItem.children`,
+    `submenuOpenDelay`, `submenuCloseDelay`, `ownsHorizontalKey()`, `DropdownSubmenuLevel`;
+    label `overlaysPro.submenuBack` in all 12 packs.
+  - `sv-menubar`: `collapseBelow` (one "Menu" button with the menus as submenus) and
+    `collapsed()`; submenu items' `keys` register like any other.
+  - `sv-spinner`, `sv-skeleton-loader`: `active`, `showAfterMs`, `minVisibleMs`,
+    `(visibleChange)`.
+  - `sv-toast-host`: a dev warning when two hosts render one position; `Toast.pending`.
+  - `sv-alert-banner`: `persistKey` / `persistVersion` (a remembered dismissal, through
+    `svPersistedStore`), `dismiss()`, `SV_ALERT_BANNER_DISMISSAL_KIND`,
+    `SvAlertBannerDismissal`.
+  - `sv-notification-center` (free and Pro): `NotificationLoadMoreEvent.cursor`
+    (`NotificationCursor` — `{ id, timestamp }` of the last notification in hand).
+  - `sv-drawer`: `swipeToClose`, `swipeVelocity`.
+- **Docs:** a "Choosing a feedback pattern" guide (`/docs/choosing-a-feedback-pattern`),
+  reduced-motion, forced-colour and contrast notes on every feedback family, and a fixed
+  Toast action example (it called an API that does not exist).
+
+### Changed — Overlays & Feedback · migration
+
+- **`SvLiveAnnouncer` creates its two live regions when it is constructed** (in the browser),
+  not on the first `announce()`. The first message of a page used to land in the same task
+  that inserted its region, and screen readers did not speak it — the scripted pass
+  (`e2e/feedback-announcements.spec.ts`) caught the first toast of a burst going unheard.
+  With no `<body>` at construction, the first write waits 100 ms for its new region.
+  `reset()` leaves a fresh, empty pair behind for the same reason.
+  *Migration:* none; `regionFor()` is no longer `null` before the first message.
+- **Reduced motion everywhere in the family.** Under `prefers-reduced-motion: reduce` the
+  spinner's ring turns at a third of the speed and its dots / pulse / bars stand still; the
+  progress bar's fill, stripes and indeterminate sweep stop; the drawer and alert banner
+  appear and leave in place (a dismissed banner is removed at once instead of after
+  300 ms); the product tour's beacons stop pulsing. *Migration:* none.
+- **`sv-alert-banner` animates `opacity` + `translate` only** (it was `transition-all`) and
+  now fades in on entry. *Migration:* none.
+- **Non-text contrast (WCAG 1.4.11).** Spinner tracks are the `-100` tints and the warning
+  arc and dots are `warning-700`; progress-bar fills are `accent-600`, `warning-700`,
+  `info-600` (light) and `gray-400` (dark neutral); stripes darken on a light track and an
+  `xs` bar has none; the skeleton's light sheen is stronger. *Migration:* pass
+  `customClass` if a brand needs the old tint (it will be below 3:1).
+- **Forced colours.** Spinner, progress bar, skeleton bones, tooltip bubbles, the command
+  palette panel and the announcement banner gain system-colour fallbacks; the confirm
+  dialog's decorative glow is hidden. *Migration:* none.
+- **Type-ahead in `sv-dropdown-menu` and `sv-menubar` is accent-, case- and
+  width-insensitive per the kit locale** — `e` now reaches "Édition", and Turkish lowers
+  `I` to `ı`. *Migration:* none.
+- **`sv-menubar` never widens the page** — the bar scrolls sideways inside itself
+  (`max-w-full overflow-x-auto`). *Migration:* none.
+- **`sv-popover`'s panel scrolls inside the viewport** (`max-h-[calc(100vh-1rem)]`) and
+  every non-blocking panel's scroller is `overscroll-contain`. *Migration:* none.
+- **`sv-toast-host` keeps `max(1rem, env(safe-area-inset-*))` from each edge** (was `1rem`)
+  and lifts a bottom stack above the virtual keyboard. *Migration:* none.
+- **`sv-product-tour-pro` scrolls an off-screen target into view, and treats a target with
+  no box (`display: none`) as missing** — it is waited for and reported through
+  `(targetMissing)` instead of anchoring at (0, 0). *Migration:* none.
+- **`sv-result`'s title is capped at `max-w-xl`** and long words wrap. *Migration:* none.
+- **`NotificationLoadMoreEvent` has a required `cursor` field** (**breaking** for code that
+  CONSTRUCTS the event, e.g. a test double). *Migration:* add `cursor: null` (or the last
+  item's `{ id, timestamp }`) where you build one; code that only receives it is unaffected.
+- **`sv-alert-banner`'s dismiss button calls `dismiss()`** (which records a dismissal under
+  `persistKey`, then closes); `close()` is unchanged. *Migration:* none.
+- **`sv-dropdown-menu` item rows are `text-start`** (they were `text-left`), so labels align
+  to the reading edge in RTL. *Migration:* none.
+
+### Added — Data Display build set
+
+All additive and off (or today's behaviour) by default unless noted under *Changed*.
+
+- **New components:** `sv-avatar-group` (`@styloviz/avatar`) and `sv-avatar-group-pro`
+  (`@styloviz-pro/avatar`) — a stacked group with `max`, a counted "+N" chip named with the
+  hidden people, and a group name.
+- **New helpers:** `svFormatCompact` (`@styloviz/core`), `svDetectCardBrand`,
+  `svCurrencySymbolIsAmbiguous`, `svFormatBytes`, `svQrModuleLayout`, `svLocateQueryNode`,
+  `svKbdPlatform`, `svKbdSequence`, `svKbdSpokenSequence`.
+- **New inputs / outputs:**
+  - `sv-price`: `currencyName` (`auto` — names a shared symbol like "$" or "£" for screen readers).
+  - `sv-kanban-board`: `canMove` and `moveRefused`.
+  - `sv-query-builder`: one-step **Undo** after removing a rule or non-empty group; engine
+    action `insertNode`.
+  - `sv-event-calendar`: `maxEventsPerDay` with a named "+N more" button.
+  - `sv-filter-panel`: `showColorNames`, `maxVisibleOptions`, `searchableAfter`, `locale`;
+    `FilterGroup.currency` / `maxVisible` / `searchable`.
+  - `sv-image-cropper`: `strictFormat` and `formatFallback`.
+  - `sv-image-gallery`: `GalleryImage.srcset` / `sizes`.
+  - `sv-image-compare`: loading / error overlay and `loadError`.
+  - `sv-comment`: `collapseReplies`, `timeZone`.
+  - `sv-like`: `countNotation`, `locale`.
+  - `sv-input-mask`: `inputmode`, `autocomplete`, `inputDir` overrides.
+  - `sv-stat-card`, `sv-stat-card-pro`, `sv-spotlight-stat-card`: `trendPolarity`,
+    `sparklineDomain`.
+  - `sv-heatmap-calendar`: `weekStart`.
+  - `sv-thumbnail-card`: `focalPoint`.
+  - `sv-kbd`: the `mod` token, `platform` and `sequence`.
+  - `ProductAddToCartEvent` gains `price`, `currency`, `minorUnits`, `compareAt`.
+- **Docs:** every application-tier Data Display family publishes a recommended and maximum
+  dataset size (`datasetSize`), enforced by `check:complexity-tiers`.
+
+### Changed — Data Display · migration
+
+- **`sv-comment` no longer drops replies below `maxDepth`.** They render flattened at the
+  last level with a "Replying to <name>" line. *Migration:* none needed; if you relied on
+  the subtree disappearing, filter `comments` yourself.
+- **`sv-event-calendar` month cells** used to show the first three events and silently
+  hide the rest; a "+N more" button now opens the day. *Migration:* set
+  `maxEventsPerDay` to change the cap.
+- **`sv-file-display` sizes are locale-formatted** (`1.5 kB`, `1,5 ko`, `512 bytes`) instead
+  of `1.5 KB`. *Migration:* none; pin a locale with `provideSvLocale()` if a test reads the
+  string.
+- **Stat cards abbreviate negatives and use the locale's compact notation** (`-2.5M`,
+  `2,5 Mio.`) in all three cards; Spotlight now abbreviates numbers too. *Migration:* pass
+  a pre-formatted string to keep a custom form.
+- **`sv-like` shows a compact count** (`1.2K`) by default; the accessible name keeps the full
+  number. *Migration:* `countNotation="standard"` for the grouped full count.
+- **`sv-heatmap-calendar` columns start on the locale's week start** (Monday in most of
+  Europe) and its active days are one tab stop with arrow-key traversal. *Migration:*
+  `[weekStart]="0"` keeps Sunday.
+- **`sv-image-compare` and `sv-carousel`** are `touch-pan-y touch-pinch-zoom` (the page
+  scrolls and zooms over them); the carousel gains swipe.
+- **`sv-price`** speaks "49.99 US dollars" where the symbol is shared. *Migration:*
+  `currencyName="never"` for the old reading.
+- **`sv-dnd-list`** honours `disabled` on the move buttons, the kanban buttons and the keyboard grab.
+
+### Changed — Capability and comparison pages derive their rows from the catalogue
+
+- **Site:** `/capabilities`, `/compare/angular-material` and `/migrate/primeng`
+  no longer hand-list our families. A new `capabilities.json` holds only what
+  the catalogue cannot know — the competitor column (PrimeNG, filled from the
+  generated PrimeNG map), the spotlight picks and the comparison page's Scope
+  picks — keyed by catalogue id. Each `/capabilities` row now names its mapped
+  PrimeNG counterpart; a family with no mapping shows none rather than a "—".
+  A family added to the catalogue appears on `/capabilities` with no page edit.
+- **Gate:** `check:catalog` fails a `capabilities.json` id, category or route
+  the catalogue or router no longer has.
+
+### Changed — the figures the site states are checked against the kit
+
+- Every count, price, seat number, refund or trial length and Angular range
+  that the site, the package READMEs and `llms.txt` state is now checked on
+  every build against the source that derives it, so a page cannot drift from
+  the kit it describes.
+- **Copy it corrected:** stale component and package counts on the site, in
+  the docs and in the listings; the Get Started FAQ and the gallery no longer
+  claim zero third-party dependencies, and name the `jspdf` and `html2canvas`
+  peers that PDF export needs; the blog states the supported Angular majors
+  from the same source as the home page.
+
 ## [1.0.2] — 2026-10-14
 
 A patch release from the 11 October audit: contrast and keyboard fixes found by
@@ -1061,7 +4418,7 @@ and Angular 22 work above. What was wrong, and what now derives it:
 - **Templates**: the home FAQ said the free templates install from npm (they
   download from `/templates`); the gallery hero said "copy the source folder";
   the auth card still advertised its old two-page set.
-- **Docs**: `PRO_INSTALL.md` imported a component that does not exist
+- **Docs**: `docs/PRO_INSTALL.md` imported a component that does not exist
   (`SvGanttComponent`) and blamed a 401 on a "lapsed subscription" with the old
   payment provider; three code examples used variants only the `-pro` twin has;
   two docs entries named the removed `iconPath` input.
@@ -2642,7 +5999,7 @@ value = new Date();
 value = '2026-09-10T00:00:00Z';
 ```
 
-The locale policy (track **T5** in `STYLOVIZ_FORMS_P0_P1_WORKING_TODO.md`) has
+The locale policy (track **T5** in `docs/plans/STYLOVIZ_FORMS_P0_P1_WORKING_TODO.md`) has
 since landed: `locale`, `weekStart`, `timeZone` and a `dateDisabled` predicate on
 both pickers (the range picker gained them on 2026-09-26). Non-Gregorian
 calendars remain out of scope.
@@ -3274,7 +6631,7 @@ arguments, so the second press has to be earned again.
 The kit now ships **21 page templates** as independently copy-pasteable folders,
 zipped alongside the packages: 18 Pro, 3 Free. Eighteen of them landed after
 0.3.0 and had gone unrecorded here, because this file tracks packages and the
-templates are tracked in `STYLOVIZ_TEMPLATE_ROADMAP.md`. They are shipped
+templates are tracked in `docs/plans/STYLOVIZ_TEMPLATE_ROADMAP.md`. They are shipped
 artifacts, so they belong in both.
 
 A template is not a screenshot. Each one is a folder you can copy out whole —

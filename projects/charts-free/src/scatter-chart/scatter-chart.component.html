@@ -1,4 +1,5 @@
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
@@ -138,6 +139,7 @@
 
     <!-- Tooltip -->
     @if (hoveredPoint(); as hp) {
+      <!-- sv-physical: centring -->
       <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <p class="text-xs font-semibold text-gray-800 dark:text-white">{{ hp.series }}</p>
         <p class="text-[11px] text-gray-500 dark:text-gray-400">
@@ -146,9 +148,10 @@
       </div>
     }
     @if (hoveredBin(); as hb) {
+      <!-- sv-physical: centring -->
       <div class="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <p class="text-xs font-semibold text-gray-800 dark:text-white">
-          {{ hb.count }} {{ hb.count === 1 ? 'point' : 'points' }}
+          {{ labels.scatterBinCount | svLabel: { count: hb.count } }}
         </p>
         <p class="text-[11px] text-gray-500 dark:text-gray-400">
           {{ xLabel() }}: ~{{ xTick(hb.x) }}&nbsp;&nbsp;{{ yLabel() }}: ~{{ yTick(hb.y) }}
@@ -181,7 +184,7 @@
 
     @if (binsAreVisible() && densityLegend().length) {
       <div class="flex items-center gap-1.5">
-        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">Points per bin</span>
+        <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400">{{ labels.pointsPerBin }}</span>
         @for (k of densityLegend(); track k.step) {
           <span class="flex items-center gap-1">
             <svg width="12" height="12" viewBox="-7 -7 14 14" aria-hidden="true" class="shrink-0">
@@ -194,7 +197,6 @@
     }
   </div>
 
-  <sv-data-summary-table [summary]="a11ySummary()" />
 </div>
 
 </sv-chart-frame>

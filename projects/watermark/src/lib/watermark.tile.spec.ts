@@ -9,6 +9,7 @@ import {
   svWatermarkLabel,
   svWatermarkSignature,
 } from './watermark.tile';
+import { SV_WATERMARK_LABELS } from './watermark.labels';
 
 // ── The rotated tile ────────────────────────────────────────────────────────
 
@@ -172,9 +173,9 @@ describe('the opacity band', () => {
   });
 
   it('says which way it is wrong, and what happens', () => {
-    expect(svOpacityLabel(0.01)).toContain('JPEG');
-    expect(svOpacityLabel(0.6)).toContain('turns the watermark off');
-    expect(svOpacityLabel(0.1)).toContain('light enough to read through');
+    expect(svOpacityLabel(0.01, SV_WATERMARK_LABELS)).toContain('JPEG');
+    expect(svOpacityLabel(0.6, SV_WATERMARK_LABELS)).toContain('turns the watermark off');
+    expect(svOpacityLabel(0.1, SV_WATERMARK_LABELS)).toContain('light enough to read through');
   });
 
   it('treats a nonsense opacity as too faint rather than crashing', () => {

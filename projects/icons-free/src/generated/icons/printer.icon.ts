@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `printer` icon. */
 export const printerNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const printerNodes: readonly IconNode[] = [
 export const printerSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6 8.1h.1v-4.1q0-.9.9-.9h10q.9 0 .9.9v4.1h.1q2.9 0 2.9 2.9v4q0 2.9-2.9 2.9h-.1v2.1q0 .9-.9.9h-10q-.9 0-.9-.9v-2.1h-.1q-2.9 0-2.9-2.9v-4q0-2.9 2.9-2.9zm11.8 3.9c0-.4-.4-.8-.8-.8-.4 0-.8.4-.8.8 0 .4.4.8.8.8.4 0 .8-.4.8-.8z' },
 ];
+
+/** `printer` as a registrable glyph — `registerSvIcons([printerIcon])` / `provideSvIcons([printerIcon])`. */
+export const printerIcon: SvIconDef = { name: 'printer', nodes: printerNodes, solid: printerSolidNodes };
 
 /** `printer` — tree-shakable standalone icon. Use `<sv-printer-icon />`. */
 @Component({

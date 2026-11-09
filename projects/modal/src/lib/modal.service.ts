@@ -15,7 +15,7 @@ import {
   type Signal,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import type { SvPendingDismissal } from '@styloviz/core';
+import type { SvPendingDismissal } from '@styloviz/core/data';
 import {
   SvModalComponent,
   type ModalCloseReason,

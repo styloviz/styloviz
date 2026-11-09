@@ -1,4 +1,5 @@
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
@@ -36,8 +37,8 @@
         <span class="flex items-center gap-1.5 rounded-full bg-accent-50 px-2.5 py-0.5
                      text-[11px] font-medium text-accent-700
                      dark:bg-accent-900/30 dark:text-accent-400">
-          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-500"></span>
-          LIVE
+          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-500 motion-reduce:animate-none"></span>
+          {{ labels.liveBadge }}
         </span>
       }
 
@@ -45,7 +46,7 @@
       <button
         type="button"
         (click)="toggle()"
-        [attr.aria-label]="isRunning() ? 'Pause stream' : 'Start stream'"
+        [attr.aria-label]="isRunning() ? labels.pauseStream : labels.startStream"
         class="flex h-7 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3
                text-[11.5px] font-medium text-gray-600 transition-colors
                hover:bg-gray-50 active:scale-95
@@ -56,12 +57,12 @@
             <rect x="1.5" y="1" width="3.5" height="10" rx="0.5"/>
             <rect x="7"   y="1" width="3.5" height="10" rx="0.5"/>
           </svg>
-          Pause
+          {{ labels.pause }}
         } @else {
           <svg class="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
             <path d="M2.5 1.5 10 6 2.5 10.5z"/>
           </svg>
-          Play
+          {{ labels.play }}
         }
       </button>
 
@@ -69,7 +70,7 @@
       <button
         type="button"
         (click)="resetStream()"
-        aria-label="Reset stream"
+        [attr.aria-label]="labels.resetStream"
         class="flex h-7 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3
                text-[11.5px] font-medium text-gray-600 transition-colors
                hover:bg-gray-50 active:scale-95
@@ -80,7 +81,7 @@
           <path d="M10 2.5A4.5 4.5 0 1 1 3 9" stroke-linecap="round"/>
           <polyline points="10,0.5 10,2.5 8,2.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        Reset
+        {{ labels.reset }}
       </button>
     </div>
   </div>
@@ -223,7 +224,7 @@
           <span class="text-[11.5px] text-gray-500 dark:text-gray-400">{{ s.label }}</span>
         </div>
       }
-      <span class="ml-auto tabular-nums text-[11px] text-gray-500 dark:text-gray-400">
+      <span class="ms-auto tabular-nums text-[11px] text-gray-500 dark:text-gray-400">
         t&nbsp;=&nbsp;{{ pointCount() }}
       </span>
     </div>

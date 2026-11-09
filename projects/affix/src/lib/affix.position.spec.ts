@@ -5,6 +5,7 @@ import {
   svIsAffixed,
   type SvAffixInput,
 } from './affix.position';
+import { SV_AFFIX_LABELS } from './affix.labels';
 
 const at = (over: Partial<SvAffixInput> = {}): SvAffixInput => ({
   scrollY: 0,
@@ -196,9 +197,9 @@ describe('helpers', () => {
   });
 
   it('describes each mode in words', () => {
-    expect(svAffixLabel(svAffixState(at({ scrollY: 0 })))).toBe('In flow.');
-    expect(svAffixLabel(svAffixState(at({ scrollY: 500 })))).toContain('Pinned 16px');
-    expect(svAffixLabel(svAffixState(at({ scrollY: 900, containerBottom: 1000 }))))
+    expect(svAffixLabel(svAffixState(at({ scrollY: 0 })), SV_AFFIX_LABELS)).toBe('In flow.');
+    expect(svAffixLabel(svAffixState(at({ scrollY: 500 })), SV_AFFIX_LABELS)).toContain('Pinned 16px');
+    expect(svAffixLabel(svAffixState(at({ scrollY: 900, containerBottom: 1000 })), SV_AFFIX_LABELS))
       .toContain('will not float over what comes next');
   });
 });

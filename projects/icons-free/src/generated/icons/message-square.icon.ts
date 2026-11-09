@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `message-square` icon. */
 export const messageSquareNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const messageSquareNodes: readonly IconNode[] = [
 export const messageSquareSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3.1 5q0-1.9 1.9-1.9h14q1.9 0 1.9 1.9v10q0 1.9-1.9 1.9h-9.6l-3.8 3.7q-.6.6-1.2 0-.3-.2-.3-.6v-3.3q-1-.3-1-1.7z' },
 ];
+
+/** `message-square` as a registrable glyph — `registerSvIcons([messageSquareIcon])` / `provideSvIcons([messageSquareIcon])`. */
+export const messageSquareIcon: SvIconDef = { name: 'message-square', nodes: messageSquareNodes, solid: messageSquareSolidNodes };
 
 /** `message-square` — tree-shakable standalone icon. Use `<sv-message-square-icon />`. */
 @Component({

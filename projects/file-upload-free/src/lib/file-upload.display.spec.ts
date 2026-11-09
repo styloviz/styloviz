@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { until, quietFor } from '../../../../src/testing/async';
 import { PLATFORM_ID } from '@angular/core';
-import { SvFileUploadComponent, type FileUploadSize, type UploadFile } from './file-upload.component';
+import { SvFileUploadComponent, type UploadFile } from './file-upload.component';
 
 /**
  * What a row looks like: which glyph, which badge colour, which extension
@@ -30,8 +30,9 @@ const entry = (name: string, type = ''): UploadFile => ({
   status: 'pending', progress: 0,
 });
 
-function dropEvent(files: File[]): DragEvent {
-  return { preventDefault() { /* no-op */ }, dataTransfer: { files } } as unknown as DragEvent;
+/** A change on the hidden file input — what picking files in the dialog produces. */
+function pickEvent(files: File[]): Event {
+  return { target: { files, value: '' } } as unknown as Event;
 }
 
 const file = (name: string, type = 'text/plain') =>
@@ -48,7 +49,8 @@ describe('SvFileUploadComponent — formatSize', () => {
     expect(f(1024 ** 2 - 1)).toBe('1024.0 KB');
     expect(f(1024 ** 2)).toBe('1.0 MB');  // exactly 1 MiB is MB, not KB
     expect(f(3.5 * 1024 ** 2)).toBe('3.5 MB');
-    expect(f(5 * 1024 ** 3)).toBe('5120.0 MB'); // no GB unit — it keeps counting
+    expect(f(1024 ** 3 - 1)).toBe('1024.0 MB');
+    expect(f(5 * 1024 ** 3)).toBe('5.0 GB'); // SR-17 FU-11: it used to say '5120.0 MB'
   });
 });
 
@@ -142,54 +144,26 @@ describe('SvFileUploadComponent — counting the list', () => {
 
   it('pluralises the footer count and breaks it down by outcome', async () => {
     const { fixture } = await setup({ maxSizeMb: 0 });
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     fixture.detectChanges();
     expect(el(fixture).textContent).toContain('1 file');
     expect(el(fixture).textContent).toContain('1 failed');
 
-    fixture.componentInstance.onDrop(dropEvent([file('b.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('b.txt')]));
     fixture.detectChanges();
     expect(el(fixture).textContent).toContain('2 files');
   });
 
   it('shows the success breakdown only once something has succeeded', async () => {
     const { fixture } = await setup({});
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     fixture.detectChanges();
     expect(el(fixture).textContent).not.toContain('uploaded');
     expect(el(fixture).textContent).toContain('Pending');
   });
 });
 
-describe('SvFileUploadComponent — the zone chrome', () => {
-  const sizes: FileUploadSize[] = ['sm', 'md', 'lg'];
-
-  it('gives every size its own padding, icon and text scale', async () => {
-    const seen = new Set<string>();
-    for (const size of sizes) {
-      const { fixture } = await setup({ size });
-      const c = fixture.componentInstance;
-      seen.add([c.zoneClasses(), c.iconSize(), c.labelClass(), c.hintClass()].join('|'));
-    }
-    expect(seen.size).toBe(3);
-  });
-
-  it('picks a different border for idle, drag-over and disabled — in that priority', async () => {
-    const idle = await setup({});
-    expect(idle.fixture.componentInstance.zoneClasses()).toContain('border-gray-300');
-
-    const drag = await setup({});
-    drag.fixture.componentInstance.isDragOver.set(true);
-    expect(drag.fixture.componentInstance.zoneClasses()).toContain('border-primary-400');
-
-    // Disabled outranks drag-over: a zone that cannot take a file must not
-    // light up as though it can.
-    const off = await setup({ disabled: true });
-    off.fixture.componentInstance.isDragOver.set(true);
-    expect(off.fixture.componentInstance.zoneClasses()).toContain('cursor-not-allowed');
-    expect(off.fixture.componentInstance.zoneClasses()).not.toContain('border-primary-400');
-  });
-
+describe('SvFileUploadComponent — the trigger chrome', () => {
   it('shows the hint beside the trigger only when there is one', async () => {
     const withHint = await setup({ hint: 'PNG or JPG, up to 5 MB' });
     expect(el(withHint.fixture).textContent).toContain('PNG or JPG, up to 5 MB');
@@ -226,7 +200,7 @@ describe('SvFileUploadComponent — the field-level validation error', () => {
     const { fixture } = await setup({ serverError: 'That document was rejected' });
     expect(el(fixture).textContent).toContain('That document was rejected');
 
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     fixture.detectChanges();
     expect(el(fixture).textContent).not.toContain('That document was rejected');
   });
@@ -235,7 +209,7 @@ describe('SvFileUploadComponent — the field-level validation error', () => {
     // Two different errors with two different owners; one must not hide the
     // other.
     const { fixture } = await setup({ maxSizeMb: 0, errorMessage: 'At least two files' });
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     fixture.detectChanges();
 
     expect(el(fixture).textContent).toContain('At least two files');
@@ -252,7 +226,7 @@ describe('SvFileUploadComponent — demo mode', () => {
       const complete: UploadFile[][] = [];
       fixture.componentInstance.uploadComplete.subscribe((all) => complete.push(all));
 
-      fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+      fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
       await until(() => fixture.componentInstance.files()[0].status === 'uploading', {
         label: 'the simulated upload to start',
       });
@@ -269,15 +243,16 @@ describe('SvFileUploadComponent — demo mode', () => {
   });
 
   it('fails a file when the demo dice say so, and reports it', async () => {
-    // 0.001 < 0.08 fires the failure; it needs progress past 40% first, so the
-    // duration is pinned short by the same stub.
+    // SR-27b: the demo's failures are chosen by hashing the file, not by
+    // `Math.random()`; a rate of 1 fails every file. The stub stays for the
+    // tests that still pin `Math.random` elsewhere.
     const random = vi.spyOn(Math, 'random').mockReturnValue(0.001);
     try {
-      const { fixture } = await setup({ demoMode: true, autoUpload: true });
+      const { fixture } = await setup({ demoMode: true, autoUpload: true, demoFailureRate: 1 });
       const failed: UploadFile[] = [];
       fixture.componentInstance.uploadError.subscribe((u) => failed.push(u));
 
-      fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+      fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
       await until(() => fixture.componentInstance.files()[0].status === 'error', {
         timeoutMs: 8000,
         label: 'the simulated failure',
@@ -298,7 +273,7 @@ describe('SvFileUploadComponent — demo mode', () => {
       inputs: { demoMode: true, autoUpload: true } as ComponentInput<SvFileUploadComponent>,
       providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
     });
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     await quietFor(300);
     expect(fixture.componentInstance.files()[0].status).toBe('pending');
     expect(fixture.componentInstance.files()[0].progress).toBe(0);
@@ -311,7 +286,7 @@ describe('SvFileUploadComponent — demo mode', () => {
       return Promise.resolve({});
     };
     const { fixture } = await setup({ demoMode: true, autoUpload: true, uploader });
-    fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+    fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
     await until(() => sent.length === 1, { label: 'the real uploader to be used' });
     expect(sent).toEqual(['a.txt']);
   });
@@ -320,7 +295,7 @@ describe('SvFileUploadComponent — demo mode', () => {
     const random = vi.spyOn(Math, 'random').mockReturnValue(0.99);
     try {
       const { fixture } = await setup({ demoMode: true, autoUpload: true });
-      fixture.componentInstance.onDrop(dropEvent([file('a.txt')]));
+      fixture.componentInstance.onFileInputChange(pickEvent([file('a.txt')]));
       await until(() => fixture.componentInstance.files()[0].status === 'uploading');
 
       const at = fixture.componentInstance.files()[0].progress;

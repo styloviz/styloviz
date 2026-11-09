@@ -1,4 +1,5 @@
 <sv-chart-frame
+  [summary]="a11ySummary()"
   [loading]="loading()"
   [error]="error()"
   [isEmpty]="chartIsEmpty()"
@@ -29,7 +30,7 @@
       @if (showTypeSelector()) {
         <div class="flex items-center rounded-lg border border-gray-200 bg-gray-100/70 p-0.5
                     dark:border-gray-700/50 dark:bg-gray-800/70"
-             role="group" aria-label="Trend type">
+             role="group" [attr.aria-label]="labels.trendType">
           @for (t of trendTypes; track t) {
             <button
               type="button"
@@ -199,7 +200,7 @@
                     stroke-dasharray="5 3"/>
             </svg>
             <span class="text-[11.5px] text-gray-600 dark:text-gray-400">
-              {{ tp.label }} Trend
+              {{ labels.trendLegend | svLabel: { name: tp.label } }}
             </span>
           </div>
         }
@@ -208,7 +209,7 @@
       <!-- R² badge (displayed in legend too) -->
       @for (tp of trendPaths(); track $index) {
         @if (tp.r2 !== null) {
-          <span class="ml-auto rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5
+          <span class="ms-auto rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5
                        text-[10.5px] font-medium text-gray-500
                        dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
             {{ r2Label(tp.r2) }}

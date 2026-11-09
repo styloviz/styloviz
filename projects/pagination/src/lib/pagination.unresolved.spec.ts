@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import type { SvUnresolvedValue } from '@styloviz/core';
+import type { SvUnresolvedValue } from '@styloviz/core/data';
 import { SvPaginationComponent } from './pagination.component';
 
 /**

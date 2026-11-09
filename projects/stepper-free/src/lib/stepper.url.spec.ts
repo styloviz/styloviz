@@ -1,10 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import {
-  provideSvNavLocation,
-  svNoopNavLocation,
-  svQueryParamNavLocation,
-} from '@styloviz/core';
+import { provideSvNavLocation, svNoopNavLocation, svQueryParamNavLocation } from '@styloviz/core/nav';
 import { SvStepperComponent, type StepperItem } from './stepper.component';
 import {
   SV_STEPPER_RESUME_KIND,

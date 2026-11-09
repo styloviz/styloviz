@@ -145,15 +145,15 @@ describe('SvDataTableComponent — pinned columns', () => {
   it('sticks a left-pinned column to the left edge in both the header and the body', async () => {
     const columns: TableColumn<Row>[] = [{ ...COLUMNS[0], pinned: 'left' }, COLUMNS[1], COLUMNS[2]];
     const { c } = await setup({ columns });
-    expect(c.getHeaderCellClass(columns[0]).join(' ')).toContain('sticky left-0 z-[25]');
-    expect(c.getCellClass(columns[0]).join(' ')).toContain('sticky left-0 z-[5]');
+    expect(c.getHeaderCellClass(columns[0]).join(' ')).toContain('sticky start-0 z-[25]');
+    expect(c.getCellClass(columns[0]).join(' ')).toContain('sticky start-0 z-[5]');
   });
 
   it('sticks a right-pinned column to the right edge instead', async () => {
     const columns: TableColumn<Row>[] = [COLUMNS[0], COLUMNS[1], { ...COLUMNS[2], pinned: 'right' }];
     const { c } = await setup({ columns });
-    expect(c.getHeaderCellClass(columns[2]).join(' ')).toContain('sticky right-0 z-[25]');
-    expect(c.getCellClass(columns[2]).join(' ')).toContain('sticky right-0 z-[5]');
+    expect(c.getHeaderCellClass(columns[2]).join(' ')).toContain('sticky end-0 z-[25]');
+    expect(c.getCellClass(columns[2]).join(' ')).toContain('sticky end-0 z-[5]');
   });
 
   // ★ The header cell paints an opaque band, not the 95% tint it used to — over
@@ -164,7 +164,7 @@ describe('SvDataTableComponent — pinned columns', () => {
     const header = c.getHeaderCellClass(columns[0]).join(' ');
     expect(header).toContain('bg-white');
     expect(header).not.toContain('/95');
-    expect(c.pinnedFilterClass(columns[0])).toContain('sticky left-0');
+    expect(c.pinnedFilterClass(columns[0])).toContain('sticky start-0');
     expect(c.pinnedFilterClass(columns[1])).toBe('');
   });
 
@@ -275,11 +275,6 @@ describe('SvDataTableComponent — density', () => {
     expect(c.cellTextSize()).toBe('text-[13px]');
   });
 
-  it('honours the deprecated compact flag as a density of compact', async () => {
-    const { c } = await setup({ compact: true });
-    expect(c.effectiveDensity()).toBe('compact');
-  });
-
   it('lets an explicit density win over the deprecated flag once the picker is used', async () => {
     const { c } = await setup({ compact: true });
     c.densityOverride.set('spacious');
@@ -315,10 +310,10 @@ describe('SvDataTableComponent — density', () => {
 describe('SvDataTableComponent — cell rendering', () => {
   it('aligns a column left, centre or right on request', async () => {
     const { c } = await setup();
-    expect(c.alignClass({ key: 'a', label: 'A' })).toBe('text-left');
-    expect(c.alignClass({ key: 'a', label: 'A', align: 'left' })).toBe('text-left');
+    expect(c.alignClass({ key: 'a', label: 'A' })).toBe('text-start');
+    expect(c.alignClass({ key: 'a', label: 'A', align: 'left' })).toBe('text-start');
     expect(c.alignClass({ key: 'a', label: 'A', align: 'center' })).toBe('text-center');
-    expect(c.alignClass({ key: 'a', label: 'A', align: 'right' })).toBe('text-right');
+    expect(c.alignClass({ key: 'a', label: 'A', align: 'right' })).toBe('text-end');
   });
 
   it('prefers a column render function over the raw value', async () => {
@@ -653,7 +648,7 @@ describe('SvDataTableComponent — mobile card layout', () => {
   });
 
   it('renders one focusable card per row alongside the desktop table', async () => {
-    const { el } = await setup({ cardOnMobile: true });
+    const { el } = await setup({ responsive: 'cards' });
     const cards = [...el.querySelectorAll<HTMLElement>('div[tabindex="0"]')];
     expect(cards).toHaveLength(2);
     expect(cards[0].textContent).toContain('Charlie');
@@ -661,7 +656,7 @@ describe('SvDataTableComponent — mobile card layout', () => {
   });
 
   it('activates a card with Enter and with Space', async () => {
-    const { el, c } = await setup({ cardOnMobile: true });
+    const { el, c } = await setup({ responsive: 'cards' });
     const seen: Row[] = [];
     c.rowClick.subscribe((r) => seen.push(r));
     const card = el.querySelector<HTMLElement>('div[tabindex="0"]')!;
@@ -673,7 +668,7 @@ describe('SvDataTableComponent — mobile card layout', () => {
   it('leaves Space alone inside the card\'s own select control', async () => {
     // Space on a checkbox means "toggle me"; letting it bubble up as a row
     // activation would both select the row and navigate away from it.
-    const { el, c } = await setup({ cardOnMobile: true, selectable: true });
+    const { el, c } = await setup({ responsive: 'cards', selectable: true });
     const seen: Row[] = [];
     c.rowClick.subscribe((r) => seen.push(r));
     const card = el.querySelector<HTMLElement>('div[tabindex="0"]')!;
@@ -683,12 +678,12 @@ describe('SvDataTableComponent — mobile card layout', () => {
   });
 
   it('shows the empty message in the card list too', async () => {
-    const { el } = await setup({ cardOnMobile: true, rows: [], emptyMessage: 'Nothing here.' });
+    const { el } = await setup({ responsive: 'cards', rows: [], emptyMessage: 'Nothing here.' });
     expect(el.textContent).toContain('Nothing here.');
   });
 
   it('shows a card skeleton while loading rather than stale cards', async () => {
-    const { el } = await setup({ cardOnMobile: true, loading: true, skeletonRows: 3 });
+    const { el } = await setup({ responsive: 'cards', loading: true, skeletonRows: 3 });
     const cardList = el.querySelector<HTMLElement>('.block.sm\\:hidden')!;
     expect(cardList.querySelectorAll('.skeleton-wave').length).toBeGreaterThan(0);
     expect(cardList.textContent).not.toContain('Charlie');

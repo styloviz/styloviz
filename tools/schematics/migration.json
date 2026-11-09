@@ -1,0 +1,20 @@
+{
+  "$schema": "../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "v2-register-icons": {
+      "version": "2.0.0",
+      "description": "2.0 registers icons per glyph. Opt an existing app into the full glyph set (provideSvIcons(svAllIcons)) so every name it draws keeps rendering; trim it to the glyphs you use afterwards.",
+      "factory": "./migrations/v2-register-icons/index#registerIcons"
+    },
+    "v2-pie-family": {
+      "version": "2.0.0",
+      "description": "2.0 has one pie family: sv-default-pie-chart becomes sv-pie-chart, sv-default-pie-chart-pro becomes sv-pie-chart-pro, and sv-donut-chart becomes sv-pie-chart-pro variant=\"donut\" (with its 1.x size kept). Renames the elements, the classes and the option and slice types.",
+      "factory": "./migrations/v2-pie-family/index#pieFamily"
+    },
+    "v2-data-table-responsive": {
+      "version": "2.0.0",
+      "description": "2.0 names what the data table does on a phone with one input: [cardOnMobile]=\"true\" becomes responsive=\"cards\". sv-record-grid became responsive=\"records\" on the table; files that use it are listed for you to fold by hand.",
+      "factory": "./migrations/v2-data-table-responsive/index#dataTableResponsive"
+    }
+  }
+}

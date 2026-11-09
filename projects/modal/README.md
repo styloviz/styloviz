@@ -1,8 +1,10 @@
 # @styloviz/modal
 
-> Premium dialog overlay with 6 semantic variants, 7 sizes, bottom-sheet & loading states, slot-based projection, focus trap and ESC/backdrop close.
+> Dialog overlay with 6 semantic variants, 7 sizes, bottom-sheet & loading states, slot-based projection, focus trap and ESC/backdrop close.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -76,15 +78,15 @@ export class DemoComponent {}
 | `showCloseButton` | `boolean` | `true` | Show the built-in × close button in the header. |
 | `loading` | `boolean` | `false` | Busy state. While `true` the panel shows a spinner overlay and all close paths (button, backdrop, ESC) are blocked so a running task can finish. |
 | `loadingText` | `string` | `'Loading…'` | Accessible label announced while `loading` is true. |
-| `closeOnNavigation` | `boolean` | `true` | Does a navigation close this dialog? A MODAL THAT OUTLIVES ITS ROUTE FLOATS OVER AN UNRELATED PAGE. The audit calls it the most common overlay bug in shipped dashboards, and the mechanism is simple — a link inside the dialog, a redirect from a guard, a host that navigates on success — after which the panel is still up, still modal, still describing a page that is no longer underneath it. IT ONLY HAPPENS IF THE APP ASKED. `provideSvOverlayRouteClose()` from `@styloviz/layout` is what tells the overlay layer a navigation happened; an app that wires nothing keeps today's behaviour exactly. Set this false for a dialog that belongs to the shell rather than to the page. |
-| `backCloses` | `boolean` | `false` | Does the browser Back button close this dialog? Back is the gesture users reach for to undo "I opened this", and on a phone it is the system gesture — a dialog that ignores it sends the user off the page instead, losing whatever they were doing. OFF BY DEFAULT, AND THAT IS THE OPPOSITE DECISION FROM THE ONE ABOVE. Back closing a dialog is right when the dialog is a destination the user navigated TO — a details panel, a wizard step — and wrong when it is a transient question, where it eats a Back press meant for the page. Only the host knows which this is. The mechanism is a marked `history` entry, not a route: the URL is untouched and the host's own state is preserved. Giving a dialog its own URL is a routing decision, and leaves that to the host. |
-| `dirty` | `boolean` | `false` | Is there unsaved work in this dialog? A FORM IN A MODAL CAN BE THROWN AWAY BY A MISSED CLICK. The backdrop is the whole screen around the panel, Escape is one key, and both discard everything the user typed with no warning and no undo. It is the single most-reported overlay complaint in any dashboard, and the reason "are you sure?" exists. SET THIS AND THE DIALOG ASKS instead of closing — once, in one place, from `createCloseGuard`, so Modal, Drawer and Confirm Dialog answer it identically. A prompt written four times behaves four ways. A PROGRAMMATIC `close()` STILL CLOSES. The prompt is for accidental dismissal; your own code calling `close()` has already decided, and a component that second-guesses its own API is unusable. See `createCloseGuard`'s `alwaysAllow`. |
+| `closeOnNavigation` | `boolean` | `true` | Does a navigation close this dialog? A modal that outlives its route floats over an unrelated page — a common overlay bug, and the mechanism is simple: a link inside the dialog, a redirect from a guard, a host that navigates on success — after which the panel is still up, still modal, still describing a page that has gone from underneath it. It only takes effect if the app asks: `provideSvOverlayRouteClose()` from `@styloviz/layout` is what tells the overlay layer a navigation happened, and an app that wires nothing sees no change. Set this false for a dialog that belongs to the shell rather than to the page. |
+| `backCloses` | `boolean` | `false` | Does the browser Back button close this dialog? Back is the gesture users reach for to undo "I opened this", and on a phone it is the system gesture — a dialog that ignores it sends the user off the page instead, losing whatever they were doing. Off by default, and that is the opposite decision from the one above. Back closing a dialog is right when the dialog is a destination the user navigated TO — a details panel, a wizard step — and wrong when it is a transient question, where it eats a Back press meant for the page. Only the host knows which this is. The mechanism is a marked `history` entry, not a route: the URL is untouched and the host's own state is preserved. Giving a dialog its own URL is a routing decision, and leaves that to the host. |
+| `dirty` | `boolean` | `false` | Is there unsaved work in this dialog? A form in a modal can be thrown away by a missed click. The backdrop is the whole screen around the panel, Escape is one key, and both discard everything the user typed with no warning and no undo. It is the single most-reported overlay complaint in any dashboard, and the reason "are you sure?" exists. Set this and the dialog asks instead of closing — once, in one place, from `createCloseGuard`, so Modal, Drawer and Confirm Dialog answer it identically. A prompt written four times behaves four ways. A programmatic `close()` still closes. The prompt is for accidental dismissal; your own code calling `close()` has already decided, and a component that second-guesses its own API is unusable. See `createCloseGuard`'s `alwaysAllow`. |
 | `canClose` | `((reason: ModalCloseReason) => boolean \| void) \| null` | `null` | The host's own veto, consulted before anything else. Return `false` to refuse a close; return nothing to have no opinion, so a guard that only cares about the backdrop needs one `if`. A veto is silent: it does NOT raise the unsaved-changes prompt, because the host refused for its own reasons and owns its own messaging. ```html <sv-modal [canClose]="notWhileUploading" /> ``` ```ts protected readonly notWhileUploading = (reason: ModalCloseReason) => reason === 'backdrop' ? !this.uploading(): undefined; ``` |
 | `unsavedTitle` | `string` | `'Discard your changes?'` | Heading of the unsaved-changes prompt. |
-| `unsavedMessage` | `string` | `'This dialog has changes that have not …` | Body of the unsaved-changes prompt. |
+| `unsavedMessage` | `string` | `'This dialog has changes that have not been saved.'` | Body of the unsaved-changes prompt. |
 | `discardLabel` | `string` | `'Discard'` | Label of the button that closes and loses the changes. |
 | `keepEditingLabel` | `string` | `'Keep editing'` | Label of the button that returns to the dialog. |
-| `pendingDismissal` | `SvPendingDismissal` | `'block'` | May the user dismiss the modal while `loading` is true? IS TWO COMPLAINTS AND THIS IS THE FIRST: "no way out". Every close path — the × button, the backdrop, Escape — is blocked while `loading`, silently and with no stated policy. That is a defensible answer for a two-second save and the wrong one for a request that has hung: the modal simply stops responding, and the user's remaining move is to reload the page. `'block'` keeps exactly today's behaviour and is the default. `'abort'` lets the close through and emits `loadingCancelled` first, so the host can abort the work it started. The modal does not own the request — `loading` is an input — so the host has to do the aborting; what changes is that it is now told to. |
+| `pendingDismissal` | `SvPendingDismissal` | `'block'` | May the user dismiss the modal while `loading` is true? `'block'` (the default) blocks every close path — the × button, the backdrop, Escape — while `loading`. That is right for a two-second save and wrong for a request that has hung, where the modal would simply stop responding. `'abort'` lets the close through and emits `loadingCancelled` first, so the host can abort the work it started. The modal does not own the request — `loading` is an input — so the host does the aborting. |
 | `slowAfterMs` | `number` | `0` | Say "this is taking longer than usual" after this many ms of `loading`. `0` = never. |
 | `stalledAfterMs` | `number` | `0` | Escalate to a stuck message after this many ms of `loading`, measured from the same start. `0` = never. |
 | `slowMessage` | `string` | `'This is taking longer than usual…'` | Message shown over the panel at the `slow` stage. |
@@ -92,10 +94,11 @@ export class DemoComponent {}
 | `cancelLoadingLabel` | `string \| null` | `null` | Label for a cancel button in the loading overlay, shown once `stalled`. `null` = none — and an offer with nothing behind it is worse than none, so set this only when `loadingCancelled` is wired to something that stops the work. |
 | `initialFocus` | `string` | `''` | CSS selector for the element to focus first when the modal opens (e.g. `'#name-input'`). Falls back to the first focusable element. |
 | `customClass` | `string` | `''` | Extra CSS classes merged onto the dialog panel. |
-| `resizable` | `boolean` | `false` | Let the user drag the panel's bottom-right corner to resize it. THE DRAG IS AN ENHANCEMENT, NOT THE ONLY WAY IN. A pointer-only affordance is unusable by keyboard, so turning this on also turns on the maximize/restore button unless `maximizable` is explicitly false — the button is the keyboard-reachable half of the same capability, and the panel can always be sized declaratively through `size`. |
+| `resizable` | `boolean` | `false` | Let the user drag the panel's bottom inline-end corner (bottom-right; bottom-left in RTL) to resize it. The drag is an enhancement, not the only way in. A pointer-only affordance is unusable by keyboard, so turning this on also turns on the maximize/restore button unless `maximizable` is explicitly false — the button is the keyboard-reachable half of the same capability, and the panel can always be sized declaratively through `size`. |
 | `maximizable` | `boolean` | `false` | Show the maximize / restore button in the header. |
 | `minWidth` | `number` | `280` | Floor for a dragged resize, in pixels. |
 | `minHeight` | `number` | `160` | Floor for a dragged resize, in pixels. |
+| `sheetOnNarrow` | `boolean` | `false` | Become a bottom sheet on a narrow viewport (640px and below). |
 
 ## Outputs
 
@@ -108,7 +111,7 @@ export class DemoComponent {}
 | `opened` | `void` | Emitted after the modal is opened (by any means). |
 | `closed` | `void` | Emitted after the modal is closed (by any means). |
 | `dismissed` | `ModalCloseReason` | Emitted alongside `closed`, describing what triggered the close. A close caused by a navigation or a Back press reports `'programmatic'` here — the published union cannot grow — and its exact reason on `dismissedBy`. |
-| `dismissedBy` | `SvCloseReason` | Emitted alongside `dismissed` with the exact reason, including `'route'` (the app navigated) and `'history'` (the Back button) from |
+| `dismissedBy` | `SvCloseReason` | Emitted alongside `dismissed` with the exact reason, including `'route'` (the app navigated) and `'history'` (the Back button). |
 | `resized` | `SvModalSizePx` | Emitted whenever the panel's pixel size changes — a drag or a maximize. |
 | `isOpenChange` | `boolean` | Emits the new `isOpen` whenever it changes — the output half of `[(isOpen)]`. |
 
@@ -118,4 +121,4 @@ Full API reference and live demos: https://styloviz.dev/docs/modal
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

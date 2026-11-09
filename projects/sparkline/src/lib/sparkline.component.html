@@ -15,7 +15,7 @@
     role="status"
     aria-busy="true"
     data-sv-state="loading"
-    [attr.aria-label]="ariaHidden() ? null : 'Loading'"></span>
+    [attr.aria-label]="ariaHidden() ? null : labels.loading"></span>
 } @else if (error()) {
   <!--
     A dash, not a flat line: a zeroed sparkline is indistinguishable from a
@@ -34,8 +34,8 @@
     [style.height.px]="height()"
     data-sv-state="error"
     (click)="retry.emit()"
-    [attr.aria-label]="ariaHidden() ? null : 'Could not load — retry'"
-    title="Could not load — click to retry">–</button>
+    [attr.aria-label]="ariaHidden() ? null : labels.couldNotLoadRetry"
+    [title]="labels.couldNotLoadClickToRetry">–</button>
 } @else if (isEmpty()) {
   <!-- Reserve the same box so a row does not reflow when data arrives. -->
   <span

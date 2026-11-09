@@ -43,13 +43,13 @@
     [attr.tabindex]="focusable() ? 0 : -1"
     (click)="toggle()"
     (keydown)="onKeydown($event)"
-    class="focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
+    class="sv-target focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
            dark:focus-visible:ring-primary-400 dark:focus-visible:ring-offset-gray-900"
   >
     <!-- Track ON label -->
     @if (showOnLabel()) {
       <span
-        class="absolute left-1.5 font-semibold leading-none pointer-events-none"
+        class="absolute start-1.5 font-semibold leading-none pointer-events-none"
         [ngClass]="[trackLabelClass(), trackOnInkClass()]"
         aria-hidden="true"
       >
@@ -64,7 +64,7 @@
          on a surface. These read 6.10:1 and 7.00:1. -->
     @if (showOffLabel()) {
       <span
-        class="absolute right-1.5 font-semibold leading-none pointer-events-none"
+        class="absolute end-1.5 font-semibold leading-none pointer-events-none"
         [ngClass]="[trackLabelClass(), 'text-gray-600 dark:text-gray-300']"
         aria-hidden="true"
       >

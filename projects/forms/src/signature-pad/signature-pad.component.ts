@@ -6,11 +6,13 @@ import {
   afterNextRender,
   booleanAttribute,
   computed,
+  effect,
   inject,
   input,
   model,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { SvIconComponent } from '@styloviz/icons';
@@ -29,7 +31,16 @@ import {
   type SignatureAttestation,
   type SignatureValue,
 } from './signature-pad.types';
-import { svUniqueId } from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { injectSvLabels } from '@styloviz/core/i18n';
+import { SV_FORMS_LABELS } from '../forms.labels';
+
+import { registerSignaturePadIcons } from './signature-pad.component.icons';
+/**
+ * Ink for an export when no `penColor` was given: a document is printed on
+ * white, whatever theme the signer had on screen. The pre-`SR-12` default.
+ */
+const EXPORT_INK = '#111827';
 
 /**
  * SignaturePad — sign with a finger, a pen or a mouse.
@@ -103,6 +114,10 @@ import { svUniqueId } from '@styloviz/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvSignaturePadComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerSignaturePadIcons();
+
+  protected readonly labels = injectSvLabels('forms', SV_FORMS_LABELS);
   private readonly hostRef = inject(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -118,7 +133,7 @@ export class SvSignaturePadComponent {
    *
    * @default 'Signature'
    */
-  readonly label = input<string>('Signature');
+  readonly label = input<string>(this.labels.signature);
 
   /** Helper text under the pad. @default '' */
   readonly hint = input<string>('');
@@ -126,8 +141,17 @@ export class SvSignaturePadComponent {
   /** Height preset for the drawing area. @default 'md' */
   readonly size = input<SignaturePadSize>('md');
 
-  /** Ink colour. Any CSS colour. @default '#111827' */
-  readonly penColor = input<string>('#111827');
+  /**
+   * Ink colour. Any CSS colour. @default '' — the theme's ink.
+   *
+   * ★★ EMPTY MEANS "FOLLOW THE THEME" (`SR-12`). The default used to be
+   *    `#111827` — gray-900, which is the pad's own DARK-MODE background — so
+   *    every signature was invisible in dark mode. Empty now resolves from the
+   *    canvas's CSS `color` (`text-gray-900 dark:text-gray-100`) when drawing,
+   *    and to `#111827` in `toDataUrl()` / `toSvgString()`, because an export
+   *    is printed on white whatever the screen was.
+   */
+  readonly penColor = input<string>('');
 
   /** Stroke width in CSS pixels, before pressure. @default 2 */
   readonly penWidth = input<number>(2);
@@ -151,6 +175,20 @@ export class SvSignaturePadComponent {
   /** Nothing can be drawn, and the actions are hidden. @default false */
   readonly disabled = input<boolean>(false);
 
+  /**
+   * Show a signature that has already been given: nothing can be drawn, typed,
+   * undone or cleared — like `disabled` — but at full opacity, with no
+   * "sign here" prompt and a solid border. @default false
+   *
+   * ★ Not `disabled`, which dims the pad to 60 %: a stored signature on a
+   *   contract summary is the record, not a control the user cannot use, and
+   *   it should not look greyed out (`SR-20`).
+   */
+  readonly readonly = input<boolean>(false);
+
+  /** Drawing, typing and the actions are all off — `disabled` or `readonly`. */
+  protected readonly locked = computed<boolean>(() => this.disabled() || this.readonly());
+
   /** Extra classes on the root element. @default '' */
   readonly customClass = input<string>('');
 
@@ -172,12 +210,12 @@ export class SvSignaturePadComponent {
   readonly allowTyped = input(true, { transform: booleanAttribute });
 
   /** Label for the typed-name field. @default 'Or type your full name' */
-  readonly typedNameLabel = input<string>('Or type your full name');
+  readonly typedNameLabel = input<string>(this.labels.typeFullName);
 
   /**
    * The typed name. Two-way bindable.
    *
-   * ⚠️ THE ATTESTATION WORDING IS THE HOST'S. "By typing my name I agree to…"
+   * THE ATTESTATION WORDING IS THE HOST'S. "By typing my name I agree to…"
    *    is a legal sentence about a specific agreement, and a component that
    *    invents one is writing contracts it has not read. Put it in `hint`.
    */
@@ -267,6 +305,9 @@ export class SvSignaturePadComponent {
   /** The stroke being drawn right now, if any. */
   private current: SignaturePoint[] | null = null;
 
+  /** Ink for the stroke in progress, resolved at pointer-down. */
+  private liveInk = EXPORT_INK;
+
   /** The canvas box in CSS pixels, kept for export and for rescaling. */
   private readonly box = signal<{ width: number; height: number }>({ width: 0, height: 0 });
 
@@ -289,9 +330,33 @@ export class SvSignaturePadComponent {
   );
 
   constructor() {
+    // ★ The pen inputs are read per segment, so changing one used to repaint
+    //   nothing until the next undo (`SR-12`). Strokes that carry their own ink
+    //   keep it; the rest — theme ink, records from before per-stroke ink —
+    //   follow the new value at once.
+    effect(() => {
+      this.penColor();
+      this.penWidth();
+      this.pressureSensitive();
+      untracked(() => this.redraw());
+    });
+
     afterNextRender(() => {
       this.resizeToBox();
       const el = this.canvasRef()?.nativeElement;
+
+      // ★★ A THEME SWITCH CHANGES THE INK, AND NOTHING ELSE TELLS THE CANVAS.
+      //    The kit's dark mode is a class on <html>; the bitmap does not cascade,
+      //    so already-drawn strokes would stay in the old theme's ink (`SR-12`).
+      if (el && typeof MutationObserver !== 'undefined') {
+        const themeObserver = new MutationObserver(() => this.redraw());
+        themeObserver.observe(el.ownerDocument.documentElement, {
+          attributes: true,
+          attributeFilter: ['class', 'data-theme', 'style'],
+        });
+        this.destroyRef.onDestroy(() => themeObserver.disconnect());
+      }
+
       if (!el || typeof ResizeObserver === 'undefined') return;
 
       /**
@@ -311,7 +376,7 @@ export class SvSignaturePadComponent {
   // ── Pointer handling ──────────────────────────────────────────────────────
 
   protected onPointerDown(event: PointerEvent): void {
-    if (this.disabled()) return;
+    if (this.locked()) return;
     const el = this.canvasRef()?.nativeElement;
     if (!el) return;
 
@@ -321,10 +386,13 @@ export class SvSignaturePadComponent {
     event.preventDefault();
 
     this.current = [this.pointFrom(event, el)];
+    // Resolved once per stroke: `getComputedStyle` on every move event would
+    // force a style recalculation at pointer rate.
+    this.liveInk = this.penColor() || this.themeInk();
   }
 
   protected onPointerMove(event: PointerEvent): void {
-    if (!this.current || this.disabled()) return;
+    if (!this.current || this.locked()) return;
     const el = this.canvasRef()?.nativeElement;
     if (!el) return;
     event.preventDefault();
@@ -337,7 +405,8 @@ export class SvSignaturePadComponent {
     if (Math.abs(point.x - previous.x) < 0.5 && Math.abs(point.y - previous.y) < 0.5) return;
 
     this.current.push(point);
-    this.drawSegment(previous, point);
+    const ctx = el.getContext('2d');
+    if (ctx) this.drawSegment(ctx, previous, point, this.liveInk, this.penWidth());
   }
 
   protected onPointerUp(event: PointerEvent): void {
@@ -345,9 +414,18 @@ export class SvSignaturePadComponent {
     const el = this.canvasRef()?.nativeElement;
     el?.releasePointerCapture?.(event.pointerId);
 
-    const stroke: SignatureStroke = { points: this.current };
+    const points = this.current;
     this.current = null;
+    // ★★ A TAP IS NOT A STROKE (`SR-12`). A one-point "stroke" draws nothing,
+    //    counts for nothing (`isSignatureEmpty`, `strokeCount`) and so cannot be
+    //    undone — yet it rode along in `value()`, `signatureChange` and the
+    //    attestation hash. Discarded here, it never exists.
+    if (points.length < 2) return;
+    const color = this.penColor();
+    const stroke: SignatureStroke = { points, ...(color ? { color } : {}), width: this.penWidth() };
     this.strokes.update((list) => [...list, stroke]);
+    // A new mark forks the history: what was undone can no longer be redone.
+    this.undone.set([]);
     this.emit();
   }
 
@@ -361,17 +439,40 @@ export class SvSignaturePadComponent {
 
   // ── Commands ──────────────────────────────────────────────────────────────
 
+  /** Strokes taken off by `undo()`, most recent last — what `redo()` puts back. */
+  private readonly undone = signal<readonly SignatureStroke[]>([]);
+
+  /** There is an undone mark to put back. */
+  readonly canRedo = computed<boolean>(() => this.undone().length > 0);
+
   /** Remove the last mark. Undo works on STROKES, not on points. */
   undo(): void {
-    if (this.disabled() || this.strokes().length === 0) return;
+    if (this.locked() || this.strokes().length === 0) return;
+    const last = this.strokes()[this.strokes().length - 1];
     this.strokes.update((list) => list.slice(0, -1));
+    this.undone.update((list) => [...list, last]);
+    this.redraw();
+    this.emit();
+  }
+
+  /**
+   * Put back the mark `undo()` last removed (`SR-20`). A new stroke, a clear or
+   * a `setValue()` empties the redo history, as in every editor.
+   */
+  redo(): void {
+    const undone = this.undone();
+    if (this.locked() || undone.length === 0) return;
+    const next = undone[undone.length - 1];
+    this.undone.set(undone.slice(0, -1));
+    this.strokes.update((list) => [...list, next]);
     this.redraw();
     this.emit();
   }
 
   clear(): void {
-    if (this.disabled() || this.strokes().length === 0) return;
+    if (this.locked() || this.strokes().length === 0) return;
     this.strokes.set([]);
+    this.undone.set([]);
     this.redraw();
     this.emit();
   }
@@ -400,13 +501,27 @@ export class SvSignaturePadComponent {
    */
   toDataUrl(type = 'image/png'): string | null {
     if (this.isEmpty()) return null;
-    return this.canvasRef()?.nativeElement.toDataURL(type) ?? null;
+    const el = this.canvasRef()?.nativeElement;
+    if (!el) return null;
+    // ★★ RENDERED AGAIN, NOT READ OFF THE SCREEN (`SR-12`). The on-screen ink
+    //    follows the theme, so in dark mode the visible bitmap is light ink on a
+    //    transparent background — a signature that vanishes on white paper. The
+    //    export is painted into a copy in the document ink instead.
+    const copy = el.ownerDocument.createElement('canvas');
+    copy.width = el.width;
+    copy.height = el.height;
+    const ctx = copy.getContext('2d');
+    if (!ctx) return el.toDataURL(type);
+    const scale = el.width / Math.max(1, this.box().width);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    this.paint(ctx, this.penColor() || EXPORT_INK);
+    return copy.toDataURL(type);
   }
 
   /** SVG document, or `null` when empty. A signature is a vector. */
   toSvgString(): string | null {
     const { width, height } = this.box();
-    return toSvg(this.strokes(), width, height, this.penColor(), this.penWidth());
+    return toSvg(this.strokes(), width, height, this.penColor() || EXPORT_INK, this.penWidth());
   }
 
   /**
@@ -423,7 +538,12 @@ export class SvSignaturePadComponent {
    */
   setValue(value: SignatureValue): void {
     const { width, height } = this.box();
+    this.undone.set([]);
     this.strokes.set(rescale(value, width, height));
+    // ★ Kept unscaled, so a pad restored while hidden — a 1 × 1 box — is
+    //   rescaled again once it has a real size, instead of staying a dot
+    //   (`SR-12`). Dropped as soon as the strokes are edited.
+    this.source = { value, strokes: this.strokes() };
     // ★ Restored too, or replaying a stored signature would silently drop the
     //   half of it that some hosts rely on as the attestation.
     this.typedName.set(value.typedName ?? '');
@@ -432,6 +552,29 @@ export class SvSignaturePadComponent {
       : null;
     this.redraw();
     this.emit();
+  }
+
+  /** The record `setValue()` was given, while the strokes are still exactly it. */
+  private source: { readonly value: SignatureValue; strokes: readonly SignatureStroke[] } | null = null;
+
+  /**
+   * Re-fit a restored record into the current box. Only while it is unedited:
+   * a signature the user has added to is theirs, in this box's coordinates.
+   */
+  private refitSource(): void {
+    const src = this.source;
+    if (!src) return;
+    if (src.strokes !== this.strokes()) {
+      this.source = null;
+      return;
+    }
+    const { width, height } = this.box();
+    const strokes = rescale(src.value, width, height);
+    // Same identity in all three places, so `keptRecord()` still recognises
+    // the restored record as untouched.
+    src.strokes = strokes;
+    if (this.restored) this.restored = { ...this.restored, strokes };
+    this.strokes.set(strokes);
   }
 
   /** A record restored by `setValue()` with an attestation, until it is edited. */
@@ -486,6 +629,7 @@ export class SvSignaturePadComponent {
 
     const ctx = el.getContext('2d');
     ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.refitSource();
     this.redraw();
   }
 
@@ -495,26 +639,51 @@ export class SvSignaturePadComponent {
     if (!el || !ctx) return;
     const { width, height } = this.box();
     ctx.clearRect(0, 0, width, height);
+    this.paint(ctx, this.penColor() || this.themeInk());
+  }
+
+  /**
+   * Every stroke, in its own ink where it has one and `ink` otherwise. Shared
+   * by the screen and the PNG export so the two cannot drift.
+   */
+  private paint(ctx: CanvasRenderingContext2D, ink: string): void {
     for (const stroke of this.strokes()) {
+      const color = stroke.color ?? ink;
+      const width = Number.isFinite(stroke.width) ? (stroke.width as number) : this.penWidth();
       for (let i = 1; i < stroke.points.length; i++) {
-        this.drawSegment(stroke.points[i - 1], stroke.points[i]);
+        this.drawSegment(ctx, stroke.points[i - 1], stroke.points[i], color, width);
       }
     }
   }
 
-  private drawSegment(from: SignaturePoint, to: SignaturePoint): void {
-    const ctx = this.canvasRef()?.nativeElement.getContext('2d');
-    if (!ctx) return;
-    ctx.strokeStyle = this.penColor();
+  private drawSegment(
+    ctx: CanvasRenderingContext2D,
+    from: SignaturePoint,
+    to: SignaturePoint,
+    color: string,
+    width: number,
+  ): void {
+    ctx.strokeStyle = color;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = this.pressureSensitive()
-      ? Math.max(0.5, this.penWidth() * (0.5 + to.pressure))
-      : this.penWidth();
+      ? Math.max(0.5, width * (0.5 + to.pressure))
+      : width;
     ctx.beginPath();
     ctx.moveTo(from.x, from.y);
     ctx.lineTo(to.x, to.y);
     ctx.stroke();
+  }
+
+  /**
+   * The theme's ink: the canvas's CSS `color` (`text-gray-900
+   * dark:text-gray-100`). Falls back to the export ink where there is no
+   * computed style — SSR, or a test DOM that does not cascade.
+   */
+  private themeInk(): string {
+    const el = this.canvasRef()?.nativeElement;
+    const color = el && typeof getComputedStyle !== 'undefined' ? getComputedStyle(el).color : '';
+    return color || EXPORT_INK;
   }
 
   private pointFrom(event: PointerEvent, el: HTMLCanvasElement): SignaturePoint {

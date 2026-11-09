@@ -1,8 +1,10 @@
 # @styloviz/image-compare
 
-> A before/after wipe that admits when it is not one: it measures both images' intrinsic sizes and says so when their aspect ratios disagree, because then part of what the reader sees as "the change" is the crop. Operated as a real ARIA slider — arrows, page keys, Home and End — which almost no implementation of this control is.
+> A before/after wipe that admits when it is not one: it measures both images' intrinsic sizes and says so when their aspect ratios disagree, because then part of what the reader sees as "the change" is the crop. Operated as a real ARIA slider — arrows, page keys, Home and End.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -64,7 +66,7 @@ export class DemoComponent {}
 | `variant` | `ImageCompareVariant` | `'slider'` | Presentation: `'slider'` (draggable handle), `'bare'` (no handle; keyboard and drag still work) or `'inspect'` (adds the measured ratios). |
 | `beforeSrc` | `string` | `''` | The image revealed on the left of the wipe. |
 | `afterSrc` | `string` | `''` | The image revealed on the right of the wipe. |
-| `beforeAlt` | `string` | `'the before image'` | Alt text, used in the slider's spoken value as well as on the images. "Before" and "after" are what the CONTROL does, not what the images are. A screen reader user hearing "50% after" learns nothing; "50% retouched" is the sentence a sighted reader gets from looking. |
+| `beforeAlt` | `string` | `'the before image' / 'the after image'` | Alt text, used in the slider's spoken value as well as on the images. "Before" and "after" are what the CONTROL does, not what the images are. A screen reader user hearing "50% after" learns nothing; "50% retouched" is the sentence a sighted reader gets from looking. |
 | `afterAlt` | `string` | `'the after image'` | Alt text for the after image, also used as its name in the slider's spoken value. |
 | `beforeLabel` | `string` | `''` | Corner captions. Empty hides them. |
 | `afterLabel` | `string` | `''` | Corner caption on the after image; empty hides it. |
@@ -78,6 +80,7 @@ export class DemoComponent {}
 | Output | Type | Description |
 | --- | --- | --- |
 | `mismatch` | `number` | Emitted once when the two images turn out not to be comparable. |
+| `loadError` | `'before' \| 'after'` | An image failed to load — `'before'` or `'after'`. The wipe is replaced by the reason. |
 | `positionChange` | `number` | Emits the new `position` whenever it changes — the output half of `[(position)]`. |
 
 ## Documentation
@@ -86,4 +89,4 @@ Full API reference and live demos: https://styloviz.dev/docs/image-compare
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

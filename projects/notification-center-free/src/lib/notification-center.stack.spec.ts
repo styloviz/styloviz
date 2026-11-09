@@ -1,6 +1,6 @@
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvOverlayStackService } from '@styloviz/core';
+import { SvOverlayStackService } from '@styloviz/core/overlay';
 import { SvNotificationCenterComponent } from './notification-center.component';
 import type { NotificationItem } from './notification-center.types';
 

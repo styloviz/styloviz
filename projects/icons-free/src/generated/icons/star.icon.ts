@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `star` icon. */
 export const starNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const starNodes: readonly IconNode[] = [
 export const starSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M12 2.5 L14.85 8.3 L21.2 9.25 L16.6 13.7 L17.7 20 L12 17 L6.3 20 L7.4 13.7 L2.8 9.25 L9.15 8.3 Z' },
 ];
+
+/** `star` as a registrable glyph — `registerSvIcons([starIcon])` / `provideSvIcons([starIcon])`. */
+export const starIcon: SvIconDef = { name: 'star', nodes: starNodes, solid: starSolidNodes };
 
 /** `star` — tree-shakable standalone icon. Use `<sv-star-icon />`. */
 @Component({

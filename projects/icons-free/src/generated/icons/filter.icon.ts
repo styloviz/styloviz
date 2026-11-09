@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `filter` icon. */
 export const filterNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const filterNodes: readonly IconNode[] = [
 export const filterSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 4.1h16q.9 0 .9.9 0 .3-.2.6l-5.8 6.7v6.7q0 .9-.9.9-.2 0-.4-.1l-4-2q-.5-.3-.5-.8v-4.7l-5.8-6.7q-.2-.4-.2-.7 0-.3.3-.6.3-.2.6-.2z' },
 ];
+
+/** `filter` as a registrable glyph — `registerSvIcons([filterIcon])` / `provideSvIcons([filterIcon])`. */
+export const filterIcon: SvIconDef = { name: 'filter', nodes: filterNodes, solid: filterSolidNodes };
 
 /** `filter` — tree-shakable standalone icon. Use `<sv-filter-icon />`. */
 @Component({

@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `refresh-cw` icon. */
 export const refreshCwNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const refreshCwNodes: readonly IconNode[] = [
 export const refreshCwSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm21.3 15.3q-1.8 5.1-7.1 6.3-5.3 1.2-9.2-2.6l-1.1-1v3q0 .9-.9.9-.9 0-.9-.9v-4.7q0-.1 0-.2 0-.2.1-.4.1-.4.4-.5.3-.2.6-.1h4.8q.9 0 .9.9 0 .9-.9.9h-2.7l.9.8q.1 0 .1 0 3.1 3.2 7.5 2.2 4.4-1 5.9-5.2.3-.8 1.1-.5.8.3.5 1.1zm-18.6-6.6q1.8-5.1 7.1-6.3 5.3-1.2 9.2 2.6l1.1 1v-3q0-.9.9-.9.9 0 .9.9v4.7q.1.3-.1.6-.1.4-.4.5-.3.2-.6.1h-4.8q-.9 0-.9-.9 0-.9.9-.9h2.7l-.9-.8q-.1 0-.1 0-3.1-3.2-7.5-2.2-4.4 1-5.9 5.2-.1.4-.4.5-.3.2-.7 0-.8-.3-.5-1.1z' },
 ];
+
+/** `refresh-cw` as a registrable glyph — `registerSvIcons([refreshCwIcon])` / `provideSvIcons([refreshCwIcon])`. */
+export const refreshCwIcon: SvIconDef = { name: 'refresh-cw', nodes: refreshCwNodes, solid: refreshCwSolidNodes };
 
 /** `refresh-cw` — tree-shakable standalone icon. Use `<sv-refresh-cw-icon />`. */
 @Component({

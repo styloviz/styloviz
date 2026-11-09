@@ -1,0 +1,136 @@
+<section
+  role="group"
+  data-sv-audio-device-select
+  class="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 text-gray-900 shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 print:shadow-none"
+  [attr.aria-label]="regionLabel()"
+  [attr.data-permission]="permission()"
+  [attr.aria-busy]="permission() === 'checking' ? 'true' : null">
+  @switch (permission()) {
+    @case ('checking') {
+      <p class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <sv-icon name="loader" [size]="16" cssClass="motion-safe:animate-spin" />
+        {{ text().audioDeviceChecking }}
+      </p>
+    }
+    @case ('unsupported') {
+      <p class="flex items-start gap-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-800/60 dark:text-gray-300">
+        <sv-icon name="info" [size]="18" cssClass="mt-px shrink-0 text-gray-500 dark:text-gray-400" />
+        {{ text().audioDeviceUnsupported }}
+      </p>
+    }
+    @case ('insecure') {
+      <p class="flex items-start gap-2 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-800/60 dark:text-gray-300">
+        <sv-icon name="lock" [size]="18" cssClass="mt-px shrink-0 text-gray-500 dark:text-gray-400" />
+        {{ text().audioDeviceInsecure }}
+      </p>
+    }
+    @case ('denied') {
+      <div class="flex items-start gap-3 rounded-xl border border-warning-200 bg-warning-50 p-3 text-warning-900 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-warning-100">
+        <sv-icon name="mic-off" [size]="20" cssClass="mt-0.5 shrink-0 text-warning-700 dark:text-warning-300" />
+        <div class="min-w-0 flex-1 space-y-1">
+          <p class="text-sm font-semibold">{{ text().audioDeviceDeniedTitle }}</p>
+          <p class="text-xs leading-relaxed text-warning-800 dark:text-warning-200">{{ text().audioDeviceDeniedHelp }}</p>
+          <button
+            type="button"
+            data-sv-audio-device="check-again"
+            class="mt-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-warning-300 bg-white px-3 text-xs font-semibold text-warning-900 transition-colors hover:bg-warning-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-warning-500/40 dark:bg-gray-900 dark:text-warning-100 dark:hover:bg-warning-500/15"
+            [disabled]="disabled()"
+            (click)="refresh()">
+            <sv-icon name="refresh-cw" [size]="14" />
+            {{ text().audioDeviceCheckAgain }}
+          </button>
+        </div>
+      </div>
+    }
+    @case ('prompt') {
+      <div class="flex flex-col gap-3 rounded-xl bg-primary-50/70 p-3 sm:flex-row sm:items-center dark:bg-primary-500/10">
+        <p class="flex min-w-0 flex-1 items-start gap-2 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+          <sv-icon name="shield-check" [size]="16" cssClass="mt-px shrink-0 text-primary-600 dark:text-primary-300" />
+          {{ text().audioDevicePromptHint }}
+        </p>
+        <button
+          type="button"
+          data-sv-audio-device="allow"
+          class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-500 dark:text-gray-950 dark:hover:bg-primary-400 dark:focus-visible:ring-offset-gray-900"
+          [disabled]="!canOpen()"
+          (click)="requestAccess()">
+          <sv-icon [name]="opening() ? 'loader' : 'mic'" [size]="16" [cssClass]="opening() ? 'motion-safe:animate-spin' : ''" />
+          {{ text().audioDeviceAllow }}
+        </button>
+      </div>
+    }
+  }
+
+  @if (available()) {
+    <sv-select-dropdown
+      [label]="text().audioDeviceInput"
+      [options]="inputOptions()"
+      [value]="deviceId()"
+      [size]="size()"
+      [disabled]="disabled() || permission() === 'checking' || permission() === 'denied'"
+      (selectionChange)="onInputSelect($event)" />
+
+    @if (meter() && (permission() === 'granted' || permission() === 'prompt')) {
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          data-sv-audio-device="test"
+          class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50 print:hidden"
+          [class]="
+            testing()
+              ? 'border-danger-200 bg-danger-50 text-danger-800 hover:bg-danger-100 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-200 dark:hover:bg-danger-500/20'
+              : 'border-gray-200 bg-white text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800'
+          "
+          [attr.aria-pressed]="testing()"
+          [disabled]="testing() ? disabled() : !canOpen()"
+          (click)="toggleTest()">
+          <sv-icon [name]="opening() ? 'loader' : 'mic'" [size]="14" [cssClass]="opening() ? 'motion-safe:animate-spin' : ''" />
+          {{ testing() ? text().audioDeviceStopTest : text().audioDeviceTest }}
+        </button>
+        <div
+          role="meter"
+          class="relative h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="levelPct()"
+          [attr.aria-valuetext]="levelText()"
+          [attr.aria-label]="text().audioDeviceLevel">
+          <!-- ★ Scaled, never resized: the frame loop writes only this transform. -->
+          <span
+            #bar
+            aria-hidden="true"
+            class="absolute inset-0 origin-left scale-x-0 rounded-full bg-gradient-to-r from-primary-500 via-primary-500 to-warning-500 will-change-transform rtl:origin-right rtl:bg-gradient-to-l"></span>
+        </div>
+      </div>
+      @if (testing()) {
+        <p class="text-xs text-gray-600 dark:text-gray-400">{{ text().audioDeviceListening }}</p>
+      }
+    }
+
+    @if (errorMessage()) {
+      <p role="alert" class="flex items-start gap-2 rounded-xl border border-danger-200 bg-danger-50 p-3 text-xs text-danger-800 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-200">
+        <sv-icon name="alert-circle" [size]="16" cssClass="mt-px shrink-0" />
+        {{ errorMessage() }}
+      </p>
+    }
+
+    @if (showOutput()) {
+      @if (sinkSupported) {
+        <sv-select-dropdown
+          [label]="text().audioDeviceOutput"
+          [options]="outputOptions()"
+          [value]="outputDeviceId()"
+          [size]="size()"
+          [disabled]="disabled() || permission() === 'checking'"
+          (selectionChange)="onOutputSelect($event)" />
+      } @else {
+        <p class="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
+          <sv-icon name="volume-2" [size]="16" cssClass="mt-px shrink-0" />
+          {{ text().audioDeviceOutputUnsupported }}
+        </p>
+      }
+    }
+  }
+
+  <p class="sr-only" role="status">{{ announcement() }}</p>
+</section>

@@ -1,8 +1,10 @@
 # @styloviz/pagination
 
-> Smart page-window with ellipsis, a page-size selector, 3 variants and 3 sizes.
+> Smart page-window with ellipsis, a page-size selector, jump-to-page, a load-more variant, server-driven loading, 4 variants and 3 sizes.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -62,7 +64,7 @@ export class DemoComponent {}
 | `nextCursor` | `string \| null` | `null` | `mode="cursor"` only: the cursor the server returned for the page *after* the one on screen. `null` means this is the last page, so Next disables. |
 | `hasMore` | `boolean \| null` | `null` | Override "is there a page after this one?" — for an offset API that reports no total but does know whether more rows exist (`LIMIT n + 1`). `null` lets the component infer it from the total, or from `nextCursor` in cursor mode. |
 | `loading` | `boolean` | `false` | True while the host is loading a page. Every control disables, the nav is `aria-busy`, and a second press is refused rather than queued. Bind this when the host owns the fetch; bind `pageAction` instead and the component tracks it for you. |
-| `error` | `SvDataError \| null` | `null` | A failed page load, normalized — `docs/async-contract-adr.md`. Rendered as a `role="alert"` beside the controls. Unnecessary when `pageAction` is bound. |
+| `error` | `SvDataError \| null` | `null` | A failed page load, normalized with `toSvDataError()`. Rendered as a `role="alert"` beside the controls. Unnecessary when `pageAction` is bound. |
 | `retryLabel` | `string \| null` | `null` | Label for the Try-again button. Non-null is what RENDERS it: an output cannot be asked whether anyone is listening, and a retry button that does nothing is worse than none. |
 | `pageAction` | `((request: SvPageRequest) => unknown) \| null` | `null` | Hand the component the page load itself. It then owns the sequencing: a second press while one is in flight is refused (not queued, not superseded), and a response that arrives after a cancel is discarded. Pass `request.signal` to your transport. |
 | `pageSizeChangePolicy` | `SvPageSizePolicy` | `'preserve-first-item'` | Where the user lands when the page size changes. |
@@ -71,7 +73,8 @@ export class DemoComponent {}
 | `pageSizeOptions` | `number[]` | `[10, 25, 50, 100]` | Options shown in the page-size `<select>`. Empty array hides the selector entirely. |
 | `urlKey` | `string \| null` | `null` | Put the page number in the URL under this key, so a page can be shared, refreshed and reached with the back button. Needs `provideSvNavLocation()` at the app root; give a second paginator on the same page a different key. |
 | `surfaceId` | `string \| null` | `null` | Names this paginator in the shared navigation-analytics stream, when a page has more than one. Ignored unless `provideSvNavTelemetry()` is wired up. |
-| `variant` | `PaginationVariant` | `'default'` | Visual variant. |
+| `variant` | `PaginationVariant` | `'default'` | Visual variant. `load-more` is one button that asks for the next page — the host appends it to what is already shown — and a "Showing 40 of 95" count; it disappears once there is nothing more. |
+| `jumpToPage` | `boolean` | `false` | A "Go to page" box beside the page buttons. Needs a known total; an entry past either end goes to the first or the last page. |
 | `size` | `PaginationSize` | `'md'` | Control size. |
 | `showSummary` | `boolean` | `true` | Show total-item count summary (e.g. "Showing 1–10 of 234"). |
 | `ariaLabel` | `string` | `'Pagination'` | Accessible label for the navigation landmark. |
@@ -97,4 +100,4 @@ Full API reference and live demos: https://styloviz.dev/docs/pagination
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

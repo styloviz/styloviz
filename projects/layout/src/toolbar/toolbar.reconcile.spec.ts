@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed, type ComponentFixture } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { vi } from 'vitest';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvToolbarComponent } from './toolbar.component';
 import type { ToolbarAction } from './toolbar.component';
 import { until } from '../../../../src/testing/async';

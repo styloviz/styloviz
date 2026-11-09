@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `chevron-right` icon. */
 export const chevronRightNodes: readonly IconNode[] = [
@@ -13,6 +14,9 @@ export const chevronRightNodes: readonly IconNode[] = [
 export const chevronRightSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm9.6 5.4l6 6q.6.6 0 1.2l-6 6q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l5.4-5.4-5.4-5.4q-.6-.6 0-1.2.3-.3.6-.3.3 0 .6.3z' },
 ];
+
+/** `chevron-right` as a registrable glyph — `registerSvIcons([chevronRightIcon])` / `provideSvIcons([chevronRightIcon])`. */
+export const chevronRightIcon: SvIconDef = { name: 'chevron-right', nodes: chevronRightNodes, solid: chevronRightSolidNodes };
 
 /** `chevron-right` — tree-shakable standalone icon. Use `<sv-chevron-right-icon />`. */
 @Component({

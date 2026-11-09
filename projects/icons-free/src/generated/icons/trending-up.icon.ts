@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `trending-up` icon. */
 export const trendingUpNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const trendingUpNodes: readonly IconNode[] = [
 export const trendingUpSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm2.4 16.4l6-6q.3-.3.6-.3.3 0 .6.3l3.4 3.4 5.9-5.9h-3.9q-.9 0-.9-.9 0-.9.9-.9h5.7q.3-.1.6.1.4.1.5.5.1.1.1.3 0 .1 0 .3v5.7q0 .9-.9.9-.9 0-.9-.9v-3.9l-6.5 6.5q-.6.6-1.2 0l-3.4-3.4-5.4 5.4q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2z' },
 ];
+
+/** `trending-up` as a registrable glyph — `registerSvIcons([trendingUpIcon])` / `provideSvIcons([trendingUpIcon])`. */
+export const trendingUpIcon: SvIconDef = { name: 'trending-up', nodes: trendingUpNodes, solid: trendingUpSolidNodes };
 
 /** `trending-up` — tree-shakable standalone icon. Use `<sv-trending-up-icon />`. */
 @Component({

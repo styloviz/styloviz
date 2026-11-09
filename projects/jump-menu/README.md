@@ -2,7 +2,9 @@
 
 > Compact navigation as a single native select: grouped destinations, the current one shown, and the platform picker on touch. The small form of a tab strip or an anchor rail.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -65,12 +67,19 @@ export class DemoComponent {}
 | `disabled` | `boolean` | `false` | Prevents any destination from being chosen. |
 | `placeholder` | `string` | `'Select…'` | Text for the placeholder option shown while `value` matches no destination. Empty string removes the placeholder entirely. |
 | `customClass` | `string` | `''` | Additional CSS classes on the root wrapper. |
+| `scrollTarget` | `JumpMenuScrollTarget` | `'none'` | Scroll to the chosen destination, by id. `'none'` leaves it to the host's `(jump)`; `'id'` scrolls the page to the element with the item's id; an element scrolls THAT container to the matching id inside it. Emits `jumped` once the scroll has started. |
+| `scrollOffset` | `number` | `0` | Pixels left above the destination — a sticky header's height. |
+| `activeId` | `string \| null` | `null` | The destination something else says is current — typically a scroll-spy's `activeId()`. When set, the select follows it, so scrolling the content moves the control. `null` leaves `value` alone. |
+| `goButton` | `boolean` | `false` | Choosing marks a destination; nothing happens until the Go button (or Enter on the select) — WCAG 3.2.2 for menus whose destinations are new pages. |
+| `goLabel` | `string` | `'Go'` | The Go button's label. |
+| `surfaceId` | `string \| null` | `null` | Names this menu in the shared navigation-analytics stream when a page has more than one — a static name, never a record id. Ignored unless `provideSvNavTelemetry()` is wired up. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
-| `jump` | `JumpMenuChangeEvent` | Emitted whenever a destination is chosen — always, because a `<select>` is not a link and the browser was never going to navigate. See the class note. Fires on every `change`, which on Windows includes each arrow key pressed on the closed control (WCAG 3.2.2) — see the class note for the tradeoff. |
+| `jump` | `JumpMenuChangeEvent` | Emitted whenever a destination is chosen — always, because a `<select>` is not a link and the browser does not navigate from it. Fires on every `change`, which on Windows includes each arrow key pressed on the closed control (WCAG 3.2.2); set `[goButton]="true"` to emit only on Go or Enter. |
+| `jumped` | `JumpMenuJumpedEvent` | Emitted after `scrollTarget` scrolled to a destination, with the element. |
 | `valueChange` | `string` | Emits the new `value` whenever it changes — the output half of `[(value)]`. |
 
 ## Documentation
@@ -79,4 +88,4 @@ Full API reference and live demos: https://styloviz.dev/docs/jump-menu
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

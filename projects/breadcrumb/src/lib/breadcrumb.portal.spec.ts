@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { provideSvNavLocation, type SvNavLocation } from '@styloviz/core';
+import { provideSvNavLocation, type SvNavLocation } from '@styloviz/core/nav';
 import { until } from '../../../../src/testing/async';
 import { SvBreadcrumbComponent, type BreadcrumbItem } from './breadcrumb.component';
 
@@ -70,6 +70,50 @@ describe('SvBreadcrumbComponent — the portal host', () => {
     fixture.detectChanges();
 
     expect(portal()?.getAttribute('dir')).toBe('rtl');
+  });
+
+  /**
+   * FL-B9 — the menu hangs from the trigger's inline-START edge and grows
+   * toward the inline end. In RTL that is the trigger's RIGHT edge, growing
+   * leftward; it anchors the other edge only when that way runs off screen.
+   */
+  describe('placement under dir', () => {
+    const panel = () => portal()?.querySelector<HTMLElement>('[role="menu"]');
+
+    async function openAt(dir: 'ltr' | 'rtl', rect: { left: number; right: number }) {
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('dir', dir);
+      document.body.appendChild(wrapper);
+      const { container, fixture } = await setup();
+      wrapper.appendChild(container);
+      const trigger = menuTrigger(container)!;
+      vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue(
+        { ...rect, top: 10, bottom: 30, width: rect.right - rect.left, height: 20, x: rect.left, y: 10, toJSON: () => ({}) } as DOMRect,
+      );
+      trigger.click();
+      fixture.detectChanges();
+      return panel()!;
+    }
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('aligns the left edges in LTR', async () => {
+      const p = await openAt('ltr', { left: 300, right: 400 });
+      expect(p.style.left).toBe('300px');
+      expect(p.style.right).toBe('');
+    });
+
+    it('aligns the right edges in RTL, so the menu grows leftward', async () => {
+      const p = await openAt('rtl', { left: 300, right: 400 });
+      expect(p.style.right).toBe(`${window.innerWidth - 400}px`);
+      expect(p.style.left).toBe('');
+    });
+
+    it('falls back to the left edge in RTL when leftward would leave the viewport', async () => {
+      const p = await openAt('rtl', { left: 50, right: 150 });
+      expect(p.style.left).toBe('50px');
+      expect(p.style.right).toBe('');
+    });
   });
 
   it('labels the host so it can be found in the DOM', async () => {

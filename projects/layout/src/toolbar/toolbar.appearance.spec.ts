@@ -2,7 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { SvToolbarComponent } from './toolbar.component';
 import type { ToolbarAction, ToolbarSize, ToolbarVariant } from './toolbar.component';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
+import { provideSvIcons } from '@styloviz/icons';
+import { boldIcon } from '@styloviz/icons/glyph/bold';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([boldIcon]);
 
 /**
  * These are long `if` ladders returning class strings. The failure they guard
@@ -16,7 +21,10 @@ const actions: ToolbarAction[] = [{ id: 'save', label: 'Save', icon: 's' }];
 
 async function setup(inputs: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvToolbarComponent, { inputs: { actions, ...inputs } });
+  const { fixture } = await render(SvToolbarComponent, {
+    providers: [HOST_ICONS],
+    inputs: { actions, ...inputs },
+  });
   return fixture.componentInstance;
 }
 
@@ -99,7 +107,10 @@ describe('SvToolbarComponent — button appearance', () => {
 describe('SvToolbarComponent — loading the definition', () => {
   it('shows a placeholder instead of an empty action strip', async () => {
     TestBed.resetTestingModule();
-    const { fixture } = await render(SvToolbarComponent, { inputs: { actions, loading: true } });
+    const { fixture } = await render(SvToolbarComponent, {
+      providers: [HOST_ICONS],
+      inputs: { actions, loading: true },
+    });
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('[data-sv-state="loading"]')).toBeTruthy();
     // The buttons must be gone, not merely hidden — a toolbar you can tab into
@@ -116,6 +127,7 @@ describe('SvToolbarComponent — loading the definition', () => {
     TestBed.resetTestingModule();
     let retries = 0;
     const { fixture } = await render(SvToolbarComponent, {
+      providers: [HOST_ICONS],
       inputs: { actions: [], loadError: 'Permissions unavailable' },
       on: { retryLoad: () => retries++ },
     });
@@ -133,6 +145,7 @@ describe('SvToolbarComponent — loading the definition', () => {
   it('keeps a load failure and an action failure apart', async () => {
     TestBed.resetTestingModule();
     const { fixture } = await render(SvToolbarComponent, {
+      providers: [HOST_ICONS],
       inputs: { actions, loadError: 'Could not load', error: 'Save failed' },
     });
     const host = fixture.nativeElement as HTMLElement;
@@ -161,6 +174,7 @@ describe('SvToolbarComponent — glyphs come from the library', () => {
   const renderWith = async (icon: string) => {
     TestBed.resetTestingModule();
     const { fixture } = await render(SvToolbarComponent, {
+      providers: [HOST_ICONS],
       inputs: { actions: [{ id: 'b', label: 'Bold', icon }] as ToolbarAction[] },
     });
     return fixture.nativeElement as HTMLElement;

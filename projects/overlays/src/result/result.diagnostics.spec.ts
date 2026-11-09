@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import type { SvDataError } from '@styloviz/core';
+import type { SvDataError } from '@styloviz/core/data';
 import { SvResultComponent } from './result.component';
 
 /**

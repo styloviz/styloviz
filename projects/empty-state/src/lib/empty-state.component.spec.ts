@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
-import { ICON_REGISTRY } from '@styloviz/icons';
+import { ICON_REGISTRY } from '@styloviz/icons/registry';
 import userEvent from '@testing-library/user-event';
 import { SvEmptyStateComponent } from './empty-state.component';
 

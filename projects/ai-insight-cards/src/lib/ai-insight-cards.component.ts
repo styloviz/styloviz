@@ -11,10 +11,11 @@ import {
   SvEmptyShellComponent,
   SvErrorShellComponent,
   SvSkeletonShellComponent,
-  svWarnOnce,
-  svWarnSimulating,
   type SvDataError,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { svWarnOnce, svWarnSimulating } from '@styloviz/core/dev';
+import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_AI_INSIGHT_CARDS_LABELS } from './ai-insight-cards.labels';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { SvIconComponent } from '@styloviz/icons';
 import {
@@ -45,6 +46,7 @@ import {
   type SvInsightEvidence,
 } from './ai-insight-cards.evidence';
 
+import { registerAiInsightCardsIcons } from './ai-insight-cards.component.icons';
 // ─── Category icons ──────────────────────────────────────────────────────────
 
 /**
@@ -92,15 +94,15 @@ const quiet = (centre: number, days = 30): number[] =>
 export const DEMO_BASELINES: readonly SvInsightBaseline[] = [
   {
     insightId: 'ins-1',
-    metric: 'Checkout errors',
+    metric: 'Checkout errors', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     series: [...quiet(100, 25), 400, 400, 400, 400, 400],
     current: 380,
     unit: '/h',
   },
   { metric: 'p95 latency', series: quiet(210), current: 940, unit: 'ms' },
-  { metric: 'Signup conversion', series: quiet(38), current: 12, unit: '%' },
-  { metric: 'New endpoint 5xx', series: [2, 1, 3, 2], current: 190, unit: '/h' },
-  { metric: 'Queue depth', series: quiet(60), current: 62 },
+  { metric: 'Signup conversion', series: quiet(38), current: 12, unit: '%' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+  { metric: 'New endpoint 5xx', series: [2, 1, 3, 2], current: 190, unit: '/h' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+  { metric: 'Queue depth', series: quiet(60), current: 62 }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
 ];
 
 /**
@@ -115,102 +117,102 @@ export const DEMO_BASELINES: readonly SvInsightBaseline[] = [
 export const DEMO_INSIGHTS: readonly AiInsight[] = [
   {
     id: 'i1',
-    title: 'Churn Risk: 12 Enterprise Accounts',
-    description: 'Usage patterns indicate elevated churn probability. These accounts show a 40%+ drop in feature engagement over the past 14 days, correlating with historical pre-churn signals.',
+    title: 'Churn Risk: 12 Enterprise Accounts', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+    description: 'Usage patterns indicate elevated churn probability. These accounts show a 40%+ drop in feature engagement over the past 14 days, correlating with historical pre-churn signals.', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     category: 'churn',
     priority: 'critical',
     confidence: 94,
     detectedAt: new Date(Date.now() - 8 * 60_000),
-    source: 'Churn Predictor v3.2',
+    source: 'Churn Predictor v3.2', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
-      { label: 'At-risk ARR',        value: '$284K',  trend: 'down'    },
-      { label: 'Engagement drop',    value: '−43%',   trend: 'down'    },
-      { label: 'Days to renewal',    value: '18d',    trend: 'neutral' },
+      { label: 'At-risk ARR',        value: '$284K',  trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Engagement drop',    value: '−43%',   trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Days to renewal',    value: '18d',    trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
   },
   {
     id: 'i2',
-    title: 'Cross-Sell Opportunity: 234 Accounts',
-    description: 'Growth tier users with high API usage and no add-ons have a 3.4× higher upgrade propensity score. Historical data shows this cohort converts at 28% when contacted within 7 days.',
+    title: 'Cross-Sell Opportunity: 234 Accounts', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+    description: 'Growth tier users with high API usage and no add-ons have a 3.4× higher upgrade propensity score. Historical data shows this cohort converts at 28% when contacted within 7 days.', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     category: 'revenue',
     priority: 'high',
     confidence: 87,
     detectedAt: new Date(Date.now() - 34 * 60_000),
-    source: 'Revenue Intelligence v2.0',
+    source: 'Revenue Intelligence v2.0', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
-      { label: 'Potential MRR',      value: '+$41K',  trend: 'up'      },
-      { label: 'Avg propensity',     value: '3.4×',   trend: 'up'      },
-      { label: 'Action window',      value: '7 days', trend: 'neutral' },
+      { label: 'Potential MRR',      value: '+$41K',  trend: 'up'      }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Avg propensity',     value: '3.4×',   trend: 'up'      }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Action window',      value: '7 days', trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
   },
   {
     id: 'i3',
-    title: 'API Latency Anomaly — EMEA',
+    title: 'API Latency Anomaly — EMEA', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     description: 'p95 response time in the EMEA region spiked to 680ms, 4.8× above the baseline of 142ms. The anomaly started at 09:14 UTC and correlates with a recent worker queue deployment.',
     category: 'performance',
     priority: 'high',
     confidence: 91,
     detectedAt: new Date(Date.now() - 52 * 60_000),
-    source: 'Anomaly Detection v4.1',
+    source: 'Anomaly Detection v4.1', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
       { label: 'p95 latency',        value: '680ms',  trend: 'down'    },
-      { label: 'Baseline',           value: '142ms',  trend: 'neutral' },
-      { label: 'Affected requests',  value: '8.4%',   trend: 'down'    },
+      { label: 'Baseline',           value: '142ms',  trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Affected requests',  value: '8.4%',   trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
   },
   {
     id: 'i4',
-    title: 'Q3 Marketing Budget Overrun Forecast',
-    description: 'Current Q3 marketing spend trajectory projects a $64K overrun (+18%) against the approved $360K budget. Paid social and content channels are the primary contributors.',
+    title: 'Q3 Marketing Budget Overrun Forecast', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+    description: 'Current Q3 marketing spend trajectory projects a $64K overrun (+18%) against the approved $360K budget. Paid social and content channels are the primary contributors.', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     category: 'budget',
     priority: 'medium',
     confidence: 78,
     detectedAt: new Date(Date.now() - 2 * 3_600_000),
-    source: 'Budget Forecaster v1.4',
+    source: 'Budget Forecaster v1.4', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
-      { label: 'Projected overrun',  value: '+$64K',  trend: 'down'    },
-      { label: 'Spend to date',      value: '$298K',  trend: 'neutral' },
-      { label: 'Days remaining',     value: '22d',    trend: 'neutral' },
+      { label: 'Projected overrun',  value: '+$64K',  trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Spend to date',      value: '$298K',  trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Days remaining',     value: '22d',    trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
   },
   {
     id: 'i5',
-    title: 'Export Feature: Hidden Growth Signal',
-    description: 'New Pro users who discover the bulk-export feature within the first 7 days have a 3× higher 90-day retention rate. Only 12% of new Pro users currently find it without guidance.',
+    title: 'Export Feature: Hidden Growth Signal', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+    description: 'New Pro users who discover the bulk-export feature within the first 7 days have a 3× higher 90-day retention rate. Only 12% of new Pro users currently find it without guidance.', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     category: 'engagement',
     priority: 'medium',
     confidence: 82,
     detectedAt: new Date(Date.now() - 5 * 3_600_000),
-    source: 'Product Analytics v2.3',
+    source: 'Product Analytics v2.3', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
-      { label: 'Retention lift',     value: '+3×',    trend: 'up'      },
-      { label: 'Current discovery',  value: '12%',    trend: 'down'    },
-      { label: 'Impact potential',   value: 'High',   trend: 'up'      },
+      { label: 'Retention lift',     value: '+3×',    trend: 'up'      }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Current discovery',  value: '12%',    trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Impact potential',   value: 'High',   trend: 'up'      }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
   },
   {
     id: 'i6',
-    title: 'Unusual Admin Login Patterns',
-    description: '3 admin accounts authenticated from new geographic regions outside their established baselines. All events occurred within a 40-minute window — possible credential compromise.',
+    title: 'Unusual Admin Login Patterns', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+    description: '3 admin accounts authenticated from new geographic regions outside their established baselines. All events occurred within a 40-minute window — possible credential compromise.', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     category: 'security',
     priority: 'low',
     confidence: 69,
     detectedAt: new Date(Date.now() - 8 * 3_600_000),
-    source: 'Security Monitor v1.8',
+    source: 'Security Monitor v1.8', // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     dataPoints: [
-      { label: 'Affected accounts',  value: '3',      trend: 'neutral' },
-      { label: 'New geos',           value: '4',      trend: 'down'    },
-      { label: 'Time window',        value: '40 min', trend: 'neutral' },
+      { label: 'Affected accounts',  value: '3',      trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'New geos',           value: '4',      trend: 'down'    }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
+      { label: 'Time window',        value: '40 min', trend: 'neutral' }, // sv-i18n-ignore: sample data for the showcase (DEMO_*), the host binds its own
     ],
     status: 'new',
     sample: true,
@@ -255,11 +257,17 @@ export const DEMO_INSIGHTS: readonly AiInsight[] = [
     SvEmptyShellComponent,
     SvErrorShellComponent,
     SvSkeletonShellComponent,
+    SvLabelPipe,
   ],
   templateUrl: './ai-insight-cards.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAiInsightCardsComponent implements OnDestroy {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAiInsightCardsIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ aiInsightCards })` says otherwise. */
+  protected readonly labels = injectSvLabels('aiInsightCards', SV_AI_INSIGHT_CARDS_LABELS);
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -326,17 +334,17 @@ export class SvAiInsightCardsComponent implements OnDestroy {
   readonly sampleCount = computed(() => svSampleCount(this.insights()));
 
   readonly sampleLabel = computed(() =>
-    svSampleLabel(this.sampleCount(), this.insights().length),
+    svSampleLabel(this.sampleCount(), this.insights().length, this.labels),
   );
 
   /** Where a reader can go and check one insight, and what to say when nowhere. */
   evidence(insight: AiInsight): SvInsightEvidence {
-    return svInsightEvidence(insight);
+    return svInsightEvidence(insight, this.labels);
   }
 
   /** The confidence figure with whatever produced it. */
   confidenceLabel(insight: AiInsight): string {
-    return svInsightConfidenceLabel(insight);
+    return svInsightConfidenceLabel(insight, this.labels);
   }
 
   /** True when the reader can tell what produced the number. */
@@ -390,11 +398,12 @@ export class SvAiInsightCardsComponent implements OnDestroy {
 
   readonly filterChips = computed((): { key: InsightPriority | 'all'; label: string; count: number }[] => {
     const c = this.counts();
+    const l = this.labels;
     return [
-      { key: 'all',      label: 'All',      count: c.total    },
-      { key: 'critical', label: 'Critical', count: c.critical },
-      { key: 'high',     label: 'High',     count: c.high     },
-      { key: 'medium',   label: 'Medium',   count: c.medium   },
+      { key: 'all',      label: l.filterAll,        count: c.total    },
+      { key: 'critical', label: l.priorityCritical, count: c.critical },
+      { key: 'high',     label: l.priorityHigh,     count: c.high     },
+      { key: 'medium',   label: l.priorityMedium,   count: c.medium   },
     ];
   });
 
@@ -465,17 +474,20 @@ export class SvAiInsightCardsComponent implements OnDestroy {
   }
 
   categoryLabel(c: InsightCategory): string {
-    return ({ revenue: 'Revenue', churn: 'Churn Risk', performance: 'Performance',
-              security: 'Security', engagement: 'Engagement', budget: 'Budget', anomaly: 'Anomaly' })[c];
+    const l = this.labels;
+    return ({ revenue: l.categoryRevenue, churn: l.categoryChurn, performance: l.categoryPerformance,
+              security: l.categorySecurity, engagement: l.categoryEngagement, budget: l.categoryBudget,
+              anomaly: l.categoryAnomaly })[c];
   }
 
   priorityLabel(p: InsightPriority): string {
-    return ({ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' })[p];
+    const l = this.labels;
+    return ({ critical: l.priorityCritical, high: l.priorityHigh, medium: l.priorityMedium, low: l.priorityLow })[p];
   }
 
   priorityBorderClass(p: InsightPriority): string {
-    return ({ critical: 'border-l-danger-500', high: 'border-l-warning-500',
-              medium: 'border-l-primary-500', low: 'border-l-gray-300 dark:border-l-gray-600' })[p];
+    return ({ critical: 'border-s-danger-500', high: 'border-s-warning-500',
+              medium: 'border-s-primary-500', low: 'border-s-gray-300 dark:border-s-gray-600' })[p];
   }
 
   priorityDotClass(p: InsightPriority): string {
@@ -494,10 +506,10 @@ export class SvAiInsightCardsComponent implements OnDestroy {
 
   priorityAccentClass(p: InsightPriority): string {
     return ({
-      critical: 'from-danger-500 to-danger-700',
-      high:     'from-warning-500 to-orange-600',
-      medium:   'from-primary-500 to-primary-700',
-      low:      'from-gray-400 to-gray-600',
+      critical: 'from-danger-500 to-danger-700', // sv-i18n-ignore: Tailwind classes
+      high:     'from-warning-500 to-orange-600', // sv-i18n-ignore: Tailwind classes
+      medium:   'from-primary-500 to-primary-700', // sv-i18n-ignore: Tailwind classes
+      low:      'from-gray-400 to-gray-600', // sv-i18n-ignore: Tailwind classes
     })[p];
   }
 
@@ -581,10 +593,11 @@ export class SvAiInsightCardsComponent implements OnDestroy {
     const diff  = Date.now() - d.getTime();
     const mins  = Math.floor(diff / 60_000);
     const hours = Math.floor(diff / 3_600_000);
-    if (mins  <  1) return 'just now';
-    if (mins  < 60) return `${mins}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    const ago = (template: string, n: number) => svFormatLabel(template, { count: String(n) });
+    if (mins  <  1) return this.labels.timeJustNow;
+    if (mins  < 60) return ago(this.labels.timeMinutesAgo, mins);
+    if (hours < 24) return ago(this.labels.timeHoursAgo, hours);
+    return ago(this.labels.timeDaysAgo, Math.floor(hours / 24));
   }
 
   // ── Card view-models ──────────────────────────────────────────────────────
@@ -744,7 +757,7 @@ export class SvAiInsightCardsComponent implements OnDestroy {
   });
 
   fmtSigma(sigma: number): string { return svFormatSigma(sigma); }
-  anomalyTitle(a: SvAnomaly): string { return svAnomalyLabel(a); }
+  anomalyTitle(a: SvAnomaly): string { return svAnomalyLabel(a, this.labels); }
 
   severityClass(severity: SvAnomalySeverity): string {
     switch (severity) {
@@ -793,6 +806,11 @@ export class SvAiInsightCardsComponent implements OnDestroy {
   }
 
   anomalyAriaLabel(row: { baseline: SvInsightBaseline; anomaly: SvAnomaly }): string {
-    return `${row.baseline.metric}. Now ${row.baseline.current}${row.baseline.unit ?? ''}. ${svAnomalyLabel(row.anomaly)}`;
+    return svFormatLabel(this.labels.anomalyRowName, {
+      metric: row.baseline.metric,
+      current: String(row.baseline.current),
+      unit: row.baseline.unit ?? '',
+      finding: svAnomalyLabel(row.anomaly, this.labels),
+    });
   }
 }

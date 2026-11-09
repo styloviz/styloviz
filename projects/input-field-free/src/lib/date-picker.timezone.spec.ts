@@ -26,7 +26,9 @@ import { SvDatePickerComponent } from './date-picker.component';
 async function setup(inputs: Partial<ComponentInput<SvDatePickerComponent>> = {}) {
   TestBed.resetTestingModule();
   return render(SvDatePickerComponent, {
-    inputs: inputs as ComponentInput<SvDatePickerComponent>,
+    // Written against the Monday-first English grid `''` keeps; the default
+    // follows the kit's locale (FL-B1a) and is covered in the week/locale specs.
+    inputs: { locale: '', ...inputs } as ComponentInput<SvDatePickerComponent>,
   });
 }
 

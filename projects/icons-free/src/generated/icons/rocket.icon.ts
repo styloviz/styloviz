@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `rocket` icon. */
 export const rocketNodes: readonly IconNode[] = [
@@ -17,6 +18,9 @@ export const rocketNodes: readonly IconNode[] = [
 export const rocketSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.6 2.4q4.8 4.8 3.4 11.4l2.2 2.6q.5.7-.1 1.3-.4.2-.8.2l-2.5-.5q-.6-.2-.7-.6l-1.3 3.5q-.1.4-.5.5-.4.2-.7 0-.3-.1-.4-.5l-1.3-3.5q-.1.4-.7.6l-2.5.5q-.4 0-.8-.2-.6-.6-.1-1.3l2.2-2.6q-1.4-6.6 3.4-11.4.3-.3.6-.3.3 0 .6.3zm-3 6.7q.1 2.3 2.4 2.3 2.3 0 2.4-2.3-.2-.9-.5-1.8-.6-.7-1.9-.7-1.3 0-1.9.7-.3.9-.5 1.8zm5 5.8h-5.2l-.6.8v-.1q.5 0 .7.1.1.1.1.1.1-.4.6-.6.8-.3 1.1.5l.7 1.8.7-1.8q.3-.8 1.1-.5.5.2.6.6 0 0 .1-.1.2-.1.7-.1v.1zm-2-5.9q0 .6-.6.6-.6 0-.6-.6 0-.6.6-.6.6 0 .6.6z' },
 ];
+
+/** `rocket` as a registrable glyph — `registerSvIcons([rocketIcon])` / `provideSvIcons([rocketIcon])`. */
+export const rocketIcon: SvIconDef = { name: 'rocket', nodes: rocketNodes, solid: rocketSolidNodes };
 
 /** `rocket` — tree-shakable standalone icon. Use `<sv-rocket-icon />`. */
 @Component({

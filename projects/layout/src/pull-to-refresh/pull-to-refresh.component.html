@@ -1,0 +1,58 @@
+<!--
+  The disc sits over the top edge of the region and is moved by transform only;
+  the content under it never moves, so a long list does not reflow while pulled.
+-->
+<div
+  class="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center motion-reduce:transition-none"
+  [ngClass]="tracking() ? 'transition-none' : 'transition-[transform,opacity] duration-200 ease-out'"
+  [style.transform]="indicatorTransform()"
+  [style.opacity]="indicatorOpacity()"
+  aria-hidden="true"
+  data-sv-pull-indicator
+>
+  <span class="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary-600 shadow-md ring-1 ring-gray-900/5
+               dark:bg-gray-800 dark:text-primary-400 dark:ring-white/10">
+    @if (state() === 'refreshing') {
+      <!-- The kit's border spinner (as `sv-spinner`); still under reduced motion, where the disc alone says "busy". -->
+      <span class="h-5 w-5 rounded-full border-2 border-current/25 border-t-current motion-safe:animate-spin" data-sv-pull-spinner></span>
+    } @else {
+      <span class="inline-flex transition-transform duration-150 motion-reduce:transition-none" [style.transform]="arrowRotation()">
+        <sv-icon name="arrow-down" cssClass="h-5 w-5" [strokeWidth]="2" />
+      </span>
+    }
+  </span>
+</div>
+
+<p class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ announcement() }}</p>
+
+<!--
+  The region is the scroll container and a tab stop (a scrolling region must be
+  reachable by keyboard). The Refresh button comes first inside it, so Tab from
+  above reaches it before the content.
+-->
+<div
+  svPullToRefresh
+  role="region"
+  tabindex="0"
+  [attr.aria-label]="ariaLabel() || text().pullRegion"
+  class="relative h-full overflow-y-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+  [refreshing]="refreshing()"
+  [pullThreshold]="threshold()"
+  [pullResistance]="resistance()"
+  [pullDisabled]="disabled()"
+  (refresh)="onRefresh()"
+>
+  @if (refreshButton() !== 'none') {
+    <button
+      type="button"
+      [ngClass]="buttonClasses()"
+      [attr.aria-disabled]="disabled() || state() === 'refreshing' ? 'true' : null"
+      (click)="trigger()"
+      data-sv-pull-button
+    >
+      <sv-icon name="refresh-cw" cssClass="h-3.5 w-3.5" [strokeWidth]="2" />
+      {{ state() === 'refreshing' ? text().pullRefreshing : text().pullRefresh }}
+    </button>
+  }
+  <ng-content />
+</div>

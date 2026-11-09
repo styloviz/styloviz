@@ -83,6 +83,34 @@ describe('SvAutocompleteComponent — filtering', () => {
   });
 });
 
+describe('SvAutocompleteComponent — label rhythm', () => {
+  // `SR-02` — the kit's other field labels use `mb-1.5` (or a wrapper
+  // `gap-1.5`); the autocomplete was rendering at `mb-1` (4 px). A form
+  // mixing controls now has one rhythm.
+  it('uses mb-1.5 to match sv-input-field’s gap-1.5', async () => {
+    const s = await setup({ label: 'Technology' });
+    const label = s.fixture.nativeElement.querySelector('label')!;
+    expect(label.classList.contains('mb-1.5')).toBe(true);
+    expect(label.classList.contains('mb-1')).toBe(false);
+  });
+
+  it('uses the dark gray-200 used by every other field label', async () => {
+    const s = await setup({ label: 'Technology' });
+    const label = s.fixture.nativeElement.querySelector('label')!;
+    expect(label.classList.contains('dark:text-gray-200')).toBe(true);
+    expect(label.classList.contains('dark:text-gray-300')).toBe(false);
+  });
+
+  it('scales the label font with the input size', async () => {
+    const s = await setup({ label: 'Technology', size: 'lg' });
+    const label = s.fixture.nativeElement.querySelector('label')!;
+    // `lg` reads `text-sm`; the other sizes keep `text-xs` so a small
+    // autocomplete and a small input-field match each other too.
+    expect(label.classList.contains('text-sm')).toBe(true);
+    expect(label.classList.contains('text-xs')).toBe(false);
+  });
+});
+
 describe('SvAutocompleteComponent — grouping', () => {
   it('buckets by group and keeps each option flat index intact', async () => {
     const { c } = await setup({ grouped: true });
@@ -96,8 +124,10 @@ describe('SvAutocompleteComponent — grouping', () => {
     const s = await setup({ grouped: true });
     s.input.dispatchEvent(new Event('focus'));
     s.fixture.detectChanges();
-    const headings = [...portal()!.querySelectorAll('[role="presentation"]')];
-    expect(headings.map((h) => h.textContent!.trim())).toEqual(['Greek']);
+    // A named section is a role="group" labelled by its heading (FL-J3-FI-07).
+    const headings = [...portal()!.querySelectorAll('[role="group"]')]
+      .map((g) => document.getElementById(g.getAttribute('aria-labelledby')!));
+    expect(headings.map((h) => h!.textContent!.trim())).toEqual(['Greek']);
     expect(rows()).toHaveLength(4);
   });
 
@@ -477,13 +507,18 @@ describe('SvAutocompleteComponent — opening and closing', () => {
     expect(portal()).toBeNull();
   });
 
-  it('closes on a window resize', async () => {
+  it('keeps the panel open and re-anchors it on a window resize', async () => {
+    // ★ On Android, the soft keyboard raises and lowers the visual viewport,
+    //    which fires `resize` on every key press. Dismissing the panel
+    //    mid-type is hostile; the right reaction is to re-anchor it to the
+    //    trigger so the user keeps typing (`SR-01`).
     const s = await setup();
     s.input.dispatchEvent(new Event('focus'));
     s.fixture.detectChanges();
+    expect(portal()).not.toBeNull();
     window.dispatchEvent(new Event('resize'));
     s.fixture.detectChanges();
-    expect(portal()).toBeNull();
+    expect(portal()).not.toBeNull();
   });
 
   it('takes the panel down with it when destroyed', async () => {

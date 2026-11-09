@@ -2,7 +2,8 @@ import { ApplicationRef, signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { until } from '@testing/async';
-import { svResetWarnOnce, svSelectSource, type SvSelectSource } from '@styloviz/core';
+import { svSelectSource, type SvSelectSource } from '@styloviz/core/data';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvSelectDropdownComponent, type SelectOption } from './select-dropdown.component';
 import { SvSelectSearchDirective } from './select-search.directive';
 
@@ -12,14 +13,10 @@ import { SvSelectSearchDirective } from './select-search.directive';
  * Free has search and async, so it gets `svSelectSearch` and `[source]`. It
  * has no windowing or bulk selection, and ships no directives for them.
  *
- * Every test here is one of two kinds:
- *
- *  - **Equivalence.** The new shape renders what the old shape renders. The
- *    legacy specs in this folder are untouched and still pass, so each
- *    feature's behaviour is pinned twice — once per spelling.
- *  - **Precedence.** When both spellings are set, the feature child (or the
- *    adapter) wins; when a feature child leaves a member unbound, the legacy
- *    input still applies. That fallback is what makes Major N non-breaking.
+ * In 2.0 this is the only shape: feature children configure the select, a
+ * `source` supplies a server list, and a setting no child binds keeps the
+ * select's built-in default. The other specs in this folder reach the same
+ * shape through `renderSelect` (`@testing/select-host`).
  */
 
 const IMPORTS = [SvSelectDropdownComponent, SvSelectSearchDirective];
@@ -79,33 +76,20 @@ function makeSource(
 
 // ── svSelectSearch ───────────────────────────────────────────────────────────
 
-describe('svSelectSearch — equivalent to the legacy search inputs', () => {
-  it('turns the search box on by its presence, with the same filtering', async () => {
-    const legacy = await mount(
-      `<sv-select-dropdown [options]="opts" [searchable]="true" [debounceMs]="0" />`,
-      { opts: FRUIT },
-    );
-    legacy.select.openDropdown();
-    legacy.select.setSearch('ap');
-    sync(legacy.fixture);
-    const oldLabels = labels();
-    const oldPlaceholder = searchBox()?.placeholder;
-    legacy.select.closeDropdown();
-
-    const composed = await mount(
+describe('svSelectSearch', () => {
+  it('turns the search box on by its presence, and filters', async () => {
+    const { fixture, select } = await mount(
       `<sv-select-dropdown [options]="opts">
          <ng-container svSelectSearch [debounceMs]="0" />
        </sv-select-dropdown>`,
       { opts: FRUIT },
     );
-    expect(composed.select.resolvedSearchable()).toBe(true);
-    composed.select.openDropdown();
-    composed.select.setSearch('ap');
-    sync(composed.fixture);
+    expect(select.resolvedSearchable()).toBe(true);
+    select.openDropdown();
+    select.setSearch('ap');
+    sync(fixture);
 
-    expect(searchBox()).not.toBeNull();
-    expect(searchBox()?.placeholder).toBe(oldPlaceholder);
-    expect(labels()).toEqual(oldLabels);
+    expect(searchBox()?.placeholder).toBe('Search…');
     expect(labels()).toEqual(['Apple', 'Apricot']);
   });
 
@@ -124,14 +108,13 @@ describe('svSelectSearch — equivalent to the legacy search inputs', () => {
     expect(portal()?.querySelector('[data-sv-state="empty"]')?.textContent).toContain('Nothing ripe');
   });
 
-  it('emits searchChange on the directive AND on the select', async () => {
+  it('emits searchChange on the directive', async () => {
     const onChild: string[] = [];
-    const onSelect: string[] = [];
     const { fixture, select } = await mount(
-      `<sv-select-dropdown [options]="opts" (searchChange)="onSelect.push($event)">
+      `<sv-select-dropdown [options]="opts">
          <ng-container svSelectSearch [debounceMs]="0" (searchChange)="onChild.push($event)" />
        </sv-select-dropdown>`,
-      { opts: FRUIT, onChild, onSelect },
+      { opts: FRUIT, onChild },
     );
     select.openDropdown();
     select.setSearch('ban');
@@ -139,14 +122,13 @@ describe('svSelectSearch — equivalent to the legacy search inputs', () => {
     await until(() => onChild.length === 1, { label: 'the directive heard the term' });
 
     expect(onChild).toEqual(['ban']);
-    expect(onSelect).toEqual(['ban']);
   });
 
   it('holds the term back under its minChars, with the same hint', async () => {
     const seen: string[] = [];
     const { fixture, select } = await mount(
-      `<sv-select-dropdown [options]="opts" (searchChange)="seen.push($event)">
-         <ng-container svSelectSearch [minChars]="3" [debounceMs]="0" />
+      `<sv-select-dropdown [options]="opts">
+         <ng-container svSelectSearch [minChars]="3" [debounceMs]="0" (searchChange)="seen.push($event)" />
        </sv-select-dropdown>`,
       { opts: FRUIT, seen },
     );
@@ -172,22 +154,11 @@ describe('svSelectSearch — equivalent to the legacy search inputs', () => {
   });
 });
 
-describe('svSelectSearch — precedence', () => {
-  it('wins over the legacy input when both are set', async () => {
-    const { fixture, select } = await mount(
-      `<sv-select-dropdown [options]="opts" [searchable]="true" searchPlaceholder="Old">
-         <ng-container svSelectSearch searchPlaceholder="New" />
-       </sv-select-dropdown>`,
-      { opts: FRUIT },
-    );
-    select.openDropdown();
-    sync(fixture);
-    expect(searchBox()?.placeholder).toBe('New');
-  });
+describe('svSelectSearch — defaults and presence', () => {
 
-  it('falls through to the legacy input for a member it leaves unbound', async () => {
+  it('keeps the built-in default for a member it leaves unbound', async () => {
     const { fixture, select } = await mount(
-      `<sv-select-dropdown [options]="opts" searchPlaceholder="From the select" [minChars]="4">
+      `<sv-select-dropdown [options]="opts">
          <ng-container svSelectSearch />
        </sv-select-dropdown>`,
       { opts: FRUIT },
@@ -195,13 +166,14 @@ describe('svSelectSearch — precedence', () => {
     select.openDropdown();
     select.setSearch('a');
     sync(fixture);
-    expect(searchBox()?.placeholder).toBe('From the select');
-    expect(select.resolvedMinChars()).toBe(4);
+    expect(searchBox()?.placeholder).toBe('Search…');
+    expect(select.resolvedMinChars()).toBe(0);
+    expect(select.resolvedDebounceMs()).toBe(300);
   });
 
-  it('can switch search off explicitly, over a legacy true', async () => {
+  it('can switch search off explicitly', async () => {
     const { fixture, select } = await mount(
-      `<sv-select-dropdown [options]="opts" [searchable]="true">
+      `<sv-select-dropdown [options]="opts">
          <ng-container svSelectSearch [searchable]="false" />
        </sv-select-dropdown>`,
       { opts: FRUIT },
@@ -231,7 +203,7 @@ describe('svSelectSearch — precedence', () => {
 
 // ── source (svSelectSource) ──────────────────────────────────────────────────
 
-describe('[source] — equivalent to loadOptions, plus paging', () => {
+describe('[source]', () => {
   it('fetches on open, searches on type, and does not filter again', async () => {
     const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
     const { fixture, select } = await mount(
@@ -260,44 +232,9 @@ describe('[source] — equivalent to loadOptions, plus paging', () => {
     expect(labels()).toEqual(['Grace']);
   });
 
-  it('matches the loadOptions shape row for row', async () => {
-    const search = (term: string) => FRUIT.filter((f) => f.value.startsWith(term));
-
-    const legacy = await mount(
-      `<sv-select-dropdown [loadOptions]="load" [searchable]="true" [debounceMs]="0" />`,
-      { load: async (term: string) => search(term) },
-    );
-    legacy.select.openDropdown();
-    legacy.select.setSearch('ap');
-    sync(legacy.fixture);
-    await until(() => legacy.select.effectiveOptions().length === 2, { label: 'legacy landed' });
-    sync(legacy.fixture);
-    const oldLabels = labels();
-    legacy.select.closeDropdown();
-
-    const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
-    const composed = await mount(
-      `<sv-select-dropdown [source]="src()"><ng-container svSelectSearch /></sv-select-dropdown>`,
-      { src },
-    );
-    src.set(makeSource((term) => search(term)));
-    sync(composed.fixture);
-    composed.select.openDropdown();
-    composed.select.setSearch('ap');
-    sync(composed.fixture);
-    await until(() => composed.select.effectiveOptions().length === 2, { label: 'source landed' });
-    sync(composed.fixture);
-
-    expect(labels()).toEqual(oldLabels);
-  });
-
   it('pages: "Load more" appends, then disappears at the end', async () => {
     const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
-    const loadMore: number[] = [];
-    const { fixture, select } = await mount(
-      `<sv-select-dropdown [source]="src()" (loadMore)="loadMore.push(1)" />`,
-      { src, loadMore },
-    );
+    const { fixture, select } = await mount(`<sv-select-dropdown [source]="src()" />`, { src });
     const all = many(5);
     src.set(makeSource((_t, page) => all.slice(page.offset, page.offset + page.limit), { pageSize: 2 }));
     sync(fixture);
@@ -312,8 +249,6 @@ describe('[source] — equivalent to loadOptions, plus paging', () => {
     moreButton()!.click();
     await until(() => select.effectiveOptions().length === 4, { label: 'page two' });
     sync(fixture);
-    // The legacy output still fires: a host counting pages keeps working.
-    expect(loadMore).toEqual([1]);
 
     moreButton()!.click();
     await until(() => select.effectiveOptions().length === 5, { label: 'page three' });
@@ -347,14 +282,10 @@ describe('[source] — equivalent to loadOptions, plus paging', () => {
     expect(portal()?.querySelector('[data-sv-state="loading-more"]')).toBeNull();
   });
 
-  it('renders a failure in the panel and retries it itself, still emitting retry', async () => {
+  it('renders a failure in the panel and retries it itself', async () => {
     let fail = true;
-    const retries: number[] = [];
     const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
-    const { fixture, select } = await mount(
-      `<sv-select-dropdown [source]="src()" (retry)="retries.push(1)" />`,
-      { src, retries },
-    );
+    const { fixture, select } = await mount(`<sv-select-dropdown [source]="src()" />`, { src });
     src.set(TestBed.runInInjectionContext(() => svSelectSource<SelectOption>({
       search: async () => { if (fail) { fail = false; throw new Error('503'); } return FRUIT; },
     })));
@@ -367,35 +298,19 @@ describe('[source] — equivalent to loadOptions, plus paging', () => {
 
     select.onRetry();
     await until(() => select.effectiveOptions().length === 3, { label: 'the retry landed' });
-    expect(retries).toEqual([1]);
     expect(select.panelError()).toBeNull();
   });
 
   it('applies the source\'s minChars', async () => {
     const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
     const { fixture, select } = await mount(
-      `<sv-select-dropdown [source]="src()" [minChars]="1"><ng-container svSelectSearch [minChars]="2" /></sv-select-dropdown>`,
+      `<sv-select-dropdown [source]="src()"><ng-container svSelectSearch [minChars]="2" /></sv-select-dropdown>`,
       { src },
     );
-    // Adapter → feature child → legacy input.
+    // Adapter → feature child → built-in default.
     expect(select.resolvedMinChars()).toBe(2);
     src.set(makeSource(() => FRUIT, { minChars: 3 }));
     sync(fixture);
     expect(select.resolvedMinChars()).toBe(3);
-  });
-
-  it('outranks loadOptions when both are set', async () => {
-    let legacyCalls = 0;
-    const src: WritableSignal<SvSelectSource<SelectOption> | null> = signal(null);
-    const { fixture, select } = await mount(
-      `<sv-select-dropdown [source]="src()" [loadOptions]="load" />`,
-      { src, load: async () => { legacyCalls++; return PEOPLE; } },
-    );
-    src.set(makeSource(() => FRUIT));
-    sync(fixture);
-    select.openDropdown();
-    await until(() => select.effectiveOptions().length === 3, { label: 'the source answered' });
-    expect(legacyCalls).toBe(0);
-    expect(select.effectiveOptions()).toEqual(FRUIT);
   });
 });

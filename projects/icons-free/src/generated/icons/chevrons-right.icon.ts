@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `chevrons-right` icon. */
 export const chevronsRightNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const chevronsRightNodes: readonly IconNode[] = [
 export const chevronsRightSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm6.6 5.4l6 6q.3.3.3.6 0 .3-.3.6l-6 6q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l5.4-5.4-5.4-5.4q-.6-.6 0-1.2.6-.6 1.2 0zm6 0l6 6q.6.6 0 1.2l-6 6q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l5.4-5.4-5.4-5.4q-.6-.6 0-1.2.3-.3.6-.3.3 0 .6.3z' },
 ];
+
+/** `chevrons-right` as a registrable glyph — `registerSvIcons([chevronsRightIcon])` / `provideSvIcons([chevronsRightIcon])`. */
+export const chevronsRightIcon: SvIconDef = { name: 'chevrons-right', nodes: chevronsRightNodes, solid: chevronsRightSolidNodes };
 
 /** `chevrons-right` — tree-shakable standalone icon. Use `<sv-chevrons-right-icon />`. */
 @Component({

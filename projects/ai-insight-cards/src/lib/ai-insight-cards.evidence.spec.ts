@@ -8,6 +8,7 @@ import {
   svSampleCount,
   svSampleLabel,
 } from './ai-insight-cards.evidence';
+import { SV_AI_INSIGHT_CARDS_LABELS } from './ai-insight-cards.labels';
 import type { AiInsight } from './ai-insight-cards.types';
 
 /**
@@ -52,18 +53,18 @@ describe('svInsightEvidence', () => {
   it('calls an insight with no link what it is', () => {
     // A required field would be satisfied by '' and buy nothing the reader can
     // see. This cannot be satisfied by typing quotes.
-    const e = svInsightEvidence(insight());
+    const e = svInsightEvidence(insight(), SV_AI_INSIGHT_CARDS_LABELS);
     expect(e.href).toBeNull();
     expect(e.checkable).toBe(false);
     expect(e.label).toContain('assertion, not a finding');
   });
 
   it('treats a blank link as no link', () => {
-    expect(svInsightEvidence(insight({ evidenceUrl: '   ' })).checkable).toBe(false);
+    expect(svInsightEvidence(insight({ evidenceUrl: '   ' }), SV_AI_INSIGHT_CARDS_LABELS).checkable).toBe(false);
   });
 
   it('links an http(s) address', () => {
-    const e = svInsightEvidence(insight({ evidenceUrl: 'https://metrics.test/churn?since=14d' }));
+    const e = svInsightEvidence(insight({ evidenceUrl: 'https://metrics.test/churn?since=14d' }), SV_AI_INSIGHT_CARDS_LABELS);
     expect(e.href).toBe('https://metrics.test/churn?since=14d');
     expect(e.checkable).toBe(true);
   });
@@ -72,13 +73,13 @@ describe('svInsightEvidence', () => {
     // Angular would turn `javascript:` into an `unsafe:` href — a link that does
     // nothing, teaching the reader that evidence links do not work rather than
     // that this one is wrong.
-    const e = svInsightEvidence(insight({ evidenceUrl: 'javascript:alert(1)' }));
+    const e = svInsightEvidence(insight({ evidenceUrl: 'javascript:alert(1)' }), SV_AI_INSIGHT_CARDS_LABELS);
     expect(e.href).toBeNull();
     expect(e.label).toContain('javascript:');
   });
 
   it('refuses a relative address, which this component cannot resolve', () => {
-    expect(svInsightEvidence(insight({ evidenceUrl: '/dashboards/churn' })).href).toBeNull();
+    expect(svInsightEvidence(insight({ evidenceUrl: '/dashboards/churn' }), SV_AI_INSIGHT_CARDS_LABELS).href).toBeNull();
   });
 });
 
@@ -86,17 +87,17 @@ describe('svInsightEvidence', () => {
 
 describe('svInsightConfidenceLabel', () => {
   it('admits when nothing was recorded', () => {
-    expect(svInsightConfidenceLabel(insight())).toBe('87% — no method or model recorded');
+    expect(svInsightConfidenceLabel(insight(), SV_AI_INSIGHT_CARDS_LABELS)).toBe('87% — no method or model recorded');
   });
 
   it('names the method alone', () => {
-    expect(svInsightConfidenceLabel(insight({ confidenceBasis: 'z-score vs 30d' }))).toBe(
+    expect(svInsightConfidenceLabel(insight({ confidenceBasis: 'z-score vs 30d' }), SV_AI_INSIGHT_CARDS_LABELS)).toBe(
       '87% — z-score vs 30d',
     );
   });
 
   it('names the model alone, and says the method is missing', () => {
-    expect(svInsightConfidenceLabel(insight({ model: 'churn', modelVersion: 'v3.2' }))).toBe(
+    expect(svInsightConfidenceLabel(insight({ model: 'churn', modelVersion: 'v3.2' }), SV_AI_INSIGHT_CARDS_LABELS)).toBe(
       '87% — from churn v3.2, method not recorded',
     );
   });
@@ -104,6 +105,7 @@ describe('svInsightConfidenceLabel', () => {
   it('names both when both are there', () => {
     const label = svInsightConfidenceLabel(
       insight({ confidenceBasis: 'z-score vs 30d', model: 'churn', modelVersion: 'v3.2' }),
+      SV_AI_INSIGHT_CARDS_LABELS,
     );
     expect(label).toBe('87% — z-score vs 30d, from churn v3.2');
   });
@@ -111,7 +113,7 @@ describe('svInsightConfidenceLabel', () => {
   it('never hides the figure the host already shows', () => {
     // Hiding a number the host is rendering anyway would be a silent regression.
     for (const over of [{}, { model: 'm' }, { confidenceBasis: 'b' }]) {
-      expect(svInsightConfidenceLabel(insight(over))).toContain('87%');
+      expect(svInsightConfidenceLabel(insight(over), SV_AI_INSIGHT_CARDS_LABELS)).toContain('87%');
     }
   });
 });
@@ -141,13 +143,13 @@ describe('sample data carries its own label', () => {
   });
 
   it('says nothing when nothing is sample data', () => {
-    expect(svSampleLabel(0, 4)).toBe('');
+    expect(svSampleLabel(0, 4, SV_AI_INSIGHT_CARDS_LABELS)).toBe('');
   });
 
   it('distinguishes all-sample from some-sample', () => {
-    expect(svSampleLabel(4, 4)).toContain('Every insight here');
-    expect(svSampleLabel(4, 4)).toContain('None of it is about your system');
-    expect(svSampleLabel(2, 5)).toContain('2 of these 5');
+    expect(svSampleLabel(4, 4, SV_AI_INSIGHT_CARDS_LABELS)).toContain('Every insight here');
+    expect(svSampleLabel(4, 4, SV_AI_INSIGHT_CARDS_LABELS)).toContain('None of it is about your system');
+    expect(svSampleLabel(2, 5, SV_AI_INSIGHT_CARDS_LABELS)).toContain('2 of these 5');
   });
 });
 

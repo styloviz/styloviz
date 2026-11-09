@@ -14,18 +14,15 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  svFirstFocusableWithin,
-  svIsFocusable,
-  svMaskTail,
-  svRecoverFocus,
-  svRequestKey,
-  toSvDataError,
-  type SvDataError,
-  svUniqueId,
-} from '@styloviz/core';
+import { svUniqueId } from '@styloviz/core/a11y';
+import { svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
+import { svFirstFocusableWithin, svIsFocusable, svRecoverFocus } from '@styloviz/core/overlay';
+import { svMaskTail } from '@styloviz/core/security';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerAddressCardIcons } from './address-card.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AddressKind = 'shipping' | 'billing' | 'both';
@@ -139,11 +136,17 @@ export interface AddressActionEvent {
 @Component({
   selector: 'sv-address-card',
   standalone: true,
-  imports: [SvIconComponent, NgClass],
+  imports: [SvIconComponent, NgClass, SvLabelPipe],
   templateUrl: './address-card.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAddressCardComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAddressCardIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ commerce })` says otherwise. */
+  protected readonly labels = injectSvLabels('commerce', SV_COMMERCE_LABELS);
+
   // ── Focus (X-12) ──────────────────────────────────────────────────────────
 
   private readonly _host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -211,12 +214,11 @@ export class SvAddressCardComponent {
   /**
    * Ask before deleting.
    *
-   * ★ Defaults to ON, and the previous behaviour was a single click straight
-   *   through to `remove`. A saved address is not something the component can
-   *   put back — see {@link AddressActionEvent} — and the trash button is a
-   *   32px icon sitting next to an edit button of the same size in a grid of
-   *   near-identical cards. Turn it off only where the host runs its own
-   *   confirmation dialog.
+   * On by default. A saved address is not something the component can put
+   * back — see {@link AddressActionEvent} — and the trash button is a 32px
+   * icon sitting next to an edit button of the same size in a grid of
+   * near-identical cards. Turn it off only where the host runs its own
+   * confirmation dialog.
    * @default true
    */
   confirmRemove = input<boolean>(true);
@@ -239,15 +241,12 @@ export class SvAddressCardComponent {
    * The other addresses that could take over as default, offered as a choice in
    * the confirmation when THIS address is the default one being removed.
    *
-   * ★ Removing the default address used to have no defined transition: the card
-   *   emitted `remove` and the host was left to guess whether a new default was
-   *   wanted, which one, and whether the person had any say. The card cannot see
-   *   the address book, so it cannot pick — but given the candidates it can ask,
-   *   and the answer rides back on `nextDefaultId`.
+   * The card cannot see the address book, so it cannot pick — but given the
+   * candidates it can ask, and the answer rides back on `nextDefaultId`.
    *
-   *   Left empty, the confirmation says plainly that there will be no default
-   *   afterwards, which is the outcome the host then has to handle. Ignored
-   *   entirely when this address is not the default.
+   * Left empty, the confirmation says plainly that there will be no default
+   * afterwards, which is the outcome the host then has to handle. Ignored
+   * entirely when this address is not the default.
    * @default []
    */
   defaultCandidates = input<readonly Address[]>([]);
@@ -314,9 +313,9 @@ export class SvAddressCardComponent {
 
   readonly kindLabel = computed(() => {
     switch (this.address().kind) {
-      case 'shipping': return 'Shipping';
-      case 'billing': return 'Billing';
-      case 'both': return 'Shipping & billing';
+      case 'shipping': return this.labels.kindShipping;
+      case 'billing': return this.labels.kindBilling;
+      case 'both': return this.labels.kindShippingBilling;
       default: return '';
     }
   });
@@ -375,7 +374,7 @@ export class SvAddressCardComponent {
    * the strip once per card, and a shared literal would point every `<label for>`
    * at the first one.
    */
-  successorId(): string { return `${this._uid}-next-default`; }
+  successorId(): string { return `${this._uid}-next-default`; } // sv-i18n-ignore: element id
 
   private readonly _uid = svUniqueId('sv-address-card');
 

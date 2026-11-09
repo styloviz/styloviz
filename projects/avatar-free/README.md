@@ -2,15 +2,17 @@
 
 > User avatar with initials fallback, status indicator, size and shape variants.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/icons @styloviz/avatar
+npm install @styloviz/core @styloviz/icons @styloviz/avatar
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list it yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -58,7 +60,7 @@ export class DemoComponent {}
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `src` | `string` | `''` | URL of the avatar image. When blank or broken, falls back to initials/icon. |
-| `name` | `string` | `''` | Full name — used to generate initials and auto-assign a palette color. |
+| `name` | `string` | `''` | Full name — generates the initials and picks a palette color. |
 | `alt` | `string` | `''` | Alt text for the image; falls back to `name`. |
 | `size` | `AvatarSize` | `'md'` | Avatar size. |
 | `shape` | `AvatarShape` | `'circle'` | Border-radius style. |
@@ -84,4 +86,4 @@ Full API reference and live demos: https://styloviz.dev/docs/avatar
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

@@ -7,21 +7,23 @@
       <button
         type="button"
         [disabled]="resolvedDisabled() || !canAddMore()"
-        class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium
+        class="inline-flex items-center rounded-lg border border-gray-300 bg-white font-medium
                text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none
                focus-visible:ring-2 focus-visible:ring-primary-400
                disabled:cursor-not-allowed disabled:opacity-50
                dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        [ngClass]="triggerSizeClass()"
         data-sv-upload-trigger
         (click)="openFilePicker()"
         [attr.aria-invalid]="fieldError.showError() ? 'true' : null"
+        [attr.aria-required]="required() || null"
         [attr.aria-describedby]="describedBy()"
       >
-        <sv-icon name="upload" cssClass="h-4 w-4" [strokeWidth]="2" />
+        <sv-icon name="upload" [size]="triggerIconPx()" cssClass="block shrink-0" [strokeWidth]="2" />
         {{ label() }}
       </button>
       @if (hint()) {
-        <span [attr.id]="hintId" class="text-sm text-gray-500 dark:text-gray-400">{{ hint() }}</span>
+        <span [attr.id]="hintId" class="text-gray-500 dark:text-gray-400" [ngClass]="hintSizeClass()">{{ hint() }}</span>
       }
     </div>
 
@@ -45,7 +47,7 @@
   @if (uploadingCount() > 0) {
     <div class="space-y-1">
       <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-        <span>Uploading {{ uploadingCount() }} file{{ uploadingCount() === 1 ? '' : 's' }}…</span>
+        <span>{{ text().uploadingSummary(uploadingCount()) }}</span>
         <span class="tabular-nums font-medium">{{ overallProgress() }}%</span>
       </div>
       <div
@@ -54,7 +56,7 @@
         [attr.aria-valuenow]="overallProgress()"
         aria-valuemin="0"
         aria-valuemax="100"
-        aria-label="Overall upload progress"
+        [attr.aria-label]="text().overallProgress"
       >
         <div
           class="h-full rounded-full bg-primary-500 transition-all duration-150 dark:bg-primary-400"
@@ -66,11 +68,14 @@
 
   <!-- ── File list ────────────────────────────────────────────────────────── -->
   @if (hasFiles()) {
-    <ul class="space-y-2" role="list" aria-label="Uploaded files" data-sv-file-list>
+    <ul class="space-y-2" role="list" [attr.aria-label]="text().fileList" data-sv-file-list>
 
       @for (file of files(); track file.id) {
+        @let say = rowText().get(file.id);
         <li
           [attr.data-sv-file-id]="file.id"
+          [attr.data-sv-file-status]="file.status"
+          [attr.data-sv-file-stored]="file.stored || null"
           [ngClass]="[
             'group flex items-center gap-3 rounded-xl border p-3 transition-colors',
             file.status === 'error' || file.scan === 'flagged'
@@ -101,8 +106,18 @@
           <!-- File info -->
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100"
-                 [title]="file.name">{{ file.name }}</p>
+              @if (file.url) {
+                <!-- A file the server has can be opened: the edit form's
+                     "what is this attachment" question (`SR-27`). -->
+                <a [href]="file.url" target="_blank" rel="noopener noreferrer"
+                   class="truncate text-sm font-medium text-gray-800 underline-offset-2 hover:text-primary-700 hover:underline
+                          focus-visible:rounded focus-visible:outline-2 focus-visible:outline-primary-500
+                          dark:text-gray-100 dark:hover:text-primary-300"
+                   [title]="file.name" [attr.aria-label]="say?.open" data-sv-file-open>{{ file.name }}</a>
+              } @else {
+                <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100"
+                   [title]="file.name">{{ file.name }}</p>
+              }
               <span [ngClass]="['shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold', getBadgeColor(file)]">
                 {{ getExtLabel(file) }}
               </span>
@@ -112,6 +127,11 @@
 
               @if (file.status === 'uploading') {
                 <span class="text-xs text-gray-600 dark:text-gray-400 tabular-nums">{{ file.progress }}%</span>
+              } @else if (file.checking) {
+                <span class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400" data-sv-file-checking>
+                  <sv-spinner-arc cssClass="h-3 w-3" />
+                  {{ text().checking }}
+                </span>
               } @else if (file.scan === 'flagged') {
                 <!--
                   ★★★ CHECKED BEFORE `success`, AND IT HAS TO BE. The upload
@@ -124,7 +144,7 @@
                 -->
                 <span class="flex items-center gap-1 text-xs font-medium text-danger-700 dark:text-danger-400">
                   <sv-icon name="alert-triangle" cssClass="h-3 w-3" [strokeWidth]="2.5" />
-                  {{ file.scanReason ?? 'Blocked by a security scan' }}
+                  {{ file.scanReason ?? text().blocked }}
                 </span>
               } @else if (file.status === 'success' && scanUnresolved(file)) {
                 <!--
@@ -135,22 +155,27 @@
                 -->
                 <span class="flex items-center gap-1 text-xs font-medium text-warning-700 dark:text-warning-400">
                   <sv-icon name="shield-check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
-                  {{ file.scan === 'pending' ? 'Scanning for malware…' : 'Awaiting a security scan' }}
+                  {{ file.scan === 'pending' ? text().scanning : text().awaitingScan }}
+                </span>
+              } @else if (file.stored) {
+                <span class="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
+                  {{ text().stored }}
                 </span>
               } @else if (file.status === 'success') {
                 <span class="flex items-center gap-1 text-xs font-medium text-accent-700 dark:text-accent-400">
                   <sv-icon name="check" cssClass="h-3 w-3" [strokeWidth]="2.5" />
-                  Uploaded
+                  {{ text().uploaded }}
                 </span>
               } @else if (file.status === 'error') {
                 <span class="flex items-center gap-1 text-xs font-medium text-danger-700 dark:text-danger-400">
                   <sv-icon name="alert-circle"
                            cssClass="h-3 w-3"
                            [strokeWidth]="2.5" />
-                  {{ file.errorMsg ?? 'Upload failed' }}
+                  {{ file.errorMsg ?? text().uploadFailed }}
                 </span>
               } @else {
-                <span class="text-xs text-gray-600 dark:text-gray-400">Pending</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400">{{ text().pending }}</span>
               }
             </div>
 
@@ -162,7 +187,7 @@
                 [attr.aria-valuenow]="file.progress"
                 aria-valuemin="0"
                 aria-valuemax="100"
-                [attr.aria-label]="'Uploading ' + file.name"
+                [attr.aria-label]="say?.uploading"
               >
                 <div
                   class="h-full rounded-full bg-primary-500 transition-all duration-150 dark:bg-primary-400"
@@ -183,7 +208,7 @@
                        transition-colors hover:bg-gray-100 hover:text-primary-600
                        dark:hover:bg-gray-700 dark:hover:text-primary-400 focus:outline-none
                        focus-visible:ring-1 focus-visible:ring-primary-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                [attr.aria-label]="'Retry ' + file.name"
+                [attr.aria-label]="say?.retry"
                 [disabled]="resolvedDisabled()"
                 (click)="retryFile(file.id)"
               >
@@ -201,7 +226,7 @@
                        transition-colors hover:bg-gray-100 hover:text-danger-500
                        dark:hover:bg-gray-700 dark:hover:text-danger-400 focus:outline-none
                        focus-visible:ring-1 focus-visible:ring-danger-400 disabled:opacity-40 disabled:cursor-not-allowed"
-                [attr.aria-label]="'Cancel upload of ' + file.name"
+                [attr.aria-label]="say?.cancel"
                 [disabled]="resolvedDisabled()"
                 (click)="cancelUpload(file.id)"
               >
@@ -220,7 +245,7 @@
                      dark:hover:bg-gray-700 dark:hover:text-danger-400 focus:outline-none
                      focus-visible:ring-1 focus-visible:ring-danger-400 disabled:opacity-40 disabled:cursor-not-allowed"
               data-sv-file-remove
-              [attr.aria-label]="'Remove ' + file.name"
+              [attr.aria-label]="say?.remove"
               [disabled]="resolvedDisabled()"
               (click)="removeFile(file.id)"
             >
@@ -236,22 +261,22 @@
     <!-- File list footer -->
     <div class="flex items-center justify-between">
       <p class="text-xs text-gray-500 dark:text-gray-400">
-        {{ files().length }} file{{ files().length === 1 ? '' : 's' }}
+        {{ text().fileCount(files().length) }}
         @if (successCount() > 0) {
           &nbsp;&middot;&nbsp;
-          <span class="text-accent-700 dark:text-accent-400 font-medium">{{ successCount() }} uploaded</span>
+          <span class="text-accent-700 dark:text-accent-400 font-medium">{{ text().uploadedCount(successCount()) }}</span>
         }
         @if (scanningCount() > 0) {
           &nbsp;&middot;&nbsp;
-          <span class="text-warning-700 dark:text-warning-400 font-medium" data-sv-scan-summary="pending">{{ scanningCount() }} awaiting scan</span>
+          <span class="text-warning-700 dark:text-warning-400 font-medium" data-sv-scan-summary="pending">{{ text().awaitingScanCount(scanningCount()) }}</span>
         }
         @if (flaggedCount() > 0) {
           &nbsp;&middot;&nbsp;
-          <span class="text-danger-600 dark:text-danger-400 font-medium" data-sv-scan-summary="flagged">{{ flaggedCount() }} blocked</span>
+          <span class="text-danger-600 dark:text-danger-400 font-medium" data-sv-scan-summary="flagged">{{ text().blockedCount(flaggedCount()) }}</span>
         }
         @if (errorCount() > 0) {
           &nbsp;&middot;&nbsp;
-          <span class="text-danger-600 dark:text-danger-400 font-medium">{{ errorCount() }} failed</span>
+          <span class="text-danger-600 dark:text-danger-400 font-medium">{{ text().failedCount(errorCount()) }}</span>
         }
       </p>
       <button
@@ -261,11 +286,33 @@
         [disabled]="resolvedDisabled()"
         data-sv-file-clear
         (click)="clearAll()"
-        aria-label="Remove all files"
+        [attr.aria-label]="text().clearAllLabel"
       >
-        Clear all
+        {{ text().clearAll }}
       </button>
     </div>
+
+    <!-- Collect, then send (`SR-27`): the three actions a collect-first form
+         needs. Shown by `actions`, `'auto'` = autoUpload off and something to
+         send with. -->
+    @if (showActions()) {
+      <div class="flex flex-wrap items-center gap-2" data-sv-upload-actions>
+        <button type="button" [class]="actionPrimaryClass"
+                [disabled]="resolvedDisabled() || pendingCount() === 0" (click)="uploadAll()" data-sv-upload-all>
+          <sv-icon name="upload" [size]="14" cssClass="block shrink-0" [strokeWidth]="2" />
+          {{ text().uploadAll }}
+        </button>
+        <button type="button" [class]="actionClass"
+                [disabled]="resolvedDisabled() || uploadingCount() === 0" (click)="cancelAll()" data-sv-cancel-all>
+          {{ text().cancelAll }}
+        </button>
+        <button type="button" [class]="actionClass"
+                [disabled]="resolvedDisabled() || failedUploadCount() === 0" (click)="retryFailed()" data-sv-retry-failed>
+          <sv-icon name="refresh-cw" [size]="14" cssClass="block shrink-0" [strokeWidth]="2" />
+          {{ text().retryFailed }}
+        </button>
+      </div>
+    }
   }
 
 </div>

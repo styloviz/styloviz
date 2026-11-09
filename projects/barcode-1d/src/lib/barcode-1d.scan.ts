@@ -1,3 +1,5 @@
+import { svFormatLabel } from '@styloviz/core/i18n';
+import { SV_BARCODE_1D_LABELS, type SvBarcode1dLabels } from './barcode-1d.labels';
 import type { BarcodeSymbology } from './barcode-1d.types';
 
 /**
@@ -85,6 +87,7 @@ export function svScanSize(
   totalModules: number,
   barHeightCssPx: number,
   overrideXMm = 0,
+  labels: Pick<SvBarcode1dLabels, 'scanTooSmall'> = SV_BARCODE_1D_LABELS,
 ): SvBarcodeScanSize {
   const xMm = round(overrideXMm > 0 ? overrideXMm : moduleWidthCssPx * SV_MM_PER_CSS_PX, 4);
   const minXMm = SV_BARCODE_MIN_X_MM[symbology];
@@ -102,9 +105,11 @@ export function svScanSize(
     minXMm,
     belowMinimum,
     warning: belowMinimum
-      ? `One module measures ${xMm.toFixed(3)} mm on paper. ` +
-        `${symbology === 'code128' ? 'Code 128' : 'EAN'} needs at least ` +
-        `${minXMm} mm, so this may not scan. Widen the module or print it larger.`
+      ? svFormatLabel(labels.scanTooSmall, {
+          x: xMm.toFixed(3),
+          name: symbology === 'code128' ? 'Code 128' : 'EAN',
+          min: String(minXMm),
+        })
       : '',
   };
 }

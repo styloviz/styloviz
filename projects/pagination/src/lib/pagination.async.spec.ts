@@ -1,11 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import {
-  provideSvNavLocation,
-  SvLiveAnnouncer,
-  svQueryParamNavLocation,
-  type SvDataError,
-} from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
+import { type SvDataError } from '@styloviz/core/data';
+import { provideSvNavLocation, svQueryParamNavLocation } from '@styloviz/core/nav';
 import { flush, until, untilRendered } from '../../../../src/testing/async';
 import { SvPaginationComponent, type SvPageRequest } from './pagination.component';
 

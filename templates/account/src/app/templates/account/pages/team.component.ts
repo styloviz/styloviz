@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Injector, signal } from '@angular/core';
-import { SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent } from '@styloviz/core';
+import { SvSkeletonShellComponent, SvErrorShellComponent, SvEmptyShellComponent } from '@styloviz/core/data';
 import { svDataController } from '@styloviz/data';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvBadgeComponent } from '@styloviz/badge';

@@ -406,3 +406,54 @@ describe('svRtlScrollType — probes once per document (LU-06, wave 2)', () => {
     expect(create.mock.calls.filter(([tag]) => tag === 'div').length).toBe(0);
   });
 });
+
+/**
+ * `SR-08` — inside a grid or flex item the horizontal strip grew to its full
+ * content width (1 218 px in a 448 px grid), so nothing scrolled. jsdom has no
+ * layout, so this pins the CSS contract; `e2e/scroll-area-layout.spec.ts`
+ * measures the real thing.
+ */
+describe('sv-scroll-area — shrinks inside grid and flex parents (SR-08)', () => {
+  @Component({
+    standalone: true,
+    imports: [SvScrollAreaComponent],
+    template: `
+      <div style="display: grid">
+        <sv-scroll-area [orientation]="orientation()">
+          <ul style="display: flex"><li>One</li><li>Two</li></ul>
+        </sv-scroll-area>
+      </div>`,
+  })
+  class GridHost {
+    readonly orientation = signal<'horizontal' | 'vertical'>('horizontal');
+  }
+
+  function mount() {
+    TestBed.configureTestingModule({ imports: [GridHost] });
+    const fixture = TestBed.createComponent(GridHost);
+    fixture.detectChanges();
+    const host = fixture.nativeElement.querySelector('sv-scroll-area') as HTMLElement;
+    const port = host.querySelector('[data-sv-port]') as HTMLElement;
+    return { fixture, host, port };
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('renders the host as a block that may shrink below its content width', () => {
+    const { host } = mount();
+    expect(host.classList).toContain('block');
+    expect(host.classList).toContain('min-w-0');
+    expect(host.classList).toContain('max-w-full');
+  });
+
+  it('contains the port inline size while horizontal, and only then', () => {
+    const { fixture, port } = mount();
+    expect(port.classList).toContain('[contain:inline-size]');
+
+    // Vertically the containment would collapse the port in a shrink-to-fit
+    // parent, so it must not be there.
+    fixture.componentInstance.orientation.set('vertical');
+    fixture.detectChanges();
+    expect(port.classList).not.toContain('[contain:inline-size]');
+  });
+});

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { until, quietFor } from '@testing/async';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { SvFormErrorSummaryComponent, type SvFormError } from './form-error-summary.component';
 
 /**

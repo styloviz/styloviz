@@ -9,7 +9,7 @@
 
   <sv-error-shell
     [error]="error()"
-    title="Could not load these events"
+    [title]="labels.loadErrorTitle"
     (retry)="retry.emit()"
     data-sv-state="error"
   >
@@ -36,7 +36,7 @@
       <button type="button"
         class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         (click)="onLoadMore('newer')">
-        Load newer
+        {{ labels.loadNewer }}
       </button>
     }
   </div>
@@ -61,7 +61,7 @@
     <div class="overflow-x-auto pb-2 -mx-1 px-1"
          tabindex="0"
          role="region"
-         [attr.aria-label]="listLabel(intentLabel()) + ', scrollable'">
+         [attr.aria-label]="labels.scrollableList | svLabel: { name: listLabel(intentLabel()) }">
       <ol class="flex min-w-max" [attr.aria-label]="listLabel(intentLabel())">
 
         @for (item of visibleItems(); track trackById($index, item); let i = $index) {
@@ -147,6 +147,7 @@
 
       <!-- Vertical center line -->
       @if (showConnector()) {
+        <!-- sv-physical: centring — left-1/2 with -translate-x-1/2 is direction-neutral -->
         <div class="absolute left-1/2 -translate-x-1/2 top-4 bottom-4 w-0.5
                     bg-gray-200 dark:bg-gray-700 hidden sm:block">
         </div>
@@ -159,9 +160,9 @@
           <li class="flex items-start gap-3 sm:gap-0">
 
             <!-- ── LEFT half (content for even, empty for odd) ── -->
-            <div class="hidden sm:flex sm:w-[calc(50%-1.25rem)] sm:justify-end sm:pr-8">
+            <div class="hidden sm:flex sm:w-[calc(50%-1.25rem)] sm:justify-end sm:pe-8">
               @if (i % 2 === 0) {
-                <div class="text-right max-w-xs w-full pb-8">
+                <div class="text-end max-w-xs w-full pb-8">
                   @if (item.timestamp || item.badge) {
                     <div class="flex flex-wrap items-center justify-end gap-2 mb-1">
                       @if (item.badge) {
@@ -171,7 +172,7 @@
                         </span>
                       }
                       @if (item.timestamp) {
-                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                        <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
@@ -207,13 +208,13 @@
             </div>
 
             <!-- ── RIGHT half (content for odd, empty for even — desktop; all items on mobile) ── -->
-            <div [class]="i % 2 !== 0 ? 'sm:w-[calc(50%-1.25rem)] sm:pl-8 flex-1 min-w-0' : 'hidden sm:block sm:w-[calc(50%-1.25rem)] sm:pl-8'">
+            <div [class]="i % 2 !== 0 ? 'sm:w-[calc(50%-1.25rem)] sm:ps-8 flex-1 min-w-0' : 'hidden sm:block sm:w-[calc(50%-1.25rem)] sm:ps-8'">
               @if (i % 2 !== 0) {
                 <div class="pb-8 sm:max-w-xs">
                   @if (item.timestamp || item.badge) {
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                       @if (item.timestamp) {
-                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                        <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
@@ -241,7 +242,7 @@
                   @if (item.timestamp || item.badge) {
                     <div class="flex flex-wrap items-center gap-2 mb-1">
                       @if (item.timestamp) {
-                        <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                        <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                           {{ item.timestamp }}
                         </time>
                       }
@@ -400,7 +401,7 @@
             @if (item.timestamp || item.badge) {
               <div class="flex flex-wrap items-center gap-2 mb-1">
                 @if (item.timestamp) {
-                  <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                  <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
@@ -416,7 +417,7 @@
               {{ item.title }}
             </p>
             @if (item.description) {
-              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + (status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400')">
+              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + (status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400')">
                 {{ item.description }}
               </p>
             }
@@ -472,7 +473,7 @@
                 @if (item.timestamp || item.badge) {
                   <div class="flex flex-wrap items-center gap-2 mb-2">
                     @if (item.timestamp) {
-                      <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                      <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                         {{ item.timestamp }}
                       </time>
                     }
@@ -516,7 +517,7 @@
                             text-brandaccent-600 dark:text-brandaccent-400 hover:text-brandaccent-800
                             dark:hover:text-brandaccent-300 transition-colors group">
                     {{ item.actionLabel }}
-                    <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" [strokeWidth]="2" />
+                    <sv-icon name="chevron-right" cssClass="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" [strokeWidth]="2" />
                   </a>
                 }
               </div>
@@ -538,7 +539,7 @@
       @for (group of groupedItems(); track trackByDate($index, group); let gi = $index) {
 
         <!-- Date header separator -->
-        <div class="flex items-center gap-3 mb-4" [class]="gi > 0 ? 'mt-8' : ''">
+        <div class="flex items-center gap-3 mb-4" [class]="gi !== 0 ? 'mt-8' : ''">
           <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
           <span class="shrink-0 text-xs font-semibold uppercase tracking-wider
                        text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-950 px-2">
@@ -574,7 +575,7 @@
                 @if (item.timestamp || item.badge) {
                   <div class="flex flex-wrap items-center gap-2 mb-1">
                     @if (item.timestamp) {
-                      <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                      <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                         {{ item.timestamp }}
                       </time>
                     }
@@ -710,7 +711,7 @@
           </div>
 
           <!-- ── Content column ──────────────────────────────────────── -->
-          <div class="flex-1 min-w-0 pb-6" [class]="(layout() === 'right' ? 'text-right' : '') + ' ' + (displayMode() === 'interactive' ? 'cursor-pointer rounded-lg -mx-2 px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brandaccent-400 ' + (isSelected(item) ? 'bg-brandaccent-50 dark:bg-brandaccent-900/25' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50') : '')"
+          <div class="flex-1 min-w-0 pb-6" [class]="(layout() === 'right' ? 'text-end' : '') + ' ' + (displayMode() === 'interactive' ? 'cursor-pointer rounded-lg -mx-2 px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brandaccent-400 ' + (isSelected(item) ? 'bg-brandaccent-50 dark:bg-brandaccent-900/25' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50') : '')"
                [attr.role]="displayMode() === 'interactive' ? 'button' : null"
                [attr.tabindex]="displayMode() === 'interactive' ? 0 : null"
                [attr.aria-pressed]="displayMode() === 'interactive' ? isSelected(item) : null"
@@ -721,7 +722,7 @@
             @if (item.timestamp || item.badge) {
               <div class="flex flex-wrap items-center gap-2 mb-1" [class]="layout() === 'right' ? 'justify-end' : ''">
                 @if (item.timestamp) {
-                  <time class="text-gray-500 dark:text-gray-400 tabular-nums" [class]="timeClass()">
+                  <time class="text-gray-600 dark:text-gray-400 tabular-nums" [class]="timeClass()">
                     {{ item.timestamp }}
                   </time>
                 }
@@ -741,7 +742,7 @@
 
             <!-- Description -->
             @if (item.description) {
-              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + ((dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400')">
+              <p class="mt-1 leading-relaxed" [class]="descClass() + ' ' + ((dotStyle() === 'check' || dotStyle() === 'number') && status === 'pending' ? 'text-gray-300 dark:text-gray-600' : 'text-gray-600 dark:text-gray-400')">
                 {{ item.description }}
               </p>
             }
@@ -788,7 +789,7 @@
       <button type="button"
         class="w-full rounded-lg border border-dashed border-gray-200 dark:border-gray-700 px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 transition-colors hover:border-primary-300 hover:text-primary-600 dark:hover:border-primary-700 dark:hover:text-primary-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
         (click)="onLoadMore('older')">
-        Load older
+        {{ labels.loadOlder }}
       </button>
     }
   </div>

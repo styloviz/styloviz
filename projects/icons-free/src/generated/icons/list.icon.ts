@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `list` icon. */
 export const listNodes: readonly IconNode[] = [
@@ -18,6 +19,9 @@ export const listNodes: readonly IconNode[] = [
 export const listSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm8 11.1h12q.9 0 .9.9 0 .9-.9.9h-12q-.9 0-.9-.9 0-.9.9-.9zm0 6h12q.9 0 .9.9 0 .9-.9.9h-12q-.9 0-.9-.9 0-.9.9-.9zm0-12h12q.9 0 .9.9 0 .9-.9.9h-12q-.9 0-.9-.9 0-.9.9-.9zm-2.8 12.9c0 .7-.5 1.2-1.2 1.2-.7 0-1.2-.5-1.2-1.2 0-.7.5-1.2 1.2-1.2.7 0 1.2.5 1.2 1.2zm0-6c0 .7-.5 1.2-1.2 1.2-.7 0-1.2-.5-1.2-1.2 0-.7.5-1.2 1.2-1.2.7 0 1.2.5 1.2 1.2zm0-6c0 .7-.5 1.2-1.2 1.2-.7 0-1.2-.5-1.2-1.2 0-.7.5-1.2 1.2-1.2.7 0 1.2.5 1.2 1.2z' },
 ];
+
+/** `list` as a registrable glyph — `registerSvIcons([listIcon])` / `provideSvIcons([listIcon])`. */
+export const listIcon: SvIconDef = { name: 'list', nodes: listNodes, solid: listSolidNodes };
 
 /** `list` — tree-shakable standalone icon. Use `<sv-list-icon />`. */
 @Component({

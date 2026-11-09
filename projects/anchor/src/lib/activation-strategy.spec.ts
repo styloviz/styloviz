@@ -179,13 +179,13 @@ describe('svPickActiveSection — the degenerate cases', () => {
   });
 
   /**
-   * ⚠️ The bottom of the page, and the honest answer: `'last-passed'` does **not**
-   * fix it. A final section shorter than the remaining viewport never gets its top
-   * edge above the line, so the rail stays on the section before it — the same
-   * outcome the old rule gave. `'nearest-offset'` is the only one of the four that
-   * can reach it. `NV-02-I7` stays open.
+   * ⚠️ The bottom of the page, from the geometry alone: a final section shorter
+   * than the remaining viewport never gets its top edge above the line, so the
+   * rail stays on the section before it. `'nearest-offset'` is the only one of
+   * the four that can reach it on geometry — the line rules need `atEnd`
+   * (`SR-11`, next test), which a caller that passes no context does not get.
    */
-  it('cannot reach a short final section at maximum scroll, except by nearest-offset', () => {
+  it('cannot reach a short final section at maximum scroll from geometry alone, except by nearest-offset', () => {
     const atBottom = scene([
       { id: 'intro', top: -2000, height: 800 },
       { id: 'usage', top: -1200, height: 1960 },
@@ -195,6 +195,63 @@ describe('svPickActiveSection — the degenerate cases', () => {
     expect(pick(atBottom, 'first-visible')).toBe('usage');
     expect(pick(atBottom, 'most-visible')).toBe('usage');
     expect(pick(atBottom, 'nearest-offset')).toBe('api');
+  });
+
+  /**
+   * ★★ `SR-11` closes `NV-02-I7`: at the end of the scroll the line rules hand the
+   *    rail to the last section, as Bootstrap's and tocbot's scrollspies do. The
+   *    kit's own side-rail demo ended on "Usage" with "API" unreachable.
+   */
+  it('activates a short final section once the container is scrolled to its end', () => {
+    const atBottom = scene([
+      { id: 'intro', top: -2000, height: 800 },
+      { id: 'usage', top: -1200, height: 1960 },
+      { id: 'api', top: 760, height: 40 },
+    ]);
+    const end = { atEnd: true };
+    expect(svPickActiveSection(atBottom.order, atBottom.snapshots, 'last-passed', end)).toBe('api');
+    expect(svPickActiveSection(atBottom.order, atBottom.snapshots, 'first-visible', end)).toBe('api');
+    // The area and distance rules keep their own answers — `atEnd` is a fix for
+    // the line rules, not a new meaning of "current" for every strategy.
+    expect(svPickActiveSection(atBottom.order, atBottom.snapshots, 'most-visible', end)).toBe('usage');
+    expect(svPickActiveSection(atBottom.order, atBottom.snapshots, 'nearest-offset', end)).toBe('api');
+  });
+
+  /**
+   * ★ A rail click lands the heading ON the line, and scroll rounding leaves it a
+   *   fraction of a pixel below — the click must still report the clicked item.
+   */
+  it('counts a heading within a pixel below the line as passed (scroll rounding)', () => {
+    const afterClick = scene([
+      { id: 'usage', top: -300, height: 300 },
+      { id: 'api', top: 0.38, height: 300 },
+    ]);
+    expect(pick(afterClick, 'last-passed')).toBe('api');
+
+    const notYet = scene([
+      { id: 'usage', top: -300, height: 300 },
+      { id: 'api', top: 2, height: 300 },
+    ]);
+    expect(pick(notYet, 'last-passed')).toBe('usage');
+  });
+
+  it('changes nothing while the container is not at its end', () => {
+    const midway = scene([
+      { id: 'intro', top: -400, height: 800 },
+      { id: 'usage', top: 400, height: 800 },
+      { id: 'api', top: 1200, height: 40 },
+    ]);
+    const notEnd = { atEnd: false };
+    expect(svPickActiveSection(midway.order, midway.snapshots, 'last-passed', notEnd)).toBe('intro');
+    expect(svPickActiveSection(midway.order, midway.snapshots, 'last-passed')).toBe('intro');
+  });
+
+  it('ignores atEnd with no layout, where there is no scroll position to be at the end of', () => {
+    const unmeasured = new Map<string, SvSectionSnapshot>([
+      ['intro', { visible: true, top: 0, visiblePx: 0, measured: false }],
+      ['api', { visible: false, top: 0, visiblePx: 0, measured: false }],
+    ]);
+    expect(svPickActiveSection(['intro', 'api'], unmeasured, 'last-passed', { atEnd: true })).toBe('intro');
   });
 
   /**

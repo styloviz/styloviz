@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `arrow-down` icon. */
 export const arrowDownNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const arrowDownNodes: readonly IconNode[] = [
 export const arrowDownSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm12.9 4v13.9l4.5-4.5q.6-.6 1.2 0 .3.3.3.6 0 .3-.3.6l-5.8 5.8q-.1.3-.5.4-.3.2-.6 0-.4-.1-.5-.4l-5.8-5.8q-.3-.3-.3-.6 0-.3.3-.6.6-.6 1.2 0l4.5 4.5v-13.9q0-.9.9-.9.9 0 .9.9z' },
 ];
+
+/** `arrow-down` as a registrable glyph — `registerSvIcons([arrowDownIcon])` / `provideSvIcons([arrowDownIcon])`. */
+export const arrowDownIcon: SvIconDef = { name: 'arrow-down', nodes: arrowDownNodes, solid: arrowDownSolidNodes };
 
 /** `arrow-down` — tree-shakable standalone icon. Use `<sv-arrow-down-icon />`. */
 @Component({

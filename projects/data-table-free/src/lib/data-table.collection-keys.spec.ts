@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { SvDataTableComponent, type TableColumn, type TableVariant } from './data-table.component';
 import { flush } from '../../../../src/testing/async';
 
@@ -27,7 +27,7 @@ const NAMED: Row[] = [
 async function setup(extra: Record<string, unknown> = {}) {
   TestBed.resetTestingModule();
   const { fixture } = await render(SvDataTableComponent<Row>, {
-    inputs: { columns: COLUMNS, rows: NAMED, selectable: true, cardOnMobile: false, ...extra },
+    inputs: { columns: COLUMNS, rows: NAMED, selectable: true, responsive: 'none', ...extra },
   });
   fixture.detectChanges();
   return fixture;
@@ -85,5 +85,45 @@ describe('SvDataTableComponent — X-12 a focused row filtered away', () => {
     f.detectChanges();
     await flush();
     expect(document.activeElement).toBe(box(f, 3));
+  });
+});
+
+/**
+ * ★★ `(rowClick)` from the keyboard (FL-L1). The `<tr>` had a click handler
+ * and no tabindex, so the docs' `(rowClick)="open($event)"` was mouse-only.
+ */
+describe('SvDataTableComponent — rows from the keyboard', () => {
+  const trs = (f: Fixture) => [...(f.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('tr[data-sv-row-key]')];
+  const focusedKey = () => (document.activeElement as HTMLElement | null)?.dataset?.['svRowKey'] ?? null;
+  function press(f: Fixture, key: string, on: HTMLElement) {
+    on.focus();
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    on.dispatchEvent(event);
+    f.detectChanges();
+    return event;
+  }
+
+  it('the body is one tab stop; the arrows walk it and Enter / Space activate', async () => {
+    const f = await setup();
+    const clicked: Row[] = [];
+    f.componentInstance.rowClick.subscribe((row) => clicked.push(row));
+    expect(trs(f).filter((el) => el.getAttribute('tabindex') === '0').map((el) => el.dataset['svRowKey'])).toEqual(['1']);
+
+    press(f, 'ArrowDown', tr(f, 1)!);
+    expect(focusedKey()).toBe('2');
+    press(f, 'End', tr(f, 2)!);
+    expect(focusedKey()).toBe('4');
+    expect(press(f, 'Enter', tr(f, 4)!).defaultPrevented).toBe(true);
+    expect(press(f, ' ', tr(f, 4)!).defaultPrevented).toBe(true);
+    expect(clicked.map((r) => r.id)).toEqual([4, 4]);
+    expect(trs(f).filter((el) => el.getAttribute('tabindex') === '0').map((el) => el.dataset['svRowKey'])).toEqual(['4']);
+  });
+
+  it('Space on the select checkbox selects, and does not activate the row', async () => {
+    const f = await setup();
+    const clicked: Row[] = [];
+    f.componentInstance.rowClick.subscribe((row) => clicked.push(row));
+    expect(press(f, ' ', box(f, 2)).defaultPrevented).toBe(false);
+    expect(clicked).toEqual([]);
   });
 });

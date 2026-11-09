@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `arrow-right` icon. */
 export const arrowRightNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const arrowRightNodes: readonly IconNode[] = [
 export const arrowRightSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 11.1h13.9l-4.5-4.5q-.6-.6 0-1.2.3-.3.6-.3.3 0 .6.3l5.8 5.8q.3.1.4.5.2.3 0 .6-.1.4-.4.5l-5.8 5.8q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l4.5-4.5h-13.9q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `arrow-right` as a registrable glyph — `registerSvIcons([arrowRightIcon])` / `provideSvIcons([arrowRightIcon])`. */
+export const arrowRightIcon: SvIconDef = { name: 'arrow-right', nodes: arrowRightNodes, solid: arrowRightSolidNodes };
 
 /** `arrow-right` — tree-shakable standalone icon. Use `<sv-arrow-right-icon />`. */
 @Component({

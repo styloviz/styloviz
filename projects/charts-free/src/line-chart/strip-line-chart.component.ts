@@ -6,6 +6,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
 import {
   SvChartFrameComponent,
   type SvDataError,
@@ -13,18 +14,10 @@ import {
   svGapNotice,
   svGapRuns,
   svIsGap,
-  svUniqueId,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 import { NgClass } from '@angular/common';
-
-/**
- * What the table and tooltip print for a gap.
- *
- * ★ Never `0` and never `NaN`: `0` asserts a measurement nobody took, and `NaN`
- *   leaks an implementation detail into the reader's sentence. Same wording as
- *   the heatmap's missing square.
- */
-const GAP_TEXT = 'No reading';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +142,9 @@ const PALETTE: readonly string[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvStripLineChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-strip-line-chart');
 
@@ -166,7 +162,7 @@ export class SvStripLineChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -205,11 +201,59 @@ export class SvStripLineChartComponent {
     if (this.ariaLabel()) return this.ariaLabel();
     const cats = this.categories();
     const sets = this.series();
-    const base = this.title() || 'Strip line chart';
+    const base = this.title() || this.labels.chartStripLine;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
+
+  /**
+   * The readings as rows — one category per row, one column per series; a gap
+   * reads "No reading", as in the tooltip. Labelled bands carry meaning a
+   * listener cannot see (which zone a reading falls in, which dates an event
+   * covered), so they are named in the overview with their extent. An unlabelled
+   * band is decoration and is left out.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets  = this.series();
+    const cats  = this.categories();
+    const bands = this.strips()
+      .filter((b) => !!b.label)
+      .map((b) => this.bandText(b, cats));
+    return {
+      caption: this.title() || this.labels.chartStripLine,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: cats.map((cat, ci) => ({
+        key: cat,
+        header: cat,
+        cells: sets.map((s) => this.formatReading(s.data[ci])),
+      })),
+      ...(bands.length
+        ? { overview: svFormatLabel(this.labels.stripBandsOverview, { bands: bands.join('; ') }, this.locale) }
+        : {}),
+    };
+  });
+
+  /** A band's label and extent: a value range, or the categories a vertical band spans. */
+  private bandText(b: StripBand, cats: readonly string[]): string {
+    const label = b.label ?? '';
+    if ((b.orientation ?? 'horizontal') === 'horizontal') {
+      const start = Number.isFinite(b.start) ? this.formatValue(b.start) : this.labels.noValue;
+      if (b.end === undefined) return svFormatLabel(this.labels.stripBandFrom, { label, start }, this.locale);
+      const end = Number.isFinite(b.end) ? this.formatValue(b.end) : this.labels.noValue;
+      return svFormatLabel(this.labels.stripBandRange, { label, start, end }, this.locale);
+    }
+    const at = (i: number): string =>
+      cats[Math.min(Math.max(Math.round(i), 0), cats.length - 1)] ?? this.labels.noValue;
+    const start = Number.isFinite(b.start) ? at(b.start) : this.labels.noValue;
+    const endIx = b.end ?? cats.length - 1;
+    const end   = Number.isFinite(endIx) ? at(endIx) : this.labels.noValue;
+    return svFormatLabel(this.labels.stripBandRange, { label, start, end }, this.locale);
+  }
 
   // ── Resolved options ──────────────────────────────────────────────────────
 
@@ -236,6 +280,7 @@ export class SvStripLineChartComponent {
   // ── SVG geometry ──────────────────────────────────────────────────────────
 
   readonly SVG_W = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD   = { top: 24, right: 24, bottom: 48, left: 54 };
 
   plotW = computed(() => this.SVG_W - this.PAD.left - this.PAD.right);
@@ -268,7 +313,7 @@ export class SvStripLineChartComponent {
 
   /** What the breaks in the lines mean, or `null` when there are none. */
   readonly gapNote = computed<string | null>(() =>
-    svGapNotice(this.extent().gaps, this.extent().total),
+    svGapNotice(this.extent().gaps, this.extent().total, false, this.labels, this.locale),
   );
 
   axisMax = computed<number>(() => {
@@ -415,7 +460,7 @@ export class SvStripLineChartComponent {
       .join(' ');
   }
 
-  fillGradId(si: number): string { return `sl-fill-${this._uid}-${si}`; }
+  fillGradId(si: number): string { return `sl-fill-${this._uid}-${si}`; } // sv-i18n-ignore: SVG gradient id
 
   // ── Dots ──────────────────────────────────────────────────────────────────
 
@@ -465,9 +510,9 @@ export class SvStripLineChartComponent {
 
   // ── Formatting ─────────────────────────────────────────────────────────────
 
-  /** A datum as the tooltip prints it — `GAP_TEXT` for a gap, never `0` or `NaN`. */
+  /** A datum as the tooltip prints it — `labels.noReading` for a gap, never `0` or `NaN`. */
   formatReading(v: number | null | undefined): string {
-    return svIsGap(v) ? GAP_TEXT : this.formatValue(v as number);
+    return svIsGap(v) ? this.labels.noReading : this.formatValue(v as number);
   }
 
   formatValue(v: number): string {

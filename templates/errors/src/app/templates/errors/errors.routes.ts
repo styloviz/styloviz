@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import type { ErrorKey } from './errors.data';
 
+import { provideSvIcons } from '@styloviz/icons';
+import { ERRORS_ICONS } from './errors.icons';
 /**
  * Error / system page template routes.
  *
@@ -35,6 +37,7 @@ function codeRoute(path: string, errorKey: ErrorKey, title: string) {
 export const ERRORS_ROUTES: Routes = [
   {
     path: '',
+    providers: [provideSvIcons(ERRORS_ICONS)],
     loadComponent: () =>
       import('./errors-layout.component').then((m) => m.ErrorsLayoutComponent),
     children: [

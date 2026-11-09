@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import { afterEach, vi } from 'vitest';
-import { provideSvSensitivePrivacy, type SvSensitiveCopyEvent } from '@styloviz/core';
+import { provideSvSensitivePrivacy, type SvSensitiveCopyEvent } from '@styloviz/core/security';
 import { SV_COPY_TIMEOUT_MS, SvCopyToClipboardComponent } from './copy-to-clipboard.component';
 import {
   SV_CLIPBOARD,

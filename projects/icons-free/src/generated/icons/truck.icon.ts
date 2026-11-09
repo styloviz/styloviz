@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `truck` icon. */
 export const truckNodes: readonly IconNode[] = [
@@ -16,6 +17,9 @@ export const truckNodes: readonly IconNode[] = [
 export const truckSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3 6.1h10q1.9 0 1.9 1.9v1.1h3.1q.4 0 .6.3l3 3q.3.2.3.6v3q0 .9-.9.9h-1.7q.2.5.2 1.1 0 2.5-2.5 2.5-2.5 0-2.5-2.5 0-.6.2-1.1h-.7q-.2 0-.4-.1-.3.1-.6.1h-3.7q.2.5.2 1.1 0 2.5-2.5 2.5-2.5 0-2.5-2.5 0-.6.2-1.1h-1.7q-1.9 0-1.9-1.9v-7q0-1.9 1.9-1.9z' },
 ];
+
+/** `truck` as a registrable glyph — `registerSvIcons([truckIcon])` / `provideSvIcons([truckIcon])`. */
+export const truckIcon: SvIconDef = { name: 'truck', nodes: truckNodes, solid: truckSolidNodes };
 
 /** `truck` — tree-shakable standalone icon. Use `<sv-truck-icon />`. */
 @Component({

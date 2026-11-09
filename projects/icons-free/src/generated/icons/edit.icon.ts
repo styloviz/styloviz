@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `edit` icon. */
 export const editNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const editNodes: readonly IconNode[] = [
 export const editSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3.1 20v-3.5q0-.4.3-.6l11.5-11.5q.6-.6 1.2 0l3.5 3.5q.6.6 0 1.2l-11.5 11.5q-.2.3-.6.3h-3.5q-.9 0-.9-.9zm13.4-10.2l-2.3-2.3-1.2 1.2 2.3 2.3z' },
 ];
+
+/** `edit` as a registrable glyph — `registerSvIcons([editIcon])` / `provideSvIcons([editIcon])`. */
+export const editIcon: SvIconDef = { name: 'edit', nodes: editNodes, solid: editSolidNodes };
 
 /** `edit` — tree-shakable standalone icon. Use `<sv-edit-icon />`. */
 @Component({

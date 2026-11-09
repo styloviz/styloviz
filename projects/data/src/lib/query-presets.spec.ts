@@ -1,4 +1,4 @@
-import { createQuery } from '@styloviz/core';
+import { createQuery } from '@styloviz/core/data';
 import { applyQuery, cursorQuery, offsetLimitQuery, pageNumberQuery } from './query-presets';
 
 describe('query presets', () => {

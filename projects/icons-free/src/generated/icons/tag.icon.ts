@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `tag` icon. */
 export const tagNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const tagNodes: readonly IconNode[] = [
 export const tagSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M3 12 V4 a1 1 0 0 1 1 -1 h8 l8 8 -9 9 Z M7.5 6.1 a1.4 1.4 0 1 0 0 2.8 a1.4 1.4 0 0 0 0 -2.8 Z', fillRule: 'evenodd' },
 ];
+
+/** `tag` as a registrable glyph — `registerSvIcons([tagIcon])` / `provideSvIcons([tagIcon])`. */
+export const tagIcon: SvIconDef = { name: 'tag', nodes: tagNodes, solid: tagSolidNodes };
 
 /** `tag` — tree-shakable standalone icon. Use `<sv-tag-icon />`. */
 @Component({

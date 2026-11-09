@@ -7,15 +7,11 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  SvDataSummaryTableComponent,
-  type SvDataError,
-  type SvDataSummary,
-  type SvValuePolicy,
-  svUniqueId,
-} from '@styloviz/core';
+import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 import type { BarChartDataset, BarChartOptions, TooltipState } from './bar-chart.types';
 import { DEFAULT_COLORS, formatChartValue, gridTicks, niceMax, lightenColor, resolveBarValues, CLAMPED_BAR_STUB_PX, CLAMPED_BAR_FILL } from './bar-chart.utils';
@@ -49,12 +45,14 @@ import { DEFAULT_COLORS, formatChartValue, gridTicks, niceMax, lightenColor, res
     NgClass,
     SvChartAnimDirective,
     SvChartFrameComponent,
-    SvDataSummaryTableComponent,
   ],
   templateUrl: './gradient-bar-chart.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvGradientBarChartComponent {
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
+
   /** Per-instance suffix for every id this component puts in the document. */
   readonly _uid = svUniqueId('sv-gradient-bar-chart');
 
@@ -72,7 +70,7 @@ export class SvGradientBarChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -119,7 +117,7 @@ export class SvGradientBarChartComponent {
    * a single `NaN` in the data made `Math.max` — and therefore the whole axis and
    * every bar on it — `NaN`.
    */
-  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-gradient-bar-chart'));
+  protected readonly plotted = computed(() => resolveBarValues(this.datasets(), this.valuePolicy(), 'sv-gradient-bar-chart', { nounCount: this.labels.valueCountBar, labels: this.labels, locale: this.locale }));
 
   /** Heading shown above the chart (omitted when empty); also used in the generated accessible name. @default '' */
   title       = input<string>('');
@@ -138,16 +136,21 @@ export class SvGradientBarChartComponent {
     if (this.ariaLabel()) return this.ariaLabel();
     const cats = this.categories();
     const sets = this.datasets();
-    const base = this.title() || 'Gradient bar chart';
+    const base = this.title() || this.labels.chartGradientBar;
     if (!cats.length || !sets.length) return base;
     const names = sets.map(s => s.label).filter(Boolean).join(', ');
-    return `${base}: ${sets.length} series${names ? ` (${names})` : ''} across ${cats.length} categor${cats.length === 1 ? 'y' : 'ies'}.`;
+    return svFormatLabel(
+      names ? this.labels.seriesSummaryNamed : this.labels.seriesSummary,
+      { title: base, series: sets.length, names, categories: cats.length },
+      this.locale,
+    );
   });
   animDuration = computed(() => { const d = this.options().animationDuration; return d != null ? d + 'ms' : null; });
 
   readonly tooltip = signal<TooltipState>({ visible: false, x: 0, y: 0, label: '', items: [] });
 
   readonly SVG_WIDTH = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PADDING   = { top: 16, right: 48, bottom: 40, left: 140 };
 
   svgHeight = computed(() => this.height());
@@ -242,7 +245,7 @@ export class SvGradientBarChartComponent {
    */
   formatValue(v: number | string): string {
     if (typeof v === 'string') return v;
-    return Number.isFinite(v) ? formatChartValue(v) : 'no value';
+    return Number.isFinite(v) ? formatChartValue(v) : this.labels.noValue;
   }
 
   /**
@@ -256,7 +259,7 @@ export class SvGradientBarChartComponent {
     const value = this.datasets()[seriesIndex]?.data[catIndex] ?? 0;
     const text  = this.formatValue(value);
     return this.plotted().isClamped(seriesIndex, catIndex)
-      ? `${text} (not drawn to scale)`
+      ? svFormatLabel(this.labels.valueNotToScale, { value: text })
       : text;
   }
 
@@ -271,8 +274,8 @@ export class SvGradientBarChartComponent {
   protected readonly a11ySummary = computed<SvDataSummary>(() => {
     const sets = this.datasets();
     return {
-      caption: this.title() || 'Gradient bar chart',
-      columns: ['Category', ...sets.map((s) => s.label)],
+      caption: this.title() || this.labels.chartGradientBar,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label)],
       rows: this.categories().map((cat, ci) => ({
         key: cat,
         header: cat,

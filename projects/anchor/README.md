@@ -1,16 +1,18 @@
 # @styloviz/anchor
 
-> An "on this page" navigation list that tracks scroll position with an IntersectionObserver and smooth-scrolls to a section on click. Vertical (side-rail) and horizontal (pill-row) layouts.
+> An "on this page" navigation list that tracks scroll position with an IntersectionObserver and smooth-scrolls to a section on click. Vertical (side-rail) and horizontal (pill-row) layouts, nested and collapsible sections, outline numbers, a sliding marker and reading progress. Pro adds a sticky underline bar and an outline written from the article's headings.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/core @styloviz/anchor
+npm install @styloviz/core @styloviz/icons @styloviz/anchor
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core` — listed above so no extra step is required on npm (on pnpm/yarn, list it yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -53,6 +55,8 @@ import { SvAnchorComponent } from '@styloviz/anchor';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -60,18 +64,31 @@ export class DemoComponent {}
 | `items` | `readonly AnchorItem[]` | `—` | The sections to list and track, in document order. |
 | `root` | `HTMLElement \| null` | `null` | Scroll container the sections live in. `null` = the window/viewport. |
 | `orientation` | `AnchorOrientation` | `'vertical'` | Layout axis. |
+| `ariaLabel` | `string` | `'On this page'` | Accessible name of the `<nav>` landmark. Two rails on one page need two names, or a screen reader's landmark list shows "On this page" twice. |
 | `offset` | `number` | `0` | Extra pixels kept between a jumped-to section and the top of the scroll container — room for a sticky header the section would otherwise land underneath. |
 | `offsetFrom` | `HTMLElement \| null` | `null` | A sticky header to measure instead of using a fixed `offset` — its current height becomes the offset, and follows it as it changes. |
 | `activation` | `AnchorActivation` | `'last-passed'` | Which reading of "current" to highlight: `'last-passed'` (the last heading scrolled past), `'first-visible'`, `'most-visible'`, or `'nearest-offset'` (the heading closest to the sticky-header line). |
 | `urlKey` | `string \| null` | `null` | Reflect the section being read into the URL under this key — pair it with `svHashNavLocation('section')` for `#installation`. Needs `provideSvNavLocation()` at the app root. |
 | `urlWriteMode` | `SvNavWriteMode` | `'replace'` | What a CLICK on a nav link does to history — `'push'` makes back return to the section the reader came from. Scrolling always replaces, whatever this says. |
+| `appearance` | `AnchorAppearance` | `'rail'` | The list's look. Vertical: `'rail'`, `'compact'`, `'minimal'`, `'card'`. Horizontal: `'minimal'` draws plain text tabs instead of pills. |
+| `marker` | `AnchorMarker` | `'slide'` | How the rail marks the active item. |
+| `numbered` | `boolean` | `false` | Prefix each item with its outline number — 1, 1.1, 1.2, 2. |
+| `collapsible` | `boolean` | `false` | Show sub-sections only under the section being read, plus any the reader opened with the toggle. |
+| `expandedIds` | `readonly string[] (two-way)` | `[]` | With `collapsible`, the parents the reader opened. The active trail is always open on top of these. |
+| `progress` | `boolean` | `false` | A reading-progress bar above the list. |
+| `activationOffset` | `number \| null` | `null` | Where a section counts as being read, in px from the top of the scroll container — the activation line, set apart from the jump's `offset`. Null uses the same number as the jump. |
+| `hashSync` | `AnchorHashSync` | `'off'` | `'auto'` reflects the section being read into `location.hash`, and jumps to the hash on load, with no `provideSvNavLocation()` — `urlKey` wins when both are set. |
+| `wrap` | `boolean` | `true` | Horizontal only: wrap the items onto more lines. `false` keeps one line, for a bar that scrolls sideways. |
+| `labels` | `Partial<SvAnchorLabels>` | `{}` | Every string the anchor renders. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
+| `progressChange` | `number` | How far the container has scrolled, 0–1, whenever it changes. |
 | `activeIdChange` | `string \| null` | Emits whenever the active section changes, including on click-to-jump. |
 | `unresolved` | `SvUnresolvedValue<string>` | Emitted when an item points at a section this page does not have exactly one of. `'unknown'` for no element, `'blocked'` for several with the same id. |
+| `expandedIdsChange` | `readonly string[]` | Emits the new `expandedIds` whenever it changes — the output half of `[(expandedIds)]`. |
 
 ## Documentation
 
@@ -79,4 +96,4 @@ Full API reference and live demos: https://styloviz.dev/docs/anchor
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

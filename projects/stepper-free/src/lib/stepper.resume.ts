@@ -2,8 +2,9 @@ import {
   svPersistState,
   svRestoreState,
   type SvPersistedState,
+  type SvRestoreLabels,
   type SvRestoreSpec,
-} from '@styloviz/core';
+} from '@styloviz/core/data';
 
 /** Who owns a `persistKey` blob. Namespaced by selector. */
 export const SV_STEPPER_RESUME_KIND = 'sv-stepper/resume';
@@ -76,7 +77,12 @@ export function svSerializeStepperResume(
   return svPersistState(SV_STEPPER_RESUME_KIND, SV_STEPPER_RESUME_VERSION, resume);
 }
 
-/** Read a `persistKey` blob back, or say precisely why it cannot be. */
-export function svRestoreStepperResume(blob: unknown) {
-  return svRestoreState(blob, RESUME_SCHEMA);
+/**
+ * Read a `persistKey` blob back, or say precisely why it cannot be.
+ *
+ * @param labels The refusal `detail` templates — the component passes its own
+ *   (translated) labels; English when omitted.
+ */
+export function svRestoreStepperResume(blob: unknown, labels?: SvRestoreLabels) {
+  return svRestoreState(blob, RESUME_SCHEMA, labels);
 }

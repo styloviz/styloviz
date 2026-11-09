@@ -34,10 +34,10 @@ describe('SvGroupComponent — the group itself', () => {
     expect(host.querySelector(`#${labelled}`)?.textContent?.trim()).toBe('Notifications');
   });
 
-  it('does not point at a label it never rendered', async () => {
+  it('does not point at a label it never rendered — and is not an unnamed group (FL-J3-FI-19)', async () => {
     const { host } = await setup();
-    expect(region(host).getAttribute('role')).toBe('group');
-    expect(region(host).getAttribute('aria-labelledby')).toBeNull();
+    expect(host.querySelector('[role="group"]')).toBeNull();
+    expect(host.querySelector('[aria-labelledby]')).toBeNull();
   });
 
   it('renders a description under the label', async () => {
@@ -148,8 +148,8 @@ describe('SvGroupComponent — layout', () => {
   it('drops the gap and rounds only the outer edges when fused', async () => {
     const { group } = await setup('[fused]="true" gap="lg"');
     expect(group.innerClass()).not.toContain('gap-');
-    expect(group.innerClass()).toContain('rounded-l-md');
-    expect(group.innerClass()).toContain('rounded-r-md');
+    expect(group.innerClass()).toContain('rounded-s-md');
+    expect(group.innerClass()).toContain('rounded-e-md');
   });
 
   it('forces a row when fused, whatever the orientation says', async () => {

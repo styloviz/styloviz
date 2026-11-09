@@ -1,0 +1,5 @@
+{
+  "$comment": "The import lines the 2.0 icon migration writes. Data, not code: the free and Pro registries live in different packages.",
+  "free": { "import": "import { provideSvIcons, svAllIcons } from '@styloviz/icons';", "names": ["svAllIcons"] },
+  "pro": { "package": "@styloviz-pro/icons", "import": "import { svAllProIcons } from '@styloviz-pro/icons/registry';", "names": ["svAllProIcons"] }
+}

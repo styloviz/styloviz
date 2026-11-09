@@ -1,11 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import {
-  provideSvLinkAdapter,
-  svResetWarnOnce,
-  type SvLinkAdapter,
-  type SvLinkTarget,
-} from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { provideSvLinkAdapter, type SvLinkAdapter, type SvLinkTarget } from '@styloviz/core/nav';
 import { SvBreadcrumbComponent, type BreadcrumbItem } from './breadcrumb.component';
 
 /**

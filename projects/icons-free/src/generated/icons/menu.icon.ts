@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `menu` icon. */
 export const menuNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const menuNodes: readonly IconNode[] = [
 export const menuSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm4 11.1h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm0-5h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9zm0 10h16q.9 0 .9.9 0 .9-.9.9h-16q-.9 0-.9-.9 0-.9.9-.9z' },
 ];
+
+/** `menu` as a registrable glyph — `registerSvIcons([menuIcon])` / `provideSvIcons([menuIcon])`. */
+export const menuIcon: SvIconDef = { name: 'menu', nodes: menuNodes, solid: menuSolidNodes };
 
 /** `menu` — tree-shakable standalone icon. Use `<sv-menu-icon />`. */
 @Component({

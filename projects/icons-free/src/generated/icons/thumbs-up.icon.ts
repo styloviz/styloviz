@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `thumbs-up` icon. */
 export const thumbsUpNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const thumbsUpSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'M7 10 v10 H4 a1 1 0 0 1 -1 -1 v-8 a1 1 0 0 1 1 -1 Z' },
   { tag: 'path', d: 'M7 10 l4 -6.5 a2 2 0 0 1 3.7 1.5 L13.5 9 h5 a2 2 0 0 1 2 2.35 l-1 6 a2 2 0 0 1 -2 1.65 H7 Z' },
 ];
+
+/** `thumbs-up` as a registrable glyph — `registerSvIcons([thumbsUpIcon])` / `provideSvIcons([thumbsUpIcon])`. */
+export const thumbsUpIcon: SvIconDef = { name: 'thumbs-up', nodes: thumbsUpNodes, solid: thumbsUpSolidNodes };
 
 /** `thumbs-up` — tree-shakable standalone icon. Use `<sv-thumbs-up-icon />`. */
 @Component({

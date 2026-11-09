@@ -8,6 +8,7 @@ import {
   svSegmentAnswer,
   svSourceLabel,
 } from './citation-sources.attribution';
+import { SV_CITATION_SOURCES_LABELS } from './citation-sources.labels';
 import type { CitationSpan, SourceRef } from './citation-sources.types';
 
 const source = (id: string, extra: Partial<SourceRef> = {}): SourceRef => ({
@@ -258,13 +259,13 @@ describe('coverage', () => {
     const coverage = svCitationCoverage(ANSWER, [], []);
     expect(coverage.citedPct).toBe(0);
     expect(coverage.sources).toBe(0);
-    expect(svCoverageLabel(coverage)).toContain('attributed to a source');
+    expect(svCoverageLabel(coverage, SV_CITATION_SOURCES_LABELS)).toContain('attributed to a source');
   });
 
   it('has nothing to say about an empty answer', () => {
     const coverage = svCitationCoverage('', [], []);
     expect(coverage.citedPct).toBe(0);
-    expect(svCoverageLabel(coverage)).toBe('Nothing to attribute.');
+    expect(svCoverageLabel(coverage, SV_CITATION_SOURCES_LABELS)).toBe('Nothing to attribute.');
   });
 
   /**
@@ -310,7 +311,7 @@ describe('labels', () => {
       [cite('c1', 'policy', 0, ANSWER.length)],
       [source('policy')],
     );
-    const label = svCoverageLabel(coverage);
+    const label = svCoverageLabel(coverage, SV_CITATION_SOURCES_LABELS);
 
     expect(label).toContain('1 source');
     expect(label).toContain('100%');

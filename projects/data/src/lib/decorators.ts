@@ -1,4 +1,5 @@
-import { toSvDataError } from '@styloviz/core';
+import { toSvDataError } from '@styloviz/core/data';
+import { SV_DATA_LABELS, type SvDataLabels } from './data.labels';
 import type { SvDataSource } from './types';
 
 /** Sleep that gives up as soon as the request is superseded. */
@@ -36,8 +37,10 @@ export interface SvFailureOptions {
   readonly when: boolean | (() => boolean);
   /** Status to report. `503` is retryable, `404` is not. @default 503 */
   readonly status?: number;
-  /** Message the user sees. @default 'The demo server is unavailable.' */
+  /** Message the user sees. @default `labels.demoServerUnavailable` */
   readonly message?: string;
+  /** The English fallback's source — pass your translated `SvDataLabels`. @default SV_DATA_LABELS */
+  readonly labels?: Pick<SvDataLabels, 'demoServerUnavailable'>;
 }
 
 /**
@@ -52,7 +55,8 @@ export interface SvFailureOptions {
  * seeing both is the point.
  */
 export function withFailure<T>(source: SvDataSource<T>, options: SvFailureOptions): SvDataSource<T> {
-  const { when, status = 503, message = 'The demo server is unavailable.' } = options;
+  const { when, status = 503, labels = SV_DATA_LABELS } = options;
+  const message = options.message ?? labels.demoServerUnavailable;
   return async (query, signal) => {
     const failing = typeof when === 'function' ? when() : when;
     if (failing) throw toSvDataError({ status, message });
@@ -67,16 +71,18 @@ export function withFailure<T>(source: SvDataSource<T>, options: SvFailureOption
  * real dashboards, because it is where a retry policy either recovers silently
  * or thrashes. Useful for exercising backoff by hand.
  *
- * `rate` is clamped to 0–1. Pass `random` to make a demo reproducible.
+ * `rate` is clamped to 0–1. Pass `random` to make a demo reproducible, and
+ * `labels` for the dropped-connection message in your language.
  */
 export function withFlakiness<T>(
   source: SvDataSource<T>,
   rate: number,
   random: () => number = Math.random,
+  labels: Pick<SvDataLabels, 'connectionDropped'> = SV_DATA_LABELS,
 ): SvDataSource<T> {
   const p = Math.min(1, Math.max(0, rate));
   return async (query, signal) => {
-    if (random() < p) throw toSvDataError({ status: 503, message: 'The connection dropped.' });
+    if (random() < p) throw toSvDataError({ status: 503, message: labels.connectionDropped });
     return source(query, signal);
   };
 }

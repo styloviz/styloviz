@@ -1,4 +1,4 @@
-import type { SvDataQuery } from '@styloviz/core';
+import type { SvDataQuery } from '@styloviz/core/data';
 import type { SvQueryMapper } from './types';
 
 /**

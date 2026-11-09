@@ -1,0 +1,201 @@
+<!--
+  sv-status-page — read-only. Loading withholds everything (a half-drawn page
+  of green bars is a claim), an error replaces the page, and "empty" means
+  nothing at all was published. An empty incident history is not an empty
+  state: "No incidents reported." is good news, said in place.
+-->
+@if (loading()) {
+  <sv-skeleton-shell variant="list" [rows]="5" [ariaLabel]="text().statusLoading" />
+} @else if (error()) {
+  <sv-error-shell [error]="error()" (retry)="retry.emit()" />
+} @else if (isEmpty()) {
+  <sv-empty-shell reason="no-data" [title]="text().statusEmptyTitle" [message]="text().statusEmptyMessage" />
+} @else {
+  <div class="flex flex-col gap-8" data-sv-status-page [attr.data-status]="overall()">
+
+    <!-- ── Overall: icon + text + colour. A live region only when the host refreshes in place (`live`). ── -->
+    <div
+      [attr.role]="live() ? 'status' : null"
+      class="flex flex-col gap-2 rounded-2xl border px-5 py-4 sm:flex-row sm:items-center sm:justify-between print:break-inside-avoid"
+      [class]="bannerClass()"
+      data-sv-status-banner>
+      <p class="flex items-center gap-3 text-base font-semibold sm:text-lg">
+        <ng-container *ngTemplateOutlet="levelGlyph; context: { $implicit: overall(), cls: 'h-6 w-6 shrink-0' }" />
+        <span data-sv-status-headline>{{ bannerText() }}</span>
+      </p>
+      @if (lastUpdatedText()) {
+        <p class="text-sm">
+          <time [attr.datetime]="lastUpdatedIso()" data-sv-status-updated>{{ lastUpdatedText() }}</time>
+        </p>
+      }
+    </div>
+
+    <!-- ── Active incidents, worst first ── -->
+    @if (active().length > 0) {
+      <section [attr.aria-labelledby]="uid + '-active'" data-sv-status-active>
+        <div role="heading" [attr.aria-level]="headingLevel()" [id]="uid + '-active'" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ text().statusActiveHeading }}
+        </div>
+        <ul role="list" class="flex flex-col gap-4">
+          @for (incident of active(); track incident.key) {
+            <li>
+              <ng-container *ngTemplateOutlet="incidentCard; context: { $implicit: incident, level: itemHeadingLevel() }" />
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- ── Components: current state and the uptime bar ── -->
+    @if (groups().length > 0) {
+      <section [attr.aria-labelledby]="uid + '-components'" data-sv-status-components>
+        <div role="heading" [attr.aria-level]="headingLevel()" [id]="uid + '-components'" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ text().statusComponentsHeading }}
+        </div>
+        <div class="isolate overflow-hidden rounded-2xl border border-gray-200 bg-white print:overflow-visible dark:border-gray-800 dark:bg-gray-900">
+          @for (group of groups(); track group.key) {
+            <div class="border-gray-200 not-first:border-t dark:border-gray-800">
+              @if (group.label) {
+                <div role="heading" [attr.aria-level]="itemHeadingLevel()" class="px-5 pt-4 text-xs font-semibold tracking-wide text-gray-600 uppercase dark:text-gray-400">
+                  {{ group.label }}
+                </div>
+              }
+              <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-800">
+                @for (row of group.rows; track row.key) {
+                  <li class="px-5 py-4 print:break-inside-avoid" [attr.data-sv-status-component]="row.key" [attr.data-status]="row.level">
+                    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span class="font-medium text-gray-900 dark:text-white">{{ row.name }}</span>
+                      <span class="inline-flex items-center gap-1.5 text-sm font-medium" [class]="row.ink" data-sv-status-state>
+                        <ng-container *ngTemplateOutlet="levelGlyph; context: { $implicit: row.level, cls: 'h-4 w-4 shrink-0' }" />
+                        {{ row.statusLabel }}
+                      </span>
+                    </div>
+                    <!-- One cell per day. The bar is one image with a spoken summary; each cell's title is the mouse tooltip. -->
+                    <div role="img" [attr.aria-label]="row.barLabel" class="mt-3 flex h-8 gap-px" data-sv-status-bar>
+                      @for (cell of row.cells; track cell.date) {
+                        <span aria-hidden="true" class="min-w-0 flex-1 rounded-xs" [class]="cell.cls" [attr.title]="cell.title" [attr.data-date]="cell.date"></span>
+                      }
+                    </div>
+                    <div aria-hidden="true" class="mt-1.5 flex items-center justify-between gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <span class="shrink-0">{{ row.start }}</span>
+                      <span class="text-center font-medium text-gray-700 dark:text-gray-300" data-sv-status-uptime>{{ row.summary }}</span>
+                      <span class="shrink-0">{{ row.end }}</span>
+                    </div>
+                    @if (row.issues.length > 0) {
+                      <div class="sr-only" data-sv-status-issues>
+                        <p>{{ row.issueLead }}</p>
+                        <ul>
+                          @for (issue of row.issues; track issue) {
+                            <li>{{ issue }}</li>
+                          }
+                        </ul>
+                      </div>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- ── Scheduled maintenance, in progress first ── -->
+    @if (maintenanceViews().length > 0) {
+      <section [attr.aria-labelledby]="uid + '-maintenance'" data-sv-status-maintenance>
+        <div role="heading" [attr.aria-level]="headingLevel()" [id]="uid + '-maintenance'" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ text().statusMaintenanceHeading }}
+        </div>
+        <ul role="list" class="flex flex-col gap-4">
+          @for (window of maintenanceViews(); track window.key) {
+            <li
+              class="rounded-2xl border border-gray-200 bg-white p-5 print:break-inside-avoid dark:border-gray-800 dark:bg-gray-900"
+              [attr.data-sv-status-window]="window.key"
+              [attr.data-status]="window.status">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div role="heading" [attr.aria-level]="itemHeadingLevel()" class="text-base font-semibold text-gray-900 dark:text-white">
+                  {{ window.title }}
+                </div>
+                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold" [class]="window.statusClass">
+                  <sv-icon name="clock" cssClass="h-3.5 w-3.5 shrink-0" [strokeWidth]="2" />
+                  {{ window.statusLabel }}
+                </span>
+              </div>
+              @if (window.window) {
+                <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                  <time [attr.datetime]="window.startIso">{{ window.window }}</time>
+                </p>
+              }
+              @if (window.description) {
+                <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">{{ window.description }}</p>
+              }
+              @if (window.affects) {
+                <p class="mt-2 text-xs text-gray-600 dark:text-gray-400">{{ window.affects }}</p>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <!-- ── History: resolved incidents by the day they began ── -->
+    <section [attr.aria-labelledby]="uid + '-history'" data-sv-status-history>
+      <div role="heading" [attr.aria-level]="headingLevel()" [id]="uid + '-history'" class="mb-3 text-lg font-semibold text-gray-900 dark:text-white">
+        {{ text().statusHistoryHeading }}
+      </div>
+      @if (history().length > 0) {
+        <ol role="list" class="flex flex-col gap-6">
+          @for (day of history(); track day.day) {
+            <li [attr.data-sv-status-day]="day.day">
+              <div role="heading" [attr.aria-level]="itemHeadingLevel()" class="mb-2 border-b border-gray-200 pb-1 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:text-gray-300">
+                <time [attr.datetime]="day.day">{{ day.label }}</time>
+              </div>
+              <ul role="list" class="flex flex-col gap-4">
+                @for (incident of day.incidents; track incident.key) {
+                  <li>
+                    <ng-container *ngTemplateOutlet="incidentCard; context: { $implicit: incident, level: itemHeadingLevel() + 1 }" />
+                  </li>
+                }
+              </ul>
+            </li>
+          }
+        </ol>
+      } @else {
+        <p class="text-sm text-gray-600 dark:text-gray-400" data-sv-status-no-history>{{ text().statusNoPastIncidents }}</p>
+      }
+    </section>
+  </div>
+}
+
+<ng-template #incidentCard let-incident let-level="level">
+  <article
+    class="rounded-2xl border border-gray-200 bg-white p-5 print:break-inside-avoid dark:border-gray-800 dark:bg-gray-900"
+    [attr.data-sv-status-incident]="incident.key"
+    [attr.data-status]="incident.status"
+    [attr.data-impact]="incident.impact">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div role="heading" [attr.aria-level]="level" class="text-base font-semibold text-gray-900 dark:text-white">{{ incident.title }}</div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" [class]="incident.statusClass" data-sv-status-incident-state>{{ incident.statusLabel }}</span>
+        <span class="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-800 dark:bg-gray-800 dark:text-gray-200">{{ incident.impactLabel }}</span>
+      </div>
+    </div>
+    @if (incident.affects) {
+      <p class="mt-1 text-xs text-gray-600 dark:text-gray-400">{{ incident.affects }}</p>
+    }
+    @if (incident.updates.length > 0) {
+      <sv-timeline class="mt-4 block" [items]="incident.updates" size="sm" intent="feed" [ariaLabel]="incident.updatesLabel" />
+    }
+  </article>
+</ng-template>
+
+<!-- One glyph per level, so no state is told by colour alone (the text beside it says it in words). -->
+<ng-template #levelGlyph let-level let-cls="cls">
+  @switch (level) {
+    @case ('degraded') { <sv-icon name="alert-triangle" [cssClass]="cls" [strokeWidth]="2" /> }
+    @case ('partial-outage') { <sv-icon name="alert-circle" [cssClass]="cls" [strokeWidth]="2" /> }
+    @case ('major-outage') { <sv-icon name="x-circle" [cssClass]="cls" [strokeWidth]="2" /> }
+    @case ('maintenance') { <sv-icon name="clock" [cssClass]="cls" [strokeWidth]="2" /> }
+    @default { <sv-icon name="check-circle" [cssClass]="cls" [strokeWidth]="2" /> }
+  }
+</ng-template>

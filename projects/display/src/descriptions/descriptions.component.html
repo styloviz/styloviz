@@ -37,7 +37,7 @@
     >
       @for (row of rows(); track row.item.id) {
         <div [ngClass]="[cellClasses(), spanClass(row.span)]">
-          <dt [ngClass]="termClasses()">{{ row.item.label }}</dt>
+          <dt [ngClass]="[termClasses(), termPrintClass]">{{ row.item.label }}</dt>
           <!--
             ★★★ THE ACTION LIVES INSIDE THE `<dd>` BECAUSE HTML LEAVES NOWHERE
                  ELSE. A `<dl>`'s wrapping `<div>` may contain only `<dt>` and

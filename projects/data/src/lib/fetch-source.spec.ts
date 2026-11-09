@@ -1,4 +1,4 @@
-import { createQuery } from '@styloviz/core';
+import { createQuery } from '@styloviz/core/data';
 import { createFetchDataSource, defaultResponseMapper } from './fetch-source';
 
 const signal_ = () => new AbortController().signal;

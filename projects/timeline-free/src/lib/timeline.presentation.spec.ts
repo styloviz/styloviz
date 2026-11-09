@@ -2,6 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { SvTimelineComponent } from './timeline.component';
 import type { TimelineItem } from './timeline.component';
+import { provideSvIcons } from '@styloviz/icons';
+import { checkCircleIcon } from '@styloviz/icons/glyph/check-circle';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([checkCircleIcon]);
 
 /**
  * The presentation half of the FREE `sv-timeline`.
@@ -32,7 +37,7 @@ const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
 
 async function setup(inputs: Record<string, unknown>) {
   TestBed.resetTestingModule();
-  const { fixture } = await render(SvTimelineComponent, { inputs });
+  const { fixture } = await render(SvTimelineComponent, { providers: [HOST_ICONS], inputs });
   return fixture;
 }
 

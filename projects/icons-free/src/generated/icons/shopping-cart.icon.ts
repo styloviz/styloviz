@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `shopping-cart` icon. */
 export const shoppingCartNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const shoppingCartNodes: readonly IconNode[] = [
 export const shoppingCartSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm3 3.1h2q.7 0 .9.7l.6 3.3h13q.1 0 .2.1.9.2.6 1l-2 8q-.1.7-.8.7h-10q-.7 0-.9-.7l-2.3-11.3h-1.3q-.9 0-.9-.9 0-.9.9-.9zm3.9 5.8l1.3 6.2h8.6l1.6-6.2zm3.5 11.1c0 .8-.6 1.4-1.4 1.4-.8 0-1.4-.6-1.4-1.4 0-.8.6-1.4 1.4-1.4.8 0 1.4.6 1.4 1.4zm8 0c0 .8-.6 1.4-1.4 1.4-.8 0-1.4-.6-1.4-1.4 0-.8.6-1.4 1.4-1.4.8 0 1.4.6 1.4 1.4z' },
 ];
+
+/** `shopping-cart` as a registrable glyph — `registerSvIcons([shoppingCartIcon])` / `provideSvIcons([shoppingCartIcon])`. */
+export const shoppingCartIcon: SvIconDef = { name: 'shopping-cart', nodes: shoppingCartNodes, solid: shoppingCartSolidNodes };
 
 /** `shopping-cart` — tree-shakable standalone icon. Use `<sv-shopping-cart-icon />`. */
 @Component({

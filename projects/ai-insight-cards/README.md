@@ -2,7 +2,9 @@
 
 > 5 variants: `feed` (priority-ordered list), `grid` (confidence-ring cards), `inline` (single featured insight), `panel` (detailed insight with evidence) and `anomaly` (the baseline behind each claim) — with confidence provenance, evidence links, trend arrows, sparklines and action buttons.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -64,9 +66,9 @@ export class DemoComponent {}
 | `baselines` | `readonly SvInsightBaseline[]` | `[]` | The series behind each claim, for the `anomaly` variant. One entry per metric: its recent history and its current reading. The deviation is computed here rather than taken from the host because the arithmetic is where the mistakes are. |
 | `busy` | `boolean` | `false` | A fetch is in flight. |
 | `simulate` | `boolean` | `false` | Reload with the bundled sample when Refresh is pressed. **Off by default.** Refresh emits `refreshRequested` and waits for a new `insights` — production behaviour must not depend on an integrator remembering to turn a demo switch off. Set it explicitly to `true` in a showcase, where a fabricated reload is the point. |
-| `anomalyMinSamples` | `number` | `SV_ANOMALY_MIN_SAMPLES` | Observations required before any severity is claimed. THE DEFAULT IS A POLICY ABOUT SOMEBODY ELSE'S DOMAIN. Fourteen is right for a daily business metric and wrong almost everywhere else: a fortnight of hourly data is 336 observations, a fortnight of monthly data is not a baseline at all, and a seasonal series needs a season. The figure was well reasoned and still a guess, so it is a default and not a rule — and it is the number the card SHOWS when it refuses to judge, so moving it moves the explanation with it. |
-| `anomalyNotable` | `number` | `SV_ANOMALY_NOTABLE` | Sigma at which a finding is worth a look. Also the line the anomaly variant's "a mean-and-sigma detector would have missed this" note judges by and quotes. |
-| `anomalySevere` | `number` | `SV_ANOMALY_SEVERE` | Sigma at which it is worth waking somebody. |
+| `anomalyMinSamples` | `number` | `14` | Observations required before any severity is claimed. The default is a policy about somebody else's domain. Fourteen is right for a daily business metric and wrong almost everywhere else: a fortnight of hourly data is 336 observations, a fortnight of monthly data is not a baseline at all, and a seasonal series needs a season. The figure was well reasoned and still a guess, so it is a default and not a rule — and it is the number the card SHOWS when it refuses to judge, so moving it moves the explanation with it. |
+| `anomalyNotable` | `number` | `3` | Sigma at which a finding is worth a look. Also the line the anomaly variant's "a mean-and-sigma detector would have missed this" note judges by and quotes. |
+| `anomalySevere` | `number` | `5` | Sigma at which it is worth waking somebody. |
 
 ## Outputs
 
@@ -83,4 +85,4 @@ Full API reference and live demos: https://styloviz.dev/docs/ai-insight-cards
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { render, screen, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { afterEach, vi } from 'vitest';
-import { SV_FLOATING_ORDER, SvFloatingLayerService, svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { SV_FLOATING_ORDER, SvFloatingLayerService } from '@styloviz/core/layout';
 import { SvScrollToTopComponent } from './scroll-to-top.component';
 
 /**

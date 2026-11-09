@@ -29,6 +29,15 @@ export interface SignaturePoint {
 /** One continuous mark — pointer down, move…, up. */
 export interface SignatureStroke {
   readonly points: readonly SignaturePoint[];
+  /**
+   * The ink this stroke was drawn in, when the pad had an explicit `penColor`.
+   * Absent means "the pad's ink" — the theme colour on screen, `#111827` in an
+   * export. Optional, and deliberately NOT part of the `sv-signature-v1` hash,
+   * so records from before it existed verify unchanged (`SR-12`).
+   */
+  readonly color?: string;
+  /** The stroke width it was drawn at, in CSS px. Same rules as `color`. */
+  readonly width?: number;
 }
 
 /** What `signatureChange` carries. */
@@ -211,7 +220,9 @@ export function rescale(
   const sx = width / value.width;
   const sy = height / value.height;
   if (sx === 1 && sy === 1) return value.strokes;
+  // `...s` keeps a stroke's own `color` / `width` (`SR-12`).
   return value.strokes.map((s) => ({
+    ...s,
     points: s.points.map((p) => ({ x: p.x * sx, y: p.y * sy, pressure: p.pressure })),
   }));
 }
@@ -238,13 +249,23 @@ export function toSvg(
       const d = s.points
         .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
         .join(' ');
-      return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${lineWidth}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // ★ Each stroke in the ink it was drawn in, so the SVG and the PNG agree
+      //   (`SR-12`). The colour is escaped: a stroke's colour can come back from
+      //   stored data, and this string is meant to be embedded.
+      const stroke = escapeAttr(s.color ?? color);
+      const width = Number.isFinite(s.width) ? (s.width as number) : lineWidth;
+      return `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
     })
     .join('');
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
-    `viewBox="0 0 ${width} ${height}">${paths}</svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` + // sv-i18n-ignore: SVG markup
+    `viewBox="0 0 ${width} ${height}">${paths}</svg>` // sv-i18n-ignore: SVG markup
   );
+}
+
+/** Escape a value for a double-quoted XML attribute. */
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ─── Attestation (`FI-21-M1`) ─────────────────────────────────────────────────

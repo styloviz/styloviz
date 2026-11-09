@@ -2,11 +2,9 @@ import { render } from '@testing-library/angular';
 import { SvFileUploadComponent } from './file-upload.component';
 
 /** Build a synthetic drop event carrying the given files. */
-function dropEvent(files: File[]): DragEvent {
-  return {
-    preventDefault() { /* the component calls it; the stub only has to not throw */ },
-    dataTransfer: { files },
-  } as unknown as DragEvent;
+/** A change on the hidden file input — what picking files in the dialog produces. */
+function pickEvent(files: File[]): Event {
+  return { target: { files, value: '' } } as unknown as Event;
 }
 
 const pdf = (name = 'doc.pdf') =>
@@ -34,7 +32,7 @@ describe('SvFileUploadComponent — adding files', () => {
     c.fileAdded.subscribe(added);
     c.filesChange.subscribe(changed);
 
-    c.onDrop(dropEvent([pdf('a.pdf')]));
+    c.onFileInputChange(pickEvent([pdf('a.pdf')]));
 
     expect(c.files()).toHaveLength(1);
     expect(c.files()[0].status).toBe('pending');
@@ -44,7 +42,7 @@ describe('SvFileUploadComponent — adding files', () => {
 
   it('caps the number of files at maxFiles', async () => {
     const c = await setup({ maxFiles: 2 });
-    c.onDrop(dropEvent([pdf('a.pdf'), pdf('b.pdf'), pdf('c.pdf')]));
+    c.onFileInputChange(pickEvent([pdf('a.pdf'), pdf('b.pdf'), pdf('c.pdf')]));
     expect(c.files()).toHaveLength(2);
     expect(c.canAddMore()).toBe(false);
   });
@@ -56,7 +54,7 @@ describe('SvFileUploadComponent — validation', () => {
     const c = await setup({ maxSizeMb: 0 }); // any non-empty file exceeds 0 MB
     c.uploadError.subscribe(err);
 
-    c.onDrop(dropEvent([pdf('big.pdf')]));
+    c.onFileInputChange(pickEvent([pdf('big.pdf')]));
 
     expect(c.files()[0].status).toBe('error');
     expect(c.files()[0].errorMsg).toMatch(/exceeds/i);
@@ -65,7 +63,7 @@ describe('SvFileUploadComponent — validation', () => {
 
   it('rejects files that do not match the accept filter', async () => {
     const c = await setup({ accept: 'image/*' });
-    c.onDrop(dropEvent([new File(['x'], 'note.txt', { type: 'text/plain' })]));
+    c.onFileInputChange(pickEvent([new File(['x'], 'note.txt', { type: 'text/plain' })]));
 
     expect(c.files()[0].status).toBe('error');
     expect(c.files()[0].errorMsg).toMatch(/not allowed/i);
@@ -78,7 +76,7 @@ describe('SvFileUploadComponent — removing files', () => {
     const c = await setup();
     c.fileRemoved.subscribe(removed);
 
-    c.onDrop(dropEvent([pdf('a.pdf')]));
+    c.onFileInputChange(pickEvent([pdf('a.pdf')]));
     const id = c.files()[0].id;
     c.removeFile(id);
 

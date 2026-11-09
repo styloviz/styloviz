@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `chevrons-left-right` icon. */
 export const chevronsLeftRightNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const chevronsLeftRightNodes: readonly IconNode[] = [
 export const chevronsLeftRightSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm15.6 6.4l5 5q.6.6 0 1.2l-5 5q-.3.3-.6.3-.3 0-.6-.3-.6-.6 0-1.2l4.4-4.4-4.4-4.4q-.6-.6 0-1.2.3-.3.6-.3.3 0 .6.3zm-6 1.2l-4.4 4.4 4.4 4.4q.6.6 0 1.2-.3.3-.6.3-.3 0-.6-.3l-5-5q-.3-.3-.3-.6 0-.3.3-.6l5-5q.3-.3.6-.3.3 0 .6.3.6.6 0 1.2z' },
 ];
+
+/** `chevrons-left-right` as a registrable glyph — `registerSvIcons([chevronsLeftRightIcon])` / `provideSvIcons([chevronsLeftRightIcon])`. */
+export const chevronsLeftRightIcon: SvIconDef = { name: 'chevrons-left-right', nodes: chevronsLeftRightNodes, solid: chevronsLeftRightSolidNodes };
 
 /** `chevrons-left-right` — tree-shakable standalone icon. Use `<sv-chevrons-left-right-icon />`. */
 @Component({

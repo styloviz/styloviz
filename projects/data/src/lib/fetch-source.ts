@@ -1,4 +1,4 @@
-import { toSvDataError, type SvDataQuery, type SvPage } from '@styloviz/core';
+import { toSvDataError, type SvDataQuery, type SvPage } from '@styloviz/core/data';
 import { applyQuery, offsetLimitQuery } from './query-presets';
 import type { SvDataSource, SvQueryMapper, SvResponseMapper } from './types';
 

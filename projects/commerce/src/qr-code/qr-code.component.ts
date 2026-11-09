@@ -14,6 +14,8 @@ import {
   svQrScannability,
   type SvQrWarning,
 } from './qr-scannability';
+import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
+import { SV_COMMERCE_LABELS } from '../commerce.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,10 +34,35 @@ export type QrErrorCorrection = 'L' | 'M' | 'Q' | 'H';
  * - `download()` method exports PNG
  * - Accessible: role="img" with aria-label
  */
+/**
+ * Where the modules go on a canvas `size` CSS px wide at `devicePixelRatio`:
+ * the module edge in WHOLE device pixels, and the offset that centres the
+ * symbol in the leftover. Both are integers.
+ *
+ * ★★ `size / totalModules` IS ALMOST NEVER A WHOLE NUMBER — 200 px over 29
+ *    modules is 6.9 px — so `fillRect` antialiased every module edge and
+ *    neighbouring dark modules met along a pale seam. On a phone camera that
+ *    grid of seams is noise in the very pattern being decoded. Snapping the
+ *    module to whole device pixels (as `svSnapModuleWidth` does for 1-D bars)
+ *    removes the seams; the cost is up to `totalModules - 1` device pixels of
+ *    extra quiet margin, split evenly on both sides.
+ */
+export function svQrModuleLayout(
+  size: number,
+  totalModules: number,
+  devicePixelRatio = 1,
+): { readonly module: number; readonly offset: number } {
+  const dpr = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1;
+  const canvasPx = Math.round(size * dpr);
+  const module = Math.max(1, Math.floor(canvasPx / Math.max(1, totalModules)));
+  const offset = Math.max(0, Math.floor((canvasPx - module * totalModules) / 2));
+  return { module, offset };
+}
+
 @Component({
   selector: 'sv-qr-code',
   standalone: true,
-  imports: [],
+  imports: [SvLabelPipe],
   templateUrl: './qr-code.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -114,7 +141,7 @@ export class SvQrCodeComponent implements AfterViewInit {
       size: this.size(),
       payloadBytes: svQrPayloadBytes(this.value()),
       capacityBytes: svQrCapacityBytes(this.errorCorrection()),
-    }),
+    }, this.labels),
   );
 
   /**
@@ -141,15 +168,23 @@ export class SvQrCodeComponent implements AfterViewInit {
   /** Capacity of the chosen correction level in bytes, for the meter's max. */
   readonly capacityBytes = computed(() => svQrCapacityBytes(this.errorCorrection()));
 
+  protected readonly labels = injectSvLabels('commerce', SV_COMMERCE_LABELS);
+
   /** `"180 / 250 bytes"`, for the meter's label. */
   readonly payloadLabel = computed(
-    () => `${svQrPayloadBytes(this.value())} / ${svQrCapacityBytes(this.errorCorrection())} bytes`,
+    () =>
+      svFormatLabel(this.labels.payloadBytes, {
+        bytes: String(svQrPayloadBytes(this.value())),
+        capacity: String(svQrCapacityBytes(this.errorCorrection())),
+      }),
   );
 
   /** Explicit override, else a description derived from the encoded value. */
   readonly resolvedAriaLabel = computed(() =>
     this.ariaLabel() ||
-    (this.value() ? `QR code for: ${this.value()}` : 'QR code: no value'),
+    (this.value()
+      ? svFormatLabel(this.labels.qrCodeFor, { value: this.value() })
+      : this.labels.qrCodeEmpty),
   );
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -207,15 +242,16 @@ export class SvQrCodeComponent implements AfterViewInit {
     const dpr = window.devicePixelRatio || 1;
     // Assigning width/height also resets the context transform, so the scale
     // below has to come after it.
-    canvas.width  = sz * dpr;
-    canvas.height = sz * dpr;
+    canvas.width  = Math.round(sz * dpr);
+    canvas.height = Math.round(sz * dpr);
     canvas.style.width  = `${sz}px`;
     canvas.style.height = `${sz}px`;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, sz, sz);
+    // ★ Drawn in DEVICE pixels, not CSS pixels: the modules are snapped to
+    //   whole device pixels below, which a CSS-pixel scale would undo.
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Nothing to encode. Returning BEFORE the clear, which is what this used
     // to do, left the previous code on the canvas — so clearing a bound field
@@ -225,22 +261,23 @@ export class SvQrCodeComponent implements AfterViewInit {
     const matrix = encodeQR(this.value(), this.errorCorrection());
     const qz     = this.quietZone();
     const totalModules = matrix.length + qz * 2;
-    const moduleSize = sz / totalModules;
+    const { module, offset } = svQrModuleLayout(sz, totalModules, dpr);
 
     // Background
     if (this.background() !== 'transparent') {
       ctx.fillStyle = this.background();
-      ctx.fillRect(0, 0, sz, sz);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Modules
+    // Modules — every edge on a whole device pixel, so no two neighbours share
+    // an antialiased seam.
     ctx.fillStyle = this.foreground();
     for (let r = 0; r < matrix.length; r++) {
       for (let c = 0; c < matrix[r].length; c++) {
         if (matrix[r][c]) {
-          const x = (c + qz) * moduleSize;
-          const y = (r + qz) * moduleSize;
-          ctx.fillRect(x, y, moduleSize, moduleSize);
+          const x = offset + (c + qz) * module;
+          const y = offset + (r + qz) * module;
+          ctx.fillRect(x, y, module, module);
         }
       }
     }
@@ -251,12 +288,14 @@ export class SvQrCodeComponent implements AfterViewInit {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        const ls  = this.logoSize();
-        const lx  = (sz - ls) / 2;
-        const ly  = (sz - ls) / 2;
+        // In device pixels, like the modules.
+        const ls  = this.logoSize() * dpr;
+        const lx  = (sz * dpr - ls) / 2;
+        const ly  = (sz * dpr - ls) / 2;
+        const pad = 4 * dpr;
         // White background behind logo
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(lx - 4, ly - 4, ls + 8, ls + 8);
+        ctx.fillRect(lx - pad, ly - pad, ls + pad * 2, ls + pad * 2);
         ctx.drawImage(img, lx, ly, ls, ls);
       };
       img.src = logoUrl;

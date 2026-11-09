@@ -19,6 +19,7 @@
  */
 
 import type { Address } from './address-card.component';
+import { SV_COMMERCE_LABELS, type SvCommerceLabels } from '../commerce.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,31 +67,18 @@ export interface AddressSchema {
   readonly fields: readonly AddressFieldSchema[];
 }
 
-// ─── Shared field definitions ─────────────────────────────────────────────────
+// ─── The built-in set ─────────────────────────────────────────────────────────
 
-const LABEL: AddressFieldSchema = {
-  name: 'label', label: 'Label', required: false,
-  autocomplete: 'off', placeholder: 'Home, Work…',
-};
-const FIRST_NAME: AddressFieldSchema = {
-  name: 'firstName', label: 'First name', required: true,
-  autocomplete: 'given-name', width: 'half',
-};
-const LAST_NAME: AddressFieldSchema = {
-  name: 'lastName', label: 'Last name', required: true,
-  autocomplete: 'family-name', width: 'half',
-};
-const LINE1: AddressFieldSchema = {
-  name: 'line1', label: 'Address', required: true,
-  autocomplete: 'address-line1', placeholder: 'Street address',
-};
-const LINE2: AddressFieldSchema = {
-  name: 'line2', label: 'Apartment, suite, etc.', required: false,
-  autocomplete: 'address-line2',
-};
-const PHONE: AddressFieldSchema = {
-  name: 'phone', label: 'Phone', required: false, autocomplete: 'tel',
-};
+/** The labels the built-in schemas' field labels and placeholders are written from. */
+export type SvAddressSchemaLabels = Pick<
+  SvCommerceLabels,
+  | 'addressFieldLabel' | 'addressFieldLabelPlaceholder' | 'addressFieldFirstName' | 'addressFieldLastName'
+  | 'addressFieldLine1' | 'addressFieldLine1Placeholder' | 'addressFieldLine2' | 'addressFieldPhone'
+  | 'addressFieldCity' | 'addressFieldTownOrCity' | 'addressFieldSuburb' | 'addressFieldCityOrWard' | 'addressFieldArea'
+  | 'addressFieldState' | 'addressFieldProvince' | 'addressFieldCounty' | 'addressFieldPrefecture'
+  | 'addressFieldDistrict' | 'addressFieldEmirate' | 'addressFieldRegion'
+  | 'addressFieldZipCode' | 'addressFieldPostalCode' | 'addressFieldPostcode' | 'addressFieldEircode' | 'addressFieldPinCode'
+>;
 
 const city = (label: string, required = true): AddressFieldSchema => ({
   name: 'city', label, required, autocomplete: 'address-level2', width: 'half',
@@ -114,21 +102,31 @@ const postal = (
   autocomplete: 'postal-code', width: 'half', inputMode,
 });
 
+/** Subdivision names are the values stored in `Address.state`; a host that stores translated ones passes its own schemas. */
 const AU_STATES = [
-  'Australian Capital Territory', 'New South Wales', 'Northern Territory',
-  'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia',
+  'Australian Capital Territory', 'New South Wales', 'Northern Territory', // sv-i18n-ignore: stored `Address.state` values, data not UI text
+  'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia', // sv-i18n-ignore: stored `Address.state` values, data not UI text
 ] as const;
 
 const CA_PROVINCES = [
-  'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick',
-  'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia',
-  'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
+  'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', // sv-i18n-ignore: stored `Address.state` values, data not UI text
+  'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia', // sv-i18n-ignore: stored `Address.state` values, data not UI text
+  'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', // sv-i18n-ignore: stored `Address.state` values, data not UI text
   'Yukon',
 ] as const;
 
-const head = [LABEL, FIRST_NAME, LAST_NAME, LINE1, LINE2] as const;
-
-// ─── The built-in set ─────────────────────────────────────────────────────────
+/** Name, street and phone — the fields every built-in schema shares. */
+function shared(l: SvAddressSchemaLabels) {
+  const head: readonly AddressFieldSchema[] = [
+    { name: 'label', label: l.addressFieldLabel, required: false, autocomplete: 'off', placeholder: l.addressFieldLabelPlaceholder },
+    { name: 'firstName', label: l.addressFieldFirstName, required: true, autocomplete: 'given-name', width: 'half' },
+    { name: 'lastName', label: l.addressFieldLastName, required: true, autocomplete: 'family-name', width: 'half' },
+    { name: 'line1', label: l.addressFieldLine1, required: true, autocomplete: 'address-line1', placeholder: l.addressFieldLine1Placeholder },
+    { name: 'line2', label: l.addressFieldLine2, required: false, autocomplete: 'address-line2' },
+  ];
+  const phone: AddressFieldSchema = { name: 'phone', label: l.addressFieldPhone, required: false, autocomplete: 'tel' };
+  return { head, phone };
+}
 
 /**
  * Twelve countries, chosen to cover every shape the field list can take rather
@@ -136,63 +134,73 @@ const head = [LABEL, FIRST_NAME, LAST_NAME, LINE1, LINE2] as const;
  * region at all, a required postal code, an optional one, none at all, and two
  * different orderings. Pass your own to `schemas` for anything else — there are
  * ~250 of these and a UI kit shipping all of them would be a data package.
+ *
+ * Field labels and placeholders come from `labels` (the form passes its own);
+ * country and subdivision NAMES are the values stored in the address, so they
+ * stay as written — a host that stores translated names passes its own schemas.
  */
-export const DEFAULT_ADDRESS_SCHEMAS: readonly AddressSchema[] = [
-  {
-    code: 'US', name: 'United States',
-    // Free text, not a 50-entry list: the point here is the label and the
-    // required flag, and a host that wants the dropdown can pass one.
-    fields: [...head, city('City'), region('State', true), postal('ZIP code', true, 'numeric'), PHONE],
-  },
-  {
-    code: 'CA', name: 'Canada',
-    fields: [...head, city('City'), region('Province', true, CA_PROVINCES), postal('Postal code', true), PHONE],
-  },
-  {
-    // ★ The headline case. County is OPTIONAL here, and the old form demanded it.
-    code: 'GB', name: 'United Kingdom',
-    fields: [...head, city('Town or city'), region('County', false), postal('Postcode', true), PHONE],
-  },
-  {
-    code: 'IE', name: 'Ireland',
-    // Eircode is optional: plenty of Irish addresses are still delivered without one.
-    fields: [...head, city('Town or city'), region('County', false), postal('Eircode', false), PHONE],
-  },
-  {
-    code: 'AU', name: 'Australia',
-    fields: [...head, city('Suburb'), region('State', true, AU_STATES), postal('Postcode', true, 'numeric'), PHONE],
-  },
-  {
-    // No region field, and postal code first — "10115 Berlin", not "Berlin 10115".
-    code: 'DE', name: 'Germany',
-    fields: [...head, postal('Postal code', true, 'numeric'), city('City'), PHONE],
-  },
-  {
-    code: 'FR', name: 'France',
-    fields: [...head, postal('Postal code', true, 'numeric'), city('City'), PHONE],
-  },
-  {
-    code: 'JP', name: 'Japan',
-    fields: [...head, postal('Postal code', true), region('Prefecture', true), city('City or ward'), PHONE],
-  },
-  {
-    code: 'IN', name: 'India',
-    fields: [...head, city('City'), region('State', true), postal('PIN code', true, 'numeric'), PHONE],
-  },
-  {
-    code: 'BD', name: 'Bangladesh',
-    fields: [...head, city('City'), region('District', true), postal('Postal code', false, 'numeric'), PHONE],
-  },
-  {
-    // ★ No postal code exists. The field is absent, not empty-and-optional.
-    code: 'HK', name: 'Hong Kong',
-    fields: [...head, region('District', true), city('Area', false), PHONE],
-  },
-  {
-    code: 'AE', name: 'United Arab Emirates',
-    fields: [...head, region('Emirate', true), city('Area', false), PHONE],
-  },
-];
+export function svAddressSchemas(l: SvAddressSchemaLabels): readonly AddressSchema[] {
+  const { head, phone } = shared(l);
+  return [
+    {
+      code: 'US', name: 'United States', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      // Free text, not a 50-entry list: the point here is the label and the
+      // required flag, and a host that wants the dropdown can pass one.
+      fields: [...head, city(l.addressFieldCity), region(l.addressFieldState, true), postal(l.addressFieldZipCode, true, 'numeric'), phone],
+    },
+    {
+      code: 'CA', name: 'Canada', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, city(l.addressFieldCity), region(l.addressFieldProvince, true, CA_PROVINCES), postal(l.addressFieldPostalCode, true), phone],
+    },
+    {
+      // ★ The headline case. County is OPTIONAL here, and the old form demanded it.
+      code: 'GB', name: 'United Kingdom', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, city(l.addressFieldTownOrCity), region(l.addressFieldCounty, false), postal(l.addressFieldPostcode, true), phone],
+    },
+    {
+      code: 'IE', name: 'Ireland', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      // Eircode is optional: plenty of Irish addresses are still delivered without one.
+      fields: [...head, city(l.addressFieldTownOrCity), region(l.addressFieldCounty, false), postal(l.addressFieldEircode, false), phone],
+    },
+    {
+      code: 'AU', name: 'Australia', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, city(l.addressFieldSuburb), region(l.addressFieldState, true, AU_STATES), postal(l.addressFieldPostcode, true, 'numeric'), phone],
+    },
+    {
+      // No region field, and postal code first — "10115 Berlin", not "Berlin 10115".
+      code: 'DE', name: 'Germany', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, postal(l.addressFieldPostalCode, true, 'numeric'), city(l.addressFieldCity), phone],
+    },
+    {
+      code: 'FR', name: 'France', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, postal(l.addressFieldPostalCode, true, 'numeric'), city(l.addressFieldCity), phone],
+    },
+    {
+      code: 'JP', name: 'Japan', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, postal(l.addressFieldPostalCode, true), region(l.addressFieldPrefecture, true), city(l.addressFieldCityOrWard), phone],
+    },
+    {
+      code: 'IN', name: 'India', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, city(l.addressFieldCity), region(l.addressFieldState, true), postal(l.addressFieldPinCode, true, 'numeric'), phone],
+    },
+    {
+      code: 'BD', name: 'Bangladesh', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, city(l.addressFieldCity), region(l.addressFieldDistrict, true), postal(l.addressFieldPostalCode, false, 'numeric'), phone],
+    },
+    {
+      // ★ No postal code exists. The field is absent, not empty-and-optional.
+      code: 'HK', name: 'Hong Kong', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, region(l.addressFieldDistrict, true), city(l.addressFieldArea, false), phone],
+    },
+    {
+      code: 'AE', name: 'United Arab Emirates', // sv-i18n-ignore: stored country value, matched by resolveAddressSchema
+      fields: [...head, region(l.addressFieldEmirate, true), city(l.addressFieldArea, false), phone],
+    },
+  ];
+}
+
+/** The built-in set in English — `svAddressSchemas(SV_COMMERCE_LABELS)`, kept for compatibility. */
+export const DEFAULT_ADDRESS_SCHEMAS: readonly AddressSchema[] = svAddressSchemas(SV_COMMERCE_LABELS);
 
 /**
  * Used before a country has been chosen. Everything past the street is optional,
@@ -200,17 +208,23 @@ export const DEFAULT_ADDRESS_SCHEMAS: readonly AddressSchema[] = [
  * "Required" on a field that may not exist in the country the user is about to
  * pick is a lie the form would have to take back.
  */
-export const GENERIC_ADDRESS_SCHEMA: AddressSchema = {
-  code: '',
-  name: '',
-  fields: [
-    ...head,
-    city('City', false),
-    region('State / Province / Region', false),
-    postal('Postal code', false),
-    PHONE,
-  ],
-};
+export function svGenericAddressSchema(l: SvAddressSchemaLabels): AddressSchema {
+  const { head, phone } = shared(l);
+  return {
+    code: '',
+    name: '',
+    fields: [
+      ...head,
+      city(l.addressFieldCity, false),
+      region(l.addressFieldRegion, false),
+      postal(l.addressFieldPostalCode, false),
+      phone,
+    ],
+  };
+}
+
+/** The generic schema in English — `svGenericAddressSchema(SV_COMMERCE_LABELS)`, kept for compatibility. */
+export const GENERIC_ADDRESS_SCHEMA: AddressSchema = svGenericAddressSchema(SV_COMMERCE_LABELS);
 
 // ─── Lookup ───────────────────────────────────────────────────────────────────
 

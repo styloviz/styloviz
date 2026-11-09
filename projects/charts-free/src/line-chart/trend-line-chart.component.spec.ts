@@ -429,7 +429,7 @@ describe('SvTrendLineChartComponent — chrome', () => {
       series: PERFECT,
       options: { showLegend: false, showTypeSelector: false },
     });
-    expect(off.textContent).not.toContain('Sales');
+    expect(visibleText(off)).not.toContain('Sales');
   });
 
   it('drops the draw-on animation classes when animation is off', async () => {
@@ -502,3 +502,13 @@ describe('SvTrendLineChartComponent — chrome', () => {
     }
   });
 });
+
+/**
+ * The text a sighted reader sees: the frame's hidden data table (FL-D5) names
+ * every series too, so a "the legend is gone" check must not read it.
+ */
+function visibleText(el: HTMLElement): string {
+  const copy = el.cloneNode(true) as HTMLElement;
+  copy.querySelectorAll('.sv-summary').forEach((n) => n.remove());
+  return copy.textContent ?? '';
+}

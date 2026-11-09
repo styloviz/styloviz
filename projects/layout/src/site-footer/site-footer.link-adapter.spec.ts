@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
-import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core';
+import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core/nav';
 import { SvSiteFooterComponent, type FooterColumn, type FooterLink } from './site-footer.component';
 
 /**

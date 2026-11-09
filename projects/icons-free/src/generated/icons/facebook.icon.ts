@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `facebook` icon. */
 export const facebookNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const facebookNodes: readonly IconNode[] = [
 export const facebookSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm15 5.9h-1.5q-2.6 0-2.6 2.6v2.1h2.6q.9 0 .9.9 0 .9-.9.9h-2.6v6.6q0 .9-.9.9-.9 0-.9-.9v-6.6h-1.6q-.9 0-.9-.9 0-.9.9-.9h1.6v-2.1q0-1.8 1.3-3.1 1.3-1.3 3.1-1.3h1.5q.9 0 .9.9 0 .9-.9.9z' },
 ];
+
+/** `facebook` as a registrable glyph — `registerSvIcons([facebookIcon])` / `provideSvIcons([facebookIcon])`. */
+export const facebookIcon: SvIconDef = { name: 'facebook', nodes: facebookNodes, solid: facebookSolidNodes };
 
 /** `facebook` — tree-shakable standalone icon. Use `<sv-facebook-icon />`. */
 @Component({

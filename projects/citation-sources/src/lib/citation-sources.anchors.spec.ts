@@ -8,6 +8,7 @@ import {
   svPlacementLabel,
   svSourceLink,
 } from './citation-sources.attribution';
+import { SV_CITATION_SOURCES_LABELS } from './citation-sources.labels';
 import type { CitationSpan, SourceRef } from './citation-sources.types';
 
 /**
@@ -146,11 +147,11 @@ describe('svAnchoredCitations', () => {
 
 describe('svPlacementLabel', () => {
   it('says nothing when everything landed where it said it would', () => {
-    expect(svPlacementLabel({ placed: [], unplaced: [], drifted: 0 })).toBe('');
+    expect(svPlacementLabel({ placed: [], unplaced: [], drifted: 0 }, SV_CITATION_SOURCES_LABELS)).toBe('');
   });
 
   it('names the count and blames the pipeline, not the reader', () => {
-    const label = svPlacementLabel({ placed: [], unplaced: [cite({ id: 'c1' })], drifted: 0 });
+    const label = svPlacementLabel({ placed: [], unplaced: [cite({ id: 'c1' })], drifted: 0 }, SV_CITATION_SOURCES_LABELS);
     expect(label).toContain('1 citation could not be located');
     expect(label).toContain('changed after the citations were computed');
   });
@@ -161,13 +162,13 @@ describe('svPlacementLabel', () => {
       unplaced: [cite({ id: 'a' }), cite({ id: 'b' })],
       missingClaims: 0,
       drifted: 3,
-    });
+    }, SV_CITATION_SOURCES_LABELS);
     expect(label).toContain('2 citations');
     expect(label).toContain('3 were re-anchored');
   });
 
   it('gets the singular right for one drift', () => {
-    expect(svPlacementLabel({ placed: [], unplaced: [], drifted: 1 })).toContain(
+    expect(svPlacementLabel({ placed: [], unplaced: [], drifted: 1 }, SV_CITATION_SOURCES_LABELS)).toContain(
       '1 was re-anchored to its quoted text',
     );
   });
@@ -231,7 +232,7 @@ describe('claim ids are the first anchor', () => {
     ], claims);
     expect(p.placed).toEqual([]);
     expect(p.missingClaims).toBe(1);
-    expect(svPlacementLabel(p)).toContain('1 citation names a claim that is not in this answer');
+    expect(svPlacementLabel(p, SV_CITATION_SOURCES_LABELS)).toContain('1 citation names a claim that is not in this answer');
   });
 
   it('treats the id as identity only when the host supplied no claims', () => {
@@ -300,62 +301,62 @@ describe('claim ids are the first anchor', () => {
 describe('svSourceLink', () => {
   it('passes http, https and mailto through unchanged', () => {
     for (const url of ['http://a.test/x', 'https://a.test/x#p4', 'mailto:legal@a.test']) {
-      expect(svSourceLink(url).href, url).toBe(url);
+      expect(svSourceLink(url, SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href, url).toBe(url);
     }
   });
 
   it('refuses javascript: and names the scheme', () => {
-    const link = svSourceLink('javascript:fetch("/api/keys")');
+    const link = svSourceLink('javascript:fetch("/api/keys")', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS);
     expect(link.href).toBeNull();
     expect(link.protocol).toBe('javascript:');
     expect(link.reason).toContain('javascript:');
   });
 
   it('refuses data:, because a citation has to be checkable against something', () => {
-    expect(svSourceLink('data:text/html,<h1>source</h1>').href).toBeNull();
-    expect(svSourceLink('data:image/png;base64,AAAA').href).toBeNull();
+    expect(svSourceLink('data:text/html,<h1>source</h1>', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
+    expect(svSourceLink('data:image/png;base64,AAAA', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
   });
 
   it('refuses file: and tel:', () => {
     // A `file:` path is the reader's own disk; a phone number is not a thing you
     // can go and read.
-    expect(svSourceLink('file:///etc/passwd').href).toBeNull();
-    expect(svSourceLink('tel:+15551234').href).toBeNull();
+    expect(svSourceLink('file:///etc/passwd', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
+    expect(svSourceLink('tel:+15551234', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
   });
 
   it('refuses a relative or protocol-relative URL rather than resolving it', () => {
     // This component does not know the host's base URL, and guessing it is how a
     // citation ends up pointing at the app's own routes.
-    expect(svSourceLink('/handbook/refunds').href).toBeNull();
-    expect(svSourceLink('//evil.test/x').href).toBeNull();
-    expect(svSourceLink('handbook/refunds').reason).toContain('not a complete URL');
+    expect(svSourceLink('/handbook/refunds', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
+    expect(svSourceLink('//evil.test/x', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
+    expect(svSourceLink('handbook/refunds', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).reason).toContain('not a complete URL');
   });
 
   it('is quiet about a source that simply has no URL', () => {
     // No link and no complaint: a source without an address is ordinary.
     for (const url of [undefined, '', '   ']) {
-      const link = svSourceLink(url);
+      const link = svSourceLink(url, SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS);
       expect(link.href).toBeNull();
       expect(link.reason).toBe('');
     }
   });
 
   it('is case-insensitive about the scheme', () => {
-    expect(svSourceLink('HTTPS://a.test/x').href).toBe('HTTPS://a.test/x');
-    expect(svSourceLink('JavaScript:alert(1)').href).toBeNull();
+    expect(svSourceLink('HTTPS://a.test/x', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBe('HTTPS://a.test/x');
+    expect(svSourceLink('JavaScript:alert(1)', SV_SOURCE_URL_PROTOCOLS, SV_CITATION_SOURCES_LABELS).href).toBeNull();
   });
 
   it('honours a host allow-list, with or without colons', () => {
-    expect(svSourceLink('ipfs://cid/x', ['ipfs:']).href).toBe('ipfs://cid/x');
-    expect(svSourceLink('ipfs://cid/x', ['ipfs']).href).toBe('ipfs://cid/x');
-    expect(svSourceLink('https://a.test/x', ['ipfs:']).href).toBeNull();
+    expect(svSourceLink('ipfs://cid/x', ['ipfs:'], SV_CITATION_SOURCES_LABELS).href).toBe('ipfs://cid/x');
+    expect(svSourceLink('ipfs://cid/x', ['ipfs'], SV_CITATION_SOURCES_LABELS).href).toBe('ipfs://cid/x');
+    expect(svSourceLink('https://a.test/x', ['ipfs:'], SV_CITATION_SOURCES_LABELS).href).toBeNull();
   });
 
   it('falls back to the default list rather than linking everything on an empty one', () => {
     // An empty array is a host that meant to configure this and did not. Reading
     // it as "allow all" would turn a misconfiguration into a javascript: link.
-    expect(svSourceLink('javascript:alert(1)', []).href).toBeNull();
-    expect(svSourceLink('https://a.test/x', []).href).toBe('https://a.test/x');
+    expect(svSourceLink('javascript:alert(1)', [], SV_CITATION_SOURCES_LABELS).href).toBeNull();
+    expect(svSourceLink('https://a.test/x', [], SV_CITATION_SOURCES_LABELS).href).toBe('https://a.test/x');
   });
 
   it('keeps the default list to the three schemes a source can actually be', () => {

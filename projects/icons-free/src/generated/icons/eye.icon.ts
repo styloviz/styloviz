@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `eye` icon. */
 export const eyeNodes: readonly IconNode[] = [
@@ -14,6 +15,9 @@ export const eyeNodes: readonly IconNode[] = [
 export const eyeSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm1.2 11.6q1.1-1.9 2.9-3.7 3.8-3.8 7.9-3.8 4.1 0 7.9 3.8 1.8 1.8 2.9 3.7.2.4 0 .8-1.1 1.9-2.9 3.7-3.8 3.8-7.9 3.8-4.1 0-7.9-3.8-1.8-1.8-2.9-3.7-.2-.4 0-.8zm14.7.4q0-3.9-3.9-3.9-3.9 0-3.9 3.9 0 3.9 3.9 3.9 3.9 0 3.9-3.9zm-1.8 0q0 2.1-2.1 2.1-2.1 0-2.1-2.1 0-2.1 2.1-2.1 2.1 0 2.1 2.1z' },
 ];
+
+/** `eye` as a registrable glyph — `registerSvIcons([eyeIcon])` / `provideSvIcons([eyeIcon])`. */
+export const eyeIcon: SvIconDef = { name: 'eye', nodes: eyeNodes, solid: eyeSolidNodes };
 
 /** `eye` — tree-shakable standalone icon. Use `<sv-eye-icon />`. */
 @Component({

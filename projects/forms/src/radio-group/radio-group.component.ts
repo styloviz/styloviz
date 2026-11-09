@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { svRovingTarget, svUniqueId } from '@styloviz/core';
+import { svRovingTarget, svUniqueId } from '@styloviz/core/a11y';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -311,7 +311,9 @@ export class SvRadioGroupComponent implements ControlValueAccessor {
       danger:  'bg-danger-600 dark:bg-danger-500',
       neutral: 'bg-gray-700 dark:bg-gray-300',
     };
-    return map[this.variant()];
+    // The dot is a background FILL — forced colours (Windows High Contrast)
+    // repaint it as Canvas and the selection vanishes. Highlight is kept.
+    return `${map[this.variant()]} forced-colors:bg-[Highlight]`; // sv-i18n-ignore: Tailwind classes
   });
 
   readonly variantButton = computed<string>(() => {
@@ -332,10 +334,14 @@ export class SvRadioGroupComponent implements ControlValueAccessor {
       // Visible focus ring, driven by the sibling `peer` native radio input.
       'peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-primary-500',
       'dark:peer-focus-visible:ring-primary-400 dark:peer-focus-visible:ring-offset-gray-900',
+      // Forced colours (FI-06-M3): a system-colour ring edge, and the focus
+      // box-shadow (removed under forced colours) as a real outline.
+      'forced-colors:peer-focus-visible:outline-2 forced-colors:peer-focus-visible:outline-solid', // sv-i18n-ignore: Tailwind classes
+      'forced-colors:peer-focus-visible:outline-offset-2 forced-colors:peer-focus-visible:outline-[Highlight]', // sv-i18n-ignore: Tailwind classes
       this.dotSize(),
       selected
-        ? this.variantActive()
-        : 'border-gray-300 dark:border-gray-600',
+        ? `${this.variantActive()} forced-colors:border-[Highlight]`
+        : 'border-gray-300 dark:border-gray-600 forced-colors:border-[ButtonText]', // sv-i18n-ignore: Tailwind classes
     ].join(' ');
   }
 
@@ -351,7 +357,7 @@ export class SvRadioGroupComponent implements ControlValueAccessor {
     return [
       'relative flex gap-3 rounded-xl border-2 p-4 transition-all duration-150',
       selected
-        ? 'border-primary-500 bg-primary-50 dark:border-primary-500 dark:bg-primary-950/30'
+        ? 'border-primary-500 bg-primary-50 dark:border-primary-500 dark:bg-primary-950/30 forced-colors:border-[Highlight]'
         : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800/50 dark:hover:border-gray-600',
       disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
     ].join(' ');
@@ -367,9 +373,12 @@ export class SvRadioGroupComponent implements ControlValueAccessor {
     };
     return [
       'rounded-lg border font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2',
+      'forced-colors:focus-visible:outline-2 forced-colors:focus-visible:outline-solid forced-colors:focus-visible:outline-offset-2', // sv-i18n-ignore: Tailwind classes
       sizeMap[this.size()],
       selected
-        ? this.variantButton()
+        // A filled pill is repainted as Canvas under forced colours; the
+        // selected one keeps its fill as the Highlight pair instead.
+        ? `${this.variantButton()} forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:border-[Highlight]`
         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white',
       disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
     ].join(' ');

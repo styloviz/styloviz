@@ -26,7 +26,7 @@
     <div class="sm:col-span-2">
       <label
         [attr.for]="fieldId('country')"
-        class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+        class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400"
       >{{ countryLabel() }}</label>
       <select
         [id]="fieldId('country')"
@@ -38,7 +38,7 @@
         class="w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:ring-2 dark:bg-white/[0.04] dark:text-white"
         [ngClass]="errClass('country')"
       >
-        <option value="" disabled>Select a country</option>
+        <option value="" disabled>{{ labels.selectCountry }}</option>
         @for (name of countryOptions(); track name) {
           <option [value]="name">{{ name }}</option>
         }
@@ -61,12 +61,12 @@
       <div [class.sm:col-span-2]="field.width !== 'half'">
         <label
           [attr.for]="fieldId(field.name)"
-          class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400"
+          class="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-400"
         >{{ field.label }}
           @if (!field.required) {
             <!-- Said in words. "Required" marked with an asterisk and nothing
                  else leaves the reader to guess which convention is in play. -->
-            <span class="font-normal text-gray-500 dark:text-gray-400">(optional)</span>
+            <span class="font-normal text-gray-500 dark:text-gray-400">{{ labels.optionalField }}</span>
           }
         </label>
 
@@ -81,7 +81,7 @@
             class="w-full appearance-none rounded-xl border bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-sm outline-none transition focus:ring-2 dark:bg-white/[0.04] dark:text-white"
             [ngClass]="errClass(field.name)"
           >
-            <option value="" [disabled]="field.required">Select {{ field.label }}</option>
+            <option value="" [disabled]="field.required">{{ labels.selectField | svLabel: { field: field.label } }}</option>
             @for (option of field.options; track option) {
               <option [value]="option">{{ option }}</option>
             }
@@ -120,7 +120,7 @@
           (change)="isDefault.set($any($event.target).checked)"
           class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-500/40 dark:border-white/20 dark:bg-white/[0.04]"
         />
-        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default address</span>
+        <span class="text-sm text-gray-700 dark:text-gray-300">{{ labels.setAsDefaultAddress }}</span>
       </label>
     }
   </div>
@@ -162,8 +162,8 @@
         <button
           type="button"
           (click)="applySuggestion()"
-          class="mt-2 rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 dark:bg-white dark:text-gray-900 dark:hover:bg-primary-500 dark:hover:text-white"
-        >Use this address</button>
+          class="mt-2 rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 dark:bg-white dark:text-gray-900 dark:hover:bg-primary-600 dark:hover:text-white"
+        >{{ labels.useSuggestedAddress }}</button>
       }
     </div>
   }

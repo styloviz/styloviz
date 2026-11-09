@@ -6,19 +6,24 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass, DecimalPipe, NgTemplateOutlet } from '@angular/common';
-import { SvErrorShellComponent, type SvDataError } from '@styloviz/core';
+import { SvErrorShellComponent, type SvDataError } from '@styloviz/core/data';
+import { injectSvLabels, svFormatLabel, svLocale, svFormatCompact } from '@styloviz/core/i18n';
 import { SvIconComponent } from '@styloviz/icons';
 import { SvSparklineComponent } from '@styloviz/sparkline';
+import { SV_STAT_CARD_LABELS } from './stat-card.labels';
 
+import { registerStatCardIcons } from './stat-card.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/**
- * @deprecated The free card has one colour treatment, so this type has one
- * value and changes nothing. Kept so 1.x code compiles; removed in 2.0. The six
- * semantic colour variants are Pro: `sv-stat-card-pro [variant]`.
- */
-export type StatCardVariant = 'default';
 export type StatCardTrend   = 'up' | 'down' | 'neutral';
+/**
+ * Which direction of `trend` is GOOD news — and so which one is painted green.
+ * `'up-is-good'` (revenue, sign-ups), `'down-is-good'` (churn, cost, latency,
+ * error rate) or `'neutral'` (a change that is neither: headcount, volume).
+ * The arrow and the words follow `trend` regardless; only the colour moves.
+ */
+export type StatCardTrendPolarity = 'up-is-good' | 'down-is-good' | 'neutral';
+
 export type StatCardLayout  = 'default' | 'compact' | 'horizontal' | 'minimal';
 
 /** A single point in the inline sparkline (value 0–100 scale, or raw). */
@@ -43,8 +48,6 @@ export interface StatCardData {
   trendLabel?:  string;        // e.g. "vs last month"
   /** Name of an icon in `@styloviz/icons` (was a raw SVG path + viewBox). */
   icon?:        string;
-  /** @deprecated Has no effect on the free card; removed in 2.0. See {@link StatCardVariant}. */
-  variant?:     StatCardVariant;
   sparkline?:   SparkPoint[];
   loading?:     boolean;
   description?: string;
@@ -73,6 +76,12 @@ export interface StatCardData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvStatCardComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerStatCardIcons();
+
+  /** The English this card builds in TypeScript; override with `provideSvLabels({ statCard: … })`. */
+  protected readonly labels = injectSvLabels('statCard', SV_STAT_CARD_LABELS);
+
   // ── Core content ─────────────────────────────────────────────────────────
 
   /** Card title / metric label. */
@@ -105,16 +114,28 @@ export class SvStatCardComponent {
   trendLabel   = input<string>('');
 
   /**
+   * Which direction is good news — see {@link StatCardTrendPolarity}.
+   * `'up-is-good'` paints a rise green and a fall red; `'down-is-good'` swaps
+   * them, for a churn or cost KPI; `'neutral'` paints any change grey.
+   * @default 'up-is-good'
+   */
+  trendPolarity = input<StatCardTrendPolarity>('up-is-good');
+
+  /**
+   * `[min, max]` for the inline sparkline, shared across a KPI row. Unset, each
+   * card scales its line to itself, and two cards rising 2% and 900% draw the
+   * same shape side by side. Compute one range with `svSharedDomain()` from
+   * `@styloviz/sparkline` over every card's series and bind it to all of them.
+   * An sr-only note says which kind of scale the line is on.
+   * @default null
+   */
+  sparklineDomain = input<readonly [number, number] | null>(null);
+
+  /**
    * When this figure was last refreshed, as `YYYY-MM-DD` or an ISO timestamp.
    *
-   * ★★★ A CACHED KPI LOOKS IDENTICAL TO A LIVE ONE. A number is a number, and
-   *     nothing about a stale one announces itself — so the reader assumes the
-   *     dashboard is current, which is exactly the assumption a broken pipeline
-   *     exploits.
-   *
-   * ★ This is in the FREE tier deliberately. Telling a reader their figure may
-   *   be out of date is an honesty feature, not a premium one, and a free card
-   *   that hides staleness is the defect rather than a smaller version of it.
+   * Renders an "Updated … ago" line under the figure, marked stale past
+   * `staleAfterMinutes`, because a cached KPI looks identical to a live one.
    * @default ''
    */
   updatedAt = input<string>('');
@@ -127,30 +148,17 @@ export class SvStatCardComponent {
 
   // ── Appearance ────────────────────────────────────────────────────────────
 
-  /**
-   * Deprecated, and has no effect: the free card has one colour treatment.
-   *
-   * @deprecated Kept so 1.x templates compile; removed in 2.0. For the six
-   * semantic colour variants use `sv-stat-card-pro [variant]`.
-   * @default 'default'
-   */
-  variant = input<StatCardVariant>('default');
-
   /** Card layout mode. @default 'default' */
   layout  = input<StatCardLayout>('default');
 
   /**
    * Name of an icon in `@styloviz/icons`, e.g. `'trending-up'`.
    *
-   * This was `iconPath` — a raw `<path d="…">` — with a companion
-   * `iconViewBox` because a pasted path might be 20-box or 24-box. Both are
-   * gone: a library name is always 24-box, and the viewBox binding is what hid
-   * these glyphs from `check:ui` in the first place (a bound `viewBox` does not
-   * match a literal `viewBox="…"` test).
+   * A library glyph is always drawn on a 24-unit box, so there is no viewBox
+   * to pass.
    */
   icon        = input<string>('');
 
-  /** SVG viewBox for the icon. @default '0 0 24 24' */
   // ── Sparkline ─────────────────────────────────────────────────────────────
 
   /**
@@ -183,16 +191,10 @@ export class SvStatCardComponent {
   /** Additional CSS classes merged on the root card element. */
   customClass = input<string>('');
 
-  // ── Outputs ───────────────────────────────────────────────────────────────
+  /** BCP 47 locale for dates and numbers. @default the kit's locale (`SV_LOCALE`) */
+  readonly locale = input<string>(svLocale());
 
-  /**
-   * Deprecated, and never emitted: the free card is not interactive.
-   *
-   * @deprecated Kept so 1.x templates compile; removed in 2.0. For a card that
-   * activates on click, Enter or Space use `sv-stat-card-pro [clickable]`
-   * with its `(cardClick)`.
-   */
-  cardClick  = output<void>();
+  // ── Outputs ───────────────────────────────────────────────────────────────
 
   /** Emitted when the "view more" link is clicked. */
   linkClick  = output<void>();
@@ -232,13 +234,17 @@ export class SvStatCardComponent {
   readonly freshnessLabel = computed<string>(() => {
     const age = this.ageInMinutes();
     if (age === null) return '';
+    const l = this.labels;
+    const locale = this.locale();
+    // Counts go in as strings so the English line stays "1234d ago", ungrouped.
     const when =
-      age < 1 ? 'just now'
-      : age < 60 ? `${age} min ago`
-      : age < 1440 ? `${Math.floor(age / 60)}h ago`
-      : `${Math.floor(age / 1440)}d ago`;
-    const src = this.source() ? ` · ${this.source()}` : '';
-    return this.isStale() ? `Updated ${when} — may be stale${src}` : `Updated ${when}${src}`;
+      age < 1 ? l.ageJustNow
+      : age < 60 ? svFormatLabel(l.ageMinutes, { count: String(age) }, locale)
+      : age < 1440 ? svFormatLabel(l.ageHours, { count: String(Math.floor(age / 60)) }, locale)
+      : svFormatLabel(l.ageDays, { count: String(Math.floor(age / 1440)) }, locale);
+    const freshness = svFormatLabel(this.isStale() ? l.updatedStale : l.updated, { when }, locale);
+    const source = this.source();
+    return source ? svFormatLabel(l.updatedWithSource, { freshness, source }, locale) : freshness;
   });
 
   /** True when a trend figure is shown with nothing to compare it against. */
@@ -258,10 +264,10 @@ export class SvStatCardComponent {
     const val = this.trendValue();
     if (pct === null && val === null) return '';
     const figure = pct !== null ? `${pct}%` : String(val);
-    const direction =
-      this.trend() === 'up' ? 'up' : this.trend() === 'down' ? 'down' : 'change of';
-    const against = this.trendLabel() || 'comparison period not stated';
-    return `Trend ${direction} ${figure}, ${against}`;
+    const l = this.labels;
+    const template = this.trend() === 'up' ? l.trendUp : this.trend() === 'down' ? l.trendDown : l.trendChange;
+    const period = this.trendLabel() || l.trendPeriodMissing;
+    return svFormatLabel(template, { figure, period }, this.locale());
   });
 
   /** The metric itself is only shown once there is one: not loading, not failed. */
@@ -277,12 +283,11 @@ export class SvStatCardComponent {
   /** Formatted value — passes numbers through DecimalPipe logic, strings untouched. */
   displayValue = computed<string>(() => {
     const v = this.value();
-    if (typeof v === 'number') {
-      if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M';
-      if (v >= 1_000)     return (v / 1_000).toFixed(1)     + 'K';
-      return v.toLocaleString();
-    }
-    return v;
+    // ★ One rule for free, Pro and Spotlight (FL-J3-DD-23): `svFormatCompact`
+    //   abbreviates from 1,000 up on the MAGNITUDE (so -2,500,000 reads
+    //   "-2.5M", as +2,500,000 does), in the locale's own compact notation
+    //   ("2,5 Mio.", "1.2万") instead of an English "K"/"M" glued on.
+    return typeof v === 'number' ? svFormatCompact(v, this.locale()) : v;
   });
 
   /** Formatted trend percent string, e.g. "12.4%". */
@@ -304,11 +309,27 @@ export class SvStatCardComponent {
     return 'border-gray-200/80 dark:border-gray-800';
   });
 
+  /** `'good' | 'bad' | 'neutral'` — the trend read through `trendPolarity`. */
+  readonly trendTone = computed<'good' | 'bad' | 'neutral'>(() => {
+    const t = this.trend();
+    const polarity = this.trendPolarity();
+    if (t === 'neutral' || polarity === 'neutral') return 'neutral';
+    return (t === 'up') === (polarity === 'up-is-good') ? 'good' : 'bad';
+  });
+
+  /** The sr-only comparability note beside the inline sparkline. */
+  readonly sparklineNote = computed<string>(() => {
+    const domain = this.sparklineDomain();
+    return domain
+      ? svFormatLabel(this.labels.sparklineSharedScale, { low: svFormatCompact(domain[0], this.locale()), high: svFormatCompact(domain[1], this.locale()) }, this.locale())
+      : this.labels.sparklineOwnScale;
+  });
+
   /** Trend chip color classes. */
   trendClasses = computed<string>(() => {
-    switch (this.trend()) {
-      case 'up':   return 'bg-accent-50 text-accent-700 ring-1 ring-accent-100 dark:bg-accent-950/50 dark:text-accent-400 dark:ring-accent-900/50';
-      case 'down':  return 'bg-danger-50 text-danger-700 ring-1 ring-danger-100 dark:bg-danger-950/50 dark:text-danger-400 dark:ring-danger-900/50';
+    switch (this.trendTone()) {
+      case 'good': return 'bg-accent-50 text-accent-700 ring-1 ring-accent-100 dark:bg-accent-950/50 dark:text-accent-400 dark:ring-accent-900/50';
+      case 'bad':  return 'bg-danger-50 text-danger-700 ring-1 ring-danger-100 dark:bg-danger-950/50 dark:text-danger-400 dark:ring-danger-900/50';
       default:      return 'bg-gray-100 text-gray-600 ring-1 ring-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700';
     }
   });
@@ -320,9 +341,9 @@ export class SvStatCardComponent {
 
   /** Plain trend text color used by the minimal layout (no pill). */
   minimalTrendColor = computed<string>(() => {
-    switch (this.trend()) {
-      case 'up':   return 'text-accent-700 dark:text-accent-400';
-      case 'down': return 'text-danger-600 dark:text-danger-400';
+    switch (this.trendTone()) {
+      case 'good': return 'text-accent-700 dark:text-accent-400';
+      case 'bad':  return 'text-danger-600 dark:text-danger-400';
       default:     return 'text-gray-500 dark:text-gray-400';
     }
   });

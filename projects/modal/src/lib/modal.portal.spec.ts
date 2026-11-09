@@ -1,7 +1,7 @@
 import { Component, PLATFORM_ID, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { svResetWarnOnce } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
 import { SvModalComponent } from './modal.component';
 import { flush, until } from '../../../../src/testing/async';
 
@@ -89,7 +89,7 @@ async function openAndSettle(fixture: { detectChanges(): void }, host: Host) {
 afterEach(() => {
   document.querySelectorAll('[data-sv-modal-portal]').forEach((n) => n.remove());
   document.body.style.overflow = '';
-  document.body.style.paddingRight = '';
+  document.body.style.paddingInlineEnd = '';
 });
 
 describe('SvModalComponent — the portal', () => {
@@ -211,11 +211,11 @@ describe('SvModalComponent — scroll lock', () => {
 
     const fixture = await setupHost();
     await openAndSettle(fixture, fixture.componentInstance);
-    expect(document.body.style.paddingRight).toBe('15px');
+    expect(document.body.style.paddingInlineEnd).toBe('15px');
 
     fixture.componentInstance.open.set(false);
     fixture.detectChanges();
-    expect(document.body.style.paddingRight).toBe('');
+    expect(document.body.style.paddingInlineEnd).toBe('');
 
     Object.defineProperty(document.documentElement, 'clientWidth', {
       configurable: true, get: () => window.innerWidth,
@@ -229,7 +229,7 @@ describe('SvModalComponent — scroll lock', () => {
     });
     const fixture = await setupHost();
     await openAndSettle(fixture, fixture.componentInstance);
-    expect(document.body.style.paddingRight).toBe('');
+    expect(document.body.style.paddingInlineEnd).toBe('');
   });
 });
 

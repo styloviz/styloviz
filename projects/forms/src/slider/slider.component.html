@@ -68,7 +68,26 @@
           are `pointer-events-none` except for their thumbs, so only this
           wrapper sees the pointer crossing the track on its way to a handle —
           which is exactly the moment the z-order has to be right.
+
+        ★ WCAG 2.5.7: a click/tap on the bare track moves the NEAREST handle
+          there — the single-pointer alternative to dragging, matching what the
+          single-thumb native range already does.
       -->
+      <!--
+        ★ WCAG 2.5.8 "Equivalent": the two thumbs are stacked range inputs and
+          overlap by construction, so neither can own a clear 24 px. This strip
+          is at least 24 px tall at every size (the wrapper plus py-1.5, taken
+          back by -my-1.5 so nothing moves) and a tap anywhere on it moves the
+          nearer thumb there — the thumbs' equivalent, named for check:ui and axe.
+      -->
+      <!-- Pointer-only duplicate: both handles are native range inputs the keyboard already operates. -->
+      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
+      <div
+        class="-my-1.5 w-full py-1.5"
+        data-sv-range-track
+        data-sv-target-equivalent="data-sv-range-track"
+        (click)="onRangeTrackClick($event)"
+      >
       <div
         [class]="'relative w-full ' + wrapHeight()"
         (pointermove)="onTrackPointerMove($event)"
@@ -76,7 +95,7 @@
       >
 
         <!-- Track background -->
-        <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 ' + trackHeight()"></div>
+        <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 forced-colors:bg-[GrayText] ' + trackHeight()"></div>
 
         <!-- Active fill between handles -->
         <div
@@ -168,6 +187,7 @@
           [attr.aria-describedby]="fieldError.showError() ? errorId() : null"
         />
       </div>
+      </div>
 
       <!-- Min / Max labels -->
       <div class="mt-1.5 flex items-center justify-between text-[11px] font-medium text-gray-500 dark:text-gray-400">
@@ -214,7 +234,7 @@
     <div [class]="'relative w-full ' + wrapHeight()">
 
       <!-- Track background — vertically centered in wrapper -->
-      <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 ' + trackHeight()"></div>
+      <div [class]="'absolute inset-x-0 top-1/2 -translate-y-1/2 rounded-full bg-gray-200 dark:bg-gray-700 forced-colors:bg-[GrayText] ' + trackHeight()"></div>
 
       <!--
         Active fill.
@@ -294,7 +314,7 @@
       <div class="relative flex justify-between px-0.5">
         @for (tick of ticks(); track tick) {
           <div class="flex flex-col items-center gap-0.5">
-            <span class="h-1 w-px bg-gray-300 dark:bg-gray-600"></span>
+            <span class="h-1 w-px bg-gray-300 dark:bg-gray-600 forced-colors:bg-[GrayText]"></span>
             <span class="text-[10px] tabular-nums text-gray-500 dark:text-gray-400">
               {{ tickLabel(tick) }}
             </span>

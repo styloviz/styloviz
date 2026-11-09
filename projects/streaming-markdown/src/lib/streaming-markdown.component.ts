@@ -7,13 +7,16 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { injectSvLabels } from '@styloviz/core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
 import { SvCodeBlockComponent } from '@styloviz/code-block';
 import type { CodeLanguage } from '@styloviz/code-block';
 import type { MdBlock, MdInline } from './streaming-markdown.types';
 import { parseMarkdown } from './markdown-parser';
 import { SvIconComponent } from '@styloviz/icons';
+import { SV_STREAMING_MARKDOWN_LABELS } from './streaming-markdown.labels';
 
+import { registerStreamingMarkdownIcons } from './streaming-markdown.component.icons';
 /** Density preset for the rendered prose. */
 export type MarkdownDensity = 'sm' | 'md';
 
@@ -51,6 +54,12 @@ const CODE_LANGUAGES: readonly string[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvStreamingMarkdownComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerStreamingMarkdownIcons();
+
+  /** @internal Accessible names — English unless `provideSvLabels({ streamingMarkdown })` says otherwise. */
+  protected readonly labels = injectSvLabels('streamingMarkdown', SV_STREAMING_MARKDOWN_LABELS);
+
   // ── Content ───────────────────────────────────────────────────────────────
 
   /** Markdown source. Safe to update on every streamed token. @default '' */
@@ -93,7 +102,7 @@ export class SvStreamingMarkdownComponent {
    * Set to `''` to announce nothing at all.
    * @default 'Response complete'
    */
-  completionMessage = input<string>('Response complete');
+  completionMessage = input<string>(this.labels.responseComplete);
 
   // ── Events ────────────────────────────────────────────────────────────────
 
@@ -164,8 +173,10 @@ export class SvStreamingMarkdownComponent {
   }
 
   protected alignClass(index: number, align: readonly string[] | undefined): string {
+    // GFM's `:--` / `--:` mean "the reading start" / "the reading end": numbers
+    // flush to the end and text to the start, mirrored under dir="rtl".
     const a = align?.[index] ?? 'left';
-    return a === 'center' ? 'text-center' : a === 'right' ? 'text-right' : 'text-left';
+    return a === 'center' ? 'text-center' : a === 'right' ? 'text-end' : 'text-start';
   }
 
   /** Indent for a nested list item, capped so deep nesting can't run off-screen. */

@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/@angular-devkit/schematics/collection-schema.json",
+  "schematics": {
+    "ng-add": {
+      "description": "Set up Styloviz: Tailwind CSS 4, the kit stylesheet and tokens, provideStyloviz(), and one demo page.",
+      "factory": "./ng-add/index#ngAdd",
+      "schema": "./ng-add/schema.json"
+    },
+    "migrate-primeng": {
+      "description": "Rewrite PrimeNG 21 component selectors and imports to their Styloviz equivalents, and report what could not be mapped.",
+      "factory": "./migrate-primeng/index#migratePrimeng",
+      "schema": "./migrate-primeng/schema.json"
+    }
+  }
+}

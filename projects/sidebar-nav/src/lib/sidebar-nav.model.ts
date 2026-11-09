@@ -1,4 +1,4 @@
-import type { MenuGroup, MenuItem, NavChild } from '@styloviz/core';
+import type { MenuGroup, MenuItem, NavChild } from '@styloviz/core/models';
 
 /**
  * ============================================================================
@@ -21,7 +21,7 @@ import type { MenuGroup, MenuItem, NavChild } from '@styloviz/core';
  *    about what it means.
  */
 
-export type { MenuGroup, MenuItem, NavChild, NavChildGroup } from '@styloviz/core';
+export type { MenuGroup, MenuItem, NavChild, NavChildGroup } from '@styloviz/core/models';
 
 /** What the host is told when somebody picks something. */
 export interface SidebarNavSelection {
@@ -31,6 +31,14 @@ export interface SidebarNavSelection {
   readonly group: MenuGroup;
   /** The sub-item, when one was picked rather than the parent. */
   readonly child: NavChild | null;
+  /** For a third-level pick, the sub-item it sits under. */
+  readonly parentChild?: NavChild | null;
+}
+
+/** Does `child`, or anything under it, have the id `id`? */
+export function svNavChildHolds(child: NavChild, id: string | null): boolean {
+  if (id === null) return false;
+  return child.id === id || (child.children ?? []).some(entry => svNavChildHolds(entry, id));
 }
 
 /**
@@ -80,3 +88,16 @@ export function svSidebarActiveItem(
   }
   return best;
 }
+
+/** The key `expandedIds` holds for an item: its `id`, else its route. */
+export function svSidebarItemKey(item: MenuItem): string {
+  return item.id ?? item.route;
+}
+
+/** The key `collapsedGroups` holds for a group: its `id`, else its label. */
+export function svSidebarGroupKey(group: MenuGroup): string {
+  return group.id ?? group.groupLabel;
+}
+
+export { SV_SIDEBAR_NAV_LABELS } from './sidebar-nav.labels';
+export type { SvSidebarNavLabels } from './sidebar-nav.labels';

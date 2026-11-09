@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvIconSvgComponent } from '../../lib/icon-svg.component';
 import { SvIconBase } from '../../lib/icon-base.directive';
 import type { IconNode } from '../../lib/icon.types';
+import type { SvIconDef } from '../../lib/provide-icons';
 
 /** Primitives for the `lock` icon. */
 export const lockNodes: readonly IconNode[] = [
@@ -15,6 +16,9 @@ export const lockNodes: readonly IconNode[] = [
 export const lockSolidNodes: readonly IconNode[] = [
   { tag: 'path', d: 'm7 10.1h.1v-2.1q0-2 1.5-3.4 1.4-1.5 3.4-1.5 2 0 3.4 1.5 1.5 1.4 1.5 3.4v2.1h.1q2.9 0 2.9 2.9v5.5q0 2.9-2.9 2.9h-10q-2.9 0-2.9-2.9v-5.5q0-2.9 2.9-2.9zm5.9 4.4q0-.9-.9-.9-.9 0-.9.9v2.5q0 .9.9.9.9 0 .9-.9z' },
 ];
+
+/** `lock` as a registrable glyph — `registerSvIcons([lockIcon])` / `provideSvIcons([lockIcon])`. */
+export const lockIcon: SvIconDef = { name: 'lock', nodes: lockNodes, solid: lockSolidNodes };
 
 /** `lock` — tree-shakable standalone icon. Use `<sv-lock-icon />`. */
 @Component({

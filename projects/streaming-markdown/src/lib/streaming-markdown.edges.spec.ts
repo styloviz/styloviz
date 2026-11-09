@@ -155,13 +155,13 @@ describe('SvStreamingMarkdownComponent — tables', () => {
       content: '| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |',
     });
     const heads = [...el(f).querySelectorAll('th')].map((n) => n.className);
-    expect(heads[0]).toContain('text-left');
+    expect(heads[0]).toContain('text-start');
     expect(heads[1]).toContain('text-center');
-    expect(heads[2]).toContain('text-right');
+    expect(heads[2]).toContain('text-end');
 
     const cells = [...el(f).querySelectorAll('td')].map((n) => n.className);
     expect(cells[1]).toContain('text-center');
-    expect(cells[2]).toContain('text-right');
+    expect(cells[2]).toContain('text-end');
   });
 
   /**
@@ -171,8 +171,8 @@ describe('SvStreamingMarkdownComponent — tables', () => {
   it('falls back to left for a cell with no declared alignment', async () => {
     const f = await setup({ content: '| a |\n| ---: |\n| 1 | 2 |' });
     const cells = [...el(f).querySelectorAll('td')].map((n) => n.className);
-    expect(cells[0]).toContain('text-right');
-    expect(cells[1]).toContain('text-left');
+    expect(cells[0]).toContain('text-end');
+    expect(cells[1]).toContain('text-start');
   });
 });
 

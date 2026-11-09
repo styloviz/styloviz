@@ -1,19 +1,3 @@
-/**
- * Visual variant of the product tour.
- *
- * The **free** tier ships the `modal` variant only. The full set of eight
- * variants — slideshow, tooltip, spotlight, beacon, checklist, progress-steps
- * and announcement — is available in `@styloviz-pro/product-tour`.
- *
- * | Variant | Description                                                 |
- * |---------|-------------------------------------------------------------|
- * | modal   | Centered lightbox dialog — image, rich text, dot pagination |
- *
- * @deprecated A single-value type that selects nothing. Kept so 1.x code
- * compiles; removed in 2.0 together with the free `variant` input.
- */
-export type TourVariant = 'modal';
-
 /** Preferred tooltip / popover placement relative to the target element. */
 export type TourPlacement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
 

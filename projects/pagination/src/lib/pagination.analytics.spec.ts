@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
-import { SV_NAV_TELEMETRY, svResetWarnOnce, type SvNavEvent, type SvNavTelemetry } from '@styloviz/core';
+import { svResetWarnOnce } from '@styloviz/core/dev';
+import { SV_NAV_TELEMETRY, type SvNavEvent, type SvNavTelemetry } from '@styloviz/core/nav';
 import { SvPaginationComponent } from './pagination.component';
 
 /**

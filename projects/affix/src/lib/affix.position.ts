@@ -12,6 +12,8 @@
  * threshold or a debounce; it is a placeholder of the measured height, holding
  * the space the pinned element used to occupy.
  */
+import { svFormatLabel } from '@styloviz/core/i18n';
+import type { SvAffixLabels } from './affix.labels';
 
 export type AffixMode =
   /** In flow, untouched. */
@@ -129,14 +131,20 @@ export function svAffixThreshold(anchorTop: number, offsetTop: number): number {
   return Math.max(0, (Number.isFinite(anchorTop) ? anchorTop : 0) - (Number.isFinite(offsetTop) ? offsetTop : 0));
 }
 
-/** `Pinned 16px from the top` / `Parked at the end of its section` */
-export function svAffixLabel(state: SvAffixState): string {
+/**
+ * `Pinned 16px from the top` / `Parked at the end of its section`, from `labels`
+ * (`SV_AFFIX_LABELS` for English).
+ */
+export function svAffixLabel(
+  state: SvAffixState,
+  labels: Pick<SvAffixLabels, 'stateStatic' | 'stateDocked' | 'statePinned'>,
+): string {
   switch (state.mode) {
     case 'static':
-      return 'In flow.';
+      return labels.stateStatic;
     case 'docked':
-      return 'Parked at the end of its container — it will not float over what comes next.';
+      return labels.stateDocked;
     default:
-      return `Pinned ${state.top}px from the top of the viewport.`;
+      return svFormatLabel(labels.statePinned, { top: String(state.top) });
   }
 }

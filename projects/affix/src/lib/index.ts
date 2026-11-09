@@ -1,4 +1,6 @@
 export { SvAffixComponent } from './affix.component';
+export { SV_AFFIX_LABELS } from './affix.labels';
+export type { SvAffixLabels } from './affix.labels';
 export {
   svAffixLabel,
   svAffixState,

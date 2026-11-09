@@ -1,119 +1,170 @@
-import { provideRouter } from '@angular/router';
+import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { render, screen } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
 import { SvDashboardShellComponent } from './dashboard-shell.component';
+import { SvSidebarComponent } from '../sidebar/sidebar.component';
+import { SvTopbarComponent } from '../topbar/topbar.component';
+import { SvFooterComponent } from '../footer/footer.component';
 
 /**
- * The shell owns one piece of state the sidebar and the topbar both read, and
- * the whole point of it is that they cannot disagree. So what is checked here
- * is the wiring: a toggle in the topbar moves the sidebar, the mobile overlay
- * closes from its backdrop, and the outlet, the footer and the toast hosts are
- * all actually mounted.
+ * The shell's job is the state its parts share. The usual shell binds nothing
+ * — the topbar's toggles must reach the sidebar through the shell alone — so
+ * that is what these drive, through the real controls.
  */
+
+@Component({
+  standalone: true,
+  imports: [SvDashboardShellComponent, SvSidebarComponent, SvTopbarComponent, SvFooterComponent],
+  template: `
+    <sv-dashboard-shell [(collapsed)]="collapsed" [(mobileOpen)]="open">
+      <sv-sidebar svShellSidebar><a href="/orders">Orders</a></sv-sidebar>
+      <sv-topbar svShellTopbar />
+      <p>Page</p>
+      <sv-footer svShellFooter>© Acme</sv-footer>
+    </sv-dashboard-shell>
+  `,
+})
+class HostComponent {
+  readonly collapsed = signal(false);
+  readonly open = signal(false);
+}
+
+@Component({
+  standalone: true,
+  imports: [SvDashboardShellComponent],
+  template: `<sv-dashboard-shell><p>Page</p></sv-dashboard-shell>`,
+})
+class BareHostComponent {}
 
 async function setup() {
   TestBed.resetTestingModule();
-  return render(SvDashboardShellComponent, { providers: [provideRouter([])] });
+  const r = await render(HostComponent);
+  const root = r.fixture.nativeElement as HTMLElement;
+  return {
+    ...r,
+    host: r.fixture.componentInstance,
+    aside: root.querySelector('aside') as HTMLElement,
+    content: root.querySelector('main')!.parentElement as HTMLElement,
+    backdrop: () => root.querySelector('[aria-hidden="true"].fixed'),
+  };
 }
 
-const el = (f: { nativeElement: unknown }) => f.nativeElement as HTMLElement;
-const backdrop = (f: { nativeElement: unknown }) =>
-  el(f).querySelector('[aria-hidden="true"].fixed.inset-0');
-
-describe('SvDashboardShellComponent — what it composes', () => {
-  it('mounts the sidebar, the topbar and the footer', async () => {
-    const { fixture } = await setup();
-    expect(el(fixture).querySelector('sv-sidebar')).toBeTruthy();
-    expect(el(fixture).querySelector('sv-topbar')).toBeTruthy();
-    expect(el(fixture).querySelector('sv-footer')).toBeTruthy();
-  });
-
-  it('gives the page a main region to render into', async () => {
+describe('SvDashboardShellComponent — composition', () => {
+  it('places sidebar, topbar, page and footer, with the page in the main region', async () => {
     await setup();
-    expect(screen.getByRole('main')).toBeTruthy();
+    expect(screen.getByRole('complementary')).toBeTruthy();
+    expect(screen.getByRole('banner')).toBeTruthy();
+    expect(screen.getByRole('main').textContent).toContain('Page');
+    expect(screen.getByRole('contentinfo').textContent).toContain('© Acme');
   });
 
-  it('mounts a toast host for every corner, so a toast has somewhere to go', async () => {
-    const { fixture } = await setup();
-    expect(el(fixture).querySelectorAll('sv-toast-host').length).toBe(6);
+  it('renders no toast host, router outlet or product chrome of its own', async () => {
+    TestBed.resetTestingModule();
+    const { fixture } = await render(BareHostComponent);
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('sv-toast-host, router-outlet, aside, header, footer')).toBeNull();
   });
 
-  it('shows a user whose picture it does not have by name, not by hot-linking one', async () => {
-    // A default avatar URL in a published package is a third-party request every
-    // buyer's dashboard makes and cannot clear under a CSP.
-    const { fixture } = await setup();
-    expect(fixture.componentInstance.currentUser.avatar).toBe('');
-    expect(fixture.componentInstance.currentUser.name).toBeTruthy();
+  it('offsets the content only when there is a sidebar to make room for', async () => {
+    const { content } = await setup();
+    expect(content.classList).toContain('lg:ms-64');
+    TestBed.resetTestingModule();
+    const bare = await render(BareHostComponent);
+    const bareContent = (bare.fixture.nativeElement as HTMLElement).querySelector('main')!.parentElement!;
+    expect(bareContent.classList).not.toContain('lg:ms-64');
+    expect(bareContent.classList).not.toContain('lg:ms-20');
   });
 });
 
-describe('SvDashboardShellComponent — one state, two readers', () => {
-  it('starts expanded', async () => {
-    const { fixture } = await setup();
-    expect(fixture.componentInstance.sidebarCollapsed()).toBe(false);
+@Component({
+  standalone: true,
+  imports: [SvDashboardShellComponent, SvSidebarComponent],
+  template: `
+    <div style="height: 300px">
+      <sv-dashboard-shell [contained]="true" [(mobileOpen)]="open">
+        <sv-sidebar svShellSidebar />
+        <p>Page</p>
+      </sv-dashboard-shell>
+    </div>
+  `,
+})
+class ContainedHostComponent {
+  readonly open = signal(true);
+}
+
+describe('SvDashboardShellComponent — contained', () => {
+  it('is the viewport by default: full dynamic height, a fixed sidebar', async () => {
+    const { fixture, aside } = await setup();
+    expect((fixture.nativeElement as HTMLElement).querySelector('sv-dashboard-shell > div')!.classList).toContain('h-dvh');
+    expect(aside.classList).toContain('fixed');
   });
 
-  it('collapses from the topbar, and the sidebar sees it', async () => {
-    const { fixture } = await setup();
-    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
-    fixture.detectChanges();
+  it('fills its container and keeps the sidebar and backdrop inside it', async () => {
+    TestBed.resetTestingModule();
+    const { fixture } = await render(ContainedHostComponent);
+    const root = fixture.nativeElement as HTMLElement;
+    const frame = root.querySelector('sv-dashboard-shell > div')!;
+    // The host takes the container's height too, or `h-full` resolves against an auto height.
+    expect(root.querySelector('sv-dashboard-shell')!.classList).toContain('h-full');
+    expect(frame.classList).toContain('h-full');
+    expect(frame.classList).not.toContain('h-dvh');
+    expect(root.querySelector('aside')!.classList).toContain('absolute');
+    expect(root.querySelector('aside')!.classList).not.toContain('fixed');
+    expect(root.querySelector('[aria-hidden="true"].absolute')).not.toBeNull();
+  });
+});
 
-    expect(fixture.componentInstance.sidebarCollapsed()).toBe(true);
-    // The same signal is what the topbar's next label is built from.
+describe('SvDashboardShellComponent — one state, three readers', () => {
+  it('collapses from the topbar; the sidebar, the content offset and the bound model follow', async () => {
+    const { host, aside, content } = await setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }));
+    expect(host.collapsed()).toBe(true);
+    expect(aside.classList).toContain('w-20');
+    expect(content.classList).toContain('lg:ms-20');
+    await userEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    expect(host.collapsed()).toBe(false);
+  });
+
+  it('follows a collapsed state the host sets', async () => {
+    const { host, fixture, aside } = await setup();
+    host.collapsed.set(true);
+    fixture.detectChanges();
+    expect(aside.classList).toContain('w-20');
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeTruthy();
   });
-
-  it('expands again from the same control', async () => {
-    const { fixture } = await setup();
-    const c = fixture.componentInstance;
-    c.toggleSidebar();
-    c.toggleSidebar();
-    expect(c.sidebarCollapsed()).toBe(false);
-  });
 });
 
-describe('SvDashboardShellComponent — the mobile overlay', () => {
-  it('has no backdrop until the overlay is opened', async () => {
-    const { fixture } = await setup();
-    expect(backdrop(fixture)).toBeNull();
-  });
-
-  it('opens from the topbar hamburger', async () => {
-    const { fixture } = await setup();
+describe('SvDashboardShellComponent — the small-screen overlay', () => {
+  it('opens from the hamburger with a backdrop kept out of the accessibility tree', async () => {
+    const { host, aside, backdrop } = await setup();
+    expect(backdrop()).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Open sidebar' }));
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.mobileSidebarOpen()).toBe(true);
-    expect(backdrop(fixture)).not.toBeNull();
+    expect(host.open()).toBe(true);
+    expect(aside.classList).toContain('translate-x-0');
+    expect(backdrop()).not.toBeNull();
   });
 
-  it('closes when the backdrop is clicked', async () => {
-    const { fixture } = await setup();
-    fixture.componentInstance.toggleMobileSidebar();
-    fixture.detectChanges();
-
-    await userEvent.click(backdrop(fixture) as HTMLElement);
-    fixture.detectChanges();
-    expect(fixture.componentInstance.mobileSidebarOpen()).toBe(false);
-    expect(backdrop(fixture)).toBeNull();
+  it('closes on the backdrop', async () => {
+    const { host, backdrop } = await setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Open sidebar' }));
+    await userEvent.click(backdrop() as HTMLElement);
+    expect(host.open()).toBe(false);
   });
 
-  it('closes on request, and stays closed', async () => {
-    const { fixture } = await setup();
-    const c = fixture.componentInstance;
-    c.closeMobileSidebar();
-    expect(c.mobileSidebarOpen()).toBe(false);
-
-    c.toggleMobileSidebar();
-    c.closeMobileSidebar();
-    expect(c.mobileSidebarOpen()).toBe(false);
+  it('closes on Escape', async () => {
+    const { host } = await setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Open sidebar' }));
+    await userEvent.keyboard('{Escape}');
+    expect(host.open()).toBe(false);
   });
 
-  it('keeps the backdrop out of the accessibility tree', async () => {
-    const { fixture } = await setup();
-    fixture.componentInstance.toggleMobileSidebar();
-    fixture.detectChanges();
-    expect(backdrop(fixture)?.getAttribute('aria-hidden')).toBe('true');
+  it('closes when a link in the sidebar is followed', async () => {
+    const { host } = await setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Open sidebar' }));
+    const link = screen.getByRole('link', { name: 'Orders' });
+    link.addEventListener('click', (e) => e.preventDefault());
+    await userEvent.click(link);
+    expect(host.open()).toBe(false);
   });
 });

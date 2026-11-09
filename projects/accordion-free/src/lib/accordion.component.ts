@@ -1,8 +1,10 @@
 import {
   afterRenderEffect,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -13,18 +15,17 @@ import {
   untracked,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import {
-  SvLiveAnnouncer,
-  svHighlightSegments,
-  svNavParam,
-  svRecoverFocus,
-  svUniqueId,
-  svWarnOnce,
-  type SvHighlightSegment,
-  type SvUnresolvedValue,
-} from '@styloviz/core';
+import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
+import { type SvUnresolvedValue } from '@styloviz/core/data';
+import { svWarnOnce } from '@styloviz/core/dev';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
+import { svNavParam } from '@styloviz/core/nav';
+import { svRecoverFocus } from '@styloviz/core/overlay';
+import { svHighlightSegments, type SvHighlightSegment } from '@styloviz/core/security';
+import { SV_ACCORDION_LABELS } from './accordion-free.labels';
 import { SvIconComponent } from '@styloviz/icons';
 
+import { registerAccordionIcons } from './accordion.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Visual presentation style. */
@@ -55,10 +56,10 @@ export type AccordionHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
  *    three sections a reader had expanded are still expanded — and only those —
  *    once the search box is cleared.
  *
- * `'print'` is not wired here: the print contract is P2 (`X-20`, `NV-01-I7`,
- * `NV-06-I13`). It is named now so that half arrives as `reveal('print', …)` on
- * `beforeprint` and `withdrawReveal('print')` on `afterprint`, rather than as a
- * second mechanism that has to re-answer the same question.
+ * `'print'` is the print contract (`X-20`, `NV-01-I7`, FL-J3-NV-04): the
+ * component calls `reveal('print', …)` on `beforeprint` and
+ * `withdrawReveal('print')` on `afterprint` (see `expandOnPrint`), so a printed
+ * page carries every section and the reader's own open set is untouched after.
  */
 export type AccordionRevealSource = 'search' | 'print' | 'programmatic';
 
@@ -198,6 +199,13 @@ function svSupportsUntilFound(): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAccordionComponent {
+  /** The glyphs this template draws by name (FL-B4). */
+  protected readonly svIcons = registerAccordionIcons();
+
+  protected readonly labels = injectSvLabels('accordion', SV_ACCORDION_LABELS);
+  /** The kit's locale — picks the plural form of the search announcement. */
+  private readonly locale = svLocale();
+
   /**
    * Per-instance id prefix.
    *
@@ -336,6 +344,26 @@ export class SvAccordionComponent {
   findInPage = input<boolean>(true);
 
   /*
+   * ── Rationale, deliberately NOT a JSDoc (FL-J3-NV-04, `X-20`, `NV-01-I7`) ────
+   * Print used to omit every collapsed panel: a printed FAQ was a list of
+   * questions. `beforeprint` now reveals every enabled panel through the same
+   * reveal registry a search uses, and `afterprint` withdraws it — so the
+   * reader's own open set, the URL and `itemToggled` never see the print pass.
+   * The render is forced synchronously, because the print snapshot is taken
+   * right after the event and a scheduled change detection would miss it; the
+   * height transition is off under `print:` for the same reason. Disabled panels
+   * stay closed in print as on screen.
+   */
+
+  /**
+   * Expand every enabled panel while the page is printed, and restore the
+   * reader's own open set afterwards. Turn it off for content that must stay
+   * hidden on paper (a quiz answer).
+   * @default true
+   */
+  expandOnPrint = input<boolean>(true);
+
+  /*
    * ── Rationale, deliberately NOT a JSDoc ─────────────────────────────────────
    *
    * ── ★★ HIGHLIGHTING IS WHERE ACCORDIONS REACH FOR `innerHTML` ───────────────
@@ -462,17 +490,17 @@ export class SvAccordionComponent {
   /**
    * Ids of the currently-open panels (two-way).
    *
-   * A `model` (audit item X-6) so the open set can be restored as well as
-   * observed: `itemToggled` reports one gesture at a time, and rebuilding `items`
-   * with `defaultOpen` only ever affects panels this accordion has not seen — so
-   * a host could not reopen the three sections a user had left open before a
-   * route change. A bound value wins over `defaultOpen`.
+   * A `model`, so the open set can be restored as well as observed:
+   * `itemToggled` reports one gesture at a time, and `defaultOpen` only ever
+   * affects panels this accordion has not seen — so binding this is how a host
+   * reopens the sections a user had left open before a route change. A bound
+   * value wins over `defaultOpen`.
    *
-   * ★ This used to be seeded once, in `ngOnInit`, from whatever `items` held at
-   * that moment — which for anything fetched is an empty array, so `defaultOpen`
-   * was dead API for every async host. `defaultOpen` is now applied only to ids
-   * this component has not seen before, so a host that rebuilds its `items`
-   * array each change-detection pass cannot reopen a section the user closed.
+   * `defaultOpen` is applied to each new `items` array, so sections that arrive
+   * from a request can open on arrival — but only to ids this component has not
+   * seen before, which is what "default" means: a host that rebuilds its
+   * `items` on every change detection cannot reopen a section the user closed,
+   * and ids that have gone away are dropped.
    */
   readonly openIds = model<Set<string>>(new Set());
 
@@ -657,6 +685,41 @@ export class SvAccordionComponent {
     next.delete(source);
     this.manualReveals.set(next);
   }
+  /**
+   * Open every enabled panel — FL-J3-NV-04 (`NV-01-M2`). Writes `openIds` (so
+   * `openIdsChange` and the URL follow) and does not fire `itemToggled`, which
+   * reports one panel a reader toggled. In `expandMode="single"` only one panel
+   * may be open, so this is a no-op with a dev warning.
+   */
+  expandAll(): void {
+    if (this.expandMode() === 'single') {
+      svWarnOnce(
+        'sv-accordion:expand-all-single',
+        '<sv-accordion> expandAll() was called with expandMode="single", where only one ' +
+          'panel may be open. Nothing was expanded; use expandMode="multi" for an ' +
+          '"Expand all" control.',
+      );
+      return;
+    }
+    const all = new Set(this.items().filter(i => !i.disabled).map(i => i.id));
+    for (const id of this.openIds()) all.add(id);
+    this.openIds.set(all);
+  }
+
+  /**
+   * Close every panel — FL-J3-NV-04 (`NV-01-M2`): empties `openIds` and also
+   * collapses the panels a live search reveal is holding open, the same way a
+   * click on one of them would. Focus inside a closing panel moves to that
+   * panel's header. Does not fire `itemToggled`.
+   */
+  collapseAll(): void {
+    this.preservingFocus(() => {
+      const revealed = this.revealedIds();
+      if (revealed.size) this.dismissedReveals.set({ forReveal: this.revealKey(), ids: new Set(revealed) });
+      this.openIds.set(new Set());
+    });
+  }
+
 
   /** Split `text` into safe segments for the template to `<mark>`. */
   highlight(text: string): readonly SvHighlightSegment[] {
@@ -716,7 +779,34 @@ export class SvAccordionComponent {
     this.itemToggled.emit({ id: item.id, open: true, source: 'find-in-page' });
   }
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
   constructor() {
+    // ── Print (FL-J3-NV-04): reveal everything for the snapshot, then withdraw.
+    // The host's own window, so an iframe prints its own accordion; nothing on
+    // the server, which never prints.
+    const view = (this.host.nativeElement as HTMLElement).ownerDocument?.defaultView;
+    if (view && typeof view.addEventListener === 'function') {
+      const beforePrint = (): void => {
+        if (!this.expandOnPrint()) return;
+        this.reveal('print', this.items().filter(i => !i.disabled).map(i => i.id));
+        // The snapshot follows this event synchronously; a scheduled render
+        // would arrive after the paper.
+        this.cdr.detectChanges();
+      };
+      const afterPrint = (): void => {
+        if (!this.manualReveals().has('print')) return;
+        this.withdrawReveal('print');
+        this.cdr.markForCheck();
+      };
+      view.addEventListener('beforeprint', beforePrint);
+      view.addEventListener('afterprint', afterPrint);
+      inject(DestroyRef).onDestroy(() => {
+        view.removeEventListener('beforeprint', beforePrint);
+        view.removeEventListener('afterprint', afterPrint);
+      });
+    }
+
     // A search silently expanding panels is a visual change a screen-reader
     // user gets no notice of, so the count is announced — keyed and throttled,
     // because this fires on every keystroke and a backlog of stale counts is
@@ -729,8 +819,8 @@ export class SvAccordionComponent {
         if (!q) return;
         this.announcer.announce(
           count === 0
-            ? `No sections match ${q}.`
-            : `${count} section${count === 1 ? '' : 's'} match ${q}.`,
+            ? svFormatLabel(this.labels.searchNoMatches, { query: q }, this.locale)
+            : svFormatLabel(this.labels.searchMatches, { count, n: String(count), query: q }, this.locale),
           { key: `${this.uid}-search`, throttleMs: 400, force: true },
         );
       });
@@ -958,7 +1048,7 @@ export class SvAccordionComponent {
           .querySelector<HTMLElement>(`[id="${this.headerDomId(item.id)}"]`),
       ],
       fallback: this.host.nativeElement as HTMLElement,
-      announce: `${item.title} collapsed.`,
+      announce: svFormatLabel(this.labels.sectionCollapsed, { title: item.title }, this.locale),
       announcer: this.announcer,
     });
   }
@@ -1202,7 +1292,7 @@ export class SvAccordionComponent {
                    'px-5 py-4';
 
     const base = [
-      'w-full flex items-center gap-3 text-left select-none',
+      'w-full flex items-center gap-3 text-start select-none',
       'transition-colors duration-150 focus-visible:outline-none',
       'focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset',
       padding,

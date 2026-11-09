@@ -2,7 +2,9 @@
 
 > Dismissible alert banners in 5 semantic variants and multiple display styles.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -53,6 +55,8 @@ import { SvAlertBannerComponent } from '@styloviz/alert-banner';
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
@@ -64,13 +68,15 @@ export class DemoComponent {}
 | `size` | `AlertSize` | `'md'` | Size controls padding and text scale. |
 | `position` | `AlertPosition` | `'inline'` | Positioning mode. - `inline` — block element in document flow (default) - `top-fixed` — fixed to viewport top, full width - `bottom-fixed` — fixed to viewport bottom, full width - `top-sticky` — sticky inside its scroll container |
 | `showIcon` | `boolean` | `true` | Show the leading icon. |
-| `icon` | `string` | `''` | Icon-library NAME overriding the default variant icon — e.g. `'bell'`. Leave empty to use the built-in icon for the current variant. BREAKING (icon sweep): was `iconPath`, a raw `<path d="…">`. `iconViewBox` is GONE — it only existed because a raw path might not be 24-box. |
+| `icon` | `string` | `''` | Icon-library NAME overriding the default variant icon — e.g. `'bell'`. Leave empty to use the built-in icon for the current variant. |
 | `actions` | `AlertAction[]` | `[]` | Up to 2 action buttons rendered inline. Each button emits its `id` via `actionClick`. |
 | `dismissible` | `boolean` | `true` | Show the × close button. |
 | `autoDismissMs` | `number` | `0` | Auto-dismiss after N milliseconds. Set to 0 to disable auto-dismiss. |
 | `priority` | `number` | `0` | Stack weight for a pinned banner: higher sits against the edge. |
-| `dedupeKey` | `string \| null \| undefined` | `undefined` | Identity for suppressing a duplicate pinned banner. \| Value \| Meaning \| \|-----------\|------------------------------------------------------------\| \| omitted \| derive from variant + style + title + message \| \| a string \| suppress on that, whatever the text \| \| `null` \| never suppress \| A SUPPRESSED BANNER RENDERS NOTHING — no count, unlike a deduplicated toast. A toast reports an EVENT, so "it happened eleven times" is information; a banner reports a STATE, and "your trial expires ×2" is not a thing that can be true. |
+| `dedupeKey` | `string \| null \| undefined` | `undefined` | Identity for suppressing a duplicate pinned banner. Omitted, it is derived from variant + style + title + message; a string suppresses on that, whatever the text; `null` never suppresses. A suppressed banner renders nothing — no count, unlike a deduplicated toast. A toast reports an event, so "it happened eleven times" is information; a banner reports a state, and "your trial expires ×2" is not a thing that can be true. |
 | `customClass` | `string` | `''` | Additional CSS classes merged on the root element. |
+| `persistKey` | `string \| null` | `null` | Storage key that remembers a dismissal, or `null` to forget it on the next render. |
+| `persistVersion` | `number` | `1` | Which edition of the message a remembered dismissal covers. Raise it when the message is new — "dismissed until version": a user who closed version 2 sees version 3. |
 
 ## Outputs
 
@@ -85,4 +91,4 @@ Full API reference and live demos: https://styloviz.dev/docs/alert-banner
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

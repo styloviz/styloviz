@@ -7,12 +7,12 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import {
-  SvChartAnimDirective,
-  SvChartFrameComponent,
-  type SvDataError,
-} from '@styloviz/core';
+import { type SvDataSummary } from '@styloviz/core/a11y';
+import { SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
+import { SvChartAnimDirective } from '@styloviz/core/directives';
+import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { formatChartValue, niceMax, gridTicks, roundedTopRectPath } from '../bar-chart/bar-chart.utils';
+import { SV_CHARTS_LABELS } from '../charts-free.labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,9 @@ interface TooltipState {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SvAxisLabelTemplateChartComponent {
+  /** @internal Accessible names — English unless `provideSvLabels({ charts })` says otherwise. */
+  protected readonly labels = injectSvLabels('charts', SV_CHARTS_LABELS);
+  private readonly locale = svLocale();
 
   // ── Async state ─────────────────────────────────────────────────────────────
 
@@ -106,7 +109,7 @@ export class SvAxisLabelTemplateChartComponent {
   readonly error = input<SvDataError | string | null>(null);
 
   /** Copy for the empty state. @default 'No data to plot' */
-  readonly emptyMessage = input<string>('No data to plot');
+  readonly emptyMessage = input<string>(this.labels.noDataToPlot);
 
   /**
    * Whether a filter, not an absence of data, is why the chart is empty.
@@ -124,7 +127,7 @@ export class SvAxisLabelTemplateChartComponent {
   categories  = input<AxisLabelCategory[]>([]);
   /** Bar series; each `data` array is indexed by category position and drawn as grouped bars. */
   datasets    = input<AxisLabelTemplateDataset[]>([]);
-  /** Chart title rendered above the plot; also used as the plot's accessible name. */
+  /** Chart title rendered above the plot; also the base of the generated accessible name and the data table's caption. */
   title       = input<string>('');
   /** Chart height in pixels. @default 340 */
   height      = input<number>(340);
@@ -132,6 +135,8 @@ export class SvAxisLabelTemplateChartComponent {
   options     = input<AxisLabelTemplateOptions>({});
   /** Extra CSS classes applied to the root wrapper. */
   customClass = input<string>('');
+  /** Accessible-name override for the plot; otherwise a series summary is generated. @default '' */
+  readonly ariaLabel = input<string>('');
 
   // ── Outputs ───────────────────────────────────────────────────────────────
   /** Emitted when a bar is hovered or keyboard-focused. */
@@ -139,8 +144,51 @@ export class SvAxisLabelTemplateChartComponent {
   /** Emitted when a bar is clicked or activated via keyboard (Enter/Space). */
   readonly barSelect = output<AxisLabelBarEvent>();
 
+  // ── Accessibility ─────────────────────────────────────────────────────────
+
+  /** The plot's accessible name: `ariaLabel` when set, otherwise the title, then how many series and categories it draws. */
+  readonly resolvedAriaLabel = computed<string>(() => {
+    const override = this.ariaLabel();
+    if (override) return override;
+    const cats = this.categories();
+    const sets = this.datasets();
+    const base = this.title() || this.labels.axisLabelTemplateChart;
+    if (!cats.length || !sets.length) return base;
+    const names = sets.map((s) => s.label).filter(Boolean).join(', ');
+    const template = !names
+      ? this.labels.seriesSummary
+      : sets.length === 1 ? this.labels.seriesSummaryOneNamed : this.labels.seriesSummaryNamed;
+    return svFormatLabel(template, { title: base, series: sets.length, names, categories: cats.length }, this.locale);
+  });
+
+  /**
+   * The bars as rows — one category per row, one column per series. A
+   * category's sub-label is printed under it on the axis, so it is part of the
+   * row header here too; the icon and colour swatch are decoration.
+   *
+   * ★ No `overview`: the SVG's name already counts the series and categories.
+   */
+  protected readonly a11ySummary = computed<SvDataSummary>(() => {
+    const sets = this.datasets();
+    return {
+      caption: this.title() || this.labels.axisLabelTemplateChart,
+      columns: [this.labels.categoryColumn, ...sets.map((s) => s.label || this.labels.valueColumn)],
+      rows: this.categories().map((cat, ci) => ({
+        key: cat.label,
+        header: cat.subLabel
+          ? svFormatLabel(this.labels.categoryWithDetail, { label: cat.label, detail: cat.subLabel })
+          : cat.label,
+        cells: sets.map((s) => {
+          const v = s.data[ci];
+          return v !== undefined && Number.isFinite(v) ? this.fmt(v) : this.labels.noValue;
+        }),
+      })),
+    };
+  });
+
   // ── Constants ─────────────────────────────────────────────────────────────
   readonly SVG_WIDTH  = 600;
+  // sv-physical: SVG plot padding — the x axis runs left to right in RTL too
   readonly PAD        = { top: 20, right: 24, bottom: 72, left: 52 };
   readonly LABEL_H    = 48; // height reserved below axis for custom labels
 

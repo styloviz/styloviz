@@ -1,16 +1,18 @@
 # @styloviz/overlays
 
-> Overlay and feedback primitives — tooltip, result page, spinner and progress bar / ring.
+> Overlay and feedback primitives — tooltip, result page, spinner, progress bar / ring, an onboarding checklist and a mobile action sheet.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
 ```bash
-npm install @styloviz/core @styloviz/icons @styloviz/overlays
+npm install @styloviz/core @styloviz/icons @styloviz/kbd @styloviz/overlays
 ```
 
-Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
+Requires `@angular/core` and `@angular/common` 21 or 22 (peer range `>=21.0.0 <23.0.0`). Also needs `@styloviz/core`, `@styloviz/icons`, `@styloviz/kbd` — listed above so no extra step is required on npm (on pnpm/yarn, list them yourself). Prefer everything at once? `@styloviz/all` installs the whole free tier in one command.
 
 ## Styles (required)
 
@@ -41,50 +43,50 @@ redeclaring a token after the import: `@theme { --color-primary-600: #0f766e; }`
 ## Usage
 
 ```ts
-import { SvProgressBarComponent } from '@styloviz/overlays';
+import { SvActionSheetComponent } from '@styloviz/overlays';
 
 @Component({
   standalone: true,
-  imports: [SvProgressBarComponent],
+  imports: [SvActionSheetComponent],
   template: `
-    <sv-progress-bar [value]="64" variant="primary" />
+    <sv-action-sheet [(open)]="open" title="Invoice INV-2041" [actions]="actions" (actionSelect)="run($event.action.id)" />
   `,
 })
 export class DemoComponent {}
 ```
 
+> **Icons you name are registered once, in the app config.** `icon="plus"` draws only after `provideSvIcons([plusIcon])` (`import { plusIcon } from '@styloviz/icons/glyph/plus'`), or `provideSvIcons(svAllIcons)` from `@styloviz/icons` to start with every free glyph. The same goes for a name inside the items you pass. An unregistered name warns in the console with the line to add.
+
 ## Inputs
 
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
-| `value` | `number` | `0` | Progress value (0–100). Ignored when `indeterminate` is true. |
-| `max` | `number` | `100` | Maximum value. |
-| `variant` | `ProgressBarVariant` | `'primary'` | Color variant. |
-| `size` | `ProgressBarSize` | `'md'` | Bar height. |
-| `striped` | `boolean` | `false` | Apply diagonal stripe pattern. |
-| `animated` | `boolean` | `false` | Animate stripes (only visible when `striped` is true). |
-| `glow` | `boolean` | `false` | Show pulsing glow on the fill. |
-| `labelPos` | `ProgressBarLabelPos` | `'top'` | Label position. |
-| `label` | `string` | `''` | Optional label text. If empty, the percentage is shown when labelPos is top/right. |
-| `announceStep` | `number` | `5` | Quantization step for the value reported to assistive technology, in percent. |
-| `showPercent` | `boolean` | `true` | Show percentage text. |
-| `estimated` | `boolean` | `false` | The percentage is an ESTIMATE, not a measurement. |
-| `stages` | `readonly string[]` | `[]` | The named phases of the work, in order. |
-| `stageIndex` | `number` | `0` | Zero-based index into stages. |
-| `indeterminate` | `boolean` | `false` | Indeterminate mode — shows an animated sliding fill. |
-| `ariaLabel` | `string` | `''` | Accessible name for the progress bar (recommended for standalone bars). |
-| `customClass` | `string` | `''` | Extra CSS classes merged onto the root wrapper. |
+| `open` | `boolean (two-way)` | `false` | Whether the sheet is up. Two-way: `[(open)]`. |
+| `title` | `string` | `''` | The heading — usually the thing the actions apply to ("Invoice INV-2041"). |
+| `description` | `string` | `''` | A line under the heading, read as the sheet's description. |
+| `actions` | `readonly SvActionSheetAction[]` | `[]` | The choices, top to bottom. |
+| `cancelLabel` | `string` | `''` | The dismiss button's text. |
+| `showCancel` | `boolean` | `true` | Show the separate Cancel button under the menu. |
+| `ariaLabel` | `string` | `''` | The sheet's accessible name when it has no `title`. |
+| `closeOnBackdrop` | `boolean` | `true` | A tap on the dimmed page closes it. |
+| `closeOnEscape` | `boolean` | `true` | Escape closes it. |
+| `swipeToClose` | `boolean` | `true` | A swipe down on the sheet's handle or heading closes it (touch and pen). |
+| `closeOnNavigation` | `boolean` | `true` | A navigation closes it, once the app provides `provideSvOverlayRouteClose()`. |
+| `labels` | `Partial<SvOverlaysLabels>` | `{}` | Per-instance overrides for the package labels. |
 
 ## Outputs
 
 | Output | Type | Description |
 | --- | --- | --- |
-| `completed` | `void` | Emitted once when the bar first reaches 100% (determinate mode only). |
+| `actionSelect` | `SvActionSheetSelection` | A choice was made. The sheet closes with reason `'action'` right after. |
+| `opened` | `void` | The sheet came up. |
+| `closed` | `SvActionSheetCloseReason` | The sheet went away, and why. |
+| `openChange` | `boolean` | Emits the new `open` whenever it changes — the output half of `[(open)]`. |
 
 ## Documentation
 
-Full API reference and live demos: https://styloviz.dev/docs/progress-bar
+Full API reference and live demos: https://styloviz.dev/docs/action-sheet
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

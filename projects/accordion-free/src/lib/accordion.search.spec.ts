@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { render, type ComponentInput } from '@testing-library/angular';
 import userEvent from '@testing-library/user-event';
-import { SvLiveAnnouncer } from '@styloviz/core';
+import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import {
   SvAccordionComponent,
   type AccordionItem,

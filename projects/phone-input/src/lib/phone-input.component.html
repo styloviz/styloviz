@@ -1,50 +1,120 @@
-<div class="flex flex-col gap-1">
+<div class="flex flex-col gap-1"
+     [attr.role]="label() ? 'group' : null"
+     [attr.aria-labelledby]="label() ? labelId : null"
+     [attr.aria-describedby]="hint() ? hintId : null"
+     (focusout)="onFocusOut($event)">
+  @if (label()) {
+    <!--
+      One label for the control as a whole. Sits above the row so the country
+      button and the number field share the same baseline (was inside the
+      flex item — country button top = label top, number field top = button
+      top + 24 px — `SR-03`).
+
+      Rendered as a <span> rather than a <label>: this names a COMPOUND
+      control (the country button + the number field), and the kit's label
+      ESLint rule only accepts a <label> that points at a single form
+      element. The wrapper is a `role="group"` named by this span, and the
+      name is repeated on each focusable child via the picker button's
+      aria-label and the input's aria-label.
+
+      `mb-0.5` + the wrapper's `gap-1` = 6 px, the kit's label-to-field rhythm
+      (`sv-input-field`'s `gap-1.5`, `SR-02`).
+    -->
+    <span [id]="labelId" class="mb-0.5 block text-xs font-medium text-gray-700 dark:text-gray-200">
+      {{ label() }}
+    </span>
+  }
+
   <div class="flex items-start gap-0">
     <div class="relative shrink-0">
       <!--
-        Deliberately no outer `<label for>` on this button: `sv-input-mask`
-        below renders the one visible/associated label (via `[label]`), tied
-        to the actual text field. The picker gets its own explicit
-        `aria-label` instead, so it announces the selected country rather
-        than inheriting a "Phone number" label meant for the field beside it.
-      -->
-      <button type="button"
-        [id]="buttonId"
-        [ngClass]="buttonSizeClass()"
-        class="flex items-center gap-1.5 rounded-l-md rounded-r-none border border-r-0 border-gray-200
-               bg-white px-2.5 text-gray-700 outline-none transition-colors
-               hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-400/50
-               disabled:cursor-not-allowed disabled:opacity-50
-               dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700/50"
-        [disabled]="disabled()"
-        [attr.aria-label]="pickerAriaLabel()"
-        aria-haspopup="listbox"
-        [attr.aria-expanded]="open()"
-        [attr.aria-controls]="listboxId"
-        (click)="toggle()"
-        (keydown)="onButtonKeydown($event)">
-        <!--
-          ★★ +1 IS THE US, CANADA AND NINETEEN OTHER TERRITORIES, so a flag and a
-             dial code together still cannot say which is selected — and the flag
-             is the half a reader trusts. The ISO code disambiguates it in the
-             one place that is visible when the picker is closed.
-        -->
-        <sv-phone-flag [code]="activeCountry().code" class="block h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px]" />
-        <span class="tabular-nums">{{ activeCountry().dialCode }}</span>
-        <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ activeCountry().code }}</span>
-        <sv-icon name="chevron-down"
-                 cssClass="h-3 w-3 text-gray-500 dark:text-gray-400"
-                 [strokeWidth]="2" />
-      </button>
+        Country picker. Names itself with a single accessible name that
+        combines the shared field label and the selected country, so the
+        picker does not inherit the "Phone number" label meant for the field
+        beside it. Using `aria-label` (not `aria-labelledby`) on the button
+        itself — `aria-labelledby` would win over `aria-label` and lose the
+        country information.
 
+        The radius and border match `sv-input-mask` (`rounded-md`,
+        `border-gray-200`, `dark:border-gray-700 dark:bg-gray-800`,
+        `disabled:opacity-50`) so the seam reads as one control, and
+        `rounded-s-md rounded-e-none border-e-0` (logical, not `l-`/`r-`)
+        so an RTL host flips the seam to the right (`SR-05`). The END border
+        is the one dropped: the seam is drawn once, by the field's start
+        border, and the button keeps its outer start edge.
+      -->
+      @if (availableCountries().length > 1) {
+        <button type="button"
+          [id]="buttonId"
+          [ngClass]="buttonSizeClass()"
+          [attr.aria-label]="pickerAriaLabel()"
+          #pickerBtn
+          class="flex items-center gap-1.5 rounded-s-md rounded-e-none border border-e-0 border-gray-200
+                 bg-white px-2.5 text-gray-700 outline-none transition-colors
+                 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-primary-400/50
+                 disabled:cursor-not-allowed disabled:opacity-50
+                 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700/50"
+          [disabled]="resolvedDisabled()"
+          aria-haspopup="listbox"
+          [attr.aria-expanded]="open()"
+          [attr.aria-controls]="listboxId"
+          (click)="toggle()"
+          (keydown)="onButtonKeydown($event)">
+          <!--
+            ★★ +1 IS THE US, CANADA AND NINETEEN OTHER TERRITORIES, so a flag and a
+               dial code together still cannot say which is selected — and the flag
+               is the half a reader trusts. The ISO code disambiguates it in the
+               one place that is visible when the picker is closed.
+          -->
+          <sv-phone-flag aria-hidden="true" [code]="activeCountry().code" class="block h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px]" />
+          <span class="tabular-nums">{{ activeCountry().dialCode }}</span>
+          <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ activeCountry().code }}</span>
+          <sv-icon name="chevron-down"
+                   cssClass="h-3 w-3 text-gray-500 dark:text-gray-400"
+                   [strokeWidth]="2" />
+        </button>
+      } @else {
+        <!--
+          ★★ ONE COUNTRY MEANS NO PICKER — the chevron would be a lie. A static
+             flag + dial code keeps the seam honest, and the mask's near corners
+             are still flattened so the control reads as one (`SR-05`).
+        -->
+        <div [id]="buttonId"
+             [ngClass]="buttonSizeClass()"
+             aria-hidden="true"
+             class="flex items-center gap-1.5 rounded-s-md rounded-e-none border border-e-0 border-gray-200
+                    bg-white px-2.5 text-gray-700
+                    dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+          <sv-phone-flag aria-hidden="true" [code]="activeCountry().code" class="block h-3.5 w-5 shrink-0 overflow-hidden rounded-[2px]" />
+          <span class="tabular-nums">{{ activeCountry().dialCode }}</span>
+          <span class="text-[10px] font-semibold text-gray-500 dark:text-gray-400">{{ activeCountry().code }}</span>
+        </div>
+      }
+    </div>
+
+    <!--
+      Country listbox, body-portaled so it escapes the showcase card's
+      `isolate overflow-hidden` and any other transform / overflow
+      containment (`SR-04`). Position and height are computed in
+      `_calcPos()` from the trigger's rect.
+    -->
+    <ng-template #panelTpl>
       @if (open()) {
-        <ul
+        <!-- sv-physical: fixed viewport coordinates from getBoundingClientRect — the start/end edge is resolved for RTL in the component's position code -->
+        <ul [style.left]="panelStyle()['left']"
           [id]="listboxId"
           role="listbox"
-          aria-label="Country"
+          [attr.aria-label]="labels.country"
           [attr.aria-activedescendant]="listboxId + '-opt-' + activeIndex()"
           tabindex="-1"
-          class="absolute left-0 top-full z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border
+          [style.position]="panelStyle()['position']"
+          [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
+          [style.top]="panelStyle()['top']"
+          [style.bottom]="panelStyle()['bottom']"
+          [style.width]="panelStyle()['width']"
+          [style.maxHeight]="panelStyle()['maxHeight']"
+          [style.maxWidth]="panelStyle()['maxWidth']"
+          class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-y-auto rounded-md border
                  border-gray-200 bg-white py-1 shadow-lg outline-none dark:border-gray-700 dark:bg-gray-800"
           (keydown)="onListKeydown($event)">
           @for (c of availableCountries(); track c.code; let i = $index) {
@@ -69,13 +139,15 @@
           }
         </ul>
       }
-    </div>
+    </ng-template>
 
     <!--
       `sv-input-mask` has no leading-content slot to project the picker
       button into, so this reaches in with a plain CSS descendant selector
       (not DOM traversal, not ::ng-deep) to flatten the input's near
-      corners — the two controls sit edge-to-edge and read as one.
+      corners — the two controls sit edge-to-edge and read as one. The
+      `s-` (start, not `l-`/`r-`) is logical so the seam follows the
+      reading direction (`SR-05`).
     -->
     <!--
       ★★★ THE MASK COVERS THE NATIONAL NUMBER, NOT THE COUNTRY CODE. It used to
@@ -87,14 +159,23 @@
            the slot it was spending on it was the slot the number needed.
     -->
     <sv-input-mask
-      class="min-w-0 flex-1 [&_input]:rounded-l-none"
+      class="min-w-0 flex-1 [&_input]:rounded-s-none"
       preset="custom"
       [customMask]="activeMask()"
-      [(value)]="value"
+      [value]="value()"
+      (valueChange)="onMaskValue($event)"
       [size]="size()"
-      [disabled]="disabled()"
+      [variant]="variant()"
+      [disabled]="resolvedDisabled()"
       [error]="error()"
-      [label]="label()"
+      [placeholder]="placeholder()"
+      [required]="required()"
+      [name]="name()"
+      [label]="''"
+      inputmode="tel"
+      autocomplete="tel-national"
+      inputDir="ltr"
+      [ariaLabel]="label() || labels.phoneNumber"
       (rawChanged)="rawChanged.emit($event)" />
   </div>
 
@@ -105,6 +186,10 @@
        expected and leaves the judgement to whoever can actually check. The one
        exception is the E.164 ceiling, which is the format's own rule.
   -->
+  @if (hint()) {
+    <p [id]="hintId" class="text-[11px] text-gray-600 dark:text-gray-400" data-sv-phone-hint>{{ hint() }}</p>
+  }
+
   @if (lengthHint(); as hint) {
     <p class="text-[11px] text-gray-600 dark:text-gray-400"
        role="status"
@@ -121,18 +206,18 @@
   @if (showExtension()) {
     <div class="mt-2 flex items-center gap-2">
       <label class="shrink-0 text-xs font-medium text-gray-600 dark:text-gray-400"
-             [attr.for]="extensionId">Extension</label>
+             [attr.for]="extensionId">{{ labels.extension }}</label>
       <input
         [id]="extensionId"
         type="text"
         inputmode="numeric"
         autocomplete="tel-extension"
         maxlength="8"
-        class="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900
+        class="w-24 rounded-md border border-gray-200 bg-white px-2 py-1 text-sm text-gray-900
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
-               disabled:cursor-not-allowed disabled:opacity-60
-               dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-        [disabled]="disabled()"
+               disabled:cursor-not-allowed disabled:opacity-50
+               dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+        [disabled]="resolvedDisabled()"
         [value]="extension()"
         (input)="onExtensionInput($event)" />
     </div>

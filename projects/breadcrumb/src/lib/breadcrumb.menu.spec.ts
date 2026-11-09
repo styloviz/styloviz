@@ -7,6 +7,11 @@ import {
   type BreadcrumbMenuItem,
 } from './breadcrumb.component';
 import { until } from '../../../../src/testing/async';
+import { provideSvIcons } from '@styloviz/icons';
+import { starIcon } from '@styloviz/icons/glyph/star';
+
+/** Glyph names this spec hands the component as data — a host registers those (FL-B4). */
+const HOST_ICONS = provideSvIcons([starIcon]);
 
 /**
  * ============================================================================
@@ -42,7 +47,7 @@ async function setup(inputs: Record<string, unknown> = {}) {
     inputs: { items: CRUMBS, ...inputs },
     // Real routes: a `routerLink` click that matches nothing logs an NG04002
     // through the router's error handler, which is noise, not a signal.
-    providers: [
+    providers: [HOST_ICONS, 
       provideRouter(
         ['', 'orders', 'invoices', 'refunds', 'locked', 'b', 'here', 'x'].map((path) => ({
           path,

@@ -29,7 +29,7 @@
       [attr.aria-label]="inlineExpanded() ? null : inlineMoreAriaLabel()"
       class="cursor-pointer font-medium text-primary-600 transition-colors duration-150 hover:text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 dark:text-primary-400 dark:hover:text-primary-300"
       (click)="toggleInline()"
-    >{{ inlineExpanded() ? 'Less' : inlineFormattedMoreLabel() }}</button>}</p>
+    >{{ inlineExpanded() ? labels.showLessShort : inlineFormattedMoreLabel() }}</button>}</p>
 } @else {
   <!-- ── Badge / Chip / Text variants ─────────────────────────────────── -->
   <div class="relative flex flex-wrap items-center gap-1.5">
@@ -93,7 +93,8 @@
 
 <!-- ── Overflow dropdown — portaled into document.body on open ─────────── -->
 <ng-template #panelTpl>
-  <div
+  <!-- sv-physical: fixed viewport coordinates from getBoundingClientRect — the start/end edge is resolved for RTL in the component's position code -->
+  <div [style.left]="panelStyle()['left']" [style.right]="panelStyle()['right']"
     [id]="'items-more-panel-' + _uid"
     [style.position]="panelStyle()['position']"
     [style.zIndex]="_stackedPopup.zIndex() ?? panelStyle()['zIndex']"
@@ -101,13 +102,11 @@
     [style.top]="panelStyle()['top']"
       [style.maxHeight]="panelStyle()['maxHeight']"
     [style.bottom]="panelStyle()['bottom']"
-    [style.left]="panelStyle()['left']"
-    [style.right]="panelStyle()['right']"
       [style.maxWidth]="panelStyle()['maxWidth']"
     class="max-w-[calc(100vw-1rem)] max-h-[calc(100vh-1rem)] overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-900"
     role="list"
     tabindex="-1"
-    [attr.aria-label]="overflowCount() + ' more item' + (overflowCount() === 1 ? '' : 's')"
+    [attr.aria-label]="labels.moreItems | svLabel: { count: overflowCount() }"
     data-sv-overflow-panel
   >
     @for (item of overflowItems(); track trackByIndex($index)) {

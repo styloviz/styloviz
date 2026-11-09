@@ -2,7 +2,9 @@
 
 > Back and Up as two different controls, because they are two different promises: back is history and may leave the site, up is hierarchy and is always defined. A back control with nothing behind it goes up rather than dead-ending, and says which it did.
 
-Part of the **Styloviz UI Kit** — a premium Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
+
+> **Free tier — MIT licensed.** Use it in personal and commercial projects at no cost, with no account or key. Styloviz Pro (`@styloviz-pro/*`) is a separate tier under a commercial license, installed from its own registry; nothing in this package requires it. Licensing: https://styloviz.dev/license · Pro: https://styloviz.dev/pricing
 
 ## Installation
 
@@ -58,10 +60,10 @@ export class DemoComponent {}
 | Input | Type | Default | Description |
 | --- | --- | --- | --- |
 | `mode` | `BackUpMode` | `'back'` | What this control promises. `back` returns through history and falls back to up; `up` always goes to up. |
-| `up` | `SvLinkTarget \| null` | `null` | The hierarchical parent — where "up" goes, and where "back" lands when there is no history. **Required in practice**: without it a `back` control has no fallback and can still dead-end, which is the defect this component exists to prevent. Warns once in dev when it is missing. |
+| `up` | `SvLinkTarget \| null` | `null` | The hierarchical parent — where "up" goes, and where "back" lands when there is no history. **Required in practice**: without it a `back` control has no fallback and can dead-end on a deep-linked page. Warns once in dev when it is missing. |
 | `upLabel` | `string` | `''` | Name of the up destination, used in the visible text and the accessible name — "Back to Orders", "Up to Orders". Without it the control reads as a bare "Back", which tells a screen-reader user nothing about where they will end up. |
 | `label` | `string` | `''` | Override the whole visible text. Leave unset to compose it from mode and upLabel. |
-| `stayInSite` | `boolean` | `false` | Only use history when the previous entry is provably this app's — otherwise go up. OFF BY DEFAULT, AND THAT IS THE RIGHT DEFAULT FOR A *BACK* CONTROL. Back meaning "the browser's back", including off the site, is what the word has always meant and what the hardware button does. Turn this on for a control that is really *"return to where you were in this app"* — a wizard's escape hatch, a detail page's return-to-list — where leaving the site is never the intended answer. "Provably ours" means: this control has observed at least one in-app navigation since it was created, **or** `document.referrer` is same-origin. Anything else is treated as not ours, because the failure modes are not symmetric — going up when back would have worked is a mild surprise; leaving the site when the user expected to stay is a lost session. ⚠️ In a single-page app both signals are weaker: a router's `pushState` is not observed, a control inside a routed page starts counting from zero on each route, and `document.referrer` describes how the reader entered the app, not the entry behind this one. So it errs towards going up. |
+| `stayInSite` | `boolean` | `false` | Only use history when the previous entry is provably this app's — otherwise go up. Off by default, and that is the right default for a *BACK* CONTROL. Back meaning "the browser's back", including off the site, is what the word has always meant and what the hardware button does. Turn this on for a control that is really *"return to where you were in this app"* — a wizard's escape hatch, a detail page's return-to-list — where leaving the site is never the intended answer. "Provably ours" means: this control has observed at least one in-app navigation since it was created, **or** `document.referrer` is same-origin. Anything else is treated as not ours, because the failure modes are not symmetric — going up when back would have worked is a mild surprise; leaving the site when the user expected to stay is a lost session. In a single-page app both signals are weaker: a router's `pushState` is not observed, a control inside a routed page starts counting from zero on each route, and `document.referrer` describes how the reader entered the app, not the entry behind this one. So it errs towards going up. |
 | `variant` | `BackUpVariant` | `'ghost'` | Visual treatment. |
 | `size` | `BackUpSize` | `'md'` | Control size. |
 | `disabled` | `boolean` | `false` | Prevents the control from being used. |
@@ -81,4 +83,4 @@ Full API reference and live demos: https://styloviz.dev/docs/back-up
 
 ## License
 
-MIT
+MIT — see https://styloviz.dev/license. Styloviz Pro (`@styloviz-pro/*`) is licensed separately.

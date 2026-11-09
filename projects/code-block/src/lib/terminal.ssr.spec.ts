@@ -49,5 +49,9 @@ describe('SvTerminalComponent — the typed intro and the server', () => {
     // At most the one character timer already pending when it was destroyed —
     // after that the loop sees the bumped run and stops scheduling.
     expect(setTimeout.mock.calls.length).toBeLessThanOrEqual(1);
+    // Released here, while the fake clock is still installed: a spy left for
+    // `restoreAllMocks` after `useRealTimers` puts the FAKE setTimeout back on
+    // globalThis, and every timer in the next file in the worker hangs (FL-A8-02).
+    setTimeout.mockRestore();
   });
 });
