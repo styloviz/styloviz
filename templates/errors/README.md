@@ -4,7 +4,7 @@ Fourteen system pages — every common 4xx and 5xx, plus offline, maintenance an
 
 | | |
 |---|---|
-| Version | **2.0.0** |
+| Version | **2.0.1** |
 | Tier | **Free** |
 | Built with | Angular 22.2.0, Tailwind CSS 4, TypeScript (strict), standalone components, signals, zoneless change detection |
 | Opens at | `http://localhost:4200/templates/errors` |

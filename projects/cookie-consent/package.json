@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/cookie-consent",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A GDPR / ePrivacy cookie banner: a bottom banner, a corner card or a modal dialog, \"Reject all\" exactly as prominent as \"Accept all\", per-category native switches with nothing optional pre-ticked, and a consent record — the choices, an ISO timestamp and your policy version — for you to store and…",
   "keywords": [
     "angular",
@@ -24,8 +24,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/icons": "^2.0.0"
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/icons": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

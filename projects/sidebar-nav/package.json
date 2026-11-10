@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/sidebar-nav",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "The reusable navigation of a dashboard, with no router dependency and no brand welded in — a sidebar (grouped items, click-to-expand sub-navigation with an active trail, a collapsed rail and a mobile drawer) and a phone bottom navigation bar, both rendered from the same MenuItem model.",
   "keywords": [
     "angular",
@@ -24,10 +24,10 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/icons": "^2.0.0",
-    "@styloviz/overlays": "^2.0.0",
-    "@styloviz/scroll-area": "^2.0.0"
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/icons": "^2.0.1",
+    "@styloviz/overlays": "^2.0.1",
+    "@styloviz/scroll-area": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/stepper",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "9 variants — eight wizard styles (default, pill, minimal, icon, dot, line, card, progress-bar) plus a non-interactive tracker — all free, in four sizes (xs–lg) and both orientations.",
   "keywords": [
     "angular",
@@ -23,8 +23,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/icons": "^2.0.0"
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/icons": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

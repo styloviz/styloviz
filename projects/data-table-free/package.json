@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/data-table",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "The data table's `responsive=\"records\"`: a table that becomes a list of records when there is no room to be a table.",
   "keywords": [
     "angular",
@@ -24,8 +24,8 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/icons": "^2.0.0"
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/icons": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

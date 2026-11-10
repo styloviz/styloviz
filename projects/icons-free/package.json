@@ -1,7 +1,7 @@
 {
   "name": "@styloviz/icons",
-  "version": "2.0.0",
-  "description": "183 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode.",
+  "version": "2.0.1",
+  "description": "185 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode.",
   "keywords": [
     "angular",
     "tailwind",

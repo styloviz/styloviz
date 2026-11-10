@@ -11,6 +11,31 @@ Every package in the kit shares one version, sourced from `packages.json`.
 
 ---
 
+## [2.0.1] — 2026-11-10
+
+A patch release. No API changes; every package moves to 2.0.1 in lockstep.
+Found by installing the kit from public npm and the Pro registry the way a
+buyer does and building the showcase from those packages.
+
+### Fixed — `@styloviz-pro/rich-editor` rendered unstyled in your app
+
+2.0.0 shipped the editor's stylesheet uncompiled — 108 Tailwind `@apply` rules,
+which a browser ignores. The toolbar buttons had no hover, focus ring or dark
+mode, dropdowns had no border or background, and links, quotes, code and tables
+inside the editor had no colours. The package now ships compiled CSS, and a new
+gate (`check:component-css`) stops any component shipping raw Tailwind again.
+
+### Fixed — importing `@styloviz-pro/icons/glyph/sparkles` broke the build
+
+2.0.0 shipped that per-glyph entry point although `sparkles` is not a Pro glyph
+(it is free: `@styloviz/icons/glyph/sparkles`). The entry is gone, per-glyph
+entries are generated only for exported glyphs, and the docs examples that used
+it now use `brain`.
+
+### Fixed — `@styloviz/icons` said 183 glyphs; it ships 185
+
+---
+
 ## [2.0.0] — 2026-11-09
 
 The breaking release. Every 1.x API kept only for compatibility is gone, every

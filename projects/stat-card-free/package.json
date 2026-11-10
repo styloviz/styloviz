@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/stat-card",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "KPI metric cards with sparklines, trend chips and four layout variants.",
   "keywords": [
     "angular",
@@ -24,9 +24,9 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/icons": "^2.0.0",
-    "@styloviz/sparkline": "^2.0.0"
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/icons": "^2.0.1",
+    "@styloviz/sparkline": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/code-block",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Developer components — a code block with its own highlighter for 9 languages (block, tabs, diff and terminal variants), a live terminal with ANSI colour and autoscroll that pauses when you scroll up, a diff viewer for two texts or a git patch, a stack-trace viewer for V8, Firefox and Safari trace…",
   "keywords": [
     "angular",
@@ -24,9 +24,9 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^2.0.0",
-    "@styloviz/core": "^2.0.0",
-    "@styloviz/tree-view": "^2.0.0"
+    "@styloviz/icons": "^2.0.1",
+    "@styloviz/core": "^2.0.1",
+    "@styloviz/tree-view": "^2.0.1"
   },
   "publishConfig": {
     "access": "public"

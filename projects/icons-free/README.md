@@ -1,6 +1,6 @@
 # @styloviz/icons
 
-> 183 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 514 more glyphs and the `sharp` and `duotone` weights.
+> 185 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode. Pro adds 514 more glyphs and the `sharp` and `duotone` weights.
 
 Part of the **Styloviz UI Kit** — an Angular 21 & 22 + Tailwind CSS 4 dashboard component library. Standalone, `OnPush`, strongly typed, dark-mode ready.
 

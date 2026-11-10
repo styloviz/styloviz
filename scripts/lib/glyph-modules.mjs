@@ -41,8 +41,13 @@ export function parseGlyphSource(src, file) {
   const def = /^export const (\w+): SvIconDef = (\{[^\n]*\});$/m.exec(src);
   const cls = /^export class (\w+) extends \w+/m.exec(src)?.[1];
   if (!data.length || !cls) throw new Error(`glyph-modules: ${file} is not in the generated shape (nodes + component)`);
-  // A Pro glyph that shares a free glyph's name has no registrable def of its own (Pro `sparkles`).
   return { data, def: def ? { name: def[1], value: def[2] } : null, cls };
+}
+
+/** The glyph names an icon project's generated barrel exports. */
+function exportedGlyphs(root, project) {
+  const index = readFileSync(join(root, 'projects', project, 'src/generated/index.ts'), 'utf8');
+  return new Set([...index.matchAll(/from '\.\/icons\/([\w-]+)\.icon'/g)].map((m) => m[1]));
 }
 
 /** Emit the per-glyph modules for one built icon project. Returns the glyph count. */
@@ -52,6 +57,13 @@ export function emitGlyphModules(root, project) {
   const dist = join(root, pkg.dist);
   if (!existsSync(join(dist, 'package.json'))) throw new Error(`glyph-modules: ${pkg.dist} is not built`);
   const srcDir = join(root, 'projects', project, 'src/generated/icons');
+  // ★ Only glyphs the package's barrel exports get a module. A source the
+  //   generator keeps but does not export (KEPT_ORPHANS in
+  //   generate-icons-pro-stub.mjs — Pro `sparkles`) would otherwise ship as
+  //   `glyph/<name>` re-exporting a class the package does not have: 2.0.0
+  //   published `@styloviz-pro/icons/glyph/sparkles`, and importing it failed
+  //   the buyer's build (registry run, 10 Nov 2026).
+  const exported = exportedGlyphs(root, project);
 
   const fesmGlyph = join(dist, 'fesm2022/glyph');
   const typesGlyph = join(dist, 'types/glyph');
@@ -60,7 +72,9 @@ export function emitGlyphModules(root, project) {
     mkdirSync(d, { recursive: true });
   }
 
-  const files = readdirSync(srcDir).filter((f) => f.endsWith('.icon.ts')).sort();
+  const files = readdirSync(srcDir)
+    .filter((f) => f.endsWith('.icon.ts') && exported.has(f.slice(0, -'.icon.ts'.length)))
+    .sort();
   for (const f of files) {
     const glyph = f.slice(0, -'.icon.ts'.length);
     const { data, def, cls } = parseGlyphSource(readFileSync(join(srcDir, f), 'utf8'), f);
@@ -93,7 +107,8 @@ export function emitGlyphModules(root, project) {
       rmSync(d, { recursive: true, force: true });
       mkdirSync(d, { recursive: true });
     }
-    for (const f of readdirSync(freeSrc).filter((x) => x.endsWith('.icon.ts'))) {
+    const freeExported = exportedGlyphs(root, 'icons-free');
+    for (const f of readdirSync(freeSrc).filter((x) => x.endsWith('.icon.ts') && freeExported.has(x.slice(0, -'.icon.ts'.length)))) {
       const glyph = f.slice(0, -'.icon.ts'.length);
       const line = `export * from '@styloviz/icons/glyph/${glyph}';\n`;
       writeFileSync(join(fesmFree, `${glyph}.mjs`), HEADER + line);
