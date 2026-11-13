@@ -23,7 +23,7 @@ import { svNavParam } from '@styloviz/core/nav';
 import { svRecoverFocus } from '@styloviz/core/overlay';
 import { svHighlightSegments, type SvHighlightSegment } from '@styloviz/core/security';
 import { SV_ACCORDION_LABELS } from './accordion-free.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerAccordionIcons } from './accordion.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

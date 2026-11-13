@@ -23,7 +23,7 @@ import {
   type Validator,
 } from '@angular/forms';
 import { isPlatformBrowser, NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { SvFieldErrorComponent, createFieldError, svDescribedBy, type SvServerError } from '@styloviz/core/forms';

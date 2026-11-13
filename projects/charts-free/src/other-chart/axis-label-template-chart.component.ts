@@ -11,8 +11,8 @@ import { type SvDataSummary } from '@styloviz/core/a11y';
 import { SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
 import { SvChartAnimDirective } from '@styloviz/core/directives';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { formatChartValue, niceMax, gridTicks, roundedTopRectPath } from '../bar-chart/bar-chart.utils';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { formatChartValue, niceMax, gridTicks, roundedTopRectPath } from '@styloviz/charts/bar-chart';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

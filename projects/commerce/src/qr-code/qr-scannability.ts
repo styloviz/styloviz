@@ -16,7 +16,7 @@
  */
 
 import { svFormatLabel } from '@styloviz/core/i18n';
-import type { SvCommerceLabels } from '../commerce.labels';
+import type { SvCommerceLabels } from '@styloviz/commerce/labels';
 
 /** Error-correction levels, and how much of the symbol each can lose. */
 export type SvQrEcLevel = 'L' | 'M' | 'Q' | 'H';

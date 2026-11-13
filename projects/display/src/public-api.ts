@@ -12,31 +12,31 @@
  */
 
 // ── Accessible names ─────────────────────────────────────────────────────────
-export { SV_DISPLAY_LABELS } from './display.labels';
-export type { SvDisplayLabels } from './display.labels';
+export { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
+export type { SvDisplayLabels } from '@styloviz/display/labels';
 
 // ── Media ────────────────────────────────────────────────────────────────────
-export { SvCarouselComponent, DEMO_SLIDES } from './carousel/carousel.component';
+export { SvCarouselComponent, DEMO_SLIDES } from '@styloviz/display/carousel';
 export type {
   CarouselVariant,
   CarouselIndicator,
   CarouselSlide,
-} from './carousel/carousel.component';
-export { SvImageGalleryComponent, DEMO_IMAGES } from './image-gallery/image-gallery.component';
+} from '@styloviz/display/carousel';
+export { SvImageGalleryComponent, DEMO_IMAGES } from '@styloviz/display/image-gallery';
 export type {
   GalleryLayout,
   GalleryColumns,
   GalleryViewerSize,
   GalleryViewerAspect,
   GalleryImage,
-} from './image-gallery/image-gallery.component';
+} from '@styloviz/display/image-gallery';
 // ── Collections ──────────────────────────────────────────────────────────────
-export { SvDndListComponent, DEMO_DND_ITEMS } from './dnd-list/dnd-list.component';
-export type { DndListVariant, DndItem, DndReorderEvent } from './dnd-list/dnd-list.component';
+export { SvDndListComponent, DEMO_DND_ITEMS } from '@styloviz/display/dnd-list';
+export type { DndListVariant, DndItem, DndReorderEvent } from '@styloviz/display/dnd-list';
 export {
   SvDescriptionActionDirective,
   SvDescriptionsComponent,
-} from './descriptions/descriptions.component';
+} from '@styloviz/display/descriptions';
 export type {
   DescriptionsLayout,
   DescriptionsVariant,
@@ -44,17 +44,17 @@ export type {
   DescriptionsColumns,
   DescriptionsStackAt,
   DescriptionItem,
-} from './descriptions/descriptions.component';
-export { SvItemsWithMoreComponent, svSplitOverflow } from './items-with-more/items-with-more.component';
+} from '@styloviz/display/descriptions';
+export { SvItemsWithMoreComponent, svSplitOverflow } from '@styloviz/display/items-with-more';
 export type {
   ItemsWithMoreItem,
   MoreVariant,
-} from './items-with-more/items-with-more.component';
+} from '@styloviz/display/items-with-more';
 // ── Text ─────────────────────────────────────────────────────────────────────
-export { SvLineClampComponent } from './line-clamp/line-clamp.component';
+export { SvLineClampComponent } from '@styloviz/display/line-clamp';
 
-export { SvJsonViewerComponent } from './json-viewer/json-viewer.component';
-export { secretKeyRedactor } from './json-viewer/json-viewer.types';
+export { SvJsonViewerComponent } from '@styloviz/display/json-viewer';
+export { secretKeyRedactor } from '@styloviz/display/json-viewer';
 export type {
   JsonNodeKind,
   JsonViewerSize,
@@ -63,18 +63,18 @@ export type {
   JsonCopyEvent,
   JsonRedactContext,
   JsonRedactor,
-} from './json-viewer/json-viewer.types';
+} from '@styloviz/display/json-viewer';
 
 // ── Status ───────────────────────────────────────────────────────────────────
-export { SvStatusPageComponent } from './status-page/status-page.component';
-export type { SvStatusPageHeadingLevel, SvStatusPageLabels } from './status-page/status-page.component';
+export { SvStatusPageComponent } from '@styloviz/display/status-page';
+export type { SvStatusPageHeadingLevel, SvStatusPageLabels } from '@styloviz/display/status-page';
 export {
   svFormatUptime,
   svOverallStatus,
   svStatusFromUptime,
   svUptimeSummary,
   svWorstStatus,
-} from './status-page/status-page.logic';
+} from '@styloviz/display/status-page';
 export type {
   SvIncidentImpact,
   SvIncidentStatus,
@@ -88,18 +88,18 @@ export type {
   SvStatusUptimeDay,
   SvUptimeCell,
   SvUptimeSummary,
-} from './status-page/status-page.logic';
+} from '@styloviz/display/status-page';
 
 // ── Media ────────────────────────────────────────────────────────────────────
-export { SvMediaPlayerComponent } from './media-player/media-player.component';
+export { SvMediaPlayerComponent } from '@styloviz/display/media-player';
 export type {
   SvMediaLayout,
   SvMediaPlayerLabels,
   SvMediaPlaylistPosition,
   SvMediaPreload,
   SvMediaSinkError,
-} from './media-player/media-player.component';
-export { svFormatMediaTime, svIsSafeMediaUrl, svMediaSources, svMediaTracks } from './media-player/media-player.logic';
+} from '@styloviz/display/media-player';
+export { svFormatMediaTime, svIsSafeMediaUrl, svMediaSources, svMediaTracks } from '@styloviz/display/media-player';
 export type {
   SvMediaChangeReason,
   SvMediaErrorCode,
@@ -111,14 +111,14 @@ export type {
   SvMediaTextTrack,
   SvMediaTimeEvent,
   SvMediaTrackChange,
-} from './media-player/media-player.logic';
+} from '@styloviz/display/media-player';
 /** Demo media made in the browser — tree-shakes away unless a demo calls it. */
-export { svDemoAudio, svDemoCaptions, svDemoCaptionsDataUrl, svDemoVideo, svDemoVideoDataUrl } from './media-player/media-player.demo';
-export type { SvDemoAudioOptions, SvDemoCue, SvDemoMediaScene, SvDemoVideoOptions } from './media-player/media-player.demo';
+export { svDemoAudio, svDemoCaptions, svDemoCaptionsDataUrl, svDemoVideo, svDemoVideoDataUrl } from '@styloviz/display/media-player';
+export type { SvDemoAudioOptions, SvDemoCue, SvDemoMediaScene, SvDemoVideoOptions } from '@styloviz/display/media-player';
 
 // ── Voice ────────────────────────────────────────────────────────────────────
-export { SvTranscriptComponent } from './transcript/transcript.component';
-export type { SvTranscriptLabels } from './transcript/transcript.component';
+export { SvTranscriptComponent } from '@styloviz/display/transcript';
+export type { SvTranscriptLabels } from '@styloviz/display/transcript';
 export {
   svActiveSegmentIndex,
   svTranscriptFilename,
@@ -128,7 +128,7 @@ export {
   svTranscriptToText,
   svTranscriptToVtt,
   svVttTimestamp,
-} from './transcript/transcript.logic';
+} from '@styloviz/display/transcript';
 export type {
   SvResolvedSpeaker,
   SvTranscriptExportEvent,
@@ -139,16 +139,16 @@ export type {
   SvTranscriptSegment,
   SvTranscriptSpeaker,
   SvTranscriptTone,
-} from './transcript/transcript.logic';
-export { SvAudioDeviceSelectComponent } from './audio-device-select/audio-device-select.component';
-export type { SvAudioDeviceSelectLabels } from './audio-device-select/audio-device-select.component';
+} from '@styloviz/display/transcript';
+export { SvAudioDeviceSelectComponent } from '@styloviz/display/audio-device-select';
+export type { SvAudioDeviceSelectLabels } from '@styloviz/display/audio-device-select';
 export {
   SV_AUDIO_DEVICES,
   svAudioDevicesOf,
   svAudioLevel,
   svBrowserAudioDevices,
   svMicErrorCode,
-} from './audio-device-select/audio-device-select.logic';
+} from '@styloviz/display/audio-device-select';
 export type {
   SvAudioDevice,
   SvAudioDeviceBackend,
@@ -158,10 +158,10 @@ export type {
   SvMicError,
   SvMicErrorCode,
   SvMicPermission,
-} from './audio-device-select/audio-device-select.logic';
+} from '@styloviz/display/audio-device-select';
 
 /** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
-export * from './display.labels.packs';
+export * from '@styloviz/display/labels';
 
 // Types a public input or output names, so a host can name them too (FL-G8, check:public-types).
-export type { DndItemChangeEvent, DndRemoveEvent } from './dnd-list/dnd-list.component';
+export type { DndItemChangeEvent, DndRemoveEvent } from '@styloviz/display/dnd-list';

@@ -135,7 +135,7 @@ function migratePrimeng(options = {}) {
       if (used.size) {
         src = dropPrimeng(src, report.removed, new Set([...used].map((r) => r.primeng.slice(2))));
         const rows = [...used];
-        for (const r of rows) src = addImport(src, r.className, r.package);
+        for (const r of rows) src = addImport(src, r.className, r.importFrom || r.package);
         src = addToComponentImports(src, [...new Set(rows.map((r) => r.className))]);
       }
       if (src !== before || used.size) {

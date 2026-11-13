@@ -14,7 +14,7 @@ import { DOCUMENT, NgClass } from '@angular/common';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { SV_LINK_ADAPTER, svNavRecorder, type SvLinkTarget } from '@styloviz/core/nav';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_JUMP_MENU_LABELS } from './jump-menu.labels';
 
 import { registerJumpMenuIcons } from './jump-menu.component.icons';

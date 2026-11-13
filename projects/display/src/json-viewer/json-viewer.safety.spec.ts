@@ -9,7 +9,7 @@ import {
   secretKeyRedactor,
   type JsonCopyEvent,
 } from './json-viewer.types';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '../labels/display.labels';
 
 /**
  * The three things a JSON viewer can do that have nothing to do with rendering

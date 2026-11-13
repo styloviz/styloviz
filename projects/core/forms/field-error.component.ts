@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerFieldErrorIcons } from './field-error.component.icons';
 /**

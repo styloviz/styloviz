@@ -16,8 +16,8 @@ import { svWarnOnce } from '@styloviz/core/dev';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
 import { SV_LINK_ADAPTER, svIsModifiedClick } from '@styloviz/core/nav';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 import { registerSiteFooterIcons } from './site-footer.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

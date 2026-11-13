@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, input, model, output } fr
 import { SvRevealFocusDirective, svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_COMMERCE_LABELS, type SvCommerceLabels } from '../commerce.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_COMMERCE_LABELS, type SvCommerceLabels } from '@styloviz/commerce/labels';
 import {
   svAnnualMonthly,
   svAnnualSaving,

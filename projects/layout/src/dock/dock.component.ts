@@ -26,8 +26,8 @@ import { svWarnOnce } from '@styloviz/core/dev';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { SV_LINK_ADAPTER, svIsModifiedClick, type SvLinkTarget } from '@styloviz/core/nav';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_LAYOUT_LABELS, type SvLayoutLabels } from '../layout.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_LAYOUT_LABELS, type SvLayoutLabels } from '@styloviz/layout/labels';
 import { svDockClampPeak, svDockCurrentIndex, svDockFit, svDockLayout, svDockPointerIndex, type SvDockFit } from './dock.logic';
 
 import { registerDockIcons } from './dock.component.icons';

@@ -16,8 +16,8 @@ import { svUniqueId, svIsRtl, svPointerFraction } from '@styloviz/core/a11y';
 import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
 import { SvFieldErrorComponent, createFieldError, type SvServerError, svNumberOr } from '@styloviz/core/forms';
 import { svFormatCount, svLocale, injectSvLabels, svFormatLabel, SvLabelPipe } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '@styloviz/forms/labels';
 
 import { registerRatingIcons } from './rating.component.icons';
 export type RatingSize    = 'sm' | 'md' | 'lg' | 'xl';

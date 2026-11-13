@@ -6,7 +6,7 @@
  * received, and almost every mistake it can make is a mistake about TYPE.
  */
 import { svFormatLabel } from '@styloviz/core/i18n';
-import type { SvDisplayLabels } from '../display.labels';
+import type { SvDisplayLabels } from '@styloviz/display/labels';
 
 /** What a node is. Drives the colour, the preview and whether it opens. */
 export type JsonNodeKind =

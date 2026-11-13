@@ -9,10 +9,10 @@
  */
 
 // ── Money ────────────────────────────────────────────────────────────────────
-export { SvPriceComponent, svCurrencySymbolIsAmbiguous } from './price/price.component';
-export type { PriceSize, PriceAlign, PriceDiscount, PriceCurrencyName } from './price/price.component';
+export { SvPriceComponent, svCurrencySymbolIsAmbiguous } from '@styloviz/commerce/price';
+export type { PriceSize, PriceAlign, PriceDiscount, PriceCurrencyName } from '@styloviz/commerce/price';
 // ── Plans ────────────────────────────────────────────────────────────────────
-export { SvPricingTableComponent } from './pricing-table/pricing-table.component';
+export { SvPricingTableComponent } from '@styloviz/commerce/pricing-table';
 export type {
   SvPricingBilling,
   SvPricingCta,
@@ -22,7 +22,7 @@ export type {
   SvPricingPlanSelect,
   SvPricingTableLabels,
   SvPricingTableLayout,
-} from './pricing-table/pricing-table.component';
+} from '@styloviz/commerce/pricing-table';
 export {
   svAnnualMonthly,
   svAnnualSaving,
@@ -31,24 +31,24 @@ export {
   svClampDiscount,
   svFormatPlanPrice,
   svPricingHeadlineSaving,
-} from './pricing-table/pricing-math';
-export type { SvPricingAmount } from './pricing-table/pricing-math';
+} from '@styloviz/commerce/pricing-table';
+export type { SvPricingAmount } from '@styloviz/commerce/pricing-table';
 // ── Checkout & account ───────────────────────────────────────────────────────
-export { SvAddressCardComponent } from './address-card/address-card.component';
-export { SvAddressFormComponent } from './address-card/address-form.component';
+export { SvAddressCardComponent } from '@styloviz/commerce/address-card';
+export { SvAddressFormComponent } from '@styloviz/commerce/address-card';
 export type {
   Address,
   AddressActionEvent,
   AddressKind,
   AddressMaskLevel,
-} from './address-card/address-card.component';
+} from '@styloviz/commerce/address-card';
 export {
   DEFAULT_ADDRESS_SCHEMAS,
   GENERIC_ADDRESS_SCHEMA,
   resolveAddressSchema,
   svAddressSchemas,
   svGenericAddressSchema,
-} from './address-card/address-schema';
+} from '@styloviz/commerce/address-card';
 export type {
   AddressFieldName,
   AddressFieldSchema,
@@ -57,24 +57,24 @@ export type {
   AddressVerification,
   AddressVerificationStatus,
   SvAddressSchemaLabels,
-} from './address-card/address-schema';
+} from '@styloviz/commerce/address-card';
 // ── Fulfilment ───────────────────────────────────────────────────────────────
-export { SvFileDisplayComponent, svFormatBytes } from './file-display/file-display.component';
-export type { FileStatus, FileVariant, FileScanState, FileRemoveEvent, FileRetryEvent } from './file-display/file-display.component';
-export { SvQrCodeComponent, svQrModuleLayout } from './qr-code/qr-code.component';
-export type { QrErrorCorrection } from './qr-code/qr-code.component';
+export { SvFileDisplayComponent, svFormatBytes } from '@styloviz/commerce/file-display';
+export type { FileStatus, FileVariant, FileScanState, FileRemoveEvent, FileRetryEvent } from '@styloviz/commerce/file-display';
+export { SvQrCodeComponent, svQrModuleLayout } from '@styloviz/commerce/qr-code';
+export type { QrErrorCorrection } from '@styloviz/commerce/qr-code';
 export {
   SV_QR_MIN_CONTRAST,
   SV_QR_MIN_QUIET_ZONE,
   SV_QR_RECOVERY,
   svQrContrast,
   svQrScannability,
-} from './qr-code/qr-scannability';
-export type { SvQrEcLevel, SvQrScanCheck, SvQrScanLabels, SvQrWarning } from './qr-code/qr-scannability';
-export { SV_QR_MAX_VERSION, svQrCapacityBytes, svQrOverCapacity, svQrPayloadBytes } from './qr-code/qr-encoder.util';
+} from '@styloviz/commerce/qr-code';
+export type { SvQrEcLevel, SvQrScanCheck, SvQrScanLabels, SvQrWarning } from '@styloviz/commerce/qr-code';
+export { SV_QR_MAX_VERSION, svQrCapacityBytes, svQrOverCapacity, svQrPayloadBytes } from '@styloviz/commerce/qr-code';
 
-export { SV_COMMERCE_LABELS } from './commerce.labels';
-export type { SvCommerceLabels } from './commerce.labels';
+export { SV_COMMERCE_LABELS } from '@styloviz/commerce/labels';
+export type { SvCommerceLabels } from '@styloviz/commerce/labels';
 
 /** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
-export * from './commerce.labels.packs';
+export * from '@styloviz/commerce/labels';

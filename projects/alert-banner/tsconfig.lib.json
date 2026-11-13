@@ -10,6 +10,7 @@
       "@styloviz/icons": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
       "@styloviz/icons/glyph/*": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
       "@styloviz/icons/registry": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/icons/core": ["../../dist/@styloviz/icons/types/styloviz-icons-core.d.ts"],
       "@styloviz/core": ["../../dist/@styloviz/core/types/styloviz-core.d.ts"],
       "@styloviz/core/*": ["../../dist/@styloviz/core/types/styloviz-core-*.d.ts"]
     }

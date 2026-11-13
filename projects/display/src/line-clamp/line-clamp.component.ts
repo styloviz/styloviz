@@ -13,10 +13,10 @@ import {
   inject,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 
 import { registerLineClampIcons } from './line-clamp.component.icons';
 // ─── Component ───────────────────────────────────────────────────────────────

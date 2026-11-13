@@ -22,9 +22,9 @@ import {
   type SvDataError,
 } from '@styloviz/core/data';
 import { svLocale, injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerDndListIcons } from './dnd-list.component.icons';
 export type DndListVariant = 'default' | 'kanban' | 'checklist' | 'compact';

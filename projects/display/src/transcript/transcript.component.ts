@@ -28,9 +28,9 @@ import {
 } from '@styloviz/core/data';
 import { svDownloadText } from '@styloviz/core/export';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '../display.labels';
-import { svFormatMediaTime } from '../media-player/media-player.logic';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '@styloviz/display/labels';
+import { svFormatMediaTime } from '@styloviz/display/media-player';
 import {
   svActiveSegmentIndex,
   svSafeSeconds,

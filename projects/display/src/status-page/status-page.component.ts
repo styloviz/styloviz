@@ -10,9 +10,9 @@ import {
   type SvItemKey,
 } from '@styloviz/core/data';
 import { SV_MACHINE_LOCALE, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvTimelineComponent, type TimelineItem, type TimelineVariant } from '@styloviz/timeline';
-import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '../display.labels';
+import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '@styloviz/display/labels';
 import {
   svDayInZone,
   svDayToUtc,

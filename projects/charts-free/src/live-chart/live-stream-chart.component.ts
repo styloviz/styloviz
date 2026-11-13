@@ -21,7 +21,7 @@ import {
   type SvDataError,
 } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

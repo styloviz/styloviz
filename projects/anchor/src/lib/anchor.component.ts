@@ -18,7 +18,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser, NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { type SvUnresolvedValue } from '@styloviz/core/data';
 import { svWarnOnce } from '@styloviz/core/dev';
 import { injectSvLabels } from '@styloviz/core/i18n';

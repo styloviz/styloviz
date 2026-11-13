@@ -10,7 +10,7 @@ import {
 import { type SvDataSummary, svUniqueId } from '@styloviz/core/a11y';
 import { createSeriesEmphasis, SvChartFrameComponent, type SvDataError } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 
 export interface RadarSeries {
   readonly name: string;

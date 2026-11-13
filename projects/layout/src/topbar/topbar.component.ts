@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { ThemeService } from '@styloviz/core/services';
-import { SV_SHELL_CONTEXT } from '../dashboard-shell/shell-context';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SV_SHELL_CONTEXT } from '@styloviz/layout/sidebar';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 import { registerTopbarIcons } from './topbar.component.icons';
 /**

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvBadgeComponent } from '@styloviz/badge';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvEmptyShellComponent } from '@styloviz/core/data';
 import { accountRecord } from '../account.data';
 import { ACCOUNT_BILLING } from '../account.config';

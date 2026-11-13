@@ -13,13 +13,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
 import { SvAutosizeDirective } from '@styloviz/core/directives';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerInplaceEditIcons } from './inplace-edit.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

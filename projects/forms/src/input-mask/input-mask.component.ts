@@ -17,8 +17,8 @@ import {
   type SvServerError,
 } from '@styloviz/core/forms';
 import { svDigitsOnly, svNormalizeDigits, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '@styloviz/forms/labels';
 
 import { registerInputMaskIcons } from './input-mask.component.icons';
 type SvMaskLabelKey = Extract<keyof SvFormsLabels, `mask${string}`>;

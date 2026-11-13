@@ -27,7 +27,7 @@ import { svApplyPastedList, svPasteListSummary, svSplitPastedList, type SvPasteL
 import { svDescribedBy } from '@styloviz/core/forms';
 import { svFormatCount, svFormatLabel, injectSvLabels, SvLabelPipe, svLocale } from '@styloviz/core/i18n';
 import { createPortalHost, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_TAG_INPUT_LABELS } from './tag-input-free.labels';
 
 import { registerTagInputIcons } from './tag-input.component.icons';

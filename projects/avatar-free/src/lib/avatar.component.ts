@@ -7,7 +7,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvLabelPipe, injectSvLabels } from '@styloviz/core/i18n';
 import { SV_AVATAR_LABELS } from './avatar-free.labels';
 

@@ -19,8 +19,8 @@ import { svUniqueId } from '@styloviz/core/a11y';
 import { svWarnOnce } from '@styloviz/core/dev';
 import { svDescribedBy, SvFieldErrorComponent } from '@styloviz/core/forms';
 import { injectSvLabels, svFormatLabel, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerGroupIcons } from './group.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { SvTabsComponent, type TabItem } from '@styloviz/tabs';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import { SvToggleSwitchComponent } from '@styloviz/toggle-switch';
 import { SvBadgeComponent } from '@styloviz/badge';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvPasswordStrengthComponent } from '@styloviz/password-strength';
 import { SvEmptyShellComponent } from '@styloviz/core/data';
 import { SvModalComponent } from '@styloviz/modal';

@@ -14,7 +14,7 @@ import {
 } from '@styloviz/core/data';
 import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { SV_TIMELINE_LABELS } from './timeline-free.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerTimelineIcons } from './timeline.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

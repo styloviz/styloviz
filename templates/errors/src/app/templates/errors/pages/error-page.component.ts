@@ -12,7 +12,7 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { SvButtonComponent } from '@styloviz/button';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import {
   ERRORS_BRAND,

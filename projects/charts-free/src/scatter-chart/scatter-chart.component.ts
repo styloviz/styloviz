@@ -22,7 +22,7 @@ import {
   type SvPointBin,
 } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel, svLocale, SV_MACHINE_LOCALE, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 import {
   svScatterCrowding,
   svScatterHygiene,

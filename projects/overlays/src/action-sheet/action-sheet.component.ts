@@ -36,8 +36,8 @@ import {
   type SvPortalHost,
   type SvRouteAwareHandle,
 } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_OVERLAYS_LABELS, type SvOverlaysLabels } from '../overlays.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_OVERLAYS_LABELS, type SvOverlaysLabels } from '@styloviz/overlays/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

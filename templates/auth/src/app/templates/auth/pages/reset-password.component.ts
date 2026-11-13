@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvPasswordStrengthComponent } from '@styloviz/password-strength';
 import { AUTH_PASSWORD_POLICY, AUTH_SUPPORT, AUTH_BASE } from '../auth.config';
 import {

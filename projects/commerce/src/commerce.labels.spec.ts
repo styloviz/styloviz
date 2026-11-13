@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/angular';
 import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvAddressCardComponent } from './address-card/address-card.component';
 import type { Address } from './address-card/address-card.component';
-import { SV_COMMERCE_LABELS } from './commerce.labels';
+import { SV_COMMERCE_LABELS } from './labels/commerce.labels';
 import { SvFileDisplayComponent } from './file-display/file-display.component';
 
 /** FL-B1b: the accessible names are the package's English defaults until an app says otherwise. */

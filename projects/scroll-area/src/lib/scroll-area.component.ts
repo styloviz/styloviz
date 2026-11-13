@@ -14,7 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   prefersReducedMotion,
   svIsRtl,

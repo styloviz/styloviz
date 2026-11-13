@@ -29,9 +29,9 @@ import {
   svWeekdayLabels,
 } from '@styloviz/core/i18n';
 import { NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
-import { SvSegmentedControlComponent, type SegmentOption } from '../segmented-control/segmented-control.component';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SvSegmentedControlComponent, type SegmentOption } from '@styloviz/forms/segmented-control';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 import {
   SV_CRON_HOUR_INTERVALS,
   SV_CRON_MINUTE_INTERVALS,

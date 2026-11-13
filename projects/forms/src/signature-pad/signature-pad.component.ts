@@ -15,7 +15,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import {
   isSignatureEmpty,
@@ -33,7 +33,7 @@ import {
 } from './signature-pad.types';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerSignaturePadIcons } from './signature-pad.component.icons';
 /**

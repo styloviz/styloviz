@@ -38,10 +38,10 @@ It moves every Styloviz package to the new version together and runs the kit's m
 
 ## Reproducible installs
 
-The bundle pins each dependency to an **exact** version, so `@styloviz/all@2.0.1` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
+The bundle pins each dependency to an **exact** version, so `@styloviz/all@2.0.2` always resolves to the same component versions — a fixed kit snapshot. For fully reproducible builds, pin the bundle version and commit your lockfile:
 
 ```bash
-npm install @styloviz/all@2.0.1
+npm install @styloviz/all@2.0.2
 ```
 
 ## Upgrading to Pro

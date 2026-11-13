@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/phone-input",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A phone number field with a country selector (local flag assets, no remote images) that drives @styloviz/forms' sv-input-mask with a per-country mask for the national number — the country code stays in the picker. Ships alongside sv-phone-flag, the picker's standalone flag-glyph component.",
   "keywords": [
     "angular",
@@ -25,9 +25,9 @@
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
     "@angular/forms": ">=21.0.0 <23.0.0",
-    "@styloviz/icons": "^2.0.1",
-    "@styloviz/forms": "^2.0.1",
-    "@styloviz/core": "^2.0.1"
+    "@styloviz/icons": "^2.0.2",
+    "@styloviz/forms": "^2.0.2",
+    "@styloviz/core": "^2.0.2"
   },
   "publishConfig": {
     "access": "public"

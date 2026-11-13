@@ -126,41 +126,34 @@
 
   <!-- Indicators -->
   @if (indicator() !== 'none' && indicator() !== 'thumbnails' && positions() > 1) {
-    <!-- Gaps keep every indicator's centre 24 px from the next (WCAG 2.5.8): each
-         carries a 24×24 sv-target, and hit areas that overlap share the overlap.
+    <!-- WCAG 2.5.8: each dot or line is a 24×24 button, so the target never
+         depends on spacing or on the frame a scan lands on (R12: a 4 px-high line
+         failed axe target-size mid-change). The visible mark is two aria-hidden
+         layers: the resting mark and the wider active pill. Changing slide fades
+         between them, because the kit animates only transform and opacity.
          A vertical carousel stacks them down its inline-end edge. -->
     <!-- sv-physical: centring — left-1/2 with -translate-x-1/2 is direction-neutral -->
     <div [class]="vertical() ? 'end-3 top-1/2 -translate-y-1/2 flex-col' : 'bottom-3 left-1/2 -translate-x-1/2'"
          class="absolute z-10 flex items-center"
-         [class.gap-4]="indicator() === 'dots'"
-         [class.gap-2]="indicator() === 'lines'"
+         [class.gap-0.5]="indicator() === 'dots' || indicator() === 'lines'"
          [class.gap-1.5]="indicator() === 'numbers'"
          role="group" [attr.aria-label]="labels.chooseSlide">
       @for (i of slideSlots(); track i) {
-        @if (indicator() === 'dots') {
+        @if (indicator() === 'dots' || indicator() === 'lines') {
           <button type="button"
-            class="sv-target rounded-full transition-all duration-300 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            [style.height]="vertical() && current() === i ? '22px' : '8px'"
-            [style.width]="!vertical() && current() === i ? '22px' : '8px'"
-            [style.background-color]="current() === i ? 'white' : 'rgba(255,255,255,0.45)'"
+            class="relative flex h-6 w-6 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
             [attr.aria-current]="current() === i ? 'true' : null"
             [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
-            (click)="goTo(i)"></button>
-        }
-        @if (indicator() === 'lines') {
-          <button type="button"
-            class="sv-target rounded-full transition-all duration-200"
-            [class.h-1]="!vertical()"
-            [class.w-1]="vertical()"
-            [class.w-6]="!vertical() && current() === i"
-            [class.w-4]="!vertical() && current() !== i"
-            [class.h-6]="vertical() && current() === i"
-            [class.h-4]="vertical() && current() !== i"
-            [class.bg-white]="current() === i"
-            [class.bg-white/50]="current() !== i"
-            [attr.aria-current]="current() === i ? 'true' : null"
-            [attr.aria-label]="labels.goToSlide | svLabel: { index: i + 1 }"
-            (click)="goTo(i)"></button>
+            (click)="goTo(i)">
+            <span aria-hidden="true"
+              class="absolute rounded-full transition-opacity duration-300 ease-in-out"
+              [class]="indicator() === 'dots' ? 'h-2 w-2 bg-white/45' : vertical() ? 'h-4 w-1 bg-white/50' : 'h-1 w-4 bg-white/50'"
+              [class.opacity-0]="current() === i"></span>
+            <span aria-hidden="true"
+              class="absolute rounded-full bg-white transition-opacity duration-300 ease-in-out"
+              [class]="indicator() === 'dots' ? (vertical() ? 'h-[22px] w-2' : 'h-2 w-[22px]') : vertical() ? 'h-6 w-1' : 'h-1 w-6'"
+              [class.opacity-0]="current() !== i"></span>
+          </button>
         }
         @if (indicator() === 'numbers') {
           <button type="button"

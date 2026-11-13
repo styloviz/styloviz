@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { AUTH_BASE, AUTH_LOCKED_USER } from '../auth.config';
 import { authUnlock, isAuthWired } from '../auth.data';
 

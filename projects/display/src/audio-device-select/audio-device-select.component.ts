@@ -16,9 +16,9 @@ import {
 } from '@angular/core';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvSelectDropdownComponent, type SelectOption, type SelectSize } from '@styloviz/select-dropdown';
-import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '../display.labels';
+import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '@styloviz/display/labels';
 import {
   SV_AUDIO_DEVICES,
   svAudioDevicesOf,

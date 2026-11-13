@@ -18,7 +18,7 @@ import {
   type SvDataError,
 } from '@styloviz/core/data';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

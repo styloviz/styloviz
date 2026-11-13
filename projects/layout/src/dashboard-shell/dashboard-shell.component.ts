@@ -3,9 +3,9 @@ import { ChangeDetectionStrategy, Component, contentChild, ElementRef, forwardRe
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { svFragmentHref } from '@styloviz/core/nav';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
-import { SvSidebarComponent } from '../sidebar/sidebar.component';
-import { SV_SHELL_CONTEXT, type SvShellContext } from './shell-context';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
+import { SvSidebarComponent } from '@styloviz/layout/sidebar';
+import { SV_SHELL_CONTEXT, type SvShellContext } from '@styloviz/layout/sidebar';
 
 /**
  * SvDashboardShellComponent — the app shell's frame.

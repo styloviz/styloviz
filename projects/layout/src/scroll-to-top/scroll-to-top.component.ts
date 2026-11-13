@@ -12,13 +12,13 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { prefersReducedMotion } from '@styloviz/core/a11y';
 import { svWarnOnce } from '@styloviz/core/dev';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { SV_FLOATING_ORDER, svFloatingInset, svFloatingRegion } from '@styloviz/core/layout';
 import { svIsFocusable } from '@styloviz/core/overlay';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 import { registerScrollToTopIcons } from './scroll-to-top.component.icons';
 export type ScrollToTopVariant    = 'circle' | 'rounded' | 'pill';

@@ -7,20 +7,20 @@
  */
 
 // ── Accessible names ─────────────────────────────────────────────────────────
-export { SV_AI_LABELS } from './ai.labels';
-export type { SvAiLabels } from './ai.labels';
+export { SV_AI_LABELS } from '@styloviz/ai/labels';
+export type { SvAiLabels } from '@styloviz/ai/labels';
 
 /** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
-export * from './ai.labels.packs';
+export * from '@styloviz/ai/labels';
 
 // ── Suggestions ──────────────────────────────────────────────────────────────
-export { SvSuggestionsComponent } from './suggestions/suggestions.component';
-export type { SvSuggestion, SvSuggestionsLayout } from './suggestions/suggestions.component';
+export { SvSuggestionsComponent } from '@styloviz/ai/suggestions';
+export type { SvSuggestion, SvSuggestionsLayout } from '@styloviz/ai/suggestions';
 
 // ── Message actions ──────────────────────────────────────────────────────────
-export { SvMessageActionsComponent } from './message-actions/message-actions.component';
+export { SvMessageActionsComponent } from '@styloviz/ai/message-actions';
 export type {
   SvMessageAction,
   SvMessageCopyState,
   SvMessageFeedback,
-} from './message-actions/message-actions.component';
+} from '@styloviz/ai/message-actions';

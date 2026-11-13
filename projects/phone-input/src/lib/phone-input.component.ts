@@ -23,7 +23,7 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms';
-import { SvInputMaskComponent, type InputMaskSize, type InputMaskVariant } from '@styloviz/forms';
+import { SvInputMaskComponent, type InputMaskSize, type InputMaskVariant } from '@styloviz/forms/input-mask';
 import { PHONE_COUNTRIES, type PhoneCountry } from './phone-countries';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { svDigitsOnly, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
@@ -38,7 +38,7 @@ import {
 } from '@styloviz/core/overlay';
 import { svLengthHint, svMaxNational, svNationalMask } from './phone-plan';
 import { SvPhoneFlagComponent } from './phone-flag.component';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_PHONE_INPUT_LABELS } from './phone-input.labels';
 
 import { registerPhoneInputIcons } from './phone-input.component.icons';

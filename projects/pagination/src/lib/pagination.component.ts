@@ -20,7 +20,7 @@ import { injectSvLabels, svFormatLabel, svLocale, SvLabelPipe } from '@styloviz/
 import { svNavParam, svNavRecorder, type SvNavIntent } from '@styloviz/core/nav';
 import { svRecoverFocus } from '@styloviz/core/overlay';
 import { svAttrSelector } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { FormsModule } from '@angular/forms';
 import { createSvCursorPager } from './cursor-pager';
 import { SV_PAGINATION_LABELS } from './pagination.labels';

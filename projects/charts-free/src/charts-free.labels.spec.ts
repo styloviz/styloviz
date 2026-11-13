@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/angular';
 import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvLiveStreamChartComponent } from './live-chart/live-stream-chart.component';
 import { SvBarChartComponent } from './bar-chart/bar-chart.component';
-import { SV_CHARTS_LABELS } from './charts-free.labels';
+import { SV_CHARTS_LABELS } from './labels/charts-free.labels';
 
 /** FL-B1b: the accessible names are the package's English defaults until an app says otherwise. */
 async function setup(providers: unknown[] = []) {

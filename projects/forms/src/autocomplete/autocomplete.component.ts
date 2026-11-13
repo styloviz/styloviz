@@ -41,8 +41,8 @@ import { NgTemplateOutlet } from '@angular/common';
 import { forwardRef } from '@angular/core';
 import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
 import { svHighlightSegments, type SvHighlightSegment } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerAutocompleteIcons } from './autocomplete.component.icons';
 export type AutocompleteSize    = 'sm' | 'md' | 'lg';

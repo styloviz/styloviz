@@ -8,8 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { svRovingTarget } from '@styloviz/core/a11y';
-import { SvChipComponent } from '../chip/chip.component';
-import { SV_CHIP_GROUP, type SvChipGroupContext } from './chip-group.token';
+import { SvChipComponent } from '@styloviz/forms/chip';
+import { SV_CHIP_GROUP, type SvChipGroupContext } from '@styloviz/forms/chip';
 
 /** Layout direction of the chips. */
 export type ChipGroupOrientation = 'horizontal' | 'vertical';

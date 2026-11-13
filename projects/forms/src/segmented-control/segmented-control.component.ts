@@ -14,8 +14,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { svRovingTarget, svUniqueId } from '@styloviz/core/a11y';
 import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
 import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerSegmentedControlIcons } from './segmented-control.component.icons';
 export type SegmentedSize    = 'xs' | 'sm' | 'md' | 'lg';

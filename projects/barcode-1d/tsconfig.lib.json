@@ -12,12 +12,14 @@
       ],
       "@styloviz/icons/glyph/*": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
       "@styloviz/icons/registry": ["../../dist/@styloviz/icons/types/styloviz-icons.d.ts"],
+      "@styloviz/icons/core": ["../../dist/@styloviz/icons/types/styloviz-icons-core.d.ts"],
       "@styloviz-pro/icons": [
         "../../dist/@styloviz-pro/icons/types/styloviz-pro-icons.d.ts"
       ],
       "@styloviz-pro/icons/glyph/*": ["../../dist/@styloviz-pro/icons/types/styloviz-pro-icons.d.ts"],
       "@styloviz-pro/icons/free/*": ["../../dist/@styloviz-pro/icons/types/styloviz-pro-icons.d.ts"],
       "@styloviz-pro/icons/registry": ["../../dist/@styloviz-pro/icons/types/styloviz-pro-icons.d.ts"],
+      "@styloviz-pro/icons/core": ["../../dist/@styloviz-pro/icons/types/styloviz-pro-icons-core.d.ts"],
       "@styloviz/core": [
         "../../dist/@styloviz/core/types/styloviz-core.d.ts"
       ],

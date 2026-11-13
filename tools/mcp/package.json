@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/mcp",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Model Context Protocol server for the Styloviz Angular + Tailwind UI kit — docs and API search, component picker, snippets, demo variants, templates, icons and theme tokens, answered offline from the kit's own docs.",
   "keywords": [
     "mcp",

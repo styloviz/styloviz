@@ -11,7 +11,7 @@ import { type SvDataSummary } from '@styloviz/core/a11y';
 import { SvChartFrameComponent, type SvDataError, type SvValuePolicy } from '@styloviz/core/data';
 import { SvChartAnimDirective } from '@styloviz/core/directives';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 
 import type { BarChartDataset, BarChartOptions, TooltipState } from './bar-chart.types';
 import {

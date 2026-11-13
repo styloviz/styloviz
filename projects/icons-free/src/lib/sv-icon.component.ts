@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, afterNextRender, computed, inject, 
 import { SvIconSvgComponent } from './icon-svg.component';
 import { SvIconRegistry } from './provide-icons';
 import type { IconFlip, IconNode, IconSize, IconWeight } from './icon.types';
-import type { IconName } from '../generated/registry';
+import type { IconName } from './icon-names';
 import { svIconWarn } from './warn-once';
 
 /**

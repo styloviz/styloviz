@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, input, output } f
 import { svUniqueId } from '@styloviz/core/a11y';
 import { SvErrorShellComponent, SvSkeletonShellComponent, type SvDataError } from '@styloviz/core/data';
 import { SvLabelPipe, injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   svBarcodeWidth,
   svCode128Savings,

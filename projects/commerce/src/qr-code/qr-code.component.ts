@@ -15,7 +15,7 @@ import {
   type SvQrWarning,
 } from './qr-scannability';
 import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
+import { SV_COMMERCE_LABELS } from '@styloviz/commerce/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

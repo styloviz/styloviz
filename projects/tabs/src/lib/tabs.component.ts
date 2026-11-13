@@ -26,7 +26,7 @@ import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svNavParam, svNavRecorder, type SvNavIntent } from '@styloviz/core/nav';
 import { svRecoverFocus } from '@styloviz/core/overlay';
 import { svAttrSelector } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_TABS_LABELS } from './tabs.labels';
 
 import { registerTabsIcons } from './tabs.component.icons';

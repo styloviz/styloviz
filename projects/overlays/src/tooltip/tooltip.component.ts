@@ -19,7 +19,7 @@ import {
   untracked,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvKbdComponent } from '@styloviz/kbd';
 import { svHoverUnavailable, svOnHoverAvailabilityChange, svUniqueId } from '@styloviz/core/a11y';
 import { svWarnOnce } from '@styloviz/core/dev';

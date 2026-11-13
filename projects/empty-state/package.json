@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/empty-state",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Full-page or inline empty states with icons or illustrations, titles and action buttons — dashed, ghost-preview and glow variants, five sizes, an onboarding checklist, a search echo with suggestions, and a reason (no data, no results, error, no access) that picks the right copy.",
   "keywords": [
     "angular",
@@ -24,10 +24,10 @@
   "peerDependencies": {
     "@angular/common": ">=21.0.0 <23.0.0",
     "@angular/core": ">=21.0.0 <23.0.0",
-    "@styloviz/avatar": "^2.0.1",
-    "@styloviz/core": "^2.0.1",
-    "@styloviz/icons": "^2.0.1",
-    "@styloviz/kbd": "^2.0.1"
+    "@styloviz/avatar": "^2.0.2",
+    "@styloviz/core": "^2.0.2",
+    "@styloviz/icons": "^2.0.2",
+    "@styloviz/kbd": "^2.0.2"
   },
   "publishConfig": {
     "access": "public"

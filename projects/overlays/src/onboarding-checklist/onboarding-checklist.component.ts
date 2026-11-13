@@ -17,9 +17,9 @@ import {
 } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_OVERLAYS_LABELS, type SvOverlaysLabels } from '../overlays.labels';
-import { SvProgressRingComponent } from '../progress-ring/progress-ring.component';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_OVERLAYS_LABELS, type SvOverlaysLabels } from '@styloviz/overlays/labels';
+import { SvProgressRingComponent } from '@styloviz/overlays/progress-ring';
 
 import { registerOnboardingChecklistIcons } from './onboarding-checklist.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -21,9 +21,9 @@ import {
   type SvDataError,
 } from '@styloviz/core/data';
 import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 import { RouterLink } from '@angular/router';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerCarouselIcons } from './carousel.component.icons';
 export type CarouselVariant   = 'default' | 'card' | 'fade' | 'coverflow';

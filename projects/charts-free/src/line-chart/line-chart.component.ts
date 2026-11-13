@@ -22,7 +22,7 @@ import {
 } from '@styloviz/core/data';
 import { SvChartAnimDirective } from '@styloviz/core/directives';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

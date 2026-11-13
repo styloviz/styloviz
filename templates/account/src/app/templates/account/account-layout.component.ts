@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ThemeService } from '@styloviz/core/services';
 import { SvAvatarComponent } from '@styloviz/avatar';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { ACCOUNT_BRAND, ACCOUNT_USER, ACCOUNT_BASE } from './account.config';
 
 /**

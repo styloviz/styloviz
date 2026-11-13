@@ -16,8 +16,8 @@ import { svUniqueId } from '@styloviz/core/a11y';
 import { svNumberOr } from '@styloviz/core/forms';
 import { injectSvLabels, svLocale } from '@styloviz/core/i18n';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '@styloviz/forms/labels';
 
 import { registerSurveyIcons } from './survey.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

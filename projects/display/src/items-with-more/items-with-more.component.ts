@@ -21,7 +21,7 @@ import {
 import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
 import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svInlineAnchor, svStackedPopup } from '@styloviz/core/overlay';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────

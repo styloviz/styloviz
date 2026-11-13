@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/icons",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "185 original glyphs on a 24px grid, drawn by name through one component once registered, or imported per icon. Only the glyphs you register or import ship. currentColor throughout, so an icon inherits its text colour in light and dark mode.",
   "keywords": [
     "angular",
@@ -154,9 +154,13 @@
       "types": "./types/glyph/*.d.ts",
       "default": "./fesm2022/glyph/*.mjs"
     },
+    "./core": {
+      "types": "./types/styloviz-icons-core.d.ts",
+      "default": "./fesm2022/styloviz-icons-core.mjs"
+    },
     "./registry": {
-      "types": "./types/styloviz-icons.d.ts",
-      "default": "./fesm2022/styloviz-icons.mjs"
+      "types": "./types/registry.d.ts",
+      "default": "./fesm2022/registry.mjs"
     }
   }
 }

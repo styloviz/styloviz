@@ -19,7 +19,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
 import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';

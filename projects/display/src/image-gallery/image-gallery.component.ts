@@ -26,8 +26,8 @@ import {
 import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svStackedPopup, createFocusScope } from '@styloviz/core/overlay';
 import { svAttrSelector } from '@styloviz/core/security';
-import { SV_DISPLAY_LABELS } from '../display.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerImageGalleryIcons } from './image-gallery.component.icons';
 export type GalleryLayout  = 'grid' | 'masonry' | 'strip' | 'viewer';

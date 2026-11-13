@@ -8,8 +8,8 @@ import {
   type SvItemKey,
 } from '@styloviz/core/data';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_AI_LABELS, type SvAiLabels } from '../ai.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_AI_LABELS, type SvAiLabels } from '@styloviz/ai/labels';
 
 import { registerSuggestionsIcons } from './suggestions.component.icons';
 /** One prompt the user can start from. */

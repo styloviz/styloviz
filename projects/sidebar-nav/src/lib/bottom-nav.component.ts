@@ -5,7 +5,7 @@ import { injectSvLabels } from '@styloviz/core/i18n';
 import { type MenuItem } from '@styloviz/core/models';
 import { SV_LINK_ADAPTER, svIsModifiedClick, svNavRecorder } from '@styloviz/core/nav';
 import { SV_SHEET_SAFE_AREA_PADDING } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_SIDEBAR_NAV_LABELS, svSidebarRouteActive, svSidebarItemKey, type SvSidebarNavLabels } from './sidebar-nav.model';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

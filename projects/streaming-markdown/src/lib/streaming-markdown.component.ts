@@ -13,7 +13,7 @@ import { SvCodeBlockComponent } from '@styloviz/code-block';
 import type { CodeLanguage } from '@styloviz/code-block';
 import type { MdBlock, MdInline } from './streaming-markdown.types';
 import { parseMarkdown } from './markdown-parser';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_STREAMING_MARKDOWN_LABELS } from './streaming-markdown.labels';
 
 import { registerStreamingMarkdownIcons } from './streaming-markdown.component.icons';

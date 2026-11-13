@@ -14,7 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DOCUMENT, NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvLiveAnnouncer, svAnnouncePriorityFor } from '@styloviz/core/a11y';
 import { svWarnOnce } from '@styloviz/core/dev';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';

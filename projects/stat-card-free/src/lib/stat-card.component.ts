@@ -8,7 +8,7 @@ import {
 import { NgClass, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { SvErrorShellComponent, type SvDataError } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel, svLocale, svFormatCompact } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvSparklineComponent } from '@styloviz/sparkline';
 import { SV_STAT_CARD_LABELS } from './stat-card.labels';
 

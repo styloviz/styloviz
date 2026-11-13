@@ -39,8 +39,8 @@ import {
   SvLabelPipe,
 } from '@styloviz/core/i18n';
 import { createPortalHost, svInlineAnchor, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerTimePickerIcons } from './time-picker.component.icons';
 export type TimePickerFormat = '12h' | '24h';

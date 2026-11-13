@@ -8,58 +8,58 @@
  */
 
 // ── Choice ───────────────────────────────────────────────────────────────────
-export { SvCheckboxComponent } from './checkbox/checkbox.component';
-export type { CheckboxSize, CheckboxVariant, SvCheckboxChange } from './checkbox/checkbox.component';
+export { SvCheckboxComponent } from '@styloviz/forms/checkbox';
+export type { CheckboxSize, CheckboxVariant, SvCheckboxChange } from '@styloviz/forms/checkbox';
 
-export { SvRadioGroupComponent } from './radio-group/radio-group.component';
+export { SvRadioGroupComponent } from '@styloviz/forms/radio-group';
 export type {
   RadioGroupLayout,
   RadioGroupVariant,
   RadioGroupSize,
   RadioGroupStyle,
   RadioOption,
-} from './radio-group/radio-group.component';
+} from '@styloviz/forms/radio-group';
 
-export { SvSegmentedControlComponent } from './segmented-control/segmented-control.component';
+export { SvSegmentedControlComponent } from '@styloviz/forms/segmented-control';
 export type {
   SegmentedActivation,
   SegmentedSemantics,
   SegmentedSize,
   SegmentedVariant,
   SegmentOption,
-} from './segmented-control/segmented-control.component';
+} from '@styloviz/forms/segmented-control';
 
 // ── Numeric & range ──────────────────────────────────────────────────────────
-export { SvNumberInputComponent } from './number-input/number-input.component';
+export { SvNumberInputComponent } from '@styloviz/forms/number-input';
 export type {
   NumberInputSize,
   NumberInputVariant,
   NumberInputPreset,
-} from './number-input/number-input.component';
+} from '@styloviz/forms/number-input';
 
-export { SvSliderComponent } from './slider/slider.component';
-export type { SliderVariant, SliderSize } from './slider/slider.component';
+export { SvSliderComponent } from '@styloviz/forms/slider';
+export type { SliderVariant, SliderSize } from '@styloviz/forms/slider';
 
-export { SvRatingComponent } from './rating/rating.component';
-export type { RatingSize, RatingVariant, SvRatingChange } from './rating/rating.component';
+export { SvRatingComponent } from '@styloviz/forms/rating';
+export type { RatingSize, RatingVariant, SvRatingChange } from '@styloviz/forms/rating';
 
 // ── Suggestion & hierarchy ───────────────────────────────────────────────────
-export { SvAutocompleteComponent, SvAutocompleteOptionDirective } from './autocomplete/autocomplete.component';
+export { SvAutocompleteComponent, SvAutocompleteOptionDirective } from '@styloviz/forms/autocomplete';
 export type {
   AutocompleteSize,
   AutocompleteVariant,
   AutocompleteOption,
   AutocompleteMatch,
   SvAutocompleteOptionContext,
-} from './autocomplete/autocomplete.component';
+} from '@styloviz/forms/autocomplete';
 
 
 
 // ── Specialised entry ────────────────────────────────────────────────────────
-export { SvOtpInputComponent } from './otp-input/otp-input.component';
-export type { OtpInputVariant, OtpInputSize, OtpInputStatus, OtpInputMode } from './otp-input/otp-input.types';
+export { SvOtpInputComponent } from '@styloviz/forms/otp-input';
+export type { OtpInputVariant, OtpInputSize, OtpInputStatus, OtpInputMode } from '@styloviz/forms/otp-input';
 
-export { SvInputMaskComponent, svDateMaskFormat, svTimeMaskSeparator } from './input-mask/input-mask.component';
+export { SvInputMaskComponent, svDateMaskFormat, svTimeMaskSeparator } from '@styloviz/forms/input-mask';
 export type {
   InputMaskPreset,
   InputMaskSize,
@@ -68,37 +68,37 @@ export type {
   // out of every session-replay recorder. `FI-13-I1`; see `docs/pci-scope.md`.
   InputMaskSensitivity,
   InputMaskDateOrder,
-} from './input-mask/input-mask.component';
+} from '@styloviz/forms/input-mask';
 
-export { SvColorPickerComponent } from './color-picker/color-picker.component';
+export { SvColorPickerComponent } from '@styloviz/forms/color-picker';
 export type {
   ColorPickerFormat,
   ColorPickerSize,
   ColorSwatch,
-} from './color-picker/color-picker.types';
+} from '@styloviz/forms/color-picker';
 
-export { SvTimePickerComponent } from './time-picker/time-picker.component';
-export type { TimePickerFormat, TimePickerSize } from './time-picker/time-picker.component';
+export { SvTimePickerComponent } from '@styloviz/forms/time-picker';
+export type { TimePickerFormat, TimePickerSize } from '@styloviz/forms/time-picker';
 
 // ── Composition & affordances ────────────────────────────────────────────────
-export { SvGroupComponent } from './group/group.component';
-export type { GroupOrientation, GroupVariant, GroupGap } from './group/group.component';
+export { SvGroupComponent } from '@styloviz/forms/group';
+export type { GroupOrientation, GroupVariant, GroupGap } from '@styloviz/forms/group';
 
-export { SvChipComponent } from './chip/chip.component';
-export { SvChipGroupComponent } from './chip-group/chip-group.component';
-export type { ChipGroupOrientation, ChipGroupSelection } from './chip-group/chip-group.component';
-export type { ChipVariant, ChipSize, ChipStyle, ChipRole } from './chip/chip.component';
+export { SvChipComponent } from '@styloviz/forms/chip';
+export { SvChipGroupComponent } from '@styloviz/forms/chip-group';
+export type { ChipGroupOrientation, ChipGroupSelection } from '@styloviz/forms/chip-group';
+export type { ChipVariant, ChipSize, ChipStyle, ChipRole } from '@styloviz/forms/chip';
 
-export { SvLikeComponent } from './like/like.component';
-export type { LikeVariant, LikeSize, LikeToggleEvent } from './like/like.component';
+export { SvLikeComponent } from '@styloviz/forms/like';
+export type { LikeVariant, LikeSize, LikeToggleEvent } from '@styloviz/forms/like';
 
-export { SvFormErrorSummaryComponent } from './form-error-summary/form-error-summary.component';
+export { SvFormErrorSummaryComponent } from '@styloviz/forms/form-error-summary';
 export type {
   SvFormError,
   SvFormErrorReachFailure,
-} from './form-error-summary/form-error-summary.component';
+} from '@styloviz/forms/form-error-summary';
 
-export { SvInplaceEditComponent } from './inplace-edit/inplace-edit.component';
+export { SvInplaceEditComponent } from '@styloviz/forms/inplace-edit';
 export type {
   InplaceEditConflict,
   InplaceEditConflictChoice,
@@ -107,9 +107,9 @@ export type {
   InplaceEditSize,
   InplaceEditTrigger,
   InplaceEditOption,
-} from './inplace-edit/inplace-edit.component';
+} from '@styloviz/forms/inplace-edit';
 
-export { SvSignaturePadComponent } from './signature-pad/signature-pad.component';
+export { SvSignaturePadComponent } from '@styloviz/forms/signature-pad';
 export type {
   SignaturePadSize,
   SignaturePoint,
@@ -119,8 +119,8 @@ export type {
   // Read its doc before relying on the hash — it is not tamper-evidence.
   // `FI-21-M1`.
   SignatureAttestation,
-} from './signature-pad/signature-pad.types';
-export { isSignatureEmpty, pointCount, rescale, toSvg } from './signature-pad/signature-pad.types';
+} from '@styloviz/forms/signature-pad';
+export { isSignatureEmpty, pointCount, rescale, toSvg } from '@styloviz/forms/signature-pad';
 // The canonical serialisation is exported on purpose: a digest nobody can
 // recompute is a digest nobody can check, and the party who should be checking
 // is the server, in another language, later.
@@ -129,8 +129,8 @@ export {
   svSignatureHash,
   svSignatureRecord,
   svVerifySignature,
-} from './signature-pad/signature-pad.types';
-export { SvSurveyComponent, svNpsBand } from './survey/survey.component';
+} from '@styloviz/forms/signature-pad';
+export { SvSurveyComponent, svNpsBand } from '@styloviz/forms/survey';
 export type {
   SvSurveyKind,
   SvSurveyLayout,
@@ -140,9 +140,9 @@ export type {
   SvSurveyOption,
   SvSurveyResponse,
   SvSurveyLabels,
-} from './survey/survey.component';
-export { SvCronBuilderComponent } from './cron-builder/cron-builder.component';
-export type { SvCronBuilderLabels } from './cron-builder/cron-builder.component';
+} from '@styloviz/forms/survey';
+export { SvCronBuilderComponent } from '@styloviz/forms/cron-builder';
+export type { SvCronBuilderLabels } from '@styloviz/forms/cron-builder';
 export {
   SV_CRON_HOUR_INTERVALS,
   SV_CRON_MINUTE_INTERVALS,
@@ -155,7 +155,7 @@ export {
   svFormatCron,
   svNextCronRuns,
   svParseCron,
-} from './cron-builder/cron';
+} from '@styloviz/forms/cron-builder';
 export type {
   SvCron,
   SvCronDescribeOptions,
@@ -169,9 +169,9 @@ export type {
   SvCronRunOptions,
   SvCronVisual,
   SvCronVisualMode,
-} from './cron-builder/cron';
-export { SV_FORMS_LABELS } from './forms.labels';
-export type { SvFormsLabels } from './forms.labels';
+} from '@styloviz/forms/cron-builder';
+export { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+export type { SvFormsLabels } from '@styloviz/forms/labels';
 
 /** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
-export * from './forms.labels.packs';
+export * from '@styloviz/forms/labels';

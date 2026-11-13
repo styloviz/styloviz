@@ -5,7 +5,7 @@ import {
   input,
 } from '@angular/core';
 import { injectSvLabels, SvLabelPipe, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
+import { SV_COMMERCE_LABELS } from '@styloviz/commerce/labels';
 import { NgClass } from '@angular/common';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

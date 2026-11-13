@@ -19,7 +19,7 @@
  */
 
 import type { Address } from './address-card.component';
-import { SV_COMMERCE_LABELS, type SvCommerceLabels } from '../commerce.labels';
+import { SV_COMMERCE_LABELS, type SvCommerceLabels } from '@styloviz/commerce/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

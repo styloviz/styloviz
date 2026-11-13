@@ -36,7 +36,7 @@ import {
   type SvOverlayHandle,
   type SvPortalHost,
 } from '@styloviz/core/overlay';
-import { SV_OVERLAYS_LABELS } from '../overlays.labels';
+import { SV_OVERLAYS_LABELS } from '@styloviz/overlays/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

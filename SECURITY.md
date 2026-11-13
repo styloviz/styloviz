@@ -10,7 +10,7 @@ Include the package and its version, your Angular version, what an attacker can 
 
 | Version | Supported |
 | --- | --- |
-| 2.x (latest: 2.0.1) | Yes — fixes ship as patch releases |
+| 2.x (latest: 2.0.2) | Yes — fixes ship as patch releases |
 | Earlier | No — upgrade to the latest 2.x |
 
 Angular >=21.0.0 <23.0.0 is supported.

@@ -15,8 +15,8 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { SvLiveAnnouncer, svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerFormErrorSummaryIcons } from './form-error-summary.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

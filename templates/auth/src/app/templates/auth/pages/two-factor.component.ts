@@ -10,9 +10,9 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
-import { SvOtpInputComponent } from '@styloviz/forms';
+import { SvOtpInputComponent } from '@styloviz/forms/otp-input';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   AUTH_BASE,
   AUTH_OTP_LENGTH,

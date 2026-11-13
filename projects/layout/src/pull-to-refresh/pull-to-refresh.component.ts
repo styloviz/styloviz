@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, untracked, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_LAYOUT_LABELS, type SvLayoutLabels } from '../layout.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_LAYOUT_LABELS, type SvLayoutLabels } from '@styloviz/layout/labels';
 import { SvPullToRefreshDirective, type SvPullState } from './pull-to-refresh.directive';
 
 import { registerPullToRefreshIcons } from './pull-to-refresh.component.icons';

@@ -15,7 +15,7 @@ import {
   type SvDataError,
 } from '@styloviz/core/data';
 import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   SV_UNCITED_MIN_CHARS,
   svAnchoredCitations,

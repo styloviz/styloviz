@@ -18,14 +18,29 @@
  *                               component re-exported from the package entry
  *   types/glyph/<name>.d.ts     the matching declarations
  *
+ *   fesm2022/registry.mjs       the full-set lists (`ICON_REGISTRY`, `svAllIcons`,
+ *   types/registry.d.ts         `ICON_METADATA`, …) from `src/generated/registry.ts`,
+ *                               importing each glyph's data from its glyph module
+ *
  * and, for `@styloviz-pro/icons`, `fesm2022/free/<name>.mjs` + `types/free/<name>.d.ts`
  * re-exporting `@styloviz/icons/glyph/<name>`. The package.json `exports` map
  * (in the project source, copied by ng-packagr) points `./glyph/*` and
  * `./free/*` at these files. The data is copied verbatim from the generated
  * source — the same literals the package entry compiles — so the two cannot
  * draw different shapes.
+ *
+ * ★ `./registry` (R11, 2.0.2). It resolved to the package entry, like
+ *   `./glyph/*` before FL-L2, so a lazy page that imported `svAllIcons` or
+ *   `ICON_METADATA` put the registry, and with it every glyph's data, into the
+ *   chunk that holds the package entry — the initial one, because every
+ *   component imports `SvIconComponent`. The showcase built from the packages
+ *   carried 43 kB of it in `main` (source keeps 1.7 kB: there, `/registry` is
+ *   its own file). Now it is its own module too. It starts with
+ *   `export * from '<package>'`, so it still exports everything it did when it
+ *   was the package entry; its own declarations take precedence over the star.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 
 const PACKAGES = {
@@ -75,19 +90,29 @@ export function emitGlyphModules(root, project) {
   const files = readdirSync(srcDir)
     .filter((f) => f.endsWith('.icon.ts') && exported.has(f.slice(0, -'.icon.ts'.length)))
     .sort();
+  // ★ R11: the glyph's COMPILED block — data, definition, component class and
+  //   its metadata — moves out of the package entry into the glyph module, and
+  //   the entry imports it back. Before, the module re-exported the class from
+  //   the entry, so importing one glyph reached the entry, and every glyph class
+  //   any lazy page drew landed in the chunk that holds it (the showcase built
+  //   from the packages: 18 kB of glyph classes in `main`). The class needs only
+  //   `@angular/core` and `<package>/core`, so the block stands alone. One class
+  //   per glyph either way: the entry's export list re-exports the moved one.
+  const fesmEntry = join(dist, 'fesm2022', `${pkg.name.slice(1).replace('/', '-')}.mjs`);
+  let entry = readFileSync(fesmEntry, 'utf8');
+  const header = entry.match(/^(?:import [^\n]+\n)+/)?.[0];
+  if (!header || !header.includes(`${pkg.name}/core`)) throw new Error(`glyph-modules: ${fesmEntry} does not start with its imports from ${pkg.name}/core — the glyph blocks cannot stand alone`);
+  const backImports = [];
   for (const f of files) {
     const glyph = f.slice(0, -'.icon.ts'.length);
     const { data, def, cls } = parseGlyphSource(readFileSync(join(srcDir, f), 'utf8'), f);
     const names = [...data.map((d) => d.name), ...(def ? [def.name] : [])];
-    writeFileSync(
-      join(fesmGlyph, `${glyph}.mjs`),
-      HEADER +
-        `export { ${cls} } from '${pkg.name}';\n\n` +
-        data.map((d) => `const ${d.name} = ${d.value};\n`).join('') +
-        (def ? `const ${def.name} = ${def.value};\n` : '') +
-        '\n' +
-        `export { ${names.join(', ')} };\n`,
-    );
+    const block = takeBlock(entry, data[0].name, cls, f);
+    const declared = [...block.text.matchAll(/^(?:const|var) (\w+) =/gm)].map((m) => m[1]).sort();
+    if (declared.join() !== [...names, cls].sort().join()) throw new Error(`glyph-modules: ${f}: the compiled block declares ${declared.join(', ')}, expected ${[...names, cls].join(', ')}`);
+    entry = entry.slice(0, block.start) + entry.slice(block.end);
+    backImports.push(`import { ${[cls, ...names].join(', ')} } from "./glyph/${glyph}.mjs";\n`);
+    writeFileSync(join(fesmGlyph, `${glyph}.mjs`), `${HEADER}${header}\n${block.text}\nexport { ${[cls, ...names].join(', ')} };\n`);
     writeFileSync(
       join(typesGlyph, `${glyph}.d.ts`),
       HEADER +
@@ -97,6 +122,23 @@ export function emitGlyphModules(root, project) {
         (def ? `export declare const ${def.name}: SvIconDef;\n` : ''),
     );
   }
+
+  // What is left of the entry besides its imports and export list is the
+  // registry (src/generated/registry.ts). It is emitted once, as its own
+  // module, and the entry imports it — one copy of the full-set lists, not two.
+  const registryNames = emitRegistryModule(root, project, pkg, dist, exported);
+  const lead = entry.match(/^(?:(?:import|export \*) [^\n]+\n)+/)[0];
+  const rest = entry.slice(lead.length).replace(/\n\/\/# sourceMappingURL=\S+\s*$/, '\n');
+  const exportAt = rest.lastIndexOf('\nexport {');
+  if (exportAt < 0) throw new Error(`glyph-modules: ${fesmEntry} has no export list`);
+  const left = [...rest.slice(0, exportAt).matchAll(/^(?:const|var|let|function|class) (\w+)/gm)].map((m) => m[1]);
+  const strays = left.filter((n) => !registryNames.has(n));
+  if (strays.length) throw new Error(`glyph-modules: ${fesmEntry} keeps code that is neither a glyph nor in the registry: ${strays.join(', ')}`);
+  // The entry, with the glyph blocks and the registry imported back. Its source
+  // map described the moved code, so it goes.
+  entry = lead + backImports.join('') + (left.length ? `import { ${left.join(', ')} } from "./registry.mjs";\n` : '') + rest.slice(exportAt + 1);
+  writeFileSync(fesmEntry, entry);
+  rmSync(`${fesmEntry}.map`, { force: true });
 
   if (pkg.free) {
     // `@styloviz-pro/icons/free/<n>`: the free glyph, by its own module.
@@ -116,4 +158,44 @@ export function emitGlyphModules(root, project) {
     }
   }
   return files.length;
+}
+
+/**
+ * `fesm2022/registry.mjs` + `types/registry.d.ts`: `src/generated/registry.ts`
+ * transpiled (it is data plus type declarations), each `./icons/<n>.icon`
+ * import pointed at `./glyph/<n>.mjs`. Returns the names it exports. It and the
+ * entry import each other (`export *` one way, the lists the other); neither
+ * runs code at load that reads the other, so the cycle is safe.
+ */
+function emitRegistryModule(root, project, pkg, dist, exported) {
+  // TypeScript from this repo's tooling, not from `root` (a test fixture has no node_modules).
+  const ts = createRequire(import.meta.url)('typescript');
+  const srcFile = join(root, 'projects', project, 'src/generated/registry.ts');
+  const js = ts.transpileModule(readFileSync(srcFile, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, removeComments: false },
+    fileName: srcFile,
+  }).outputText;
+  const missing = [];
+  const body = js.replace(/from '\.\/icons\/([\w-]+)\.icon'/g, (_, glyph) => {
+    if (!exported.has(glyph)) missing.push(glyph);
+    return `from './glyph/${glyph}.mjs'`;
+  });
+  if (missing.length) throw new Error(`glyph-modules: ${project} registry.ts imports glyph(s) the package does not export: ${missing.join(', ')}`);
+  if (/from '\.\.?\//.test(body.replace(/from '\.\/glyph\/[\w-]+\.mjs'/g, ''))) throw new Error(`glyph-modules: ${project} registry.ts imports a relative file other than a glyph — it cannot be its own module`);
+  writeFileSync(join(dist, 'fesm2022/registry.mjs'), `${HEADER}export * from '${pkg.name}';\n\n${body}`);
+  writeFileSync(join(dist, 'types/registry.d.ts'), `${HEADER}export * from '${pkg.name}';\n`);
+  return new Set([...body.matchAll(/^export (?:const|function|class) (\w+)/gm)].map((m) => m[1]));
+}
+
+/**
+ * One glyph's compiled block in the package entry: from `const <first data> =`
+ * to the end of `i0.ɵɵngDeclareClassMetadata({ … type: <cls>, … });`.
+ */
+function takeBlock(text, firstData, cls, file) {
+  const start = text.indexOf(`\nconst ${firstData} = `);
+  const metaType = text.indexOf(`\ttype: ${cls},\n\tdecorators:`, start);
+  const metaStart = text.lastIndexOf('\ni0.ɵɵngDeclareClassMetadata({', metaType);
+  const end = text.indexOf('\n});\n', metaType);
+  if (start < 0 || metaType < 0 || metaStart < start || end < 0) throw new Error(`glyph-modules: ${file}: no compiled block for ${cls} in the package entry`);
+  return { start: start + 1, end: end + '\n});\n'.length, text: text.slice(start + 1, end + '\n});\n'.length) };
 }

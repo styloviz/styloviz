@@ -24,8 +24,8 @@ import { svIsRtl, svUniqueId } from '@styloviz/core/a11y';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { createFieldError, svDescribedBy, SvFieldErrorComponent, type SvServerError } from '@styloviz/core/forms';
 import { svDigitsOnly, injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerOtpInputIcons } from './otp-input.component.icons';
 @Component({

@@ -30,7 +30,7 @@ import {
 import { SvStopPropagationDirective } from '@styloviz/core/directives';
 import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
 import { SvOverlayStackService, type SvOverlayHandle } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import type {
   NotificationActionClickEvent,

@@ -12,7 +12,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { SV_LINK_ADAPTER, svIsModifiedClick } from '@styloviz/core/nav';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerButtonIcons } from './button.component.icons';
 import { SV_BUTTON_LABELS } from './button.labels';

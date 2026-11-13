@@ -11,7 +11,7 @@ import { RouterLink } from '@angular/router';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { AUTH_RESEND_COOLDOWN_SECONDS, AUTH_SUPPORT, AUTH_BASE } from '../auth.config';
 import { authRequestReset, isAuthWired, maskEmail } from '../auth.data';
 

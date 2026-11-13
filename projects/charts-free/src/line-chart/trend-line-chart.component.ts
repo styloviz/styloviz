@@ -16,7 +16,7 @@ import {
   svIsGap,
 } from '@styloviz/core/data';
 import { injectSvLabels, svFormatLabel, SvLabelPipe, svLocale } from '@styloviz/core/i18n';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '@styloviz/charts/labels';
 import { NgClass } from '@angular/common';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

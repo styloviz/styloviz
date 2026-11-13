@@ -16,7 +16,7 @@ import {
   svQrScannability,
   type SvQrScanCheck,
 } from './qr-scannability';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
+import { SV_COMMERCE_LABELS } from '../labels/commerce.labels';
 
 const sound: SvQrScanCheck = {
   foreground: '#000000',

@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, Directive, computed, contentChild, input, output } from '@angular/core';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
-import { SvToolbarComponent, type ToolbarAction } from '../toolbar/toolbar.component';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
+import { SvToolbarComponent, type ToolbarAction } from '@styloviz/layout/toolbar';
 
 /**
  * Marks the element projected into the page header's breadcrumb slot — an

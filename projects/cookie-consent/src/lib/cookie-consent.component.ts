@@ -18,7 +18,7 @@ import { svUniqueId } from '@styloviz/core/a11y';
 import { svPersistedStore, type SvPersistedStore } from '@styloviz/core/data';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_COOKIE_CONSENT_LABELS, type SvCookieConsentLabels } from './cookie-consent.labels';
 
 import { registerCookieConsentIcons } from './cookie-consent.component.icons';

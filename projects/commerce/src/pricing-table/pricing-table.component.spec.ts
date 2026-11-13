@@ -16,7 +16,7 @@ import {
   svFormatPlanPrice,
   svPricingHeadlineSaving,
 } from './pricing-math';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
+import { SV_COMMERCE_LABELS } from '../labels/commerce.labels';
 
 const PLANS: readonly SvPricingPlan[] = [
   { id: 'starter', name: 'Starter', price: { monthly: 49 } },

@@ -5,7 +5,7 @@ import { map } from 'rxjs';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { AUTH_BASE, AUTH_SSO_DOMAINS, AUTH_SSO_PROVIDERS, type AuthSsoProvider } from '../auth.config';
 import { authSignIn, isAuthWired, ssoOrganisationFor } from '../auth.data';
 

@@ -13,7 +13,7 @@ import {
   type TemplateRef,
 } from '@angular/core';
 import { DOCUMENT, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   createTypeahead,
   svCollectionTarget,

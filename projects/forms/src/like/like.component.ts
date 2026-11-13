@@ -13,8 +13,8 @@ import { NgClass } from '@angular/common';
 import { prefersReducedMotion, svUniqueId } from '@styloviz/core/a11y';
 import { createOptimisticEdit, svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/data';
 import { injectSvLabels, svFormatCount, svLocale, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerLikeIcons } from './like.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -34,10 +34,10 @@ import {
   type SvPortalHost,
 } from '@styloviz/core/overlay';
 import { NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { injectSvKbdLabels, SvKbdComponent, svKbdChord, svKbdPlatform, type SvKbdPlatform } from '@styloviz/kbd';
-import { SvTooltipComponent } from '@styloviz/overlays';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SvTooltipComponent } from '@styloviz/overlays/tooltip';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 import { registerToolbarIcons } from './toolbar.component.icons';
 export type ToolbarSize    = 'sm' | 'md' | 'lg';

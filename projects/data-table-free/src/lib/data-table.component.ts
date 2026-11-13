@@ -22,7 +22,7 @@ import { svRestoreFocusedItem, svSnapshotFocusedItem } from '@styloviz/core/over
 import { svAttrSelector } from '@styloviz/core/security';
 import { SV_DATA_TABLE_LABELS } from './data-table-free.labels';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { registerDataTableIcons } from './data-table.component.icons';
 import { DtAutoFocusDirective } from './auto-focus.directive';
 import { buildServerQuery, ServerRequestLedger } from './server-query';

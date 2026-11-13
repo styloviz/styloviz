@@ -8,8 +8,8 @@
  */
 
 // ── Anchored panels ──────────────────────────────────────────────────────────
-export { SvTooltipComponent, SvTooltipContentDirective } from './tooltip/tooltip.component';
-export { SvTooltipGroupDirective } from './tooltip/tooltip-group.directive';
+export { SvTooltipComponent, SvTooltipContentDirective } from '@styloviz/overlays/tooltip';
+export { SvTooltipGroupDirective } from '@styloviz/overlays/tooltip';
 export type {
   TooltipPosition,
   TooltipVariant,
@@ -20,40 +20,40 @@ export type {
   TooltipStatus,
   TooltipPoint,
   TooltipContentContext,
-} from './tooltip/tooltip.component';
-export { SV_OVERLAYS_LABELS } from './overlays.labels';
-export type { SvOverlaysLabels } from './overlays.labels';
+} from '@styloviz/overlays/tooltip';
+export { SV_OVERLAYS_LABELS } from '@styloviz/overlays/labels';
+export type { SvOverlaysLabels } from '@styloviz/overlays/labels';
 
 // ── Feedback ─────────────────────────────────────────────────────────────────
-export { SvResultComponent } from './result/result.component';
-export type { ResultStatus, ResultSize } from './result/result.component';
-export { SvSpinnerComponent } from './spinner/spinner.component';
-export type { SpinnerSize, SpinnerVariant, SpinnerStyle } from './spinner/spinner.component';
-export { SvProgressBarComponent } from './progress-bar/progress-bar.component';
+export { SvResultComponent } from '@styloviz/overlays/result';
+export type { ResultStatus, ResultSize } from '@styloviz/overlays/result';
+export { SvSpinnerComponent } from '@styloviz/overlays/spinner';
+export type { SpinnerSize, SpinnerVariant, SpinnerStyle } from '@styloviz/overlays/spinner';
+export { SvProgressBarComponent } from '@styloviz/overlays/progress-bar';
 export type {
   ProgressBarVariant,
   ProgressBarSize,
   ProgressBarLabelPos,
-} from './progress-bar/progress-bar.component';
-export { SvProgressRingComponent } from './progress-ring/progress-ring.component';
-export type { ProgressRingSize, ProgressRingVariant } from './progress-ring/progress-ring.component';
-export { SvOnboardingChecklistComponent } from './onboarding-checklist/onboarding-checklist.component';
-export { SvActionSheetComponent } from './action-sheet/action-sheet.component';
+} from '@styloviz/overlays/progress-bar';
+export { SvProgressRingComponent } from '@styloviz/overlays/progress-ring';
+export type { ProgressRingSize, ProgressRingVariant } from '@styloviz/overlays/progress-ring';
+export { SvOnboardingChecklistComponent } from '@styloviz/overlays/onboarding-checklist';
+export { SvActionSheetComponent } from '@styloviz/overlays/action-sheet';
 export type {
   SvActionSheetAction,
   SvActionSheetCloseReason,
   SvActionSheetSelection,
-} from './action-sheet/action-sheet.component';
+} from '@styloviz/overlays/action-sheet';
 export type {
   SvOnboardingStep,
   SvOnboardingStepToggle,
   SvOnboardingChecklistVariant,
   SvOnboardingChecklistHeadingLevel,
   SvOnboardingChecklistLabels,
-} from './onboarding-checklist/onboarding-checklist.component';
+} from '@styloviz/overlays/onboarding-checklist';
 
 /** Language packs for this package's labels (FL-B2) — `provideSvLabels(SV_…_LABELS_DE)`. */
-export * from './overlays.labels.packs';
+export * from '@styloviz/overlays/labels';
 
 // Types a public input or output names, so a host can name them too (FL-G8, check:public-types).
-export type { ResultRetryAction } from './result/result.component';
+export type { ResultRetryAction } from '@styloviz/overlays/result';

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { SvButtonComponent } from '@styloviz/button';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { AUTH_BASE, AUTH_BRAND, AUTH_LOCKED_USER } from '../auth.config';
 
 /**

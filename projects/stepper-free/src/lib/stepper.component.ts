@@ -43,7 +43,7 @@ import {
 /** This component's selector, for the one dev warning it can emit. */
 const SELECTOR = 'sv-stepper';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_STEPPER_LABELS } from './stepper-free.labels';
 
 import { registerStepperIcons } from './stepper.component.icons';

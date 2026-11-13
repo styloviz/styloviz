@@ -8,6 +8,7 @@
       "selector": "sv-data-table",
       "className": "SvDataTableComponent",
       "package": "@styloviz/data-table",
+      "importFrom": "@styloviz/data-table",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/data-table",
       "note": "Sorting, filtering, selection, row expansion, pagination and server-side mode are inputs on one component; columns are a typed array rather than templates."
@@ -18,6 +19,7 @@
       "selector": "sv-list-view",
       "className": "SvListViewComponent",
       "package": "@styloviz/list-view",
+      "importFrom": "@styloviz/list-view",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/list-view",
       "note": "List and grid layouts with built-in loading, empty and error states."
@@ -28,6 +30,7 @@
       "selector": "sv-pagination",
       "className": "SvPaginationComponent",
       "package": "@styloviz/pagination",
+      "importFrom": "@styloviz/pagination",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/pagination",
       "note": ""
@@ -38,6 +41,7 @@
       "selector": "sv-tree-view",
       "className": "SvTreeViewComponent",
       "package": "@styloviz/tree-view",
+      "importFrom": "@styloviz/tree-view",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/tree-view",
       "note": ""
@@ -48,6 +52,7 @@
       "selector": "sv-timeline",
       "className": "SvTimelineComponent",
       "package": "@styloviz/timeline",
+      "importFrom": "@styloviz/timeline",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/timeline",
       "note": ""
@@ -58,6 +63,7 @@
       "selector": "sv-transfer",
       "className": "SvTransferComponent",
       "package": "@styloviz-pro/display",
+      "importFrom": "@styloviz-pro/display/transfer",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/transfer",
       "note": "Two lists with search, checked items and server-side loading."
@@ -68,6 +74,7 @@
       "selector": "sv-dnd-list",
       "className": "SvDndListComponent",
       "package": "@styloviz/display",
+      "importFrom": "@styloviz/display/dnd-list",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/dnd-list",
       "note": "Sortable list with keyboard reordering."
@@ -78,6 +85,7 @@
       "selector": "sv-line-chart",
       "className": "SvLineChartComponent",
       "package": "@styloviz/charts",
+      "importFrom": "@styloviz/charts/line-chart",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/line-chart",
       "note": "PrimeNG wraps Chart.js; Styloviz ships one native component per chart type with no charting dependency."
@@ -88,6 +96,7 @@
       "selector": "sv-button",
       "className": "SvButtonComponent",
       "package": "@styloviz/button",
+      "importFrom": "@styloviz/button",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/button",
       "note": "Also replaces the [pButton] directive."
@@ -98,6 +107,7 @@
       "selector": "sv-split-button",
       "className": "SvSplitButtonComponent",
       "package": "@styloviz-pro/split-button",
+      "importFrom": "@styloviz-pro/split-button",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/split-button",
       "note": ""
@@ -108,6 +118,7 @@
       "selector": "sv-input-field",
       "className": "SvInputFieldComponent",
       "package": "@styloviz/input-field",
+      "importFrom": "@styloviz/input-field",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/text-field",
       "note": "A component rather than a directive on `<input>`; label, hint, error and addons are inputs."
@@ -118,6 +129,7 @@
       "selector": "sv-number-input",
       "className": "SvNumberInputComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/number-input",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/number-input",
       "note": ""
@@ -128,6 +140,7 @@
       "selector": "sv-input-mask",
       "className": "SvInputMaskComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/input-mask",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/input-mask",
       "note": ""
@@ -138,6 +151,7 @@
       "selector": "sv-otp-input",
       "className": "SvOtpInputComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/otp-input",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/otp-input",
       "note": ""
@@ -148,6 +162,7 @@
       "selector": "sv-password-strength",
       "className": "SvPasswordStrengthComponent",
       "package": "@styloviz/password-strength",
+      "importFrom": "@styloviz/password-strength",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/password-strength",
       "note": "The strength meter is its own component; pair it with sv-input-field type=\"password\"."
@@ -158,6 +173,7 @@
       "selector": "sv-select-dropdown",
       "className": "SvSelectDropdownComponent",
       "package": "@styloviz/select-dropdown",
+      "importFrom": "@styloviz/select-dropdown",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/select-dropdown",
       "note": "Searchable, grouped and server-side options are inputs."
@@ -168,6 +184,7 @@
       "selector": "sv-select-dropdown",
       "className": "SvSelectDropdownComponent",
       "package": "@styloviz/select-dropdown",
+      "importFrom": "@styloviz/select-dropdown",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/select-dropdown",
       "note": "The same component with [multiple]=\"true\"."
@@ -178,6 +195,7 @@
       "selector": "sv-autocomplete",
       "className": "SvAutocompleteComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/autocomplete",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/autocomplete",
       "note": ""
@@ -188,6 +206,7 @@
       "selector": "sv-date-picker",
       "className": "SvDatePickerComponent",
       "package": "@styloviz/input-field",
+      "importFrom": "@styloviz/input-field",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/date-picker",
       "note": ""
@@ -198,6 +217,7 @@
       "selector": "sv-checkbox",
       "className": "SvCheckboxComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/checkbox",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/checkbox",
       "note": ""
@@ -208,6 +228,7 @@
       "selector": "sv-radio-group",
       "className": "SvRadioGroupComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/radio-group",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/radio-group",
       "note": "One group component instead of one element per option."
@@ -218,6 +239,7 @@
       "selector": "sv-toggle-switch",
       "className": "SvToggleSwitchComponent",
       "package": "@styloviz/toggle-switch",
+      "importFrom": "@styloviz/toggle-switch",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/toggle-switch",
       "note": ""
@@ -228,6 +250,7 @@
       "selector": "sv-slider",
       "className": "SvSliderComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/slider",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/slider",
       "note": ""
@@ -238,6 +261,7 @@
       "selector": "sv-rating",
       "className": "SvRatingComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/rating",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/rating",
       "note": ""
@@ -248,6 +272,7 @@
       "selector": "sv-color-picker",
       "className": "SvColorPickerComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/color-picker",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/color-picker",
       "note": ""
@@ -258,6 +283,7 @@
       "selector": "sv-segmented-control",
       "className": "SvSegmentedControlComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/segmented-control",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/segmented-control",
       "note": ""
@@ -268,6 +294,7 @@
       "selector": "sv-chip",
       "className": "SvChipComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/chip",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/chip",
       "note": ""
@@ -278,6 +305,7 @@
       "selector": "sv-file-upload",
       "className": "SvFileUploadComponent",
       "package": "@styloviz/file-upload",
+      "importFrom": "@styloviz/file-upload",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/file-upload",
       "note": ""
@@ -288,6 +316,7 @@
       "selector": "sv-rich-text-editor",
       "className": "SvRichTextEditorComponent",
       "package": "@styloviz-pro/rich-editor",
+      "importFrom": "@styloviz-pro/rich-editor",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/rich-text-editor",
       "note": "PrimeNG wraps Quill; the Styloviz editor is built in Angular, not on a third-party editor engine."
@@ -298,6 +327,7 @@
       "selector": "sv-tree-select",
       "className": "SvTreeSelectComponent",
       "package": "@styloviz-pro/forms",
+      "importFrom": "@styloviz-pro/forms/tree-select",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/tree-select",
       "note": ""
@@ -308,6 +338,7 @@
       "selector": "sv-cascader",
       "className": "SvCascaderComponent",
       "package": "@styloviz-pro/forms",
+      "importFrom": "@styloviz-pro/forms/cascader",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/cascader",
       "note": ""
@@ -318,6 +349,7 @@
       "selector": "sv-inplace-edit",
       "className": "SvInplaceEditComponent",
       "package": "@styloviz/forms",
+      "importFrom": "@styloviz/forms/inplace-edit",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/inplace-edit",
       "note": ""
@@ -328,6 +360,7 @@
       "selector": "sv-modal",
       "className": "SvModalComponent",
       "package": "@styloviz/modal",
+      "importFrom": "@styloviz/modal",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/modal",
       "note": "Rendered through the kit's body portal, so it is never clipped by an overflow container."
@@ -338,6 +371,7 @@
       "selector": "sv-confirm-dialog",
       "className": "SvConfirmDialogComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/confirm-dialog",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/confirm-dialog",
       "note": ""
@@ -348,6 +382,7 @@
       "selector": "sv-drawer",
       "className": "SvDrawerComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/drawer",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/drawer",
       "note": ""
@@ -358,6 +393,7 @@
       "selector": "sv-popover",
       "className": "SvPopoverComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/popover",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/popover",
       "note": ""
@@ -368,6 +404,7 @@
       "selector": "sv-tooltip",
       "className": "SvTooltipComponent",
       "package": "@styloviz/overlays",
+      "importFrom": "@styloviz/overlays/tooltip",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/tooltip",
       "note": ""
@@ -378,6 +415,7 @@
       "selector": "sv-toast-host",
       "className": "SvToastHostComponent",
       "package": "@styloviz/toast",
+      "importFrom": "@styloviz/toast",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/toast",
       "note": "Driven by ToastService from @styloviz/core, like PrimeNG's MessageService."
@@ -388,6 +426,7 @@
       "selector": "sv-alert-banner",
       "className": "SvAlertBannerComponent",
       "package": "@styloviz/alert-banner",
+      "importFrom": "@styloviz/alert-banner",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/alert-banner",
       "note": ""
@@ -398,6 +437,7 @@
       "selector": "sv-skeleton-loader",
       "className": "SvSkeletonLoaderComponent",
       "package": "@styloviz/skeleton-loader",
+      "importFrom": "@styloviz/skeleton-loader",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/skeleton-loader",
       "note": ""
@@ -408,6 +448,7 @@
       "selector": "sv-progress-bar",
       "className": "SvProgressBarComponent",
       "package": "@styloviz/overlays",
+      "importFrom": "@styloviz/overlays/progress-bar",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/progress-bar",
       "note": ""
@@ -418,6 +459,7 @@
       "selector": "sv-spinner",
       "className": "SvSpinnerComponent",
       "package": "@styloviz/overlays",
+      "importFrom": "@styloviz/overlays/spinner",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/spinner",
       "note": ""
@@ -428,6 +470,7 @@
       "selector": "sv-dropdown-menu",
       "className": "SvDropdownMenuComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/dropdown-menu",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/dropdown-menu",
       "note": ""
@@ -438,6 +481,7 @@
       "selector": "sv-dropdown-menu",
       "className": "SvDropdownMenuComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/dropdown-menu",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/context-menu",
       "note": ""
@@ -448,6 +492,7 @@
       "selector": "sv-menubar",
       "className": "SvMenubarComponent",
       "package": "@styloviz-pro/overlays",
+      "importFrom": "@styloviz-pro/overlays/menubar",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/menubar",
       "note": ""
@@ -458,6 +503,7 @@
       "selector": "sv-mega-menu",
       "className": "SvMegaMenuComponent",
       "package": "@styloviz-pro/mega-menu",
+      "importFrom": "@styloviz-pro/mega-menu",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/mega-menu",
       "note": ""
@@ -468,6 +514,7 @@
       "selector": "sv-sidebar-nav",
       "className": "SvSidebarNavComponent",
       "package": "@styloviz/sidebar-nav",
+      "importFrom": "@styloviz/sidebar-nav",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/sidebar-nav",
       "note": "A full application sidebar with collapsible groups, not only the menu."
@@ -478,6 +525,7 @@
       "selector": "sv-breadcrumb",
       "className": "SvBreadcrumbComponent",
       "package": "@styloviz/breadcrumb",
+      "importFrom": "@styloviz/breadcrumb",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/breadcrumb",
       "note": ""
@@ -488,6 +536,7 @@
       "selector": "sv-stepper",
       "className": "SvStepperComponent",
       "package": "@styloviz/stepper",
+      "importFrom": "@styloviz/stepper",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/stepper",
       "note": "Also replaces the older p-steps."
@@ -498,6 +547,7 @@
       "selector": "sv-tabs",
       "className": "SvTabsComponent",
       "package": "@styloviz/tabs",
+      "importFrom": "@styloviz/tabs",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/tabs",
       "note": ""
@@ -508,6 +558,7 @@
       "selector": "sv-accordion",
       "className": "SvAccordionComponent",
       "package": "@styloviz/accordion",
+      "importFrom": "@styloviz/accordion",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/accordion",
       "note": ""
@@ -518,6 +569,7 @@
       "selector": "sv-speed-dial",
       "className": "SvSpeedDialComponent",
       "package": "@styloviz-pro/layout",
+      "importFrom": "@styloviz-pro/layout/speed-dial",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/speed-dial",
       "note": ""
@@ -528,6 +580,7 @@
       "selector": "sv-dock",
       "className": "SvDockComponent",
       "package": "@styloviz/layout",
+      "importFrom": "@styloviz/layout/dock",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/dock",
       "note": "model → items (SvDockItem: id, label, icon or image, route or href); command → (itemSelect)."
@@ -538,6 +591,7 @@
       "selector": "sv-avatar",
       "className": "SvAvatarComponent",
       "package": "@styloviz/avatar",
+      "importFrom": "@styloviz/avatar",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/avatar",
       "note": ""
@@ -548,6 +602,7 @@
       "selector": "sv-badge",
       "className": "SvBadgeComponent",
       "package": "@styloviz/badge",
+      "importFrom": "@styloviz/badge",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/badge",
       "note": "Also covers p-tag."
@@ -558,6 +613,7 @@
       "selector": "sv-carousel",
       "className": "SvCarouselComponent",
       "package": "@styloviz/display",
+      "importFrom": "@styloviz/display/carousel",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/carousel",
       "note": ""
@@ -568,6 +624,7 @@
       "selector": "sv-image-gallery",
       "className": "SvImageGalleryComponent",
       "package": "@styloviz/display",
+      "importFrom": "@styloviz/display/image-gallery",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/image-gallery",
       "note": ""
@@ -578,6 +635,7 @@
       "selector": "sv-image-compare",
       "className": "SvImageCompareComponent",
       "package": "@styloviz/image-compare",
+      "importFrom": "@styloviz/image-compare",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/image-compare",
       "note": ""
@@ -588,6 +646,7 @@
       "selector": "sv-splitter",
       "className": "SvSplitterComponent",
       "package": "@styloviz-pro/layout",
+      "importFrom": "@styloviz-pro/layout/splitter",
       "tier": "pro",
       "docsUrl": "https://styloviz.dev/docs/splitter",
       "note": ""
@@ -598,6 +657,7 @@
       "selector": "sv-toolbar",
       "className": "SvToolbarComponent",
       "package": "@styloviz/layout",
+      "importFrom": "@styloviz/layout/toolbar",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/toolbar",
       "note": ""
@@ -608,6 +668,7 @@
       "selector": "sv-divider",
       "className": "SvDividerComponent",
       "package": "@styloviz/layout",
+      "importFrom": "@styloviz/layout/divider",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/divider",
       "note": ""
@@ -618,6 +679,7 @@
       "selector": "sv-scroll-area",
       "className": "SvScrollAreaComponent",
       "package": "@styloviz/scroll-area",
+      "importFrom": "@styloviz/scroll-area",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/scroll-area",
       "note": ""
@@ -628,6 +690,7 @@
       "selector": "sv-scroll-to-top",
       "className": "SvScrollToTopComponent",
       "package": "@styloviz/layout",
+      "importFrom": "@styloviz/layout/scroll-to-top",
       "tier": "free",
       "docsUrl": "https://styloviz.dev/docs/scroll-to-top",
       "note": ""

@@ -1,5 +1,5 @@
-import { SV_AI_LABELS } from './ai.labels';
-import { SV_AI_LABELS_DE, SV_AI_LABELS_JA } from './ai.labels.packs';
+import { SV_AI_LABELS } from './labels/ai.labels';
+import { SV_AI_LABELS_DE, SV_AI_LABELS_JA } from './labels/ai.labels.packs';
 
 describe('@styloviz/ai labels', () => {
   it('has English for every key', () => {

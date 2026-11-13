@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import type { ErrorKey } from './errors.data';
 
-import { provideSvIcons } from '@styloviz/icons';
+import { provideSvIcons } from '@styloviz/icons/core';
 import { ERRORS_ICONS } from './errors.icons';
 /**
  * Error / system page template routes.

@@ -6,7 +6,7 @@ import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvDashboardShellComponent } from './dashboard-shell.component';
 import { SvSidebarComponent } from '../sidebar/sidebar.component';
 import { SvTopbarComponent } from '../topbar/topbar.component';
-import { SV_LAYOUT_LABELS_DE } from '../layout.labels.de';
+import { SV_LAYOUT_LABELS_DE } from '../labels/layout.labels.de';
 
 /**
  * FL-J3-LU-03 — the shell's skip link (WCAG 2.4.1 Bypass Blocks, `N-9`).

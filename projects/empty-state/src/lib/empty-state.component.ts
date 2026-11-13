@@ -8,7 +8,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvAvatarComponent } from '@styloviz/avatar';
 import { SvKbdComponent } from '@styloviz/kbd';
 import { svShortcutTokens } from '@styloviz/core/a11y';

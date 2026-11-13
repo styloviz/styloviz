@@ -7,7 +7,7 @@ import {
   type SvOnboardingStep,
   type SvOnboardingStepToggle,
 } from './onboarding-checklist.component';
-import { SV_OVERLAYS_LABELS } from '../overlays.labels';
+import { SV_OVERLAYS_LABELS } from '../labels/overlays.labels';
 
 const STEPS: readonly SvOnboardingStep[] = [
   { id: 'account', title: 'Create your account', done: true },

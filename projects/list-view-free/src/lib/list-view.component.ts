@@ -14,7 +14,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { createTypeahead, svCollectionTarget, svIsTypeaheadKey, SvRevealFocusDirective, svWarnUnvirtualizedCeiling } from '@styloviz/core/a11y';
 import { createDebouncer, type SvDataError, SvEmptyShellComponent, SvErrorShellComponent, SvSkeletonShellComponent, warnOnDuplicateItemKeys } from '@styloviz/core/data';
 import { svWarn } from '@styloviz/core/dev';

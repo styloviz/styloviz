@@ -1,7 +1,7 @@
 import { type ApplicationConfig, inject, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
 import { Router, provideRouter, withComponentInputBinding, withInMemoryScrolling } from '@angular/router';
-import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core';
-import { provideSvOverlayRouteClose } from '@styloviz/layout';
+import { provideSvLinkAdapter, type SvLinkTarget } from '@styloviz/core/nav';
+import { provideSvOverlayRouteClose } from '@styloviz/layout/overlay-routing';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {

@@ -42,8 +42,10 @@ redeclaring a token after the import: `@theme { --color-primary-600: #0f766e; }`
 
 ## Usage
 
+Every component in `@styloviz/ai` has its own entry point, like `@styloviz/ai/message-actions`. Import from the entry point, not from `@styloviz/ai`: bundlers put everything an import reaches in the same chunk, and the package entry reaches every component in it. Both work, but only the entry point keeps your bundle to the components you use.
+
 ```ts
-import { SvMessageActionsComponent } from '@styloviz/ai';
+import { SvMessageActionsComponent } from '@styloviz/ai/message-actions';
 
 @Component({
   standalone: true,

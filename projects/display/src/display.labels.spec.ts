@@ -6,7 +6,7 @@ import { SvCarouselComponent, DEMO_SLIDES } from './carousel/carousel.component'
 import { SvDndListComponent } from './dnd-list/dnd-list.component';
 import { SvJsonViewerComponent } from './json-viewer/json-viewer.component';
 import { SvItemsWithMoreComponent } from './items-with-more/items-with-more.component';
-import { SV_DISPLAY_LABELS } from './display.labels';
+import { SV_DISPLAY_LABELS } from './labels/display.labels';
 
 /** FL-B1b: the accessible names are the package's English defaults until an app says otherwise. */
 async function setup(providers: unknown[] = []) {

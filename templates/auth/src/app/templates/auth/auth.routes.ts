@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { provideSvIcons } from '@styloviz/icons';
+import { provideSvIcons } from '@styloviz/icons/core';
 import { AUTH_ICONS } from './auth.icons';
 /**
  * Auth template routes — the complete set of pre-session screens.

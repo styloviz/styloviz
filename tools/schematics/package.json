@@ -1,6 +1,6 @@
 {
   "name": "@styloviz/schematics",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Angular schematics for the Styloviz UI kit — ng add (Tailwind 4, tokens, a demo page), migrate-primeng (PrimeNG 21 selectors to Styloviz) and the kit's ng update migrations.",
   "keywords": [
     "angular",

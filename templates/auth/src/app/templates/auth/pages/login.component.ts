@@ -2,9 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, Injector, signal 
 import { Router, RouterLink } from '@angular/router';
 import { SvButtonComponent } from '@styloviz/button';
 import { SvInputFieldComponent } from '@styloviz/input-field';
-import { SvCheckboxComponent } from '@styloviz/forms';
+import { SvCheckboxComponent } from '@styloviz/forms/checkbox';
 import { SvAlertBannerComponent } from '@styloviz/alert-banner';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { AUTH_BASE, AUTH_SSO_PROVIDERS } from '../auth.config';
 import { authSignIn, isAuthWired } from '../auth.data';
 

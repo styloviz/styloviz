@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 
-import { provideSvIcons } from '@styloviz/icons';
+import { provideSvIcons } from '@styloviz/icons/core';
 import { ACCOUNT_ICONS } from './account.icons';
 /**
  * Account / Settings / Team template routes.

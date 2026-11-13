@@ -10,10 +10,10 @@ import {
   signal,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvLabelPipe, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { type SvSensitiveCopyEvent } from '@styloviz/core/security';
-import { SV_DISPLAY_LABELS } from '../display.labels';
+import { SV_DISPLAY_LABELS } from '@styloviz/display/labels';
 import {
   binarySummary,
   childrenOf,

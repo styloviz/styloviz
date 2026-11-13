@@ -4,7 +4,7 @@ import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvCopyToClipboardComponent } from './copy-to-clipboard/copy-to-clipboard.component';
 import { SvSiteFooterComponent } from './site-footer/site-footer.component';
 import { SvClipboardError, SV_CLIPBOARD } from './copy-to-clipboard/clipboard.adapter';
-import { SV_LAYOUT_LABELS } from './layout.labels';
+import { SV_LAYOUT_LABELS } from './labels/layout.labels';
 
 /** FL-B1b: the accessible names are the package's English defaults until an app says otherwise. */
 async function setup(providers: unknown[] = []) {

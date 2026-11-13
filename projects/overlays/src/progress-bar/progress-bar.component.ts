@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { svWarnOnce } from '@styloviz/core/dev';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_OVERLAYS_LABELS } from '../overlays.labels';
+import { SV_OVERLAYS_LABELS } from '@styloviz/overlays/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

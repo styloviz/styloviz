@@ -46,7 +46,7 @@ import {
   createAnchorScrollGuard,
   type SvAnchorScrollGuard,
 } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { SV_SELECT_DROPDOWN_LABELS } from './select-dropdown-free.labels';
 

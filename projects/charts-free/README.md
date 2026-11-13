@@ -42,8 +42,10 @@ redeclaring a token after the import: `@theme { --color-primary-600: #0f766e; }`
 
 ## Usage
 
+Every component in `@styloviz/charts` has its own entry point, like `@styloviz/charts/bar-chart`. Import from the entry point, not from `@styloviz/charts`: bundlers put everything an import reaches in the same chunk, and the package entry reaches every component in it. Both work, but only the entry point keeps your bundle to the components you use.
+
 ```ts
-import { SvBarChartComponent } from '@styloviz/charts';
+import { SvBarChartComponent } from '@styloviz/charts/bar-chart';
 
 @Component({
   standalone: true,
@@ -147,7 +149,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-axis-label-template-chart`
 
-`import { SvAxisLabelTemplateChartComponent } from '@styloviz/charts';`
+`import { SvAxisLabelTemplateChartComponent } from '@styloviz/charts/other-chart';`
 
 - **Tier:** Free · twin: `sv-axis-label-template-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -186,7 +188,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-bar-chart`
 
-`import { SvBarChartComponent } from '@styloviz/charts';`
+`import { SvBarChartComponent } from '@styloviz/charts/bar-chart';`
 
 - **Tier:** Free · twin: `sv-bar-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -227,7 +229,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-column-drilldown-chart`
 
-`import { SvColumnDrilldownChartComponent } from '@styloviz/charts';`
+`import { SvColumnDrilldownChartComponent } from '@styloviz/charts/bar-chart';`
 
 - **Tier:** Free · twin: `sv-column-drilldown-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -267,7 +269,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-cylindrical-column-chart`
 
-`import { SvCylindricalColumnChartComponent } from '@styloviz/charts';`
+`import { SvCylindricalColumnChartComponent } from '@styloviz/charts/bar-chart';`
 
 - **Tier:** Free · twin: `sv-cylindrical-column-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -306,7 +308,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-datetime-category-chart`
 
-`import { SvDateTimeCategoryChartComponent } from '@styloviz/charts';`
+`import { SvDateTimeCategoryChartComponent } from '@styloviz/charts/other-chart';`
 
 - **Tier:** Free · twin: `sv-datetime-category-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -346,7 +348,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-gradient-bar-chart`
 
-`import { SvGradientBarChartComponent } from '@styloviz/charts';`
+`import { SvGradientBarChartComponent } from '@styloviz/charts/bar-chart';`
 
 - **Tier:** Free · twin: `sv-gradient-bar-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -385,7 +387,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-line-chart`
 
-`import { SvLineChartComponent } from '@styloviz/charts';`
+`import { SvLineChartComponent } from '@styloviz/charts/line-chart';`
 
 - **Tier:** Free · twin: `sv-line-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -429,7 +431,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-live-stream-chart`
 
-`import { SvLiveStreamChartComponent } from '@styloviz/charts';`
+`import { SvLiveStreamChartComponent } from '@styloviz/charts/live-chart';`
 
 - **Tier:** Free · twin: `sv-live-stream-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`, `offline`
@@ -469,7 +471,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-live-update-chart`
 
-`import { SvLiveUpdateChartComponent } from '@styloviz/charts';`
+`import { SvLiveUpdateChartComponent } from '@styloviz/charts/live-chart';`
 
 - **Tier:** Free · twin: `sv-live-update-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -504,7 +506,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-pie-chart`
 
-`import { SvPieChartComponent } from '@styloviz/charts';`
+`import { SvPieChartComponent } from '@styloviz/charts/pie-chart';`
 
 - **Tier:** Free · twin: `sv-pie-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -543,7 +545,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-radar-chart`
 
-`import { SvRadarChartComponent } from '@styloviz/charts';`
+`import { SvRadarChartComponent } from '@styloviz/charts/radar-chart';`
 
 - **Tier:** Free · twin: `sv-radar-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -589,7 +591,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-range-column-chart`
 
-`import { SvRangeColumnChartComponent } from '@styloviz/charts';`
+`import { SvRangeColumnChartComponent } from '@styloviz/charts/bar-chart';`
 
 - **Tier:** Free · twin: `sv-range-column-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -628,7 +630,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-scatter-chart`
 
-`import { SvScatterChartComponent } from '@styloviz/charts';`
+`import { SvScatterChartComponent } from '@styloviz/charts/scatter-chart';`
 
 - **Tier:** Free · twin: `sv-scatter-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -678,7 +680,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-strip-line-chart`
 
-`import { SvStripLineChartComponent } from '@styloviz/charts';`
+`import { SvStripLineChartComponent } from '@styloviz/charts/line-chart';`
 
 - **Tier:** Free · twin: `sv-strip-line-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -717,7 +719,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-trend-line-chart`
 
-`import { SvTrendLineChartComponent } from '@styloviz/charts';`
+`import { SvTrendLineChartComponent } from '@styloviz/charts/line-chart';`
 
 - **Tier:** Free · twin: `sv-trend-line-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`
@@ -756,7 +758,7 @@ Everything `@styloviz/charts` exports from its entry point — 97 symbols.
 
 ### `sv-waterfall-chart`
 
-`import { SvWaterfallChartComponent } from '@styloviz/charts';`
+`import { SvWaterfallChartComponent } from '@styloviz/charts/waterfall-chart';`
 
 - **Tier:** Free · twin: `sv-waterfall-chart-pro` in `@styloviz-pro/charts`
 - **Async states:** `loading`, `empty`, `error`, `retry`

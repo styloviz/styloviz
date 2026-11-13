@@ -11,6 +11,75 @@ Every package in the kit shares one version, sourced from `packages.json`.
 
 ---
 
+## [Unreleased]
+
+---
+
+## [2.0.2] — 2026-11-13
+
+### Added — one entry point per component, so your bundle holds only what you import
+
+Thirteen packages with several components now ship a secondary entry point for
+each one:
+
+- `@styloviz/layout`, `@styloviz/forms`, `@styloviz/charts`, `@styloviz/display`,
+  `@styloviz/commerce`, `@styloviz/overlays`, `@styloviz/ai`
+- `@styloviz-pro/charts`, `@styloviz-pro/display`, `@styloviz-pro/commerce`,
+  `@styloviz-pro/forms`, `@styloviz-pro/layout`, `@styloviz-pro/overlays`
+
+Three more packages are split the same way:
+
+- `@styloviz/core` has 19 entry points, such as `@styloviz/core/tokens` (where
+  `provideStyloviz()` lives), `@styloviz/core/overlay` and `@styloviz/core/forms`.
+- `@styloviz/icons/core` and `@styloviz-pro/icons/core` hold the icon machinery:
+  `SvIconComponent`, `registerSvIcons` and the `IconName` / `IconProName` types.
+
+Each icon is still its own module (`@styloviz/icons/glyph/<name>`). The icon
+data now ships once, in that module, instead of also being copied into the
+package entry.
+
+For example:
+
+```ts
+import { SvToolbarComponent } from '@styloviz/layout/toolbar';
+```
+
+The bundler the Angular CLI uses puts everything an import reaches into the same
+chunk. A package entry such as `@styloviz/layout` reaches every component in
+that package, so one eager import moved the whole package into `main.js`. In the
+kit's own showcase, built from the published packages, importing one layout
+provider from `@styloviz/layout` cost 264 kB (gzip) of initial download.
+Importing it from `@styloviz/layout/overlay-routing` cost 190 kB.
+
+**Nothing breaks.** Every package entry still exports exactly what it did, and
+existing imports keep working. To get the smaller bundles, change your imports to
+the entry points:
+
+- every README and docs snippet now shows the entry-point import;
+- the PrimeNG migration schematic writes entry-point imports;
+- the templates use entry-point imports.
+
+Library code that imports another Styloviz package now uses entry points too, so
+using one Styloviz component no longer pulls in a whole sibling package.
+
+### Fixed — carousel dot and line indicators are full 24 × 24 px targets
+
+`sv-carousel`'s `dots` and `lines` indicators were 8–24 × 4 px marks. They met
+WCAG 2.5.8 (target size) only through the space between them, and the active
+mark animated its width. Each indicator is now a 24 × 24 px button, the mark
+inside it looks the same as before, and the active state fades in by opacity
+instead of animating the width. The `numbers` indicator is unchanged. No API
+change.
+
+### Changed — template downloads are byte-for-byte reproducible
+
+Packing the same template twice now gives the same zip: `template.manifest.json`
+no longer has a `generatedAt` field (nothing read it), and every entry has one
+fixed timestamp. A template that did not change keeps the same SHA-256 from one
+release to the next.
+
+---
+
 ## [2.0.1] — 2026-11-10
 
 A patch release. No API changes; every package moves to 2.0.1 in lockstep.

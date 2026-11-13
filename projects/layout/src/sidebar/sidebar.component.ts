@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
-import { SV_SHELL_CONTEXT } from '../dashboard-shell/shell-context';
+import { SV_SHELL_CONTEXT } from './shell-context';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 /**
  * SvSidebarComponent — the app shell's collapsible side panel.

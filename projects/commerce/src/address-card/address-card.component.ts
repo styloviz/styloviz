@@ -19,8 +19,8 @@ import { svRequestKey, toSvDataError, type SvDataError } from '@styloviz/core/da
 import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
 import { svFirstFocusableWithin, svIsFocusable, svRecoverFocus } from '@styloviz/core/overlay';
 import { svMaskTail } from '@styloviz/core/security';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
-import { SvIconComponent } from '@styloviz/icons';
+import { SV_COMMERCE_LABELS } from '@styloviz/commerce/labels';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 import { registerAddressCardIcons } from './address-card.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

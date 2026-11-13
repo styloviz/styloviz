@@ -17,7 +17,7 @@ import { svWarnOnce, svWarnSimulating } from '@styloviz/core/dev';
 import { injectSvLabels, SvLabelPipe, svFormatLabel } from '@styloviz/core/i18n';
 import { SV_AI_INSIGHT_CARDS_LABELS } from './ai-insight-cards.labels';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   SV_ANOMALY_MIN_SAMPLES,
   SV_ANOMALY_NOTABLE,

@@ -10,8 +10,8 @@ import {
   signal,
 } from '@angular/core';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_AI_LABELS, type SvAiLabels } from '../ai.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_AI_LABELS, type SvAiLabels } from '@styloviz/ai/labels';
 
 import { registerMessageActionsIcons } from './message-actions.component.icons';
 /** A built-in action `sv-message-actions` can render. */

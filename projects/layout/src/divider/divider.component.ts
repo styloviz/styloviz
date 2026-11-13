@@ -4,7 +4,7 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 
 export type DividerOrientation = 'horizontal' | 'vertical';
 export type DividerVariant     = 'solid' | 'dashed' | 'dotted' | 'gradient' | 'text' | 'icon';

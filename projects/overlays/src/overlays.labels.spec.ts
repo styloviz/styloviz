@@ -4,7 +4,7 @@ import { type SvDataError } from '@styloviz/core/data';
 import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvResultComponent } from './result/result.component';
 import { SvProgressBarComponent } from './progress-bar/progress-bar.component';
-import { SV_OVERLAYS_LABELS } from './overlays.labels';
+import { SV_OVERLAYS_LABELS } from './labels/overlays.labels';
 
 /** FL-B1d: the visible text is the package's English default until an app says otherwise. */
 const ERROR: SvDataError = { message: 'Could not load the report.', retryable: true, reference: '7f3a9c2' };

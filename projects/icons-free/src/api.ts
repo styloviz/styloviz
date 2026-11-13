@@ -16,12 +16,10 @@
  */
 
 // ── Core types & helpers ──────────────────────────────────────────────────────
-export * from './lib/icon.types';
-export { SvIconBase } from './lib/icon-base.directive';
-export { SvIconSvgComponent } from './lib/icon-svg.component';
-export { SvIconComponent } from './lib/sv-icon.component';
-export { provideSvIcons, registerSvIcons, SvIconRegistry, type IconRegistry, type SvIconDef } from './lib/provide-icons';
-export { svWarnUnregisteredIcon } from './lib/sv-icon.component';
+
+// The icon machinery is its own entry point (R11): components import it from
+// '@styloviz/icons/core', so a chunk that draws icons does not reach every glyph class.
+export * from '@styloviz/icons/core';
 
 // ── Registry + all icon components (generated) ────────────────────────────────
-export type { IconName, IconMeta } from './generated/registry';
+export type { IconMeta } from './generated/registry';

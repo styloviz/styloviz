@@ -12,8 +12,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { svPointerFraction, svUniqueId } from '@styloviz/core/a11y';
 import { SvFieldErrorComponent, createFieldError, type SvServerError, svNumberOr } from '@styloviz/core/forms';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
-import { SvNumberInputComponent } from '../number-input/number-input.component';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
+import { SvNumberInputComponent } from '@styloviz/forms/number-input';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

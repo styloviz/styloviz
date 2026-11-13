@@ -33,7 +33,7 @@ import {
   svZoneOffsetMinutes,
   type SvLabelParams,
 } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS, type SvFormsLabels } from '../forms.labels';
+import { SV_FORMS_LABELS, type SvFormsLabels } from '@styloviz/forms/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

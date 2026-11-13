@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { render } from '@testing-library/angular';
 import { provideSvLabels } from '@styloviz/core/i18n';
 import { SvSurveyComponent, svNpsBand, type SvSurveyResponse } from './survey.component';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SV_FORMS_LABELS } from '../labels/forms.labels';
 
 async function mount(inputs: Record<string, unknown> = {}, providers: unknown[] = []) {
   TestBed.resetTestingModule();

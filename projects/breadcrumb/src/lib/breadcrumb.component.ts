@@ -33,7 +33,7 @@ import {
 } from '@styloviz/core/nav';
 import { svStackedPopup, createPortalHost, svRecoverFocus, type SvPortalHost } from '@styloviz/core/overlay';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_BREADCRUMB_LABELS } from './breadcrumb.labels';
 
 import { registerBreadcrumbIcons } from './breadcrumb.component.icons';

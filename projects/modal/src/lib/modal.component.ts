@@ -19,7 +19,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DOCUMENT, isPlatformBrowser, NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { svUniqueId, svIsRtl } from '@styloviz/core/a11y';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { injectSvLabels } from '@styloviz/core/i18n';

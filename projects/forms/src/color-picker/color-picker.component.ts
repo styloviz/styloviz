@@ -37,8 +37,8 @@ import { svListenWhile, type SvListenWhileRef } from '@styloviz/core/directives'
 import { SvFieldErrorComponent, createFieldError, type SvServerError } from '@styloviz/core/forms';
 import { injectSvLabels, svFormatLabel } from '@styloviz/core/i18n';
 import { createPortalHost, svInlineAnchor, type SvPortalHost, svStackedPopup } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerColorPickerIcons } from './color-picker.component.icons';
 // ─── Colour math helpers ──────────────────────────────────────────────────────

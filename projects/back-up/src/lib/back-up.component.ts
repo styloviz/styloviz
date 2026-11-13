@@ -17,7 +17,7 @@ import {
   svNavRecorder,
   type SvLinkTarget,
 } from '@styloviz/core/nav';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_BACK_UP_LABELS } from './back-up.labels';
 
 import { registerBackUpIcons } from './back-up.component.icons';

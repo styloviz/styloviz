@@ -9,11 +9,11 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { NgClass, NgTemplateOutlet } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { injectSvSensitivePrivacy, svMaskTail, type SvSensitiveCopyEvent } from '@styloviz/core/security';
 import { SV_CLIPBOARD, SvClipboardError, type SvClipboardFailureReason } from './clipboard.adapter';
-import { SV_LAYOUT_LABELS } from '../layout.labels';
+import { SV_LAYOUT_LABELS } from '@styloviz/layout/labels';
 
 import { registerCopyToClipboardIcons } from './copy-to-clipboard.component.icons';
 /** Default for `copyTimeout`: a write still pending after this long is abandoned. */

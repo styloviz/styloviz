@@ -34,6 +34,9 @@
       "@styloviz/ai": [
         "./projects/ai/src/public-api.ts"
       ],
+      "@styloviz/ai/*": [
+        "./projects/ai/src/*/public-api.ts"
+      ],
       "@styloviz/ai-insight-cards": [
         "./projects/ai-insight-cards/src/public-api.ts"
       ],
@@ -61,6 +64,9 @@
       "@styloviz/charts": [
         "./projects/charts-free/src/public-api.ts"
       ],
+      "@styloviz/charts/*": [
+        "./projects/charts-free/src/*/public-api.ts"
+      ],
       "@styloviz/citation-sources": [
         "./projects/citation-sources/src/public-api.ts"
       ],
@@ -69,6 +75,9 @@
       ],
       "@styloviz/commerce": [
         "./projects/commerce/src/public-api.ts"
+      ],
+      "@styloviz/commerce/*": [
+        "./projects/commerce/src/*/public-api.ts"
       ],
       "@styloviz/cookie-consent": [
         "./projects/cookie-consent/src/public-api.ts"
@@ -88,6 +97,9 @@
       "@styloviz/display": [
         "./projects/display/src/public-api.ts"
       ],
+      "@styloviz/display/*": [
+        "./projects/display/src/*/public-api.ts"
+      ],
       "@styloviz/empty-state": [
         "./projects/empty-state/src/public-api.ts"
       ],
@@ -97,6 +109,9 @@
       "@styloviz/forms": [
         "./projects/forms/src/public-api.ts"
       ],
+      "@styloviz/forms/*": [
+        "./projects/forms/src/*/public-api.ts"
+      ],
       "@styloviz/icons": [
         "./projects/icons-free/src/api.ts"
       ],
@@ -105,6 +120,9 @@
       ],
       "@styloviz/icons/registry": [
         "./projects/icons-free/src/generated/registry.ts"
+      ],
+      "@styloviz/icons/core": [
+        "./projects/icons-free/src/lib/public-api.ts"
       ],
       "@styloviz/image-compare": [
         "./projects/image-compare/src/public-api.ts"
@@ -127,6 +145,9 @@
       "@styloviz/layout": [
         "./projects/layout/src/public-api.ts"
       ],
+      "@styloviz/layout/*": [
+        "./projects/layout/src/*/public-api.ts"
+      ],
       "@styloviz/list-view": [
         "./projects/list-view-free/src/public-api.ts"
       ],
@@ -138,6 +159,9 @@
       ],
       "@styloviz/overlays": [
         "./projects/overlays/src/public-api.ts"
+      ],
+      "@styloviz/overlays/*": [
+        "./projects/overlays/src/*/public-api.ts"
       ],
       "@styloviz/pagination": [
         "./projects/pagination/src/public-api.ts"

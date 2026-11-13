@@ -25,8 +25,8 @@ import { type MenuGroup, type MenuItem, type NavChild } from '@styloviz/core/mod
 import { SV_LINK_ADAPTER, svIsModifiedClick, svNavParam, svNavRecorder } from '@styloviz/core/nav';
 import { svStackedPopup, svFocusableWithin, svRecoverFocus } from '@styloviz/core/overlay';
 import { svAttrSelector } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SvTooltipComponent } from '@styloviz/overlays';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SvTooltipComponent } from '@styloviz/overlays/tooltip';
 import { SvScrollAreaComponent } from '@styloviz/scroll-area';
 import { SvSidebarNavItemEndDirective } from './sidebar-nav.templates';
 import {

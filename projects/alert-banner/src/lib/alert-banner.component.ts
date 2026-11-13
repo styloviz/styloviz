@@ -21,7 +21,7 @@ import { svWarnOnce } from '@styloviz/core/dev';
 import { SvBannerStackService, type SvBannerHandle, type SvBannerSlot } from '@styloviz/core/feedback';
 import { injectSvLabels } from '@styloviz/core/i18n';
 import { createFocusScope } from '@styloviz/core/overlay';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SV_ALERT_BANNER_LABELS } from './alert-banner.labels';
 
 import { registerAlertBannerIcons } from './alert-banner.component.icons';

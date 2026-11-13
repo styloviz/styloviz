@@ -17,7 +17,7 @@ import {
   untracked,
   ViewChild,
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import {
   svSerializeTourProgress,
   svRestoreTourProgress,

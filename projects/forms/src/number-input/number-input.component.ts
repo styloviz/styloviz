@@ -14,8 +14,8 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { svDescribedBy, svNumberOr } from '@styloviz/core/forms';
 import { svCurrencyAffix, svFormatNumber, injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 import { registerNumberInputIcons } from './number-input.component.icons';
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -26,8 +26,8 @@ import {
 } from '@styloviz/core/data';
 import { SV_MACHINE_LOCALE, injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
 import { svIsSafeUrl } from '@styloviz/core/security';
-import { SvIconComponent } from '@styloviz/icons';
-import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '../display.labels';
+import { SvIconComponent } from '@styloviz/icons/core';
+import { SV_DISPLAY_LABELS, type SvDisplayLabels } from '@styloviz/display/labels';
 import {
   svClampMedia,
   svFormatMediaTime,

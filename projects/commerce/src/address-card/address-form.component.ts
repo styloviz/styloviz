@@ -22,7 +22,7 @@ import {
 } from './address-schema';
 import { svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_COMMERCE_LABELS } from '../commerce.labels';
+import { SV_COMMERCE_LABELS } from '@styloviz/commerce/labels';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 

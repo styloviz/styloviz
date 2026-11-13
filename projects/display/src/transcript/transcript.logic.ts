@@ -1,4 +1,4 @@
-import { svFormatMediaTime } from '../media-player/media-player.logic';
+import { svFormatMediaTime } from '@styloviz/display/media-player';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

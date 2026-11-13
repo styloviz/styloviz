@@ -15,12 +15,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { NgClass, isPlatformBrowser } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvLiveAnnouncer } from '@styloviz/core/a11y';
 import { createAsyncAction, type SvDataError, type SvRequest } from '@styloviz/core/data';
 import { SvSpinnerArcComponent } from '@styloviz/core/feedback';
 import { injectSvLabels } from '@styloviz/core/i18n';
-import { SV_OVERLAYS_LABELS } from '../overlays.labels';
+import { SV_OVERLAYS_LABELS } from '@styloviz/overlays/labels';
 
 import { registerResultIcons } from './result.component.icons';
 /** The work a result page's retry performs, owned by the component. */

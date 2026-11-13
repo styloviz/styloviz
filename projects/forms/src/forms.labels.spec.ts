@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/angular';
 import { provideSvLabels } from '@styloviz/core/i18n';
 import userEvent from '@testing-library/user-event';
 import { SvColorPickerComponent } from './color-picker/color-picker.component';
-import { SV_FORMS_LABELS } from './forms.labels';
+import { SV_FORMS_LABELS } from './labels/forms.labels';
 import { SvNumberInputComponent } from './number-input/number-input.component';
 import { SvSliderComponent } from './slider/slider.component';
 

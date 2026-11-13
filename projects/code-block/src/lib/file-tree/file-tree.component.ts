@@ -6,7 +6,7 @@ import {
   model,
   output,
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvTreeViewComponent, type TreeNode } from '@styloviz/tree-view';
 import { type SvDataError } from '@styloviz/core/data';
 import { injectSvLabels, svLocale } from '@styloviz/core/i18n';

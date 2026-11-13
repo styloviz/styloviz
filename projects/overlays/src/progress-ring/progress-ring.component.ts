@@ -13,7 +13,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { svHighContrast, svOnHighContrastChange, svUniqueId } from '@styloviz/core/a11y';
 import { injectSvLabels, svFormatLabel, svLocale } from '@styloviz/core/i18n';
-import { SV_OVERLAYS_LABELS } from '../overlays.labels';
+import { SV_OVERLAYS_LABELS } from '@styloviz/overlays/labels';
 
 export type ProgressRingSize    = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type ProgressRingVariant = 'default' | 'gradient' | 'dashed' | 'glow';

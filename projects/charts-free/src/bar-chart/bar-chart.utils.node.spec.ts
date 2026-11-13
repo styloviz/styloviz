@@ -13,7 +13,7 @@ import {
   DEFAULT_COLORS,
 } from './bar-chart.utils';
 import type { BarChartDataset } from './bar-chart.types';
-import { SV_CHARTS_LABELS } from '../charts-free.labels';
+import { SV_CHARTS_LABELS } from '../labels/charts-free.labels';
 
 const WORDING = { nounCount: SV_CHARTS_LABELS.valueCountBar, labels: SV_CHARTS_LABELS, locale: 'en-US' };
 

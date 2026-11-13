@@ -9,13 +9,13 @@ import {
   viewChild,
   ElementRef
 } from '@angular/core';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { injectSvLabels, SvLabelPipe } from '@styloviz/core/i18n';
-import { SV_FORMS_LABELS } from '../forms.labels';
+import { SV_FORMS_LABELS } from '@styloviz/forms/labels';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-import { SV_CHIP_GROUP } from '../chip-group/chip-group.token';
+import { SV_CHIP_GROUP } from './chip-group.token';
 
 import { registerChipIcons } from './chip.component.icons';
 export type ChipVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple';

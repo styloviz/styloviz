@@ -28,7 +28,7 @@ import { svFormatCount, svLocale, injectSvLabels, SvLabelPipe, svFormatLabel } f
 import { createPortalHost, type SvPortalHost } from '@styloviz/core/overlay';
 import { svHighlightSegments } from '@styloviz/core/security';
 import { isPlatformBrowser, NgClass } from '@angular/common';
-import { SvIconComponent } from '@styloviz/icons';
+import { SvIconComponent } from '@styloviz/icons/core';
 import { SvKbdComponent } from '@styloviz/kbd';
 import { FormsModule } from '@angular/forms';
 import { SV_SEARCH_BAR_LABELS } from './search-bar-free.labels';
